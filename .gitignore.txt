@@ -1,6 +1,6 @@
 # Visual studio folders
 .vs/*
-build
+build/
 
 # Prerequisites
 *.d
