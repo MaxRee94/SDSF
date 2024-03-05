@@ -199,4 +199,3 @@ cython_debug/
 
 # Pre-compiled python files
 .pyc
-source/
