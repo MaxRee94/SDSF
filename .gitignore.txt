@@ -199,3 +199,4 @@ cython_debug/
 
 # Pre-compiled python files
 .pyc
+.cpython-312.pyc

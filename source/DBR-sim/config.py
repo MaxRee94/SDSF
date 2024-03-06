@@ -1,5 +1,17 @@
 """DBR-sim defaults and constants."""
 
+defaults = {
+    "gridsize": 1000
+}
+
+gui_defaults = {
+    "gridsize": 1000,
+    "setting2": [
+        "default1",
+        "default2",
+        "default3"
+    ]
+}
 
 _parameter_config = {
     "gridsize": {
@@ -13,7 +25,7 @@ _parameter_config = {
                 "The number of grid cells to be used along one axis of the spatial domain."
             ),
         },
-        "default": 100,
+        "default": defaults["gridsize"],
     },
 }
 
