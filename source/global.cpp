@@ -1,21 +1,20 @@
 #include <pybind11/pybind11.h>
-#include <iostream>
-
+#include "state.h"
 
 using namespace std;
 namespace py = pybind11;
 
-void say_hello() {
-    printf("Hi..\n");
-}
 
-int add(int a, int b) {
-    return a + b;
+void check_communication() {
+    printf("Verified python->cpp communication.\n");
 }
 
 PYBIND11_MODULE(dbr_cpp, module) {
     module.doc() = "DBR-cpp module (contains python extensions written in c++)"; // optional module docstring
 
-    module.def("say_hello", &say_hello);
-    module.def("add", &add);
+    module.def("check_communication", &check_communication);
+
+    py::class_<State>(module, "State")
+        .def(py::init<>())
+        .def("populate_grid", &State::populate_grid);
 }
