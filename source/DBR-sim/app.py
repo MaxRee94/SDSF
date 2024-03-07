@@ -3,11 +3,11 @@ import sys
 
 def main(gridsize=None):
     print("Launching app...")
-    print("Grid size:", gridsize)
     sys.path.append(r"F:\Development\DBR-sim\build")
-    #sys.path.append(".../build")
-    print(sys.path)
-    from x64.Release import dbr_cpp
-    dbr_cpp.say_hello()
+    from x64.Release import dbr_cpp as cpp
+    cpp.check_communication()
 
+    state = cpp.State()
+    #print("Grid size:", state.grid.gridsize)
+    state.populate_grid()
 

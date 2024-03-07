@@ -43,8 +43,7 @@ class ParameterConfig():
 
         Some parameters have a function stored as a default. We execute the stored
         function to get the concrete default value to be used. This is done for
-        parameters with defaults that are project-specific. For example, the default
-        for the parameter `template` is the function 'get_project_publish_template'.
+        parameters with defaults that are project-specific.
         When executed, this function returns the publish template defined in the
         project entity (a string), which is then used to overwrite the default in the
         config data.
