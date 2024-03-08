@@ -1,4 +1,6 @@
 import sys
+import visualization as vis
+import numpy as np
 
 
 def main(gridsize=None):
@@ -9,5 +11,12 @@ def main(gridsize=None):
 
     state = cpp.State()
     #print("Grid size:", state.grid.gridsize)
+    #state.set_tree_cover(0.5)
     state.populate_grid()
+    distr = np.ndarray(shape=(1000, 1000), dtype=np.double)
+
+    #help(cpp.get_distribution)
+    distribution = state.grid.get_distribution()
+    print(distribution[600])
+    #vis.visualize(state.grid)
 
