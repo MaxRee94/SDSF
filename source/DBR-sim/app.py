@@ -9,7 +9,7 @@ def main(gridsize=None):
     from x64.Release import dbr_cpp as cpp
     cpp.check_communication()
 
-    state = cpp.State()
+    state = cpp.State(gridsize[0])
     #print("Grid size:", state.grid.gridsize)
     #state.set_tree_cover(0.5)
     state.populate_grid()

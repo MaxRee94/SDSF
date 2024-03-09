@@ -10,6 +10,10 @@ public:
 		grid = Grid();
 		population = Population();
 	}
+	State(int _gridsize) {
+		grid = Grid(_gridsize);
+		population = Population();
+	}
 	void populate_grid() {
 		cout << "Populating grid..." << endl;
 	}
