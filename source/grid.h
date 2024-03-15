@@ -77,19 +77,25 @@ public:
 		distribution[idx].state = 0;
 		distribution[idx].tree = 0;
 	}
-	void cap(pair<int, int> &position_grid) {
-		if (position_grid.first < 0) position_grid.first = size - position_grid.first;
-		if (position_grid.second < 0) position_grid.second = size - position_grid.second;
-		position_grid.first %= size;
-		position_grid.second %= size;
-	}
 	void set_to_forest(pair<int, int> position_grid, Tree* tree) {
+		if (position_grid.second > 1000 || position_grid.first > 1000) {
+			pair<int, int> old(position_grid.first, position_grid.second);
+			cap(position_grid);
+			if (old.first % 1000 == 0)
+				printf("Old vs new position: (%i, %i) vs (%i, %i)\n", old.first, old.second, position_grid.first, position_grid.second);
+		}
 		cap(position_grid);
 		set_to_forest(position_grid.second * size + position_grid.first, tree);
 	}
 	void set_to_savanna(pair<int, int> position_grid, Tree* tree) {
 		cap(position_grid);
 		set_to_savanna(position_grid.second * size + position_grid.first, tree);
+	}
+	void cap(pair<int, int> &position_grid) {
+		if (position_grid.first < 0) position_grid.first = size + position_grid.first;
+		if (position_grid.second < 0) position_grid.second = size + position_grid.second;
+		position_grid.first %= size;
+		position_grid.second %= size;
 	}
 	pair<int, int> get_gridbased_position(Tree* tree) {
 		return pair<int, int>(tree->position.first / cellsize, tree->position.second / cellsize);
