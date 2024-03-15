@@ -31,23 +31,24 @@ py::array_t<int> as_numpy_array(int* distribution, int width) {
 
 
 PYBIND11_MODULE(dbr_cpp, module) {
-    module.doc() = "DBR-cpp module (contains python extensions written in c++)";
+    module.doc() = "DBR-cpp module (contains python extensions written in c++)"; // optional module docstring
 
     module.def("check_communication", &check_communication);
 
     py::class_<State>(module, "State")
         .def(py::init<>())
-        .def(py::init<const int&, const float&, const float&>())
+        .def(py::init<const int &>())
         .def("populate_grid", &State::populate_grid)
         .def("set_tree_cover", &State::set_tree_cover)
         .def_readwrite("grid", &State::grid);
 
     py::class_<Grid>(module, "Grid")
         .def(py::init<>())
-        .def(py::init<const int&, const float&>())
-        .def_readwrite("size", &Grid::size)
+        .def(py::init<const int&>())
         .def("get_distribution", [](Grid &grid) {
             int* state_distribution = grid.get_state_distribution();
             return as_numpy_array(state_distribution, grid.size);
-        });
+        }
+    );
+
 }

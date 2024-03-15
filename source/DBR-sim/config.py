@@ -1,11 +1,15 @@
 """DBR-sim defaults and constants."""
 
 defaults = {
-    "gridsize": 1000
+    "gridsize": 1000,
+    "treecover": 0.5,
+    "cellsize": 1.5,
+    "mean_radius": 6.0
 }
 
 gui_defaults = {
-    "gridsize": 1000,
+    "gridsize": defaults["gridsize"],
+    "treecover": defaults["treecover"],
     "setting2": [
         "default1",
         "default2",
@@ -26,6 +30,45 @@ _parameter_config = {
             ),
         },
         "default": defaults["gridsize"],
+    },
+    "treecover": {
+        "keys": {
+            "cli": ["--treecover", "-tc"]
+        },
+        "settings": {
+            "nargs": "*",
+            "type": float,
+            "help": (
+                "The minimal fraction of the spatial domain occupied by tree cells."
+            ),
+        },
+        "default": defaults["treecover"],
+    },
+    "cellsize": {
+        "keys": {
+            "cli": ["--cellsize", "-cs"]
+        },
+        "settings": {
+            "nargs": "*",
+            "type": float,
+            "help": (
+                "The width (in meters) of each grid cell."
+            ),
+        },
+        "default": defaults["cellsize"],
+    },
+    "mean_radius": {
+        "keys": {
+            "cli": ["--mean_radius", "-mr"]
+        },
+        "settings": {
+            "nargs": "*",
+            "type": float,
+            "help": (
+                "The mean radius (in meters) of each tree in the initial timestep."
+            ),
+        },
+        "default": defaults["mean_radius"],
     },
 }
 
