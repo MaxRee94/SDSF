@@ -6,6 +6,7 @@ defaults = {
     "cellsize": 1.5,
     "mean_radius": 6.0,
     "image_width": 1000,
+    "timestep": 1,
 }
 
 gui_defaults = {
@@ -77,6 +78,18 @@ _parameter_config = {
                 "The width (in pixels) of the viewer image (which displays the simulated spatial domain)."
             ),
             "default": defaults["image_width"],
+        },
+    },
+    "timestep": {
+        "keys": {
+            "cli": ["--timestep", "-ts"]
+        },
+        "settings": {
+            "type": int,
+            "help": (
+                "The duration of a single timestep, in whole years."
+            ),
+            "default": defaults["timestep"],
         },
     },
 }

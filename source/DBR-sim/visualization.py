@@ -18,7 +18,6 @@ def visualize(grid, image_width=1000):
     img *= 255
     img = img.astype(np.uint8)
     
-    print("image width: ", image_width)
     img_resized = cv2.resize(img, (image_width, image_width),
                interpolation = cv2.INTER_LINEAR)
 

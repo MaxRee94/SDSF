@@ -4,8 +4,6 @@
 #include "grid.h"
 
 
-
-
 class State {
 public:
 	State() {

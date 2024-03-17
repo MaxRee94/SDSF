@@ -1,7 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
-#include "state.h"
+#include "dynamics.h"
 
 
 using namespace std;
@@ -50,4 +50,11 @@ PYBIND11_MODULE(dbr_cpp, module) {
             int* state_distribution = grid.get_state_distribution();
             return as_numpy_array(state_distribution, grid.size);
         });
+
+    py::class_<Dynamics>(module, "Dynamics")
+        .def(py::init<>())
+        .def(py::init<const int&>())
+        .def_readwrite("state", &Dynamics::state)
+        .def_readwrite("timestep", &Dynamics::timestep)
+        .def("init_state", &Dynamics::init_state);
 }

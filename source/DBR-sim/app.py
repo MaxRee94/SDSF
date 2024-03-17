@@ -4,21 +4,23 @@ from cv2 import textureFlattening
 import visualization as vis
 import numpy as np
 
+sys.path.append(r"F:\Development\DBR-sim\build")
+from x64.Release import dbr_cpp as cpp
 
-def main(gridsize=None, treecover=None, cellsize=None, mean_radius=None, image_width=None):
-    print("Launching app...")
-    sys.path.append(r"F:\Development\DBR-sim\build")
-    from x64.Release import dbr_cpp as cpp
-    #from x64.Debug import dbr_cpp as cpp
 
+
+def init(timestep=None, gridsize=None, cellsize=None, mean_radius=None, treecover=None, **_):
+    print("timestep:", timestep)
+    dynamics = cpp.Dynamics(timestep)
+    dynamics.init_state(gridsize, cellsize, mean_radius)
+    dynamics.state.set_tree_cover(treecover)
+    
+    return dynamics
+
+
+def main(**kwargs):
+    dynamics = init(**kwargs)
     cpp.check_communication()
-
-    state = cpp.State(gridsize, cellsize, mean_radius)
-    state.set_tree_cover(treecover)
-    distr = np.ndarray(shape=(1000, 1000), dtype=np.double)
-
-    #help(cpp.get_distribution)
-    print("Obtained grid distribution.")
-    #print(distribution[600])
-    vis.visualize(state.grid, image_width=image_width)
+    
+    vis.visualize(dynamics.state.grid, image_width=kwargs["image_width"])
 
