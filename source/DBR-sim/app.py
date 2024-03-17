@@ -1,6 +1,6 @@
 import sys
 
-from cv2 import textureFlattening
+import cv2
 import visualization as vis
 import numpy as np
 import time
@@ -20,13 +20,15 @@ def init(timestep=None, gridsize=None, cellsize=None, mean_radius=None, treecove
 
 def updateloop(dynamics, **kwargs):
     start = time.time()
-    within_timelimit = True;
-    while within_timelimit:
+    is_within_timelimit = True;
+    while is_within_timelimit:
         dynamics.update()
-        within_timelimit = time.time() - start < kwargs["timelimit"]
+        vis.visualize(dynamics.state.grid, kwargs["image_width"])
+        is_within_timelimit = time.time() - start < kwargs["timelimit"]
 
-    if not within_timelimit:
+    if not is_within_timelimit:
         print(f"Simulation terminated due to timelimit ({kwargs["timelimit"]} s) expiration.")
+    cv2.destroyAllWindows()
 
 def main(**kwargs):
     dynamics = init(**kwargs)
