@@ -7,6 +7,7 @@ defaults = {
     "mean_radius": 6.0,
     "image_width": 1000,
     "timestep": 1,
+    "timelimit": 10,
 }
 
 gui_defaults = {
@@ -90,6 +91,18 @@ _parameter_config = {
                 "The duration of a single timestep, in whole years."
             ),
             "default": defaults["timestep"],
+        },
+    },
+    "timelimit": {
+        "keys": {
+            "cli": ["--timelimit", "-tl"]
+        },
+        "settings": {
+            "type": int,
+            "help": (
+                "The maxmimum number of seconds that the simulation is allowed to run before termination."
+            ),
+            "default": defaults["timelimit"],
         },
     },
 }

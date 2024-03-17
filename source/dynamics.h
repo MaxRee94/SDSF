@@ -6,14 +6,17 @@ class Dynamics {
 public:
 	Dynamics() = default;
 	Dynamics(int _timestep) : timestep(_timestep) {
+		time = 0;
 	};
 	void init_state(int gridsize, float cellsize, float mean_radius) {
 		state = State(gridsize, cellsize, mean_radius);
 	}
 	void update() {
-		printf("updating\n");
+		time++;
+		printf("Updating... Time: %i\n", time);
 	}
 	int timestep = 0;
+	int time = 0;
 	State state;
 };
 

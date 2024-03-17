@@ -56,5 +56,6 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<const int&>())
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)
-        .def("init_state", &Dynamics::init_state);
+        .def("init_state", &Dynamics::init_state)
+        .def("update", &Dynamics::update);
 }
