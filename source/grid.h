@@ -78,12 +78,6 @@ public:
 		distribution[idx].tree = 0;
 	}
 	void set_to_forest(pair<int, int> position_grid, Tree* tree) {
-		if (position_grid.second > 1000 || position_grid.first > 1000) {
-			pair<int, int> old(position_grid.first, position_grid.second);
-			cap(position_grid);
-			if (old.first % 1000 == 0)
-				printf("Old vs new position: (%i, %i) vs (%i, %i)\n", old.first, old.second, position_grid.first, position_grid.second);
-		}
 		cap(position_grid);
 		set_to_forest(position_grid.second * size + position_grid.first, tree);
 	}

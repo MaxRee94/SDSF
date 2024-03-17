@@ -4,7 +4,8 @@ defaults = {
     "gridsize": 1000,
     "treecover": 0.5,
     "cellsize": 1.5,
-    "mean_radius": 6.0
+    "mean_radius": 6.0,
+    "image_width": 1000,
 }
 
 gui_defaults = {
@@ -23,52 +24,60 @@ _parameter_config = {
             "cli": ["--gridsize", "-gs"]
         },
         "settings": {
-            "nargs": "*",
             "type": int,
             "help": (
                 "The number of grid cells to be used along one axis of the spatial domain."
             ),
+            "default": defaults["gridsize"],
         },
-        "default": defaults["gridsize"],
     },
     "treecover": {
         "keys": {
             "cli": ["--treecover", "-tc"]
         },
         "settings": {
-            "nargs": "*",
             "type": float,
             "help": (
                 "The minimal fraction of the spatial domain occupied by tree cells."
             ),
+            "default": defaults["treecover"],
         },
-        "default": defaults["treecover"],
     },
     "cellsize": {
         "keys": {
             "cli": ["--cellsize", "-cs"]
         },
         "settings": {
-            "nargs": "*",
             "type": float,
             "help": (
                 "The width (in meters) of each grid cell."
             ),
+            "default": defaults["cellsize"],
         },
-        "default": defaults["cellsize"],
     },
     "mean_radius": {
         "keys": {
             "cli": ["--mean_radius", "-mr"]
         },
         "settings": {
-            "nargs": "*",
             "type": float,
             "help": (
                 "The mean radius (in meters) of each tree in the initial timestep."
             ),
+            "default": defaults["mean_radius"],
         },
-        "default": defaults["mean_radius"],
+    },
+    "image_width": {
+        "keys": {
+            "cli": ["--image_width", "-iw"]
+        },
+        "settings": {
+            "type": int,
+            "help": (
+                "The width (in pixels) of the viewer image (which displays the simulated spatial domain)."
+            ),
+            "default": defaults["image_width"],
+        },
     },
 }
 
@@ -82,22 +91,9 @@ class ParameterConfig():
         self.load()
 
     def load(self):
-        """Update `self.data` by loading parameter config data.
-
-        Some parameters have a function stored as a default. We execute the stored
-        function to get the concrete default value to be used. This is done for
-        parameters with defaults that are project-specific.
-        When executed, this function returns the publish template defined in the
-        project entity (a string), which is then used to overwrite the default in the
-        config data.
-        """
+        """Update `self.data` by loading parameter config data."""
         for name, cfg in _parameter_config.copy().items():
             _cfg = cfg.copy()
-            default = _cfg.get("default")
-            if default and callable(default):
-                # Execute the stored function to get the concrete default specific to
-                # the resolved project.
-                _cfg["default"] = default()
 
             self.data[name] = _cfg
 

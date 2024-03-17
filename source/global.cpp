@@ -23,8 +23,7 @@ py::array_t<int> as_numpy_array(int* distribution, int width) {
     {
         for (size_t j = 0; j < numpy_array.shape(1); j++)
         {
-            setter(j, i) = distribution[i * width + j] * ((float)j / (1000.0 / 255.0));
-            //setter(i, j) = distribution[i * width + j];
+            setter(j, i) = distribution[i * width + j];
         }
     }
     return numpy_array;
