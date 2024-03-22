@@ -87,7 +87,7 @@ namespace help {
 
 	float get_rand_float(float min, float max);
 
-	uint get_rand_uint(float min, float max);
+	uint get_rand_uint(int min, int max);
 
 	void remove(vector<int>* vec, int item);
 

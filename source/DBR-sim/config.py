@@ -1,17 +1,18 @@
 """DBR-sim defaults and constants."""
+import argparse
 
 defaults = {
     "gridsize": 1000,
     "treecover": 0.5,
     "cellsize": 1.5,
-    "mean_radius": 6.0,
+    "max_radius": 6.0,
     "image_width": 1000,
     "timestep": 1,
-    "timelimit": 10,
+    "timelimit": 1e8,
     "self_ignition_factor": 20.0,
     "unsuppressed_flammability": -999.0,
     "suppressed_flammability": -999.0,
-    "rainfall": 0.1
+    "rainfall": 0.1,
 }
 
 gui_defaults = {
@@ -61,16 +62,27 @@ _parameter_config = {
             "default": defaults["cellsize"],
         },
     },
-    "mean_radius": {
+    "verbose": {
         "keys": {
-            "cli": ["--mean_radius", "-mr"]
+            "cli": ["--verbose", "-vb"]
+        },
+        "settings": {
+            "action": argparse.BooleanOptionalAction,
+            "help": (
+                "Whether or not to print informational progress updates to the terminal."
+            ),
+        },
+    },
+    "max_radius": {
+        "keys": {
+            "cli": ["--max_radius", "-mr"]
         },
         "settings": {
             "type": float,
             "help": (
                 "The mean radius (in meters) of each tree in the initial timestep."
             ),
-            "default": defaults["mean_radius"],
+            "default": defaults["max_radius"],
         },
     },
     "image_width": {

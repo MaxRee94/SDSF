@@ -22,9 +22,8 @@ float help::get_rand_float(float min, float max) {
     return min + (float)rand() * INV_RAND_MAX * (max - min);
 }
 
-uint help::get_rand_uint(float min, float max) {
-    float float_rand_range = (float)rand() * INV_RAND_MAX * (max - min);
-    return round(min + float_rand_range);
+uint help::get_rand_uint(int min, int max) {
+    return round(help::get_rand_float(min, max));
 }
 
 bool help::is_in(std::vector<int>* vec, int item) {

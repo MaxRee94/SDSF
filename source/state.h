@@ -10,16 +10,16 @@ public:
 		grid = Grid();
 		population = Population();
 	}
-	State(int gridsize, float cellsize, float mean_radius) {
+	State(int gridsize, float cellsize, float max_radius) {
+		population = Population(max_radius);
 		grid = Grid(gridsize, cellsize);
-		population = Population(mean_radius);
 	}
-	void repopulate_grid() {
+	void repopulate_grid(bool verbose = false) {
 		grid.reset();
 		for (auto& tree : population.members) {
 			grid.populate_tree_domain(&tree);
 		}
-		cout << "Repopulated grid." << endl;
+		if (verbose) cout << "Repopulated grid." << endl;
 	}
 	void set_tree_cover(float _tree_cover) {
 		help::init_RNG();
@@ -35,7 +35,6 @@ public:
 		}
 		printf("Final tree cover: %f\n", grid.get_tree_cover());
 	}
-	float TEMP_RADIUS = 200.0;
 	Grid grid;
 	Population population;
 };
