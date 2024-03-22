@@ -6,6 +6,7 @@
 #include <Windows.h>
 #include <string>
 #include <iostream>
+#include <queue>
 
 
 
@@ -33,6 +34,11 @@ struct _comparator {
 };
 
 typedef std::set < std::pair<int, double>, _comparator> PairSet;
+
+template <typename T, typename U>
+std::pair<T, U> operator+(const std::pair<T, U>& l, const std::pair<T, U>& r) {
+	return { l.first + r.first,l.second + r.second };
+}
 
 namespace help {
 

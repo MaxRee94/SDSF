@@ -8,6 +8,10 @@ defaults = {
     "image_width": 1000,
     "timestep": 1,
     "timelimit": 10,
+    "self_ignition_factor": 20.0,
+    "unsuppressed_flammability": -999.0,
+    "suppressed_flammability": -999.0,
+    "rainfall": 0.1
 }
 
 gui_defaults = {
@@ -103,6 +107,54 @@ _parameter_config = {
                 "The maxmimum number of seconds that the simulation is allowed to run before termination."
             ),
             "default": defaults["timelimit"],
+        },
+    },
+    "self_ignition_factor": {
+        "keys": {
+            "cli": ["--self_ignition_factor", "-sif"]
+        },
+        "settings": {
+            "type": float,
+            "help": (
+                "Determines the number of cells ignited per year by multiplication with rainfall levels."
+            ),
+            "default": defaults["self_ignition_factor"],
+        },
+    },
+    "unsuppressed_flammability": {
+        "keys": {
+            "cli": ["--unsuppressed_flammability", "-uf"]
+        },
+        "settings": {
+            "type": float,
+            "help": (
+                "Flammability of savanna cells and forest cells that do not suppress fire (WARNING: ideally, this should not be a constant value but should be contingent on rainfall levels. Interpret results with care.)."
+            ),
+            "default": defaults["unsuppressed_flammability"],
+        },
+    },
+    "suppressed_flammability": {
+        "keys": {
+            "cli": ["--suppressed_flammability", "-sf"]
+        },
+        "settings": {
+            "type": float,
+            "help": (
+                "Flammability of forest cells that suppress fire (WARNING: ideally, this should not be a constant value but should be contingent on rainfall levels. Interpret results with care.)."
+            ),
+            "default": defaults["suppressed_flammability"],
+        },
+    },
+    "rainfall": {
+        "keys": {
+            "cli": ["--rainfall", "-rf"]
+        },
+        "settings": {
+            "type": float,
+            "help": (
+                "Rainfall levels, kept constant across all timesteps."
+            ),
+            "default": defaults["rainfall"],
         },
     },
 }

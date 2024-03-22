@@ -14,16 +14,18 @@ public:
 		grid = Grid(gridsize, cellsize);
 		population = Population(mean_radius);
 	}
-	void populate_grid() {
-		cout << "Populating  grid..." << endl;
+	void repopulate_grid() {
+		grid.reset();
+		for (auto& tree : population.members) {
+			grid.populate_tree_domain(&tree);
+		}
+		cout << "Repopulated grid." << endl;
 	}
 	void set_tree_cover(float _tree_cover) {
 		help::init_RNG();
 		grid.reset();
 		while (grid.get_tree_cover() < _tree_cover) {
-			float x = help::get_rand_float(0, grid.size_r);
-			float y = help::get_rand_float(0, grid.size_r);
-			pair<float, float> position = pair(x, y);
+			pair<int, int> position = grid.get_random_real_position();
 			Tree* tree = population.add(position);
 			grid.populate_tree_domain(tree);
 			if (population.size() % 1000 == 0) {

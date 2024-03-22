@@ -10,9 +10,15 @@ from x64.Release import dbr_cpp as cpp
 
 
 
-def init(timestep=None, gridsize=None, cellsize=None, mean_radius=None, treecover=None, **_):
+def init(timestep=None, gridsize=None, cellsize=None, mean_radius=None,
+         treecover=None, self_ignition_factor=None, flammability=None,
+         rainfall=None, unsuppressed_flammability=None, suppressed_flammability=None,
+         **_):
     cpp.check_communication()
-    dynamics = cpp.Dynamics(timestep)
+    dynamics = cpp.Dynamics(
+        timestep, unsuppressed_flammability, suppressed_flammability,
+        self_ignition_factor, rainfall
+    )
     dynamics.init_state(gridsize, cellsize, mean_radius)
     dynamics.state.set_tree_cover(treecover)
     
@@ -33,5 +39,7 @@ def updateloop(dynamics, **kwargs):
 def main(**kwargs):
     dynamics = init(**kwargs)
     updateloop(dynamics, **kwargs)
+
+
     
 
