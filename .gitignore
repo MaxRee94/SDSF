@@ -1,5 +1,5 @@
 # Visual studio folders
-.vs/*
+source/DBR-sim/.vs/
 build/
 source/__pycache__/
 
