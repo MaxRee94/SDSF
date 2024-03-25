@@ -1,5 +1,6 @@
 """DBR-sim defaults and constants."""
 import argparse
+import string
 
 defaults = {
     "gridsize": 1000,
@@ -13,6 +14,7 @@ defaults = {
     "unsuppressed_flammability": -999.0,
     "suppressed_flammability": -999.0,
     "rainfall": 0.1,
+    "test": "none",
 }
 
 gui_defaults = {
@@ -167,6 +169,18 @@ _parameter_config = {
                 "Rainfall levels, kept constant across all timesteps."
             ),
             "default": defaults["rainfall"],
+        },
+    },
+    "test": {
+        "keys": {
+            "cli": ["--test", "-test"]
+        },
+        "settings": {
+            "type": str,
+            "help": (
+                "Whether or not to run tests. Possible options: 'none', 'all'."
+            ),
+            "default": defaults["test"],
         },
     },
 }

@@ -11,7 +11,7 @@ public:
 		population = Population();
 	}
 	State(int gridsize, float cellsize, float max_radius) {
-		population = Population(max_radius);
+		population = Population(max_radius, cellsize);
 		grid = Grid(gridsize, cellsize);
 	}
 	void repopulate_grid(bool verbose = false) {

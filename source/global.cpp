@@ -1,7 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
-#include "dynamics.h"
+#include "tests.h"
 
 
 using namespace std;
@@ -59,4 +59,8 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def("init_state", &Dynamics::init_state)
         .def("update", &Dynamics::update)
         .def("simulate_fires", &Dynamics::simulate_fires);
+    
+    py::class_<Tests>(module, "Tests")
+        .def(py::init<>())
+        .def("run_all", &Tests::run_all);
 }

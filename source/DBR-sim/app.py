@@ -35,10 +35,18 @@ def updateloop(dynamics, **kwargs):
         #time.sleep(1)
 
     if not is_within_timelimit:
-        print(f"Simulation terminated due to timelimit ({kwargs["timelimit"]} s) expiration.")
+        print(f"Simulation terminated due to timelimit ({kwargs['timelimit']} s) expiration.")
     cv2.destroyAllWindows()
 
+def do_tests(**kwargs):
+    tests = cpp.Tests()
+    tests.run_all(True)
+
 def main(**kwargs):
+    if kwargs["test"] == "all":
+        do_tests(**kwargs)
+        return
+        
     dynamics = init(**kwargs)
     updateloop(dynamics, **kwargs)
 
