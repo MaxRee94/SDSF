@@ -15,6 +15,9 @@ defaults = {
     "suppressed_flammability": -999.0,
     "rainfall": 0.1,
     "test": "none",
+    "radius_q1": 1,
+    "radius_q2": 0,
+    "verbosity": 0,
 }
 
 gui_defaults = {
@@ -64,14 +67,14 @@ _parameter_config = {
             "default": defaults["cellsize"],
         },
     },
-    "verbose": {
+    "verbosity": {
         "keys": {
-            "cli": ["--verbose", "-vb"]
+            "cli": ["--verbosity", "-vb"]
         },
         "settings": {
-            "action": argparse.BooleanOptionalAction,
+            "type": int,
             "help": (
-                "Whether or not to print informational progress updates to the terminal."
+                "Controls the amount of informational progress updates that are printed to the terminal."
             ),
         },
     },
@@ -181,6 +184,30 @@ _parameter_config = {
                 "Whether or not to run tests. Possible options: 'none', 'all'."
             ),
             "default": defaults["test"],
+        },
+    },
+    "radius_q1": {
+        "keys": {
+            "cli": ["--radius_q1", "-rq1"]
+        },
+        "settings": {
+            "type": float,
+            "help": (
+                "The probability of occurrence in the initial state of the smallest tree radius."
+            ),
+            "default": defaults["radius_q1"],
+        },
+    },
+    "radius_q2": {
+        "keys": {
+            "cli": ["--radius_q2", "-rq2"]
+        },
+        "settings": {
+            "type": float,
+            "help": (
+                "The probability of occurrence in the initial state of the largest tree radius."
+            ),
+            "default": defaults["radius_q2"],
         },
     },
 }

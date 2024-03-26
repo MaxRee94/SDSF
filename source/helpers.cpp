@@ -410,3 +410,32 @@ float help::get_dist(pair<float, float> p1, pair<float, float> p2) {
     return sqrtf(xdif * xdif + ydif * ydif);
 }
 
+float help::exponential_function(float x, float a, float b, float c) {
+    return a * (x * x) + b * x + c;
+}
+
+float help::get_lowest_solution_for_quadratic(float y, float a, float b, float c) {
+    c -= y; // Make rhs equal to 0
+    float result1 = (-b - sqrtf(b * b - 4.0 * a * c)) / (2.0 * a);
+    float result2 = (-b + sqrtf(b * b - 4.0 * a * c)) / (2.0 * a);
+    return (result1 < result2 ? result1 : result2);
+}
+
+float help::sample_linear_distribution(float q1, float q2, float min, float max) {
+    float xrange = (max - min);
+    float a = (q2 - q1) / xrange;
+    float b = q1;
+    float cdf_of_xrange = 0.5 * a * xrange * xrange + b * xrange; // CDF(xrange)
+    
+    // Scale PDF such that it integrates to 1, i.e., so that CDF(xrange) = 1
+    a /= cdf_of_xrange;
+    b /= cdf_of_xrange;
+    // TODO (optimization): Create a separate LinearProbabilityModel-class which scales the PDF once and can then be reused for sampling repeatedly.
+
+    // Sample PDF through the inverse transform method, i.e.:
+    // Solve for dx in CDF(dx) = y, where y is a random number drawn from a uniform distribution with range [0,1]
+    float cdf_of_dx = help::get_rand_float(0, 1); // Obtain CDF(dx)
+    float dx = get_lowest_solution_for_quadratic(cdf_of_dx, a / 2.0, b, 0); // Get corresponding value dx
+    return min + dx;
+}
+

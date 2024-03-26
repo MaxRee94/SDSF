@@ -37,10 +37,11 @@ PYBIND11_MODULE(dbr_cpp, module) {
 
     py::class_<State>(module, "State")
         .def(py::init<>())
-        .def(py::init<const int&, const float&, const float&>())
+        .def(py::init<const int&, const float&, const float&, const float&, const float>())
         .def("repopulate_grid", &State::repopulate_grid)
         .def("set_tree_cover", &State::set_tree_cover)
-        .def_readwrite("grid", &State::grid);
+        .def_readwrite("grid", &State::grid)
+        .def_readwrite("population", &State::population);
 
     py::class_<Grid>(module, "Grid")
         .def(py::init<>())
@@ -53,12 +54,17 @@ PYBIND11_MODULE(dbr_cpp, module) {
 
     py::class_<Dynamics>(module, "Dynamics")
         .def(py::init<>())
-        .def(py::init<const int&, const float&, const float&, const float&, const float&>())
+        .def(py::init<const int&, const float&, const float&, const float&, const float&, const int&>())
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)
         .def("init_state", &Dynamics::init_state)
         .def("update", &Dynamics::update)
         .def("simulate_fires", &Dynamics::simulate_fires);
+
+    py::class_<Population>(module, "Population")
+        .def(py::init<>())
+        .def(py::init<const float&, const float&, const float&, const float&>())
+        .def("size", &Population::size);
     
     py::class_<Tests>(module, "Tests")
         .def(py::init<>())

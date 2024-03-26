@@ -10,8 +10,6 @@
 
 
 
-#define VERBOSE false
-
 using namespace std;
 
 
@@ -138,4 +136,13 @@ namespace help {
 
 	// Get maximum
 	double get_min(vector<double>* distribution);
+
+	// Get exponential function value
+	float exponential_function(float x, float a, float b, float c);
+
+	// Solve for x in quadratic function f(x), given coefficients (a and b), constant c, and value y = f(x)
+	float get_lowest_solution_for_quadratic(float y, float a, float b, float c);
+
+	// Sample linear distribution
+	float sample_linear_distribution(float q1, float q2, float min, float max);
 };

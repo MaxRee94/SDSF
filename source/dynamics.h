@@ -5,13 +5,14 @@
 class Dynamics {
 public:
 	Dynamics() = default;
-	Dynamics(int _timestep, float __unsuppressed_flammability, float __suppressed_flammability, float _self_ignition_factor, float _rainfall) :
+	Dynamics(int _timestep, float __unsuppressed_flammability, float __suppressed_flammability, float _self_ignition_factor, float _rainfall, int _verbosity) :
 		timestep(_timestep), _unsuppressed_flammability(__unsuppressed_flammability), _suppressed_flammability(__suppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall)
 	{
 		time = 0;
 		help::init_RNG();
 		init_neighbor_indices();
+		verbosity = _verbosity;
 	};
 	void init_neighbor_indices() {
 		neighbor_indices = new pair<int, int>[8];
@@ -22,12 +23,12 @@ public:
 			}
 		}
 	}
-	void init_state(int gridsize, float cellsize, float max_radius) {
-		state = State(gridsize, cellsize, max_radius);
+	void init_state(int gridsize, float cellsize, float max_radius, float radius_q1, float radius_q2) {
+		state = State(gridsize, cellsize, max_radius, radius_q1, radius_q2);
 	}
-	void update(bool verbose = false) {
+	void update() {
 		time++;
-		printf("Updating... Time: %i\n", time);
+		printf("Time: %i\n", time);
 		//printf("Pop size: %i \n", state.population.size());
 		state.repopulate_grid(verbose);
 		simulate_fires(verbose);

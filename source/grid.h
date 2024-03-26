@@ -30,7 +30,7 @@ public:
 			distribution[i].pos = pos;
 		}
 	}
-	pair<int, int> get_random_real_position() {
+	pair<float, float> get_random_real_position() {
 		float x = help::get_rand_float(0, size_r);
 		float y = help::get_rand_float(0, size_r);
 		pair<float, float> position = pair(x, y);
