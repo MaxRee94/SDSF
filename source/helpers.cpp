@@ -114,7 +114,7 @@ void help::print_vector(std::vector<int>* vec) {
 }
 
 void help::print(std::string str) {
-#if VERBOSE
+#if verbosity
     std::cout << str;
 #endif
 }
