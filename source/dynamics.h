@@ -26,27 +26,63 @@ public:
 	void init_state(int gridsize, float cellsize, float max_radius, float radius_q1, float radius_q2) {
 		state = State(gridsize, cellsize, max_radius, radius_q1, radius_q2);
 	}
-	void update() {
+	bool check_faulty_refs(Tree* __tree = 0) {
 		// TEMP
-		printf("Checking all cells...\n");
-		for (int i = 0; i < state.grid.no_cells; i++) {
-			Cell cell = state.grid.distribution[i];
-			printf(
-				" -- Checking cell %i, %i...\n", cell.pos.first, cell.pos.second
-			);
-			if (cell.state == 1) {
-				if (cell.tree->radius > 10e6) {
-					printf("Dummy printout\n");
+		int faulty_references = 0;
+		/*for (int i = 0; i < state.grid.no_cells; i++) {
+			Cell _cell = state.grid.distribution[i];
+			if (_cell.state == 1 && _cell.tree->id == tree->id) {
+				state.grid.set_to_savanna(_cell.pos);
+			}
+		}*/
+
+		//TEMP
+		int* distribution = new int[state.grid.no_cells];
+		Tree* _tree = 0;
+		for (auto& tree : state.population.members) {
+			if (__tree != nullptr) tree = *__tree;
+			for (auto& _cell : tree.cells) {
+				state.grid.set_to_savanna(_cell->pos, -1);
+			}
+			for (int i = 0; i < state.grid.no_cells; i++) {
+				Cell _cell = state.grid.distribution[i];
+				if (_cell.state == 1 && _cell.tree->id == tree.id && _cell.tree->radius == tree.radius) {
+					_tree = &tree;
+					pair<int, int> pos = state.grid.idx_2_pos(i);
+					if (faulty_references % 20 == 0) {
+						/*printf(
+							"Cell %i, %i still references tree to be deleted.\n",
+							pos.first, pos.second
+						);*/
+					}
+					faulty_references++;
+					distribution[i] = 2;
+					/*for (auto& c : _cell.tree->cells) {
+						distribution[state.grid.pos_2_idx(c->pos)] += 4;
+					}
+					if (faulty_references == 1) printf("Referenced tree pos: (%f, %f), base pos: (%f, %f)", _cell.tree->position.first, _cell.tree->position.second, tree->position.first, tree->position.second);*/
 				}
 			}
-			if (i > 150) break;
+			if (_tree != nullptr) break;
+			if (__tree != nullptr) break;
 		}
-
+		if (faulty_references) printf("--- References to burned tree detected. No tree cells: %i, radius: %f, no faulty references: %i \n", _tree->cells.size(), _tree->radius, faulty_references);
+		if (faulty_references) {
+			for (auto& _cell : _tree->cells) {
+				distribution[state.grid.pos_2_idx(_cell->pos)] += 1;
+			}
+			state.grid.set_state_distribution(distribution);
+		}
+		delete[] distribution;
+		state.repopulate_grid(0);
+		return faulty_references > 0;
+	}
+	void update() {
+		if (check_faulty_refs()) return;
 		time++;
 		printf("Time: %i\n", time);
-		//printf("Pop size: %i \n", state.population.size());
+		//state.repopulate_grid(verbosity);
 		simulate_fires();
-		//state.population.grow();
 		state.repopulate_grid(verbosity);
 		if (verbosity > 0) report_statistics();
 	}
@@ -92,35 +128,33 @@ public:
 	}
 	void kill_tree(Cell* cell) {
 		Tree* tree = cell->tree;
-		if (!state.population.is_population_member(tree)) {
-			printf("Tree is not a population member.\n");
-			state.grid.populate_tree_domain(tree, false);
-			return;
+		//vector<Cell*> burned_cells = {};
+		//state.grid.burn_tree(tree, neighbors, cell->time_last_fire, burned_cells);
+		//state.grid.populate_tree_domain(tree, false, cell->time_last_fire);
+		for (auto& _cell : tree->cells) {
+			state.grid.set_to_savanna(_cell->pos, cell->time_last_fire);
 		}
 		vector<Tree*> neighbors = state.population.get_neighbors(tree);
-		state.grid.burn_tree(tree, neighbors, cell->time_last_fire);
-
-		for (int i = 0; i < state.grid.no_cells; i++) {
-			Cell cell = state.grid.distribution[i];
-			if (cell.tree == tree) {
-				pair<int, int> pos = state.grid.idx_2_pos(i);
-				printf(
-					"Cell %i, %i, still references tree to be deleted.\n",
-					pos.first, pos.second
-				);
-			}
+		for (auto& neighbor : neighbors) {
+			state.grid.populate_tree_domain(neighbor, true);
 		}
-		//state.population.remove(tree);
+
+		if (check_faulty_refs(tree)) return;
+
+		/*if (faulty_references) {
+			printf("No burned cells: %i, no faulty references: %i \n", burned_cells.size(), faulty_references);
+			printf("Burned cells:\n");
+			for (auto& _cell : burned_cells) {
+				pair<int, int> pos = _cell->pos;
+				state.grid.cap(pos);
+				cout << "(" + to_string(pos.first) + ", " + to_string(pos.second) + "), ";
+			}
+			cout << endl;
+		}*/
+		state.population.remove(tree);
 	}
 	void induce_mortality(Cell* cell, float fire_free_interval) {
 		if (tree_dies(cell, fire_free_interval)) {
-			// TEMP
-			printf(
-				"Checking cell (in induce mortality, before killing tree) %i, %i...\n", cell->pos.first, cell->pos.second
-			);
-			if (cell->state == 1 && cell->tree->radius > 10e6) {
-				cout << "dummy printout\n";
-			}
 			kill_tree(cell);
 		}
 	}
@@ -131,13 +165,6 @@ public:
 		return help::get_rand_float(0.0, 1.0) < get_flammability(cell, t_start - cell->time_last_fire);
 	}
 	inline void burn_cell(Cell* cell, float t_start) {
-		// TEMP
-		printf(
-			"Checking cell (in burn cell, before inducing mortality) %i, %i...\n", cell->pos.first, cell->pos.second
-		);
-		if (cell->state == 1 && cell->tree->radius > 10e6) {
-			cout << "dummy printout\n";
-		}
 		cell->time_last_fire = t_start;
 		if (cell->state == 1) {
 			induce_mortality(cell, t_start - cell->time_last_fire);
@@ -149,7 +176,8 @@ public:
 		burn_cell(cell, t_start);
 		int no_burned_cells = 1;
 		if (verbosity == 2) printf("Percolating fire...\n");
-
+		//check_faulty_refs();
+		bool fault = false;
 		while (!queue.empty()) {
 			Cell* cell = queue.front();
 			queue.pop();
@@ -161,9 +189,13 @@ public:
 					queue.push(neighbor);
 					burn_cell(neighbor, t_start);
 					no_burned_cells++;
+					//fault = check_faulty_refs();
+					//cout << "checking..\n";
+					if (fault) {
+						printf("Fault at burned cell %i \n", no_burned_cells);
+					}
 				}
 			}
-			cout << "no burned cells: " << no_burned_cells << endl;
 		}
 		return no_burned_cells;
 	}

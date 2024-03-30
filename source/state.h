@@ -28,7 +28,8 @@ public:
 		while (grid.get_tree_cover() < _tree_cover) {
 			pair<float, float> position = grid.get_random_real_position();
 			Tree* tree = population.add(position);
-			grid.populate_tree_domain(tree);
+			//printf("id (in add func): %i \n", tree->id);
+			grid.populate_tree_domain(&population.members.back());
 
 			if (population.size() % 1000 == 0) {
 				printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());

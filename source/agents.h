@@ -1,5 +1,6 @@
 #pragma once
 #include "helpers.h"
+#include "grid_agent.forward.h"
 
 
 class Tree {
@@ -31,6 +32,7 @@ public:
 	int life_phase = 0;
 	pair<float, float> position = pair(0, 0);
 	int id = 0;
+	vector<Cell*> cells = {};
 };
 
 
@@ -47,7 +49,8 @@ public:
 		if (radius == "sampled") _radius = help::sample_linear_distribution(radius_q1, radius_q2, 0, max_radius);
 		Tree tree(position, _radius);
 		members.push_back(tree);
-		return &members.back();
+		//printf("\nid (in add func): %i \n", tree.id);
+		return &(*members.end());
 	}
 	int size() {
 		return members.size();
@@ -60,7 +63,9 @@ public:
 	vector<Tree*> get_neighbors(pair<float, float> baseposition, float search_radius, Tree* base = 0) {
 		vector<Tree*> neighbors;
 		for (auto& candidate : members) {
-			if (base != nullptr && candidate == *base) continue;
+			if (base != nullptr && candidate.id == base->id) {
+				continue;
+			}
 			if (help::get_dist(candidate.position, baseposition) < search_radius) {
 				neighbors.push_back(&candidate);
 			}

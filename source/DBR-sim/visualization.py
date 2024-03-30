@@ -11,15 +11,23 @@ def visualize_image(img, image_width):
     cv2.imshow("DBR Simulation (TEST)", img_resized)
     cv2.waitKey(1)
     
-def get_image(grid):
-    img = grid.get_distribution()
-    img *= 255
+def get_image(grid, collect_states, color_dict):
+    img = grid.get_distribution(collect_states)
+    if (color_dict == {0:0, 1:255}):
+        img *= 255
+    elif (len(color_dict[0]) == 3):
+        new_img = np.zeros((grid.size, grid.size, 3), np.uint8)
+        for i in range(grid.size):
+            for j in range(grid.size):
+                new_img[i, j] = color_dict[img[i, j]]
+        img = new_img.copy()
+            
     img = img.astype(np.uint8)
     
     return img
 
-def visualize(grid, image_width=1000):
-    img = get_image(grid)    
+def visualize(grid, image_width=1000, collect_states=True, color_dict={0:0, 1:255}):
+    img = get_image(grid, collect_states, color_dict)    
     visualize_image(img, image_width)
     
     return img

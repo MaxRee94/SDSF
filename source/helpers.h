@@ -101,6 +101,8 @@ namespace help {
 
 	std::string join(vector<std::string>* strings, std::string separator);
 
+	std::string join(vector<std::string> strings, std::string separator);
+
 	void remove_largest_vector(vector<vector<int>>* vectors, int& max_size);
 
 	bool ends_with(std::string full_string, std::string ending);

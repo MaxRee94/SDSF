@@ -28,15 +28,15 @@ def init(timestep=None, gridsize=None, cellsize=None, max_radius=None,
 
 def termination_condition_satisfied(dynamics, start_time, user_args):
     satisfied = False
-    cause = ""
+    condition = ""
     if (time.time() - start_time > user_args["timelimit"]):
-        cause = f"Exceeded timelimit ({user_args['timelimit']})"
+        condition = f"Exceeded timelimit ({user_args['timelimit']} seconds)."
     if (dynamics.state.population.size() == 0):
-        cause = f"Population collapse."
+        condition = f"Population collapse."
     #print("Pop size: ", dynamics.state.population.size())
-    satisfied = len(cause) > 0
+    satisfied = len(condition) > 0
     if satisfied:
-        print("Termination condition reached. Cause:", cause)
+        print("Simulation terminated. Cause:", condition)
 
     return satisfied
 
@@ -45,8 +45,22 @@ def updateloop(dynamics, **user_args):
     start = time.time()
     is_within_timelimit = True;
     while not termination_condition_satisfied(dynamics, start, user_args):
+        print("Burning...")
         dynamics.update()
-        vis.visualize(dynamics.state.grid, user_args["image_width"])
+        vis.visualize(
+            dynamics.state.grid, user_args["image_width"], collect_states=False,
+            color_dict={
+                0: np.array((0, 0, 0), np.uint8),
+                1: np.array((0, 255, 0), np.uint8),
+                2: np.array((0, 0, 255), np.uint8),
+                3: np.array((255, 0, 255), np.uint8),
+            }
+        )
+        time.sleep(1)
+        # print("Repopulating...")
+        # dynamics.state.repopulate_grid(0)
+        # vis.visualize(dynamics.state.grid, user_args["image_width"])
+        # time.sleep(4)
 
     cv2.destroyAllWindows()
 

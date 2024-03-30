@@ -1,6 +1,6 @@
 #pragma once
 #include "agents.h"
-
+#include "grid_agent.forward.h"
 
 class Cell {
 public:
@@ -9,6 +9,10 @@ public:
 	Tree* tree = 0;
 	pair<int, int> pos;
 	float time_last_fire = -999.0;
+	bool operator==(const Cell& cell) const
+	{
+		return pos == cell.pos;
+	}
 };
 
 
@@ -29,6 +33,9 @@ public:
 			pair<int, int> pos = idx_2_pos(i);
 			distribution[i].pos = pos;
 		}
+	}
+	int pos_2_idx(pair<int, int> pos) {
+		return size * pos.second + pos.first;
 	}
 	pair<float, float> get_random_real_position() {
 		float x = help::get_rand_float(0, size_r);
@@ -88,24 +95,22 @@ public:
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
 		int radius_gb = tree->radius / cellsize;
 		if (!add_tree) radius_gb = round(radius_gb * 1.5);
-		for (int x = tree_center_gb.first - radius_gb; x < tree_center_gb.first + radius_gb; x++) {
-			for (int y = tree_center_gb.second - radius_gb; y < tree_center_gb.second + radius_gb; y++) {
+		int i = 0;
+		tree->cells.clear();
+		for (int x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x++) {
+			for (int y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y++) {
 				if (help::get_dist(pair<float, float>(x, y), tree_center_gb) < radius_gb) {
-					if (add_tree) set_to_forest(pair<int, int>(x, y), tree);
+					if (add_tree) { i++; set_to_forest(pair<int, int>(x, y), tree); }
 					else set_to_savanna(pair<int, int>(x, y), time_last_fire);
-					
-					// TEMP
-					pair<int, int> pos = pair<int, int>(x, y);
-					cap(pos);
-					Cell cell = distribution[pos.second * size + pos.first];
-					if (cell.state == 1 && cell.tree->radius > 10e6) {
-						cout << "dummy printout\n";
-					}
 				}
 			}
 		}
+		//printf("Populated %i cells; tree contains %i cells, radius is %f \n", i, tree->cells.size(), tree->radius);
+		/*if (tree->cells.size() == 0 && tree->radius > 2.0) {
+			printf("WEIRD ----- Tree at %i, %i has no cells but should.\n", tree->position.first, tree->position.second);
+		}*/
 	}
-	void burn_tree(Tree* tree, vector<Tree*> neighbors, float time_last_fire) {
+	void burn_tree(Tree* tree, vector<Tree*> neighbors, float time_last_fire, vector<Cell*>& burned_cells) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
 		int radius_gb = (tree->radius * 1.1) / cellsize;
 		for (int x = tree_center_gb.first - radius_gb; x < tree_center_gb.first + radius_gb; x++) {
@@ -117,21 +122,34 @@ public:
 					for (auto& neighbor : neighbors) {
 						if (neighbor->is_within_radius(cell_pos_real)) overlapping_neighbor = neighbor;
 					}
+					Cell* cell = get_cell_at_position(cell_pos_gb);
 					if (overlapping_neighbor != nullptr) {
-						Cell* cell = get_cell_at_position(cell_pos_gb);
 						cell->tree = overlapping_neighbor;
 					}
-					else set_to_savanna(cell_pos_gb, time_last_fire);
+					else {
+						set_to_savanna(cell_pos_gb, time_last_fire);
+						burned_cells.push_back(cell);
+					}
 				}
 			}
 		}
 	}
-	int* get_state_distribution() {
-		if (state_distribution == nullptr) state_distribution = new int[no_cells];
-		for (int i = 0; i < no_cells; i++) {
-			state_distribution[i] = distribution[i].state;
+	int* get_state_distribution(bool collect = true) {
+		if (collect) {
+			if (state_distribution == nullptr) state_distribution = new int[no_cells];
+			for (int i = 0; i < no_cells; i++) {
+				state_distribution[i] = distribution[i].state;
+			}
 		}
 		return state_distribution;
+	}
+	void set_state_distribution(int* distr) {
+		if (state_distribution == nullptr) state_distribution = new int[no_cells];
+		for (int i = 0; i < no_cells; i++) {
+			state_distribution[i] = distr[i];
+			if (state_distribution[i] > 10 || state_distribution[i] < 0)
+				state_distribution[i] = 0;
+		}
 	}
 	void set_to_forest(int idx, Tree* tree) {
 		if (distribution[idx].state == 0) {
@@ -140,6 +158,8 @@ public:
 		}
 		distribution[idx].state = 1;
 		distribution[idx].tree = tree;
+		distribution[idx].time_last_fire = -1.0;
+		tree->cells.push_back(&distribution[idx]);
 	}
 	void set_to_savanna(int idx, float _time_last_fire = -1) {
 		if (distribution[idx].state == 1) {
@@ -156,7 +176,7 @@ public:
 	}
 	void set_to_savanna(pair<int, int> position_grid, float time_last_fire = -1) {
 		cap(position_grid);
-		set_to_savanna(position_grid.second * size + position_grid.first, time_last_fire);
+		set_to_savanna(pos_2_idx(position_grid), time_last_fire);
 	}
 	void cap(pair<int, int> &position_grid) {
 		if (position_grid.first < 0) position_grid.first = size + position_grid.first;

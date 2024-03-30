@@ -105,6 +105,15 @@ string help::join(vector<string>* strings, string separator) {
     return result;
 }
 
+string help::join(vector<string> strings, string separator) {
+    string result = "";
+    for (int i = 0; i < strings.size(); i++) {
+        result += strings.at(i);
+        if (i < strings.size() - 1) result += separator;
+    }
+    return result;
+}
+
 void help::print_vector(std::vector<int>* vec) {
     for (int i = 0; i < vec->size(); i++) {
         if (i > 0) std::cout << ", ";

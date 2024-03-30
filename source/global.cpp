@@ -23,7 +23,7 @@ py::array_t<int> as_numpy_array(int* distribution, int width) {
     {
         for (size_t j = 0; j < numpy_array.shape(1); j++)
         {
-            setter(j, i) = distribution[i * width + j];
+            setter(i, j) = distribution[i * width + j];
         }
     }
     return numpy_array;
@@ -47,8 +47,8 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&>())
         .def_readwrite("size", &Grid::size)
-        .def("get_distribution", [](Grid &grid) {
-            int* state_distribution = grid.get_state_distribution();
+        .def("get_distribution", [](Grid &grid, bool &collect_states) {
+            int* state_distribution = grid.get_state_distribution(collect_states);
             return as_numpy_array(state_distribution, grid.size);
         });
 
