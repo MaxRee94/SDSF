@@ -33,6 +33,7 @@ public:
 			pair<int, int> pos = idx_2_pos(i);
 			distribution[i].pos = pos;
 		}
+		state_distribution = new int[no_cells];
 	}
 	int pos_2_idx(pair<int, int> pos) {
 		return size * pos.second + pos.first;
@@ -66,6 +67,11 @@ public:
 		}
 		no_forest_cells = 0;
 		no_savanna_cells = no_cells;
+	}
+	void reset_state_distr() {
+		for (int i = 0; i < no_cells; i++) {
+			state_distribution[i] = 0;
+		}
 	}
 	void redo_count() {
 		no_savanna_cells = 0;
@@ -105,12 +111,13 @@ public:
 				}
 			}
 		}
+		printf("%s %i cells\n", (add_tree ? "added" : "removed"), i);
 		//printf("Populated %i cells; tree contains %i cells, radius is %f \n", i, tree->cells.size(), tree->radius);
 		/*if (tree->cells.size() == 0 && tree->radius > 2.0) {
 			printf("WEIRD ----- Tree at %i, %i has no cells but should.\n", tree->position.first, tree->position.second);
 		}*/
 	}
-	void burn_tree(Tree* tree, vector<Tree*> neighbors, float time_last_fire, vector<Cell*>& burned_cells) {
+	void burn_tree(Tree* tree, vector<Tree*> neighbors, float time_last_fire, vector<Cell*>* burned_cells=0) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
 		int radius_gb = (tree->radius * 1.1) / cellsize;
 		for (int x = tree_center_gb.first - radius_gb; x < tree_center_gb.first + radius_gb; x++) {
@@ -128,7 +135,7 @@ public:
 					}
 					else {
 						set_to_savanna(cell_pos_gb, time_last_fire);
-						burned_cells.push_back(cell);
+						if (burned_cells != nullptr) burned_cells->push_back(cell);
 					}
 				}
 			}
@@ -144,11 +151,12 @@ public:
 		return state_distribution;
 	}
 	void set_state_distribution(int* distr) {
-		if (state_distribution == nullptr) state_distribution = new int[no_cells];
 		for (int i = 0; i < no_cells; i++) {
-			state_distribution[i] = distr[i];
-			if (state_distribution[i] > 10 || state_distribution[i] < 0)
+			if (distr[i] >= 0 && distr[i] < 10)
+				state_distribution[i] = distr[i];
+			else {
 				state_distribution[i] = 0;
+			}
 		}
 	}
 	void set_to_forest(int idx, Tree* tree) {

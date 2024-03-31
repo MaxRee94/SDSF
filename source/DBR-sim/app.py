@@ -6,7 +6,8 @@ import numpy as np
 import time
 
 sys.path.append(r"F:\Development\DBR-sim\build")
-from x64.Release import dbr_cpp as cpp
+from x64.Debug import dbr_cpp as cpp
+#from x64.Release import dbr_cpp as cpp
 
 
 
@@ -45,7 +46,6 @@ def updateloop(dynamics, **user_args):
     start = time.time()
     is_within_timelimit = True;
     while not termination_condition_satisfied(dynamics, start, user_args):
-        print("Burning...")
         dynamics.update()
         vis.visualize(
             dynamics.state.grid, user_args["image_width"], collect_states=False,
@@ -54,9 +54,12 @@ def updateloop(dynamics, **user_args):
                 1: np.array((0, 255, 0), np.uint8),
                 2: np.array((0, 0, 255), np.uint8),
                 3: np.array((255, 0, 255), np.uint8),
+                4: np.array((255, 0, 0), np.uint8),
+                5: np.array((0, 100, 200), np.uint8),
+                6: np.array((255, 255, 255), np.uint8)
             }
         )
-        time.sleep(1)
+        time.sleep(2)
         # print("Repopulating...")
         # dynamics.state.repopulate_grid(0)
         # vis.visualize(dynamics.state.grid, user_args["image_width"])

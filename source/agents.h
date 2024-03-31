@@ -27,7 +27,7 @@ public:
 		float dist = help::get_dist(position, pos2);
 		return dist < radius;
 	}
-	float radius = 0;
+	float radius = -1;
 	vector<float> strategy = {};
 	int life_phase = 0;
 	pair<float, float> position = pair(0, 0);
@@ -50,7 +50,7 @@ public:
 		Tree tree(position, _radius);
 		members.push_back(tree);
 		//printf("\nid (in add func): %i \n", tree.id);
-		return &(*members.end());
+		return &members.back();
 	}
 	int size() {
 		return members.size();
@@ -79,7 +79,10 @@ public:
 	}
 	void remove(Tree* tree) {
 		auto it = std::find(members.begin(), members.end(), *tree);
-		if (it != members.end()) { members.erase(it); }
+		if (it != members.end()) { 
+			removed_tree = *tree;
+			members.erase(it);
+		}
 		else printf("------ ERROR: Population member not found.\n");
 	}
 	bool is_population_member(Tree* tree) {
@@ -91,4 +94,5 @@ public:
 	float cellsize = 0;
 	float radius_q1 = 0;
 	float radius_q2 = 0;
+	Tree removed_tree;
 };
