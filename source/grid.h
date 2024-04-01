@@ -26,6 +26,7 @@ public:
 		no_cells = size * size;
 		no_savanna_cells = no_cells;
 		init_grid_cells();
+		reset_state_distr();
 	}
 	void init_grid_cells() {
 		distribution = new Cell[no_cells];
@@ -97,6 +98,22 @@ public:
 		pair<int, int> pos = get_gridbased_position(_pos);
 		return get_cell_at_position(pos);
 	}
+	void get_cells_within_radius(Tree* tree, vector<Cell*>* cells, bool remove_cells = false) {
+		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
+		int radius_gb = tree->radius / cellsize;
+		for (int x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x++) {
+			for (int y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y++) {
+				if (help::get_dist(pair<float, float>(x, y), tree_center_gb) < radius_gb) {
+					Cell* cell = get_cell_at_position(pair<int, int>(x, y));
+					if (remove_cells) {
+						auto it = find(cells->begin(), cells->end(), cell);
+						if (it != cells->end()) cells->erase(it);
+					}
+					else cells->push_back(cell);
+				}
+			}
+		}
+	}
 	void populate_tree_domain(Tree* tree, bool add_tree = true, vector<Cell*>* burned_cells = 0, float time_last_fire = -1) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
 		int radius_gb = tree->radius / cellsize;
@@ -122,7 +139,7 @@ public:
 				}
 			}
 		}
-		printf("%s %i cells for tree ptr %i. Stored no cells %i\n", (add_tree ? "added" : "removed"), i, tree, tree->cells.size());
+		//printf("%s %i cells for tree ptr %i. Stored no cells %i\n", (add_tree ? "added" : "removed"), i, tree, tree->cells.size());
 		//printf("Populated %i cells; tree contains %i cells, radius is %f \n", i, tree->cells.size(), tree->radius);
 		/*if (tree->cells.size() == 0 && tree->radius > 2.0) {
 			printf("WEIRD ----- Tree at %i, %i has no cells but should.\n", tree->position.first, tree->position.second);
@@ -185,6 +202,7 @@ public:
 			no_savanna_cells++;
 			no_forest_cells--;
 		}
+		//else cout << "was already savanna\n";
 		distribution[idx].state = 0;
 		distribution[idx].tree = 0;
 		if (_time_last_fire > -1) distribution[idx].time_last_fire = _time_last_fire;

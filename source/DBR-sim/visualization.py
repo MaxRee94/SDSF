@@ -32,6 +32,11 @@ def visualize(grid, image_width=1000, collect_states=True, color_dict={0:0, 1:25
     
     return img
 
+def save_image(img, path, image_width = 1000):
+    img_resized = cv2.resize(img, (image_width, image_width),
+               interpolation = cv2.INTER_LINEAR)
+    cv2.imwrite(path, img_resized)
+
 def visualize_difference(image1, image2, image_width=1000):
     img = np.array([image2, image2, image1], np.uint8)
     img = img.transpose(1, 2, 0)

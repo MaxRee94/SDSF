@@ -4,6 +4,10 @@ import cv2
 import visualization as vis
 import numpy as np
 import time
+import os
+from pathlib import Path
+
+from helpers import *
 
 sys.path.append(r"F:\Development\DBR-sim\build")
 from x64.Debug import dbr_cpp as cpp
@@ -42,44 +46,42 @@ def termination_condition_satisfied(dynamics, start_time, user_args):
     return satisfied
 
 
+def get_color_dict(no_colors):
+    no_colors += 1
+    parts = 2
+    color_dict = {k : 
+        np.array((
+            get_max((255 - (v * (parts * 255/no_colors))), 0),
+            get_max(255 - get_max(255 - (v * (parts * 255/no_colors)), 0) - get_max((-765/3 + (v * (parts * 255/no_colors))), 0), 0),
+            get_max((-765/3 + (v * (parts * 255/no_colors))), 0)
+        ), np.uint8) for k, v in zip(range(1, no_colors), range(1, no_colors))
+    }
+    color_dict[0] = np.array((0, 0, 0), np.uint8)
+    color_dict[999] = np.array((255, 255, 255), np.uint8)
+    #for key, val in color_dict.items():
+    #    print(key, " -- ", val)
+    return color_dict
+
+
 def updateloop(dynamics, **user_args):
     start = time.time()
-    is_within_timelimit = True;
+    is_within_timelimit = True
     while not termination_condition_satisfied(dynamics, start, user_args):
-        dynamics.save_2_trees()
-        vis.visualize(
+        #dynamics.save_2_trees(2)
+        img = vis.visualize(
             dynamics.state.grid, user_args["image_width"], collect_states=False,
-            color_dict={
-                0: np.array((0, 0, 0), np.uint8),
-                1: np.array((0, 255, 0), np.uint8),
-                2: np.array((0, 0, 255), np.uint8),
-                3: np.array((255, 0, 255), np.uint8),
-                4: np.array((255, 0, 0), np.uint8),
-                5: np.array((0, 100, 200), np.uint8),
-                6: np.array((255, 255, 255), np.uint8),
-                7: np.array((100, 0, 200), np.uint8),
-                8: np.array((10, 30, 255), np.uint8),
-                9: np.array((100, 200, 80), np.uint8),
-            }
+            color_dict=get_color_dict(dynamics.state.population.size() + 1)
         )
-        time.sleep(4)
+        imagepath = os.path.join(str(Path(os.getcwd()).parent.parent), "data_out/image_timeseries/" + str(dynamics.time) + ".png")
+#
+        vis.save_image(img, imagepath)
+        #time.sleep(2)
         dynamics.update()
-        vis.visualize(
-            dynamics.state.grid, user_args["image_width"], collect_states=False,
-            color_dict={
-                0: np.array((0, 0, 0), np.uint8),
-                1: np.array((0, 255, 0), np.uint8),
-                2: np.array((0, 0, 255), np.uint8),
-                3: np.array((255, 0, 255), np.uint8),
-                4: np.array((255, 0, 0), np.uint8),
-                5: np.array((0, 100, 200), np.uint8),
-                6: np.array((255, 255, 255), np.uint8),
-                7: np.array((100, 0, 200), np.uint8),
-                8: np.array((10, 30, 255), np.uint8),
-                9: np.array((100, 200, 80), np.uint8),
-            }
-        )
-        time.sleep(4)
+        # vis.visualize(
+        #     dynamics.state.grid, user_args["image_width"], collect_states=False,
+        #     color_dict=get_color_dict(dynamics.state.population.size() + 1)
+        # )
+        #time.sleep()
         # print("Repopulating...")
         # dynamics.state.repopulate_grid(0)
         #vis.visualize(dynamics.state.grid, user_args["image_width"])

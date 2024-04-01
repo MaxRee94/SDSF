@@ -33,7 +33,7 @@ public:
 		}
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
-	float get_dist(pair<float, float> a, pair<float, float> b) {
+	float get_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
 		vector<float> dists = {help::get_dist(a, b)};
 		for (int i = 0; i < 8; i++) {
 			float dist = help::get_dist(
@@ -41,6 +41,7 @@ public:
 			);
 			dists.push_back(dist);
 		}
+		if (verbose) printf("normal dist: %f, periodic dist: %f \n", dists[0], help::get_min(&dists));
 		return help::get_min(&dists);
 	}
 	vector<Tree*> get_tree_neighbors(pair<float, float> baseposition, float search_radius, Tree* base = 0) {
@@ -71,19 +72,19 @@ public:
 			pair<float, float> position = grid.get_random_real_position();
 			Tree* tree = population.add(position, "maximum");
 			grid.populate_tree_domain(tree);
-			printf("radius: %f, ptr: %i \n", population.members.back().radius, tree);
-			if (population.members.back().radius == -1) {
+			//printf("radius: %f, ptr: %i \n", population.members.back().radius, tree);
+			/*if (population.members.back().radius == -1) {
 				cout << "problem reflected here too.\n";
-			}
+			}*/
 
 			if (population.size() % 1000 == 0) {
 				printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
 			}
 			continue;
 		}
-		for (auto& tree : population.members) {
+		/*for (auto& tree : population.members) {
 			printf("*** (tree cover func) - tree (ptr %i) radius: %f, no cells: %i \n", &tree, tree.radius, tree.cells.size());
-		}
+		}*/
 		printf("Final tree cover: %f\n", grid.get_tree_cover());
 
 		// Count no small trees

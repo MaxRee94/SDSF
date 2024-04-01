@@ -52,6 +52,21 @@ public:
 		//printf("\nid (in add func): %i \n", tree.id);
 		return &members.back();
 	}
+	void store_positions() {
+		for (auto& tree : members) {
+			positions[tree.id] = tree.position;
+		}
+	}
+	/*Tree* get(int id) {
+
+	}*/
+	void check_positions() {
+		for (auto& tree : members) {
+			if (tree.position != positions[tree.id]) {
+				printf("id %i position (%f, %f) differs from stored position (%f, %f), id %i \n", tree.id, tree.position.first, tree.position.second, positions[tree.id].first, positions[tree.id].second, tree.id);
+			}
+		}
+	}
 	int size() {
 		return members.size();
 	}
@@ -78,4 +93,5 @@ public:
 	float radius_q1 = 0;
 	float radius_q2 = 0;
 	Tree removed_tree;
+	map<int, pair<float, float>> positions;
 };
