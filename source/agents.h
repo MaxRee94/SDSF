@@ -70,6 +70,9 @@ public:
 				neighbors.push_back(&candidate);
 			}
 		}
+		printf("Neighbors for ptr %i: ", base);
+		for (auto& neighbor : neighbors) printf("%i, ", neighbor);
+		cout << endl;
 		return neighbors;
 	}
 	vector<Tree*> get_neighbors(Tree* base) {
@@ -80,7 +83,7 @@ public:
 	void remove(Tree* tree) {
 		auto it = std::find(members.begin(), members.end(), *tree);
 		if (it != members.end()) { 
-			removed_tree = *tree;
+			//removed_tree = *tree;
 			members.erase(it);
 		}
 		else printf("------ ERROR: Population member not found.\n");

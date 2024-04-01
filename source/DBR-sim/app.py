@@ -47,22 +47,25 @@ def updateloop(dynamics, **user_args):
     is_within_timelimit = True;
     while not termination_condition_satisfied(dynamics, start, user_args):
         dynamics.update()
-        vis.visualize(
-            dynamics.state.grid, user_args["image_width"], collect_states=False,
-            color_dict={
-                0: np.array((0, 0, 0), np.uint8),
-                1: np.array((0, 255, 0), np.uint8),
-                2: np.array((0, 0, 255), np.uint8),
-                3: np.array((255, 0, 255), np.uint8),
-                4: np.array((255, 0, 0), np.uint8),
-                5: np.array((0, 100, 200), np.uint8),
-                6: np.array((255, 255, 255), np.uint8)
-            }
-        )
+        # vis.visualize(
+        #     dynamics.state.grid, user_args["image_width"], collect_states=False,
+        #     color_dict={
+        #         0: np.array((0, 0, 0), np.uint8),
+        #         1: np.array((0, 255, 0), np.uint8),
+        #         2: np.array((0, 0, 255), np.uint8),
+        #         3: np.array((255, 0, 255), np.uint8),
+        #         4: np.array((255, 0, 0), np.uint8),
+        #         5: np.array((0, 100, 200), np.uint8),
+        #         6: np.array((255, 255, 255), np.uint8),
+        #         7: np.array((100, 0, 200), np.uint8),
+        #         8: np.array((10, 30, 255), np.uint8),
+        #         9: np.array((100, 200, 80), np.uint8),
+        #     }
+        # )
         time.sleep(2)
         # print("Repopulating...")
         # dynamics.state.repopulate_grid(0)
-        # vis.visualize(dynamics.state.grid, user_args["image_width"])
+        vis.visualize(dynamics.state.grid, user_args["image_width"])
         # time.sleep(4)
 
     cv2.destroyAllWindows()

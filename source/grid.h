@@ -111,7 +111,7 @@ public:
 				}
 			}
 		}
-		printf("%s %i cells\n", (add_tree ? "added" : "removed"), i);
+		printf("%s %i cells for tree ptr %i. Stored no cells %i\n", (add_tree ? "added" : "removed"), i, tree, tree->cells.size());
 		//printf("Populated %i cells; tree contains %i cells, radius is %f \n", i, tree->cells.size(), tree->radius);
 		/*if (tree->cells.size() == 0 && tree->radius > 2.0) {
 			printf("WEIRD ----- Tree at %i, %i has no cells but should.\n", tree->position.first, tree->position.second);

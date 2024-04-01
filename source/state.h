@@ -15,6 +15,7 @@ public:
 		grid = Grid(gridsize, cellsize);
 	}
 	void repopulate_grid(int verbosity) {
+		if (verbosity == 2) cout << "Repopulating grid..." << endl;
 		grid.reset();
 		for (auto& tree : population.members) {
 			grid.populate_tree_domain(&tree);
@@ -39,6 +40,9 @@ public:
 			}
 			continue;
 		}
+		for (auto& tree : population.members) {
+			printf("*** (tree cover func) - tree (ptr %i) radius: %f, no cells: %i \n", &tree, tree.radius, tree.cells.size());
+		}
 		printf("Final tree cover: %f\n", grid.get_tree_cover());
 
 		// Count no small trees
@@ -51,7 +55,7 @@ public:
 		printf("- Fraction small trees: %f \n", (float)no_small / (float)population.size());
 		
 		// HOTFIX: Repopulating the grid appears to prevent read access errors (where some trees cannot be read from memory). Cause unknown.
-		repopulate_grid(0);
+		repopulate_grid(2);
 	}
 	Grid grid;
 	Population population;
