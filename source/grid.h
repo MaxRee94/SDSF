@@ -6,7 +6,7 @@ class Cell {
 public:
 	Cell() = default;
 	int state = 0;
-	Tree* tree = 0;
+	int tree = 0;
 	pair<int, int> pos;
 	float time_last_fire = -999.0;
 	bool operator==(const Cell& cell) const
@@ -159,7 +159,7 @@ public:
 					}
 					Cell* cell = get_cell_at_position(cell_pos_gb);
 					if (overlapping_neighbor != nullptr) {
-						cell->tree = overlapping_neighbor;
+						cell->tree = overlapping_neighbor->id;
 					}
 					else {
 						set_to_savanna(cell_pos_gb, time_last_fire);
@@ -193,7 +193,7 @@ public:
 			no_forest_cells++;
 		}
 		distribution[idx].state = 1;
-		distribution[idx].tree = tree;
+		distribution[idx].tree = tree->id;
 		distribution[idx].time_last_fire = -1.0;
 		tree->cells.push_back(&distribution[idx]);
 	}

@@ -10,8 +10,8 @@ from pathlib import Path
 from helpers import *
 
 sys.path.append(r"F:\Development\DBR-sim\build")
-from x64.Debug import dbr_cpp as cpp
-#from x64.Release import dbr_cpp as cpp
+#from x64.Debug import dbr_cpp as cpp
+from x64.Release import dbr_cpp as cpp
 
 
 
@@ -67,7 +67,7 @@ def updateloop(dynamics, **user_args):
     start = time.time()
     is_within_timelimit = True
     while not termination_condition_satisfied(dynamics, start, user_args):
-        #dynamics.save_2_trees(2)
+        dynamics.save_2_trees(2)
         img = vis.visualize(
             dynamics.state.grid, user_args["image_width"], collect_states=False,
             color_dict=get_color_dict(dynamics.state.population.size() + 1)

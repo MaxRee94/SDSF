@@ -28,7 +28,7 @@ public:
 	void repopulate_grid(int verbosity) {
 		if (verbosity == 2) cout << "Repopulating grid..." << endl;
 		grid.reset();
-		for (auto& tree : population.members) {
+		for (auto& [id, tree] : population.members) {
 			grid.populate_tree_domain(&tree);
 		}
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
@@ -44,17 +44,17 @@ public:
 		if (verbose) printf("normal dist: %f, periodic dist: %f \n", dists[0], help::get_min(&dists));
 		return help::get_min(&dists);
 	}
-	vector<Tree*> get_tree_neighbors(pair<float, float> baseposition, float search_radius, Tree* base = 0) {
+	vector<Tree*> get_tree_neighbors(pair<float, float> baseposition, float search_radius, int base_id = -1) {
 		vector<Tree*> neighbors;
-		for (auto& candidate : population.members) {
-			if (base != nullptr && candidate.id == base->id) {
+		for (auto& [id, candidate] : population.members) {
+			if (base_id != -1 && id == base_id) {
 				continue;
 			}
 			if (get_dist(candidate.position, baseposition) < search_radius) {
 				neighbors.push_back(&candidate);
 			}
 		}
-		printf("Neighbors for ptr %i: ", base);
+		printf("Neighbors for tree id %i: ", base_id);
 		for (auto& neighbor : neighbors) printf("%i, ", neighbor);
 		cout << endl;
 		return neighbors;
@@ -62,7 +62,7 @@ public:
 	vector<Tree*> get_tree_neighbors(Tree* base) {
 		vector<Tree*> neighbors;
 		float search_radius = (round(base->radius * 1.1) + population.max_radius);
-		return get_tree_neighbors(base->position, search_radius, base);
+		return get_tree_neighbors(base->position, search_radius, base->id);
 	}
 	void set_tree_cover(float _tree_cover) {
 		help::init_RNG();
@@ -89,7 +89,7 @@ public:
 
 		// Count no small trees
 		int no_small = 0;
-		for (auto& tree : population.members) {
+		for (auto& [id, tree] : population.members) {
 			if (tree.radius < population.max_radius / 2.0) {
 				no_small++;
 			}

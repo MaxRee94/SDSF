@@ -12,6 +12,8 @@ public:
 		time = 0;
 		help::init_RNG();
 		verbosity = _verbosity;
+		pop = &state.population;
+		grid = &state.grid;
 	};
 	void init_state(int gridsize, float cellsize, float max_radius, float radius_q1, float radius_q2) {
 		state = State(gridsize, cellsize, max_radius, radius_q1, radius_q2);
@@ -23,18 +25,18 @@ public:
 
 		for (int i = 0; i < state.grid.no_cells; i++) {
 			Cell _cell = state.grid.distribution[i];
-			if (_cell.state == 0 && _cell.tree == nullptr) continue;
+			if (_cell.state == 0 && _cell.tree == 0) continue;
 			float dist = state.get_dist(
 				state.grid.get_real_position(_cell.pos), tree_pos
 			);
-			int cell_tree_id = _cell.tree->id;
+			int cell_tree_id = _cell.tree;
 			int tree_id = tree->id;
 			float radius = tree->radius;
 			bool cell_outside_tree_radius_references_tree = cell_tree_id == tree_id && (int)dist > radius;
 			if (cell_outside_tree_radius_references_tree) {
 				if (faulty_references == 0) printf(
 					"- Cell's tree ptr: %i, tree's ptr: %i, cell tree id %i, tree id %i \n",
-					_cell.tree, tree, _cell.tree->id, tree->id
+					_cell.tree, tree, _cell.tree, tree->id
 				);
 				faulty_references++;
 				state.get_dist(
@@ -49,7 +51,7 @@ public:
 			for (auto& _cell : tree->cells) {
 				int idx = state.grid.pos_2_idx(_cell->pos);
 				if (state.grid.distribution[idx].state == 0) continue;
-				int grid_id = state.grid.distribution[idx].tree->id;
+				int grid_id = state.grid.distribution[idx].tree;
 				int tree_id = tree->id;
 				if (grid_id != tree_id) distribution[idx] = 4;
 				else distribution[idx] += 1;
@@ -73,17 +75,17 @@ public:
 		//if (check_faulty_refs()) return;
 		if (verbosity == 2) {
 			cout << endl;
-			for (auto& tree : state.population.members) {
+			for (auto& [id, tree] : state.population.members) {
 				printf("*** (update func) - tree (ptr %i) radius: %f, no cells: %i \n", &tree, tree.radius, tree.cells.size());
 			}
 			vector<Tree*> trees = {};
 			for (int i = 0; i < state.grid.no_cells; i++) {
 				Cell cell = state.grid.distribution[i];
 				if (cell.state == 0) continue;
-				if (find(trees.begin(), trees.end(), cell.tree) == trees.end()) {
-					printf("*** (update func) - Unique tree in grid with ptr %i, id %i and radius %f \n",
-						cell.tree, cell.tree->id, cell.tree->radius);
-					trees.push_back(cell.tree);
+				if (find(trees.begin(), trees.end(), pop->get(cell.tree)) == trees.end()) {
+					printf("*** (update func) - Unique tree in grid with id %i and radius %f \n",
+						cell.tree, pop->get(cell.tree)->radius);
+					trees.push_back(pop->get(cell.tree));
 					//check_faulty_refs(cell.tree);
 				}
 			}
@@ -145,7 +147,7 @@ public:
 		int no_grid_counted_cells = 0;
 		for (int i = 0; i < state.grid.no_cells; i++) {
 			if (state.grid.distribution[i].state == 0) continue;
-			if (method == 1) {
+			/*if (method == 1) {
 				if (find(state.population.members[0].cells.begin(), state.population.members[0].cells.end(), &state.grid.distribution[i]) !=
 					state.population.members[0].cells.end()
 					)
@@ -154,19 +156,19 @@ public:
 					state.population.members[1].cells.end()
 					)
 					state.grid.state_distribution[i] += 2;
-			}
-			else if (method == 2) {
+			}*/
+			if (method == 2) {
 				Cell cell = state.grid.distribution[i];
-				if (cell.tree != nullptr) no_grid_counted_cells++;
-				bool new_tree = find(trees.begin(), trees.end(), cell.tree) == trees.end();
+				if (cell.tree != 0) no_grid_counted_cells++;
+				bool new_tree = find(trees.begin(), trees.end(), pop->get(cell.tree)) == trees.end();
 				if (new_tree) {
-					trees.push_back(cell.tree);
-					no_internally_stored_cells += cell.tree->cells.size();
+					trees.push_back(pop->get(cell.tree));
+					no_internally_stored_cells += pop->get(cell.tree)->cells.size();
 				}
 				int j = 0;
 				while (j < trees.size()) {
-					if (cell.tree == trees[j]) state.grid.state_distribution[i] = j + 1;
-					if (find(state.population.members.begin(), state.population.members.end(), *cell.tree) == state.population.members.end()) state.grid.state_distribution[i] = 999;
+					if (pop->get(cell.tree) == trees[j]) state.grid.state_distribution[i] = j + 1;
+					if (!pop->is_population_member(cell.tree)) state.grid.state_distribution[i] = 999;
 					j++;
 				}
 			}
@@ -174,7 +176,7 @@ public:
 		printf("grid counted cells: %i, total intern cells: %i \n", no_grid_counted_cells, no_internally_stored_cells);
 	}
 	void kill_tree(Cell* cell, queue<Cell*>& queue) {
-		Tree* tree = cell->tree;
+		Tree* tree = pop->get(cell->tree);
 
 		if (verbosity == 2) printf("before emptying tree with ptr %i\n", tree);
 		//if (check_faulty_refs(tree)) return;
@@ -206,10 +208,11 @@ public:
 		if (burned_cells.size() == 0) printf("No cells in ptr %i : %i\n", tree, tree->cells.size());
 
 		// Check whether all grid cell references to killed tree have been removed
+#if 0:
 		for (int i = 0; i < state.grid.no_cells; i++) {
 			Cell _cell = state.grid.distribution[i];
 			if (_cell.state == 0) continue;
-			if (_cell.tree == tree) {
+			if (pop->get(_cell.tree) == tree) {
 				if (!stop_early) {
 					state.grid.reset_state_distr();
 					for (auto& __cell : orig_burned_cells) {
@@ -229,6 +232,7 @@ public:
 				printf("Tree ptr %i has position %f, %f \n", tree, tree->position.first, tree->position.second);
 			}
 		}
+#endif
 
 		state.population.remove(tree);
 		//state.repopulate_grid(0);
@@ -276,14 +280,14 @@ public:
 					for (int i = 0; i < state.grid.no_cells; i++) {
 						Cell _cell = state.grid.distribution[i];
 						if (_cell.state == 0) continue;
-						if (find(trees.begin(), trees.end(), _cell.tree) == trees.end() &&
-							_cell.tree->cells.size() == 0) {
+						if (find(trees.begin(), trees.end(), pop->get(_cell.tree)) == trees.end() &&
+							pop->get(_cell.tree)->cells.size() == 0) {
 							//printf
 							//	("*** (percolate func) - Unique tree in grid with ptr %i, id %i, radius %f and no cells %i \n",
 							//	_cell.tree, _cell.tree->id, _cell.tree->radius, _cell.tree->cells.size()
 							//);
 							//printf("double-check: no cells of ptr %i : %i, id: %i \n", &state.population.members[0], state.population.members[0].cells.size(), state.population.members[0].id);
-							trees.push_back(_cell.tree);
+							trees.push_back(pop->get(_cell.tree));
 						}
 					}
 					//if (trees.size() > 0) cout << endl;
@@ -313,5 +317,7 @@ public:
 	int pop_size = 0;
 	int verbosity = 0;
 	State state;
+	Population* pop = 0;
+	Grid* grid = 0;
 };
 

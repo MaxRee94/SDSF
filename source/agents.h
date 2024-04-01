@@ -8,12 +8,12 @@ public:
 	Tree() = default;
 	Tree(pair<float, float> _position) : position(_position) {};
 	Tree(pair<float, float> _position, float _radius) : position(_position), radius(_radius) {
-		id = help::get_rand_uint(0, 10e22);
+		id = help::get_rand_uint(1, 10e22);
 	};
 	Tree(float _radius, vector<float> _strategy, int _life_phase, pair<float, float> _position):
 		radius(_radius), strategy(_strategy), life_phase(_life_phase), position(_position)
 	{
-		id = help::get_rand_uint(0, 10e22);
+		id = help::get_rand_uint(1, 10e22);
 	};
 	bool operator==(const Tree& tree) const
 	{
@@ -31,7 +31,7 @@ public:
 	vector<float> strategy = {};
 	int life_phase = 0;
 	pair<float, float> position = pair(0, 0);
-	int id = 0;
+	uint id = 0;
 	vector<Cell*> cells = {};
 };
 
@@ -48,20 +48,19 @@ public:
 		float _radius = max_radius;
 		if (radius == "sampled") _radius = help::sample_linear_distribution(radius_q1, radius_q2, 0, max_radius);
 		Tree tree(position, _radius);
-		members.push_back(tree);
-		//printf("\nid (in add func): %i \n", tree.id);
-		return &members.back();
+		members[tree.id] = tree;
+		return &members[tree.id];
 	}
 	void store_positions() {
-		for (auto& tree : members) {
+		for (auto& [id, tree] : members) {
 			positions[tree.id] = tree.position;
 		}
 	}
-	/*Tree* get(int id) {
-
-	}*/
+	Tree* get(int id) {
+		return &members[id];
+	}
 	void check_positions() {
-		for (auto& tree : members) {
+		for (auto& [id, tree] : members) {
 			if (tree.position != positions[tree.id]) {
 				printf("id %i position (%f, %f) differs from stored position (%f, %f), id %i \n", tree.id, tree.position.first, tree.position.second, positions[tree.id].first, positions[tree.id].second, tree.id);
 			}
@@ -71,27 +70,26 @@ public:
 		return members.size();
 	}
 	void grow() {
-		for (auto& tree : members) {
+		for (auto& [id, tree] : members) {
 			tree.grow(max_radius);
 		}
 	}
 	void remove(Tree* tree) {
-		auto it = std::find(members.begin(), members.end(), *tree);
-		if (it != members.end()) { 
-			//removed_tree = *tree;
-			members.erase(it);
-		}
-		else printf("------ ERROR: Population member not found.\n");
+		members.erase(tree->id);
 	}
 	bool is_population_member(Tree* tree) {
-		auto it = std::find(members.begin(), members.end(), *tree);
+		auto it = members.find(tree->id);
 		return (it != members.end());
 	}
-	vector<Tree> members = {};
+	bool is_population_member(int tree_id) {
+		auto it = members.find(tree_id);
+		return (it != members.end());
+	}
+	unordered_map<int, Tree> members;
 	float max_radius = 0;
 	float cellsize = 0;
 	float radius_q1 = 0;
 	float radius_q2 = 0;
 	Tree removed_tree;
-	map<int, pair<float, float>> positions;
+	map<uint, pair<float, float>> positions;
 };
