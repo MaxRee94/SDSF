@@ -38,6 +38,16 @@ std::pair<T, U> operator+(const std::pair<T, U>& l, const std::pair<T, U>& r) {
 	return { l.first + r.first,l.second + r.second };
 }
 
+template <typename T, typename U>
+std::pair<T, U> operator*(const float& s, const std::pair<T, U>& p) {
+	return { s * p.first, s * p.second };
+}
+
+template <typename T, typename U>
+std::pair<T, U> operator*(const std::pair<T, U>& p, const float& s) {
+	return s * p;
+} 
+
 namespace help {
 
 	void init_RNG();
@@ -136,8 +146,9 @@ namespace help {
 	// Get maximum
 	double get_max(vector<double>* distribution);
 
-	// Get maximum
-	double get_min(vector<double>* distribution);
+	// Get minimum
+	template <typename T>
+	double get_min(vector<T>* distribution);
 
 	// Get exponential function value
 	float exponential_function(float x, float a, float b, float c);

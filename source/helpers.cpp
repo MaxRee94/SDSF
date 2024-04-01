@@ -404,14 +404,16 @@ double help::get_max(vector<double>* distribution) {
     return max;
 }
 
-
-double help::get_min(vector<double>* distribution) {
+template <typename T>
+double help::get_min(vector<T>* distribution) {
     double min = INFINITY;
-    for (double value : *distribution) {
+    for (auto value : *distribution) {
         if (value < min) min = value;
     }
     return min;
 }
+template double help::get_min<double>(vector<double>* vec);
+template double help::get_min<float>(vector<float>* vec);
 
 float help::get_dist(pair<float, float> p1, pair<float, float> p2) {
     float xdif = (p1.first - p2.first);

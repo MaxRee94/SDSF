@@ -97,7 +97,7 @@ public:
 		pair<int, int> pos = get_gridbased_position(_pos);
 		return get_cell_at_position(pos);
 	}
-	void populate_tree_domain(Tree* tree, bool add_tree = true, float time_last_fire = -1) {
+	void populate_tree_domain(Tree* tree, bool add_tree = true, vector<Cell*>* burned_cells = 0, float time_last_fire = -1) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
 		int radius_gb = tree->radius / cellsize;
 		if (!add_tree) radius_gb = round(radius_gb * 1.5);
@@ -106,8 +106,19 @@ public:
 		for (int x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x++) {
 			for (int y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y++) {
 				if (help::get_dist(pair<float, float>(x, y), tree_center_gb) < radius_gb) {
-					if (add_tree) { i++; set_to_forest(pair<int, int>(x, y), tree); }
-					else set_to_savanna(pair<int, int>(x, y), time_last_fire);
+					Cell* cell = get_cell_at_position(pair<int, int>(x, y));
+					if (add_tree) {
+						i++;
+						set_to_forest(pair<int, int>(x, y), tree);
+						if (burned_cells != nullptr) {
+							auto it = find(burned_cells->begin(), burned_cells->end(), cell);
+							if (it != burned_cells->end()) burned_cells->erase(it);
+						}
+					}
+					else {
+						set_to_savanna(pair<int, int>(x, y), time_last_fire);
+						burned_cells->push_back(cell);
+					}
 				}
 			}
 		}

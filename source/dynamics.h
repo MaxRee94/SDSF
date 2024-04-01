@@ -11,18 +11,8 @@ public:
 	{
 		time = 0;
 		help::init_RNG();
-		init_neighbor_indices();
 		verbosity = _verbosity;
 	};
-	void init_neighbor_indices() {
-		neighbor_indices = new pair<int, int>[8];
-		for (int i = -1; i < 2; i++) {
-			for (int j = -1; j < 2; j++) {
-				if (i == 0 && j == 0) continue;
-				neighbor_indices[i * 3 + j] = pair<int, int>(i, j);
-			}
-		}
-	}
 	void init_state(int gridsize, float cellsize, float max_radius, float radius_q1, float radius_q2) {
 		state = State(gridsize, cellsize, max_radius, radius_q1, radius_q2);
 	}
@@ -35,7 +25,7 @@ public:
 		for (int i = 0; i < state.grid.no_cells; i++) {
 			Cell _cell = state.grid.distribution[i];
 			if (_cell.state == 0 && _cell.tree == nullptr) continue;
-			float dist = help::get_dist(
+			float dist = state.get_dist(
 				state.grid.get_real_position(_cell.pos), tree_pos
 			);
 			int cell_tree_id = _cell.tree->id;
@@ -118,6 +108,8 @@ public:
 		return faulty_references > 0;
 	}
 	void update() {
+		state.grid.reset_state_distr();
+
 		//if (check_faulty_refs()) return;
 		cout << endl;
 		for (auto& tree : state.population.members) {
@@ -131,7 +123,7 @@ public:
 				printf("*** (update func) - Unique tree in grid with ptr %i, id %i and radius %f \n",
 					cell.tree, cell.tree->id, cell.tree->radius);
 				trees.push_back(cell.tree);
-				check_faulty_refs(cell.tree);
+				//check_faulty_refs(cell.tree);
 			}
 		}
 		printf("*** (update func) - no trees: %i \n\n", trees.size());
@@ -183,49 +175,54 @@ public:
 	bool tree_dies(Cell* cell, float fire_free_interval) {
 		return 1; // TEMP: trees always die if ignited (TODO: make dependent on fire-free interval and fire resistance)
 	}
+	void save_2_trees() {
+		state.grid.reset_state_distr();
+		for (int i = 0; i < state.grid.no_cells; i++) {
+			if (state.grid.distribution[i].state == 0) continue;
+			if (find(state.population.members[0].cells.begin(), state.population.members[0].cells.end(), &state.grid.distribution[i]) !=
+				state.population.members[0].cells.end()
+			)
+				state.grid.state_distribution[i] = 1;
+			if (find(state.population.members[1].cells.begin(), state.population.members[1].cells.end(), &state.grid.distribution[i]) !=
+				state.population.members[1].cells.end()
+				)
+				state.grid.state_distribution[i] += 2;
+		}
+	}
 	void kill_tree(Cell* cell, queue<Cell*>& queue) {
 		Tree* tree = cell->tree;
-		//vector<Cell*> burned_cells = {};
+		vector<Cell*> burned_cells = {};
 
 		printf("before emptying tree with ptr %i\n", tree);
-		pop_size = state.population.size();
 		check_faulty_refs(tree);
+		pop_size = state.population.size();
 
 		for (auto& _cell : tree->cells) {
 			if (_cell == *tree->cells.begin()) cout << "setting to savanna..\n";
+			burned_cells.push_back(_cell);
 			state.grid.set_to_savanna(_cell->pos, cell->time_last_fire);
-			state.grid.state_distribution[state.grid.pos_2_idx(_cell->pos)] = 5;
-			queue.push(_cell);
 		}
 		//state.grid.populate_tree_domain(tree, false, cell->time_last_fire);
 		//state.grid.burn_tree(tree, neighbors, cell->time_last_fire);
 
-		vector<Tree*> neighbors = state.population.get_neighbors(tree);
+		vector<Tree*> neighbors = state.get_tree_neighbors(tree);
+		if (neighbors.size() == 0) printf("----- NO NEIGHBORS DETECTED\n");
 
 		//cout << "after deletion, before neighbor refill\n";
 		//check_faulty_refs(&state.population.removed_tree);
 
 		for (auto& neighbor : neighbors) {
 			printf("Re-filling tree with ptr %i and no cells %i\n", neighbor, neighbor->cells.size());
-			state.grid.populate_tree_domain(neighbor, true);
+			state.grid.populate_tree_domain(neighbor, true, &burned_cells);
 		}
 
-		//cout << "after neighbor refill\n";
+		// Add burned cells to queue
+		for (Cell* _cell : burned_cells) {
+			queue.push(_cell);
+			state.grid.state_distribution[state.grid.pos_2_idx(_cell->pos)] = 5;
+		}
+
 		pop_size = state.population.size();
-		//check_faulty_refs(&state.population.removed_tree);
-
-		//if (check_faulty_refs(tree)) return;
-
-		/*if (faulty_references) {
-			printf("No burned cells: %i, no faulty references: %i \n", burned_cells.size(), faulty_references);
-			printf("Burned cells:\n");
-			for (auto& _cell : burned_cells) {
-				pair<int, int> pos = _cell->pos;
-				state.grid.cap(pos);
-				cout << "(" + to_string(pos.first) + ", " + to_string(pos.second) + "), ";
-			}
-			cout << endl;
-		}*/
 		state.population.remove(tree);
 		printf("new pop size (after removal of ptr %i): %i \n", tree, state.population.size());
 	}
@@ -263,7 +260,7 @@ public:
 
 			// Percolate to neighbors
 			for (int i = 0; i < 8; i++) {
-				Cell* neighbor = state.grid.get_cell_at_position(cell->pos + neighbor_indices[i]);
+				Cell* neighbor = state.grid.get_cell_at_position(cell->pos + state.neighbor_offsets[i]);
 				if (cell_will_ignite(neighbor, t_start)) {
 
 					// Check trees on grid
@@ -273,15 +270,15 @@ public:
 						if (_cell.state == 0) continue;
 						if (find(trees.begin(), trees.end(), _cell.tree) == trees.end() &&
 							_cell.tree->cells.size() == 0) {
-							printf
-								("*** (percolate func) - Unique tree in grid with ptr %i, id %i, radius %f and no cells %i \n",
-								_cell.tree, _cell.tree->id, _cell.tree->radius, _cell.tree->cells.size()
-							);
-							printf("double-check: no cells of ptr %i : %i, id: %i \n", &state.population.members[0], state.population.members[0].cells.size(), state.population.members[0].id);
+							//printf
+							//	("*** (percolate func) - Unique tree in grid with ptr %i, id %i, radius %f and no cells %i \n",
+							//	_cell.tree, _cell.tree->id, _cell.tree->radius, _cell.tree->cells.size()
+							//);
+							//printf("double-check: no cells of ptr %i : %i, id: %i \n", &state.population.members[0], state.population.members[0].cells.size(), state.population.members[0].id);
 							trees.push_back(_cell.tree);
 						}
 					}
-					if (trees.size() > 0) cout << endl;
+					//if (trees.size() > 0) cout << endl;
 
 					queue.push(neighbor);
 					burn_cell(neighbor, t_start, queue);
@@ -305,7 +302,6 @@ public:
 	int time = 0;
 	int pop_size = 0;
 	int verbosity = 0;
-	pair<int, int>* neighbor_indices = 0;
 	State state;
 };
 

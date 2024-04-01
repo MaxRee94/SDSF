@@ -60,26 +60,6 @@ public:
 			tree.grow(max_radius);
 		}
 	}
-	vector<Tree*> get_neighbors(pair<float, float> baseposition, float search_radius, Tree* base = 0) {
-		vector<Tree*> neighbors;
-		for (auto& candidate : members) {
-			if (base != nullptr && candidate.id == base->id) {
-				continue;
-			}
-			if (help::get_dist(candidate.position, baseposition) < search_radius) {
-				neighbors.push_back(&candidate);
-			}
-		}
-		printf("Neighbors for ptr %i: ", base);
-		for (auto& neighbor : neighbors) printf("%i, ", neighbor);
-		cout << endl;
-		return neighbors;
-	}
-	vector<Tree*> get_neighbors(Tree* base) {
-		vector<Tree*> neighbors;
-		float dist = (round(base->radius * 1.1) + max_radius);
-		return get_neighbors(base->position, dist, base);
-	}
 	void remove(Tree* tree) {
 		auto it = std::find(members.begin(), members.end(), *tree);
 		if (it != members.end()) { 

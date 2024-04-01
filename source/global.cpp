@@ -57,6 +57,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const int&>())
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)
+        .def("save_2_trees", &Dynamics::save_2_trees)
         .def("init_state", &Dynamics::init_state)
         .def("update", &Dynamics::update)
         .def("simulate_fires", &Dynamics::simulate_fires);
