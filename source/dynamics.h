@@ -108,7 +108,7 @@ public:
 			int j = 0;
 			while (j < trees.size()) {
 				if (pop->get(cell.tree) == trees[j]) {
-					grid->state_distribution[i] = (float)trees[j]->id * INV_RAND_MAX * (float)pop->size() + 1;
+					grid->state_distribution[i] = (float)trees[j]->id;
 				}
 				j++;
 			}
