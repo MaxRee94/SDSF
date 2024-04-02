@@ -3,6 +3,24 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+from helpers import *
+
+
+def get_color_dict(no_values, begin=0.0, end=1.0):
+    x_step = (end * no_values - begin * no_values) / no_values
+    x_range = [ no_values * begin + x_step * x for x in range(no_values) ]
+    color_dict = {v : 
+        np.array((
+            get_max((255 - (x * (2 * 255/no_values))), 0),
+            get_max(255 - get_max(255 - (x * (2 * 255/no_values)), 0) - get_max((-765/3 + (x * (2 * 255/no_values))), 0), 0),
+            get_max((-765/3 + (x * (2 * 255/no_values))), 0)
+        ), np.uint8) for v, x in zip(range(1, no_values + 1), x_range)
+    }
+    color_dict[0] = np.array((0, 0, 0), np.uint8)
+    color_dict[-5] = np.array((0, 80, 220))
+    #for key, val in color_dict.items():
+    #   print(key, " -- ", val)
+    return color_dict
 
 def visualize_image(img, image_width):
     img_resized = cv2.resize(img, (image_width, image_width),
@@ -10,7 +28,7 @@ def visualize_image(img, image_width):
 
     cv2.imshow("DBR Simulation (TEST)", img_resized)
     cv2.waitKey(1)
-    
+
 def get_image(grid, collect_states, color_dict):
     img = grid.get_distribution(collect_states)
     if (color_dict == {0:0, 1:255}):

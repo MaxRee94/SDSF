@@ -58,7 +58,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)
         .def_readwrite("time", &Dynamics::time)
-        .def("save_2_trees", &Dynamics::save_2_trees)
+        .def("store_tree_colors", &Dynamics::store_tree_colors)
         .def("init_state", &Dynamics::init_state)
         .def("update", &Dynamics::update)
         .def("simulate_fires", &Dynamics::simulate_fires);

@@ -54,9 +54,6 @@ public:
 				neighbors.push_back(&candidate);
 			}
 		}
-		printf("Neighbors for tree id %i: ", base_id);
-		for (auto& neighbor : neighbors) printf("%i, ", neighbor);
-		cout << endl;
 		return neighbors;
 	}
 	vector<Tree*> get_tree_neighbors(Tree* base) {
@@ -70,21 +67,14 @@ public:
 
 		while (grid.get_tree_cover() < _tree_cover) {
 			pair<float, float> position = grid.get_random_real_position();
-			Tree* tree = population.add(position, "maximum");
+			Tree* tree = population.add(position, "sampled");
 			grid.populate_tree_domain(tree);
-			//printf("radius: %f, ptr: %i \n", population.members.back().radius, tree);
-			/*if (population.members.back().radius == -1) {
-				cout << "problem reflected here too.\n";
-			}*/
 
 			if (population.size() % 1000 == 0) {
 				printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
 			}
 			continue;
 		}
-		/*for (auto& tree : population.members) {
-			printf("*** (tree cover func) - tree (ptr %i) radius: %f, no cells: %i \n", &tree, tree.radius, tree.cells.size());
-		}*/
 		printf("Final tree cover: %f\n", grid.get_tree_cover());
 
 		// Count no small trees
@@ -95,9 +85,6 @@ public:
 			}
 		}
 		printf("- Fraction small trees: %f \n", (float)no_small / (float)population.size());
-		
-		// HOTFIX: Repopulating the grid appears to prevent read access errors (where some trees cannot be read from memory). Cause unknown.
-		repopulate_grid(2);
 	}
 	Grid grid;
 	Population population;

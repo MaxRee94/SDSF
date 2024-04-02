@@ -11,7 +11,7 @@
 
 
 using namespace std;
-
+#define INV_RAND_MAX  1.0f / (float)RAND_MAX
 
 typedef unsigned int uint;
 

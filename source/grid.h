@@ -119,7 +119,6 @@ public:
 		int radius_gb = tree->radius / cellsize;
 		if (!add_tree) radius_gb = round(radius_gb * 1.5);
 		int i = 0;
-		tree->cells.clear();
 		for (int x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x++) {
 			for (int y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y++) {
 				if (help::get_dist(pair<float, float>(x, y), tree_center_gb) < radius_gb) {
@@ -195,7 +194,6 @@ public:
 		distribution[idx].state = 1;
 		distribution[idx].tree = tree->id;
 		distribution[idx].time_last_fire = -1.0;
-		tree->cells.push_back(&distribution[idx]);
 	}
 	void set_to_savanna(int idx, float _time_last_fire = -1) {
 		if (distribution[idx].state == 1) {

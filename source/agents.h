@@ -8,12 +8,12 @@ public:
 	Tree() = default;
 	Tree(pair<float, float> _position) : position(_position) {};
 	Tree(pair<float, float> _position, float _radius) : position(_position), radius(_radius) {
-		id = help::get_rand_uint(1, 10e22);
+		id = rand();
 	};
 	Tree(float _radius, vector<float> _strategy, int _life_phase, pair<float, float> _position):
 		radius(_radius), strategy(_strategy), life_phase(_life_phase), position(_position)
 	{
-		id = help::get_rand_uint(1, 10e22);
+		id = rand();
 	};
 	bool operator==(const Tree& tree) const
 	{
@@ -32,7 +32,6 @@ public:
 	int life_phase = 0;
 	pair<float, float> position = pair(0, 0);
 	uint id = 0;
-	vector<Cell*> cells = {};
 };
 
 
@@ -82,8 +81,7 @@ public:
 		return (it != members.end());
 	}
 	bool is_population_member(int tree_id) {
-		auto it = members.find(tree_id);
-		return (it != members.end());
+		return members.find(tree_id) != members.end();
 	}
 	unordered_map<int, Tree> members;
 	float max_radius = 0;

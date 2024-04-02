@@ -46,46 +46,23 @@ def termination_condition_satisfied(dynamics, start_time, user_args):
     return satisfied
 
 
-def get_color_dict(no_colors):
-    no_colors += 1
-    parts = 2
-    color_dict = {k : 
-        np.array((
-            get_max((255 - (v * (parts * 255/no_colors))), 0),
-            get_max(255 - get_max(255 - (v * (parts * 255/no_colors)), 0) - get_max((-765/3 + (v * (parts * 255/no_colors))), 0), 0),
-            get_max((-765/3 + (v * (parts * 255/no_colors))), 0)
-        ), np.uint8) for k, v in zip(range(1, no_colors), range(1, no_colors))
-    }
-    color_dict[0] = np.array((0, 0, 0), np.uint8)
-    color_dict[999] = np.array((255, 255, 255), np.uint8)
-    #for key, val in color_dict.items():
-    #    print(key, " -- ", val)
-    return color_dict
-
-
 def updateloop(dynamics, **user_args):
     start = time.time()
     is_within_timelimit = True
+    color_dict = vis.get_color_dict(dynamics.state.population.size(), begin=0.3, end=0.8)
+    dynamics.store_tree_colors(False)
+    img = vis.visualize(
+        dynamics.state.grid, user_args["image_width"], collect_states=False,
+        color_dict=color_dict
+    )
     while not termination_condition_satisfied(dynamics, start, user_args):
-        dynamics.save_2_trees(2)
+        dynamics.update()
         img = vis.visualize(
             dynamics.state.grid, user_args["image_width"], collect_states=False,
-            color_dict=get_color_dict(dynamics.state.population.size() + 1)
+            color_dict=color_dict
         )
         imagepath = os.path.join(str(Path(os.getcwd()).parent.parent), "data_out/image_timeseries/" + str(dynamics.time) + ".png")
-#
         vis.save_image(img, imagepath)
-        #time.sleep(2)
-        dynamics.update()
-        # vis.visualize(
-        #     dynamics.state.grid, user_args["image_width"], collect_states=False,
-        #     color_dict=get_color_dict(dynamics.state.population.size() + 1)
-        # )
-        #time.sleep()
-        # print("Repopulating...")
-        # dynamics.state.repopulate_grid(0)
-        #vis.visualize(dynamics.state.grid, user_args["image_width"])
-        # time.sleep(4)
 
     cv2.destroyAllWindows()
 

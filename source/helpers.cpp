@@ -10,7 +10,7 @@
 
 using namespace std;
 
-float INV_RAND_MAX = 1.0 / (float)RAND_MAX;
+
 
 void help::init_RNG() {
     srand(time(NULL));
