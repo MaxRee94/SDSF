@@ -88,7 +88,7 @@ public:
 		return pair<int, int>(x, y);
 	}
 	float get_tree_cover() {
-		return (float)no_forest_cells / (float)no_savanna_cells;
+		return (float)no_forest_cells / (float)(no_cells);
 	}
 	Cell* get_cell_at_position(pair<int, int> pos) {
 		cap(pos);
@@ -170,9 +170,8 @@ public:
 	}
 	int* get_state_distribution(bool collect = true) {
 		if (collect) {
-			if (state_distribution == nullptr) state_distribution = new int[no_cells];
 			for (int i = 0; i < no_cells; i++) {
-				state_distribution[i] = distribution[i].state;
+				if (distribution[i].state == 1) state_distribution[i] = distribution[i].tree;
 			}
 		}
 		return state_distribution;

@@ -49,16 +49,21 @@ def termination_condition_satisfied(dynamics, start_time, user_args):
 def updateloop(dynamics, **user_args):
     start = time.time()
     is_within_timelimit = True
-    color_dict = vis.get_color_dict(dynamics.state.population.size(), begin=0.3, end=0.8)
-    dynamics.store_tree_colors(False)
+    print("Creating color dict...")
+    color_dict = vis.get_color_dict(dynamics.state.population.size() + 1, begin=0.2, end=0.7)
+    collect_states = True
+    print("Visualizing state at t = 0")
     img = vis.visualize(
-        dynamics.state.grid, user_args["image_width"], collect_states=False,
+        dynamics.state.grid, user_args["image_width"], collect_states=collect_states,
         color_dict=color_dict
     )
+    imagepath = os.path.join(str(Path(os.getcwd()).parent.parent), "data_out/image_timeseries/" + str(dynamics.time) + ".png")
+    vis.save_image(img, imagepath)
+    print("Beginning simulation...")
     while not termination_condition_satisfied(dynamics, start, user_args):
         dynamics.update()
         img = vis.visualize(
-            dynamics.state.grid, user_args["image_width"], collect_states=False,
+            dynamics.state.grid, user_args["image_width"], collect_states=collect_states,
             color_dict=color_dict
         )
         imagepath = os.path.join(str(Path(os.getcwd()).parent.parent), "data_out/image_timeseries/" + str(dynamics.time) + ".png")

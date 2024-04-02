@@ -43,7 +43,6 @@ public:
 		printf("Time: %i\n", time);
 		simulate_fires();
 		state.repopulate_grid(0);
-		store_tree_colors(false);
 		if (verbosity > 0) report_statistics();
 	}
 	void report_statistics() {
@@ -174,9 +173,8 @@ public:
 			queue.pop();
 
 			// Percolate to neighbors
-			vector<pair<int, int>> _neighbor_offsets = neighbor_offsets;
 			for (int i = 0; i < 8; i++) {
-				Cell* neighbor = state.grid.get_cell_at_position(cell->pos + state.neighbor_offsets[i]);
+				Cell* neighbor = grid->get_cell_at_position(cell->pos + neighbor_offsets[i]);
 				if (cell_will_ignite(neighbor, t_start)) {
 					queue.push(neighbor);
 					burn_cell(neighbor, t_start, queue);
