@@ -326,6 +326,12 @@ void help::remove(vector<int>* vec, int item) {
     else throw("Error: Cannot remove item from vector because it is not present\n");
 }
 
+pair<int, int> help::pop(vector<pair<int, int>>* vec, int idx) {
+    pair<int, int> item = vec->at(idx);
+    vec->erase(vec->begin() + idx);
+    return item;
+}
+
 bool help::ends_with(string full_string, string ending) {
     if (full_string.length() >= ending.length()) {
         return (0 == full_string.compare(full_string.length() - ending.length(), ending.length(), ending));

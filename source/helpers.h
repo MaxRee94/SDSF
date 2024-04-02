@@ -99,6 +99,8 @@ namespace help {
 
 	void remove(vector<int>* vec, int item);
 
+	pair<int, int> pop(vector<pair<int, int>>* vec, int idx);
+
 	float get_dist(pair<float, float> p1, pair<float, float> p2);
 
 	std::string add_padding(std::string basestring, int version);
