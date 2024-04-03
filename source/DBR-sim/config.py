@@ -9,7 +9,7 @@ defaults = {
     "max_radius": 6.0,
     "image_width": 1000,
     "timestep": 1,
-    "timelimit": 1e8,
+    "timelimit": 1e32,
     "self_ignition_factor": 20.0,
     "unsuppressed_flammability": -999.0,
     "suppressed_flammability": -999.0,

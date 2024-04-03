@@ -20,27 +20,9 @@ public:
 		for (int i = 0; i < 8; i++) neighbor_offsets.push_back(state.neighbor_offsets[i]);
 	}
 	void update() {
-		grid->reset_state_distr();
-		if (verbosity == 2) {
-			cout << endl;
-			for (auto& [id, tree] : state.population.members) {
-				printf("*** (update func) - tree (ptr %i) radius: %f\n", &tree, tree.radius);
-			}
-			vector<Tree*> trees = {};
-			for (int i = 0; i < grid->no_cells; i++) {
-				Cell cell = grid->distribution[i];
-				if (cell.state == 0) continue;
-				if (find(trees.begin(), trees.end(), pop->get(cell.tree)) == trees.end()) {
-					printf("*** (update func) - Unique tree in grid with id %i and radius %f \n",
-						cell.tree, pop->get(cell.tree)->radius);
-					trees.push_back(pop->get(cell.tree));
-				}
-			}
-			printf("*** (update func) - no trees: %i \n\n", trees.size());
-		}
-
 		time++;
 		printf("Time: %i\n", time);
+		grid->reset_state_distr();
 		simulate_fires();
 		state.repopulate_grid(0);
 		if (verbosity > 0) report_statistics();

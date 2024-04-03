@@ -67,7 +67,7 @@ def updateloop(dynamics, **user_args):
             color_dict=color_dict
         )
         imagepath = os.path.join(str(Path(os.getcwd()).parent.parent), "data_out/image_timeseries/" + str(dynamics.time) + ".png")
-        vis.save_image(img, imagepath)
+        vis.save_image(img, imagepath, get_max(1000, img.shape[0]))
 
     cv2.destroyAllWindows()
 
