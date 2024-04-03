@@ -32,7 +32,7 @@ public:
 	}
 	vector<float> get_ordered_fire_ignition_times() {
 		int i = 0;
-		int fire_count = round(self_ignition_factor * rainfall);
+		int fire_count = round(self_ignition_factor * rainfall * (float)grid->area / (float)1e6);
 		vector<float> fire_ignition_times = {};
 		while (i < fire_count) {
 			float t_start = help::get_rand_float(0.0, 1.0) + time;

@@ -27,6 +27,7 @@ public:
 		no_savanna_cells = no_cells;
 		init_grid_cells();
 		reset_state_distr();
+		area = no_cells * cellsize * cellsize;
 	}
 	void init_grid_cells() {
 		distribution = new Cell[no_cells];
@@ -232,4 +233,5 @@ public:
 	int* state_distribution = 0;
 	int no_savanna_cells = 0;
 	int no_forest_cells = 0;
+	float area = 0;
 };
