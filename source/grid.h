@@ -120,9 +120,9 @@ public:
 		int radius_gb = tree->radius / cellsize;
 		if (!add_tree) radius_gb = round(radius_gb * 1.5);
 		int i = 0;
-		for (int x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x++) {
-			for (int y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y++) {
-				if (help::get_dist(pair<float, float>(x, y), tree_center_gb) < radius_gb) {
+		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x+=1) {
+			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y+=1) {
+				if (tree->is_within_radius(pair<float, float>(x * cellsize, y * cellsize))) {
 					Cell* cell = get_cell_at_position(pair<int, int>(x, y));
 					if (add_tree) {
 						i++;
