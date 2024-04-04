@@ -147,28 +147,6 @@ public:
 	bool tree_dies(Cell* cell, float fire_free_interval) {
 		return 1; // TEMP: trees always die if ignited (TODO: make dependent on fire-free interval and fire resistance)
 	}
-	void store_tree_colors(bool reset=true) {
-		if (reset) grid->reset_state_distr();
-		vector<Tree*> trees = {};
-		int no_internally_stored_cells = 0;
-		int no_grid_counted_cells = 0;
-		for (int i = 0; i < grid->no_cells; i++) {
-			if (grid->distribution[i].state == 0) continue;
-			Cell cell = grid->distribution[i];
-			if (cell.tree != 0) no_grid_counted_cells++;
-			bool new_tree = find(trees.begin(), trees.end(), pop->get(cell.tree)) == trees.end();
-			if (new_tree) {
-				trees.push_back(pop->get(cell.tree));
-			}
-			int j = 0;
-			while (j < trees.size()) {
-				if (pop->get(cell.tree) == trees[j]) {
-					grid->state_distribution[i] = (float)trees[j]->id;
-				}
-				j++;
-			}
-		}
-	}
 	void kill_tree(Cell* cell, queue<Cell*>& queue) {
 		Tree* tree = pop->get(cell->tree);
 		if (verbosity == 2) printf("Killing tree %i ... \n", tree->id);
