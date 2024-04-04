@@ -6,19 +6,27 @@ class Dynamics {
 public:
 	Dynamics() = default;
 	Dynamics(
-		int _timestep, float __unsuppressed_flammability, float __suppressed_flammability, float _self_ignition_factor, float _rainfall,
-		float _seed_bearing_threshold, float _mass_budget_factor, float _growth_rate_multiplier, int _verbosity
+		int _timestep, float _self_ignition_factor, float _rainfall, float _seed_bearing_threshold, float _mass_budget_factor,
+		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
+		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_radius, int _verbosity
 	) :
-		timestep(_timestep), _unsuppressed_flammability(__unsuppressed_flammability), _suppressed_flammability(__suppressed_flammability),
+		timestep(_timestep), unsuppressed_flammability(_unsuppressed_flammability), 
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_seed_bearing_threshold),
-		mass_budget_factor(_mass_budget_factor), growth_rate_multiplier(_growth_rate_multiplier), verbosity(_verbosity)
+		mass_budget_factor(_mass_budget_factor), growth_rate_multiplier(_growth_rate_multiplier),
+		radius_suppr_flamm_min(_max_radius* _radius_suppr_flamm_min),
+		flamm_d_radius((_min_suppressed_flammability - _max_suppressed_flammability) / (_max_radius * radius_range_suppr_flamm)),
+		max_suppressed_flammability(_max_suppressed_flammability),
+		min_suppressed_flammability(_min_suppressed_flammability),
+		max_radius(_max_radius), verbosity(_verbosity)
 	{
 		time = 0;
+		cout << "max rad * rad range: " << to_string(_max_radius * radius_range_suppr_flamm) << endl;
+		printf("d flamm: %f, min flamm: %f \n", flamm_d_radius, _min_suppressed_flammability);
 		help::init_RNG();
 		pop = &state.population;
 		grid = &state.grid;
 	};
-	void init_state(int gridsize, float cellsize, float max_radius, float radius_q1, float radius_q2, float _seed_mass) {
+	void init_state(int gridsize, float cellsize, float radius_q1, float radius_q2, float _seed_mass) {
 		state = State(gridsize, cellsize, max_radius, radius_q1, radius_q2, seed_bearing_threshold, mass_budget_factor, _seed_mass);
 		disperser = Disperser(&state);
 		neighbor_offsets = state.neighbor_offsets;
@@ -29,7 +37,7 @@ public:
 		printf("Time: %i\n", time);
 		grid->reset_state_distr();
 
-		// Simulation
+		// Do simulation
 		disperse();
 		grow();
 		burn();
@@ -93,6 +101,8 @@ public:
 		if (verbosity > 0) printf("Number of seed bearing trees: %i, #seeds dispersed: %i \n", x, j);
 	}
 	void burn() {
+		update_tree_flammabilities();
+		if (verbosity == 2) printf("Updated tree flammabilities.\n");
 		vector<float> fire_ignition_times = get_ordered_fire_ignition_times();
 		int no_burned_cells = 0;
 		int re_ignitions = 0;
@@ -110,15 +120,41 @@ public:
 			printf("Number of fires: %i \n", fire_ignition_times.size());
 		}
 	}
-	float get_suppressed_flammability(Cell* cell, float fire_free_interval) {
-		if (_suppressed_flammability > -999) return _suppressed_flammability;
+	float get_suppressed_flammability(Tree* tree, float fire_free_interval) {
+		float cumulative_radius = tree->radius;
+		float d_radius = max(cumulative_radius - radius_suppr_flamm_min, 0);
+		//printf("D radius: %f, Suppressed flammability: %f, max flamm: %f, flamm d radius: %f, \n",
+		//	d_radius, max(max_suppressed_flammability + d_radius * flamm_d_radius, min_suppressed_flammability), max_suppressed_flammability, flamm_d_radius);
+		return max(max_suppressed_flammability + d_radius * flamm_d_radius, min_suppressed_flammability);
 	}
-	float get_unsuppressed_flammability(Cell* cell, float fire_free_interval) {
-		if (_unsuppressed_flammability > -999) return _unsuppressed_flammability;
+	float get_unsuppressed_flammability(float fire_free_interval) {
+		return fire_free_interval * unsuppressed_flammability;
 	}
 	float get_flammability(Cell* cell, float fire_free_interval) {
-		if (cell->state == 0) return get_unsuppressed_flammability(cell, fire_free_interval);
-		else return get_suppressed_flammability(cell, fire_free_interval);
+		if (cell->state == 1) {
+			return get_suppressed_flammability(pop->get(cell->tree), fire_free_interval);
+		}
+		else return get_unsuppressed_flammability(fire_free_interval);
+	}
+	void update_tree_flammabilities() {
+		vector<Tree*> trees = {};
+		int j = 0;
+		for (int i = 0; i < grid->no_cells; i++) {
+			if (grid->distribution[i].state == 0) continue;
+
+			// TODO: Once functionality to store multiple trees per cell is implemented, add a check here to only compute flammability
+			// in case there is only one tree in the cell.
+			pop->get(grid->distribution[i].tree)->flammability = get_suppressed_flammability(pop->get(grid->distribution[i].tree), 1);
+			if (verbosity == 2 && i % 1000 == 0) printf("Flammability value: %f \n", pop->get(grid->distribution[i].tree)->flammability);
+			/*if (find(trees.begin(), trees.end(), pop->get(grid->distribution[i].tree)) == trees.end()) {
+				trees.push_back(pop->get(grid->distribution[i].tree));
+				if (pop->get(grid->distribution[i].tree)->flammability > 0.01) {
+					j++;
+				}
+			}*/
+		}
+		//printf("fraction of trees with >minimum flammability: %f \n", (float)j / (float)pop->size());
+		//printf("fraction of trees present on grid %f \n", (float)trees.size() / (float)pop->size());
 	}
 	bool tree_dies(Cell* cell, float fire_free_interval) {
 		return 1; // TEMP: trees always die if ignited (TODO: make dependent on fire-free interval and fire resistance)
@@ -143,7 +179,6 @@ public:
 				}
 				j++;
 			}
-			
 		}
 	}
 	void kill_tree(Cell* cell, queue<Cell*>& queue) {
@@ -153,7 +188,6 @@ public:
 		// Obtain cells within radius of killed tree that are not part of neighboring trees.
 		vector<Cell*> burned_cells = {};
 		grid->get_cells_within_radius(tree, &burned_cells); // Get all cells within killed tree radius
-		vector<Cell*> orig_burned_cells = burned_cells;
 		vector<Tree*> neighbors = state.get_tree_neighbors(tree);
 		for (auto& neighbor : neighbors) {
 			grid->get_cells_within_radius(neighbor, &burned_cells, true); // Exclude cells that fall within radius of neighbors
@@ -214,13 +248,17 @@ public:
 		}
 		return no_burned_cells;
 	}
-	float _unsuppressed_flammability = 0;
-	float _suppressed_flammability = 0;
+	float unsuppressed_flammability = 0;
+	float min_suppressed_flammability = 0;
+	float max_suppressed_flammability = 0;
 	float mass_budget_factor = 0;
 	float self_ignition_factor = 0;
 	float rainfall = 0;
 	float seed_bearing_threshold = 0;
 	float growth_rate_multiplier = 0;
+	float radius_suppr_flamm_min = 0;
+	float flamm_d_radius = 0;
+	float max_radius = 0;
 	int timestep = 0;
 	int time = 0;
 	int pop_size = 0;

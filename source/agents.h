@@ -38,6 +38,7 @@ public:
 	}
 	float radius = -1;
 	float radius_tmin1 = -1;
+	float flammability = -1;
 	int life_phase = 0;
 	pair<float, float> position = pair(0, 0);
 	uint id = 0;

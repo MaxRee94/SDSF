@@ -11,8 +11,7 @@ defaults = {
     "timestep": 1,
     "timelimit": 1e32,
     "self_ignition_factor": 20.0,
-    "unsuppressed_flammability": -999.0,
-    "suppressed_flammability": -999.0,
+    "unsuppressed_flammability": 0.25,
     "rainfall": 0.1,
     "test": "none",
     "radius_q1": 1,
@@ -27,6 +26,7 @@ defaults = {
     "dispersal_max": 300,
     "growth_rate_multiplier": 0.2,
     "seed_mass": 0.01,
+    "flammability_coefficients_and_constants": [0.01, 0.03, 0.05, 0.4],
 }
 
 gui_defaults = {
@@ -157,18 +157,6 @@ _parameter_config = {
                 "Flammability of savanna cells and forest cells that do not suppress fire (WARNING: ideally, this should not be a constant value but should be contingent on rainfall levels. Interpret results with care.)."
             ),
             "default": defaults["unsuppressed_flammability"],
-        },
-    },
-    "suppressed_flammability": {
-        "keys": {
-            "cli": ["--suppressed_flammability", "-sf"]
-        },
-        "settings": {
-            "type": float,
-            "help": (
-                "Flammability of forest cells that suppress fire (WARNING: ideally, this should not be a constant value but should be contingent on rainfall levels. Interpret results with care.)."
-            ),
-            "default": defaults["suppressed_flammability"],
         },
     },
     "rainfall": {
@@ -325,6 +313,20 @@ _parameter_config = {
                 "Seed mass."
             ),
             "default": defaults["seed_mass"],
+        },
+    },
+    "flammability_coefficients_and_constants": {
+        "keys": {
+            "cli": ["--flammability_coefficients_and_constants", "-fcac"]
+        },
+        "settings": {
+            "nargs": "*",
+            "type": float,
+            "help": (
+                ("Coefficients and constants [minimum_flammability, maximum_flammability, minimum_radius, radius_range] which determine the flammability" +
+                 " function's output given the tree radius.")
+            ),
+            "default": defaults["flammability_coefficients_and_constants"],
         },
     },
 }

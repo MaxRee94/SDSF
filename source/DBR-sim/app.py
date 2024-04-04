@@ -17,18 +17,20 @@ from x64.Release import dbr_cpp as cpp
 
 def init(timestep=None, gridsize=None, cellsize=None, max_radius=None,
          treecover=None, self_ignition_factor=None, flammability=None,
-         rainfall=None, unsuppressed_flammability=None, suppressed_flammability=None,
+         rainfall=None, unsuppressed_flammability=None, 
          verbosity=None, radius_q1=None, radius_q2=None, seed_bearing_threshold=None,
          mass_budget_factor=None, dispersal_mode=None, linear_diffusion_q1=None, linear_diffusion_q2=None,
          dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, seed_mass=None,
+         flammability_coefficients_and_constants=None,
          **_):
     cpp.check_communication()
     dynamics = cpp.Dynamics(
-        timestep, unsuppressed_flammability, suppressed_flammability,
-        self_ignition_factor, rainfall, seed_bearing_threshold,
-        mass_budget_factor, growth_rate_multiplier, verbosity
+        timestep, self_ignition_factor, rainfall, seed_bearing_threshold,
+        mass_budget_factor, growth_rate_multiplier, unsuppressed_flammability, flammability_coefficients_and_constants[0],
+        flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
+        flammability_coefficients_and_constants[3], max_radius, verbosity
     )
-    dynamics.init_state(gridsize, cellsize, max_radius, radius_q1, radius_q2, seed_mass)
+    dynamics.init_state(gridsize, cellsize, radius_q1, radius_q2, seed_mass)
     dynamics.state.set_tree_cover(treecover)
     print("disp mode: ", dispersal_mode)
     if (dispersal_mode == "linear_diffusion"):
