@@ -139,11 +139,6 @@ public:
 				}
 			}
 		}
-		//printf("%s %i cells for tree ptr %i. Stored no cells %i\n", (add_tree ? "added" : "removed"), i, tree, tree->cells.size());
-		//printf("Populated %i cells; tree contains %i cells, radius is %f \n", i, tree->cells.size(), tree->radius);
-		/*if (tree->cells.size() == 0 && tree->radius > 2.0) {
-			printf("WEIRD ----- Tree at %i, %i has no cells but should.\n", tree->position.first, tree->position.second);
-		}*/
 	}
 	void burn_tree(Tree* tree, vector<Tree*> neighbors, float time_last_fire, vector<Cell*>* burned_cells=0) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
@@ -172,7 +167,7 @@ public:
 	int* get_state_distribution(bool collect = true) {
 		if (collect) {
 			for (int i = 0; i < no_cells; i++) {
-				if (distribution[i].state == 1) state_distribution[i] = distribution[i].tree;
+				if (distribution[i].state == 1) state_distribution[i] = distribution[i].tree % 1000;
 			}
 		}
 		return state_distribution;

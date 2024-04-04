@@ -57,7 +57,7 @@ def updateloop(dynamics, **user_args):
     is_within_timelimit = True
     print("Creating color dict...")
     # dynamics.state.population.size() + 1
-    no_colors = 500000
+    no_colors = 1000
     color_dict = vis.get_color_dict(no_colors, begin=0.2, end=0.7)
     collect_states = True
     print("Visualizing state at t = 0")
