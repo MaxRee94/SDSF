@@ -25,12 +25,12 @@ def init(timestep=None, gridsize=None, cellsize=None, max_radius=None,
          **_):
     cpp.check_communication()
     dynamics = cpp.Dynamics(
-        timestep, self_ignition_factor, rainfall, seed_bearing_threshold,
+        timestep, cellsize, self_ignition_factor, rainfall, seed_bearing_threshold,
         mass_budget_factor, growth_rate_multiplier, unsuppressed_flammability, flammability_coefficients_and_constants[0],
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
         flammability_coefficients_and_constants[3], max_radius, verbosity
     )
-    dynamics.init_state(gridsize, cellsize, radius_q1, radius_q2, seed_mass)
+    dynamics.init_state(gridsize, radius_q1, radius_q2, seed_mass)
     dynamics.state.set_tree_cover(treecover)
     print("disp mode: ", dispersal_mode)
     if (dispersal_mode == "linear_diffusion"):

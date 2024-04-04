@@ -140,30 +140,6 @@ public:
 			}
 		}
 	}
-	void burn_tree(Tree* tree, vector<Tree*> neighbors, float time_last_fire, vector<Cell*>* burned_cells=0) {
-		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
-		int radius_gb = (tree->radius * 1.1) / cellsize;
-		for (int x = tree_center_gb.first - radius_gb; x < tree_center_gb.first + radius_gb; x++) {
-			for (int y = tree_center_gb.second - radius_gb; y < tree_center_gb.second + radius_gb; y++) {
-				pair<int, int> cell_pos_gb = pair<int, int>(x, y);
-				if (help::get_dist(cell_pos_gb, tree_center_gb) < radius_gb) {
-					pair<float, float> cell_pos_real = get_real_position(cell_pos_gb);
-					Tree* overlapping_neighbor = 0;
-					for (auto& neighbor : neighbors) {
-						if (neighbor->is_within_radius(cell_pos_real)) overlapping_neighbor = neighbor;
-					}
-					Cell* cell = get_cell_at_position(cell_pos_gb);
-					if (overlapping_neighbor != nullptr) {
-						cell->tree = overlapping_neighbor->id;
-					}
-					else {
-						set_to_savanna(cell_pos_gb, time_last_fire);
-						if (burned_cells != nullptr) burned_cells->push_back(cell);
-					}
-				}
-			}
-		}
-	}
 	int* get_state_distribution(bool collect = true) {
 		if (collect) {
 			for (int i = 0; i < no_cells; i++) {
@@ -209,8 +185,8 @@ public:
 		set_to_savanna(pos_2_idx(position_grid), time_last_fire);
 	}
 	void cap(pair<int, int> &position_grid) {
-		if (position_grid.first < 0) position_grid.first = size + position_grid.first;
-		if (position_grid.second < 0) position_grid.second = size + position_grid.second;
+		if (position_grid.first < 0) position_grid.first = size + (position_grid.first % size);
+		if (position_grid.second < 0) position_grid.second = size + (position_grid.second % size);
 		position_grid.first %= size;
 		position_grid.second %= size;
 	}

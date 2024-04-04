@@ -6,27 +6,25 @@ class Dynamics {
 public:
 	Dynamics() = default;
 	Dynamics(
-		int _timestep, float _self_ignition_factor, float _rainfall, float _seed_bearing_threshold, float _mass_budget_factor,
+		int _timestep, float _cellsize, float _self_ignition_factor, float _rainfall, float _seed_bearing_threshold, float _mass_budget_factor,
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
 		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_radius, int _verbosity
 	) :
-		timestep(_timestep), unsuppressed_flammability(_unsuppressed_flammability), 
+		timestep(_timestep), cellsize(_cellsize), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_seed_bearing_threshold),
 		mass_budget_factor(_mass_budget_factor), growth_rate_multiplier(_growth_rate_multiplier),
-		radius_suppr_flamm_min(_max_radius* _radius_suppr_flamm_min),
-		flamm_d_radius((_min_suppressed_flammability - _max_suppressed_flammability) / (_max_radius * radius_range_suppr_flamm)),
-		max_suppressed_flammability(_max_suppressed_flammability),
-		min_suppressed_flammability(_min_suppressed_flammability),
+		radius_suppr_flamm_min(_max_radius * _radius_suppr_flamm_min),
+		flamm_d_radius((_cellsize * _min_suppressed_flammability - _cellsize * _max_suppressed_flammability) / (_max_radius * radius_range_suppr_flamm)),
+		max_suppressed_flammability(_cellsize* _max_suppressed_flammability),
+		min_suppressed_flammability(_cellsize* _min_suppressed_flammability),
 		max_radius(_max_radius), verbosity(_verbosity)
 	{
 		time = 0;
-		cout << "max rad * rad range: " << to_string(_max_radius * radius_range_suppr_flamm) << endl;
-		printf("d flamm: %f, min flamm: %f \n", flamm_d_radius, _min_suppressed_flammability);
 		help::init_RNG();
 		pop = &state.population;
 		grid = &state.grid;
 	};
-	void init_state(int gridsize, float cellsize, float radius_q1, float radius_q2, float _seed_mass) {
+	void init_state(int gridsize, float radius_q1, float radius_q2, float _seed_mass) {
 		state = State(gridsize, cellsize, max_radius, radius_q1, radius_q2, seed_bearing_threshold, mass_budget_factor, _seed_mass);
 		disperser = Disperser(&state);
 		neighbor_offsets = state.neighbor_offsets;
@@ -123,8 +121,6 @@ public:
 	float get_suppressed_flammability(Tree* tree, float fire_free_interval) {
 		float cumulative_radius = tree->radius;
 		float d_radius = max(cumulative_radius - radius_suppr_flamm_min, 0);
-		//printf("D radius: %f, Suppressed flammability: %f, max flamm: %f, flamm d radius: %f, \n",
-		//	d_radius, max(max_suppressed_flammability + d_radius * flamm_d_radius, min_suppressed_flammability), max_suppressed_flammability, flamm_d_radius);
 		return max(max_suppressed_flammability + d_radius * flamm_d_radius, min_suppressed_flammability);
 	}
 	float get_unsuppressed_flammability(float fire_free_interval) {
@@ -146,15 +142,7 @@ public:
 			// in case there is only one tree in the cell.
 			pop->get(grid->distribution[i].tree)->flammability = get_suppressed_flammability(pop->get(grid->distribution[i].tree), 1);
 			if (verbosity == 2 && i % 1000 == 0) printf("Flammability value: %f \n", pop->get(grid->distribution[i].tree)->flammability);
-			/*if (find(trees.begin(), trees.end(), pop->get(grid->distribution[i].tree)) == trees.end()) {
-				trees.push_back(pop->get(grid->distribution[i].tree));
-				if (pop->get(grid->distribution[i].tree)->flammability > 0.01) {
-					j++;
-				}
-			}*/
 		}
-		//printf("fraction of trees with >minimum flammability: %f \n", (float)j / (float)pop->size());
-		//printf("fraction of trees present on grid %f \n", (float)trees.size() / (float)pop->size());
 	}
 	bool tree_dies(Cell* cell, float fire_free_interval) {
 		return 1; // TEMP: trees always die if ignited (TODO: make dependent on fire-free interval and fire resistance)
@@ -216,7 +204,7 @@ public:
 		if (t_start - cell->time_last_fire < 10e-4) {
 			return false; // Do not ignite cells which have already been burned by the current fire.
 		}
-		return help::get_rand_float(0.0, 1.0) < get_flammability(cell, t_start - cell->time_last_fire);
+		return help::get_rand_float(0.0, 1.0) < get_flammability(cell, min(t_start - cell->time_last_fire, 1));
 	}
 	inline void burn_cell(Cell* cell, float t_start, queue<Cell*> &queue) {
 		cell->time_last_fire = t_start;
@@ -259,6 +247,7 @@ public:
 	float radius_suppr_flamm_min = 0;
 	float flamm_d_radius = 0;
 	float max_radius = 0;
+	float cellsize = 0;
 	int timestep = 0;
 	int time = 0;
 	int pop_size = 0;
