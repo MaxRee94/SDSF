@@ -60,7 +60,6 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)
         .def_readwrite("time", &Dynamics::time)
-        .def("store_tree_colors", &Dynamics::store_tree_colors)
         .def("init_state", &Dynamics::init_state)
         .def("set_global_kernel", &Dynamics::set_global_kernel)
         .def("update", &Dynamics::update)

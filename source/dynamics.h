@@ -163,7 +163,7 @@ public:
 		for (Cell* _cell : burned_cells) {
 			queue.push(_cell);
 			grid->set_to_savanna(_cell->pos, cell->time_last_fire);
-			grid->state_distribution[grid->pos_2_idx(_cell->pos)] = -5;
+			grid->state_distribution[grid->pos_2_idx(_cell->pos)] = -6;
 		}
 
 		// Change tree occupancy for overlapped cells to that of neighbors.
