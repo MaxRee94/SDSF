@@ -1,34 +1,52 @@
 #pragma once
-#include "state.h"
+#include "dispersal.h"
 
 
 class Dynamics {
 public:
 	Dynamics() = default;
-	Dynamics(int _timestep, float __unsuppressed_flammability, float __suppressed_flammability, float _self_ignition_factor, float _rainfall, int _verbosity) :
+	Dynamics(
+		int _timestep, float __unsuppressed_flammability, float __suppressed_flammability, float _self_ignition_factor, float _rainfall,
+		float _seed_bearing_threshold, float _mass_budget_factor, float _growth_rate_multiplier, int _verbosity
+	) :
 		timestep(_timestep), _unsuppressed_flammability(__unsuppressed_flammability), _suppressed_flammability(__suppressed_flammability),
-		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall)
+		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_seed_bearing_threshold),
+		mass_budget_factor(_mass_budget_factor), growth_rate_multiplier(_growth_rate_multiplier), verbosity(_verbosity)
 	{
 		time = 0;
 		help::init_RNG();
-		verbosity = _verbosity;
 		pop = &state.population;
 		grid = &state.grid;
 	};
-	void init_state(int gridsize, float cellsize, float max_radius, float radius_q1, float radius_q2) {
-		state = State(gridsize, cellsize, max_radius, radius_q1, radius_q2);
-		for (int i = 0; i < 8; i++) neighbor_offsets.push_back(state.neighbor_offsets[i]);
+	void init_state(int gridsize, float cellsize, float max_radius, float radius_q1, float radius_q2, float _seed_mass) {
+		state = State(gridsize, cellsize, max_radius, radius_q1, radius_q2, seed_bearing_threshold, mass_budget_factor, _seed_mass);
+		disperser = Disperser(&state);
+		neighbor_offsets = state.neighbor_offsets;
 	}
 	void update() {
+		// Prepare next iteration
 		time++;
 		printf("Time: %i\n", time);
 		grid->reset_state_distr();
-		simulate_fires();
+
+		// Simulation
+		disperse();
+		grow();
+		burn();
+
+		// Do post-simulation cleanup and data reporting
 		state.repopulate_grid(0);
-		if (verbosity > 0) report_statistics();
+		if (verbosity > 0) report_state();
 	}
-	void report_statistics() {
-		printf("- Tree cover: %f \n", grid->get_tree_cover());
+	void report_state() {
+		printf("- Tree cover: %f, #trees: %i \n", grid->get_tree_cover(), pop->size());
+		if (time == 1 && global_kernel.id != -1 && verbosity > 0) {
+			Crop* crop = pop->get_crop(1);
+			printf("total biomass/tree: %f \n", crop->mass);
+			printf("seed mass: %f \n", crop->seed_mass);
+			printf("no seeds: %i \n", crop->no_seeds);
+		}
+		if (verbosity == 2) for (auto& [id, tree] : pop->members) if (id % 500 == 0) printf("Radius of tree %i : %f \n", id, tree.radius);
 	}
 	vector<float> get_ordered_fire_ignition_times() {
 		int i = 0;
@@ -42,7 +60,39 @@ public:
 		std::sort(fire_ignition_times.begin(), fire_ignition_times.end());
 		return fire_ignition_times;
 	}
-	void simulate_fires() {
+	void grow_tree(Tree &tree) {
+		// TEMP: constant growth rate. TODO: Make dependent on radius and life phase (resprout or seedling)
+		tree.radius_tmin1 = tree.radius;
+		tree.radius = min(tree.radius + sqrtf(tree.radius) * growth_rate_multiplier, pop->max_radius);
+	}
+	void grow() {
+		for (auto& [id, tree] : pop->members) {
+			grow_tree(tree);
+		}
+	}
+	void set_global_kernel(float lin_diffuse_q1, float lin_diffuse_q2, float min, float max) {
+		global_kernel = Kernel(1, lin_diffuse_q1, lin_diffuse_q2, min, max);
+		cout << "Global kernel created. " << endl;
+	}
+	void disperse() {
+		int x = 0;
+		int j = 0;
+		for (auto& [id, tree] : pop->members) {
+			if (tree.radius < (seed_bearing_threshold * pop->max_radius)) continue;
+			x++;
+			Crop* crop = pop->get_crop(id);
+			if (crop->kernel == nullptr) {
+				if (global_kernel.id != -1) crop->kernel = pop->add_kernel(id, global_kernel);
+			}
+			crop->update(tree);
+			for (int i = 0; i < crop->no_seeds; i++) {
+				disperser.disperse(crop);
+				j++;
+			}
+		}
+		if (verbosity > 0) printf("Number of seed bearing trees: %i, #seeds dispersed: %i \n", x, j);
+	}
+	void burn() {
 		vector<float> fire_ignition_times = get_ordered_fire_ignition_times();
 		int no_burned_cells = 0;
 		int re_ignitions = 0;
@@ -95,7 +145,6 @@ public:
 			}
 			
 		}
-		if (verbosity > 0) printf("grid counted cells: %i, total intern cells: %i \n", no_grid_counted_cells, no_internally_stored_cells);
 	}
 	void kill_tree(Cell* cell, queue<Cell*>& queue) {
 		Tree* tree = pop->get(cell->tree);
@@ -123,7 +172,6 @@ public:
 		}
 
 		state.population.remove(tree);
-		if (verbosity == 2) printf("new pop size (after removal of ptr %i): %i \n", tree, state.population.size());
 	}
 	void induce_mortality(Cell* cell, float fire_free_interval, queue<Cell*>& queue) {
 		if (tree_dies(cell, fire_free_interval)) {
@@ -168,8 +216,11 @@ public:
 	}
 	float _unsuppressed_flammability = 0;
 	float _suppressed_flammability = 0;
+	float mass_budget_factor = 0;
 	float self_ignition_factor = 0;
 	float rainfall = 0;
+	float seed_bearing_threshold = 0;
+	float growth_rate_multiplier = 0;
 	int timestep = 0;
 	int time = 0;
 	int pop_size = 0;
@@ -177,6 +228,8 @@ public:
 	State state;
 	Population* pop = 0;
 	Grid* grid = 0;
-	vector<pair<int, int>> neighbor_offsets = {};
+	Disperser disperser;
+	pair<int, int>* neighbor_offsets = 0;
+	Kernel global_kernel;
 };
 

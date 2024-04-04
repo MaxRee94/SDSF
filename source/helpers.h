@@ -9,9 +9,13 @@
 #include <queue>
 #include <unordered_map>
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 
 using namespace std;
 #define INV_RAND_MAX  1.0f / (float)RAND_MAX
+
 
 typedef unsigned int uint;
 
@@ -62,6 +66,8 @@ namespace help {
 
 	void split(std::string basestring, std::string separator, vector<std::string>& substrings);
 
+	pair<float, float> get_random_direction();
+
 	//Return whether the given vector <vec> contains the integer <item>
 	bool is_in(std::vector<int>* vec, int item);
 
@@ -90,6 +96,8 @@ namespace help {
 	int get_value(std::map<int, int>* map, int key);
 
 	int get_value(std::map<int, double>* map, int key);
+
+	float cubed(float val);
 
 	int get_value(std::map<uint32_t, uint32_t>* map, uint32_t key);
 

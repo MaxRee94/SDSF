@@ -18,15 +18,21 @@ from x64.Release import dbr_cpp as cpp
 def init(timestep=None, gridsize=None, cellsize=None, max_radius=None,
          treecover=None, self_ignition_factor=None, flammability=None,
          rainfall=None, unsuppressed_flammability=None, suppressed_flammability=None,
-         verbosity=None, radius_q1=None, radius_q2=None,
+         verbosity=None, radius_q1=None, radius_q2=None, seed_bearing_threshold=None,
+         mass_budget_factor=None, dispersal_mode=None, linear_diffusion_q1=None, linear_diffusion_q2=None,
+         dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, seed_mass=None,
          **_):
     cpp.check_communication()
     dynamics = cpp.Dynamics(
         timestep, unsuppressed_flammability, suppressed_flammability,
-        self_ignition_factor, rainfall, verbosity
+        self_ignition_factor, rainfall, seed_bearing_threshold,
+        mass_budget_factor, growth_rate_multiplier, verbosity
     )
-    dynamics.init_state(gridsize, cellsize, max_radius, radius_q1, radius_q2)
+    dynamics.init_state(gridsize, cellsize, max_radius, radius_q1, radius_q2, seed_mass)
     dynamics.state.set_tree_cover(treecover)
+    print("disp mode: ", dispersal_mode)
+    if (dispersal_mode == "linear_diffusion"):
+        dynamics.set_global_kernel(linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max)
     
     return dynamics
 
@@ -50,7 +56,9 @@ def updateloop(dynamics, **user_args):
     start = time.time()
     is_within_timelimit = True
     print("Creating color dict...")
-    color_dict = vis.get_color_dict(dynamics.state.population.size() + 1, begin=0.2, end=0.7)
+    # dynamics.state.population.size() + 1
+    no_colors = 500000
+    color_dict = vis.get_color_dict(no_colors, begin=0.2, end=0.7)
     collect_states = True
     print("Visualizing state at t = 0")
     img = vis.visualize(

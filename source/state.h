@@ -11,8 +11,14 @@ public:
 		population = Population();
 		init_neighbor_offset();
 	}
-	State(int gridsize, float cellsize, float max_radius, float radius_q1, float radius_q2) {
-		population = Population(max_radius, cellsize, radius_q1, radius_q2);
+	State(
+		int gridsize, float cellsize, float max_radius, float radius_q1, float radius_q2,
+		float _seed_bearing_threshold, float _mass_budget_factor, float _seed_mass
+	) {
+		seed_bearing_threshold = _seed_bearing_threshold;
+		mass_budget_factor = _mass_budget_factor / help::cubed(max_radius); // Normalize by maximum radius
+		seed_mass = _seed_mass;
+		population = Population(max_radius, cellsize, radius_q1, radius_q2, mass_budget_factor);
 		grid = Grid(gridsize, cellsize);
 		init_neighbor_offset();
 	}
@@ -69,7 +75,10 @@ public:
 
 		while (grid.get_tree_cover() < _tree_cover) {
 			pair<float, float> position = grid.get_random_real_position();
-			Tree* tree = population.add(position, "sampled");
+			
+			// TEMP: all strategies are initially the same. TODO: Add option to make these variable according to prob. distribution
+			Strategy strategy(seed_mass, 1.0); // TEMP: Seed density of 1 for now
+			Tree* tree = population.add(position, strategy, -2);
 			grid.populate_tree_domain(tree);
 
 			if (population.size() % 1000 == 0) {
@@ -87,9 +96,14 @@ public:
 			}
 		}
 		printf("- Fraction small trees: %f \n", (float)no_small / (float)population.size());
+
+		repopulate_grid(0);
 	}
 	Grid grid;
 	Population population;
 	pair<int, int>* neighbor_offsets = 0;
+	float seed_bearing_threshold = 0;
+	float mass_budget_factor = 0;
+	float seed_mass = 0;
 };
 

@@ -52,6 +52,13 @@ std::string help::add_padding(std::string basestring, int version) {
     return basestring + pad;
 }
 
+
+pair<float, float> help::get_random_direction() {
+    float phi = help::get_rand_float(0, 2 * M_PI);
+    return pair<float, float>(cos(phi), sin(phi));
+}
+
+
 void help::print_map(std::map<int, int>* map) {
     int i = 0;
     for (auto const& [key, val] : (*map))
@@ -330,6 +337,10 @@ pair<int, int> help::pop(vector<pair<int, int>>* vec, int idx) {
     pair<int, int> item = vec->at(idx);
     vec->erase(vec->begin() + idx);
     return item;
+}
+
+float help::cubed(float val) {
+    return val * val * val;
 }
 
 bool help::ends_with(string full_string, string ending) {
