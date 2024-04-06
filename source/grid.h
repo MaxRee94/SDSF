@@ -8,6 +8,7 @@ public:
 	int state = 0;
 	int tree = 0;
 	pair<int, int> pos;
+	int idx = 0;
 	float time_last_fire = -999.0;
 	bool operator==(const Cell& cell) const
 	{
@@ -34,6 +35,7 @@ public:
 		for (int i = 0; i < no_cells; i++) {
 			pair<int, int> pos = idx_2_pos(i);
 			distribution[i].pos = pos;
+			distribution[i].idx = i;
 		}
 		state_distribution = new int[no_cells];
 	}
@@ -115,27 +117,38 @@ public:
 			}
 		}
 	}
-	void populate_tree_domain(Tree* tree, bool add_tree = true, vector<Cell*>* burned_cells = 0, float time_last_fire = -1) {
+	void populate_tree_domain(Tree* tree) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
 		int radius_gb = tree->radius / cellsize;
-		if (!add_tree) radius_gb = round(radius_gb * 1.5);
-		int i = 0;
 		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x+=1) {
 			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y+=1) {
-				if (tree->is_within_radius(pair<float, float>(x * cellsize, y * cellsize))) {
-					Cell* cell = get_cell_at_position(pair<int, int>(x, y));
-					if (add_tree) {
-						i++;
-						set_to_forest(pair<int, int>(x, y), tree);
-						if (burned_cells != nullptr) {
-							auto it = find(burned_cells->begin(), burned_cells->end(), cell);
-							if (it != burned_cells->end()) burned_cells->erase(it);
+				pair<float, float> position(x * cellsize, y * cellsize);
+				if (tree->is_within_radius(position)) {
+					set_to_forest(pair<float, float>(x, y), tree);
+				}
+			}
+		}
+	}
+	void burn_tree_domain(Tree* tree, queue<Cell*>& queue, vector<Tree*>& neighbors, bool add_tree = true, float time_last_fire = -1) {
+		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
+		int radius_gb = round((tree->radius / cellsize) * 1.5);
+		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x += 1) {
+			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y += 1) {
+				pair<float, float> position(x * cellsize, y * cellsize);
+				if (tree->is_within_radius(position)) {
+					Cell* cell = get_cell_at_position(position);
+					bool overlap = false;
+					for (int j = 0; j < neighbors.size(); j++) {
+						overlap = neighbors[j]->is_within_radius(position);
+						if (overlap) {
+							cell->tree = tree->id;
+							break;
 						}
 					}
-					else {
-						set_to_savanna(pair<int, int>(x, y), time_last_fire);
-						burned_cells->push_back(cell);
-					}
+					if (overlap) continue;
+					set_to_savanna(cell->idx, time_last_fire);
+					queue.push(cell);
+					state_distribution[cell->idx] = -6;
 				}
 			}
 		}

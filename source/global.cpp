@@ -47,6 +47,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
     py::class_<Grid>(module, "Grid")
         .def(py::init<>())
         .def(py::init<const int&, const float&>())
+        .def("get_tree_cover", &Grid::get_tree_cover)
         .def_readwrite("size", &Grid::size)
         .def("get_distribution", [](Grid &grid, bool &collect_states) {
             int* state_distribution = grid.get_state_distribution(collect_states);
@@ -57,9 +58,11 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const float&, const float&, const float&, const float&, const int&>())
+        .def_readwrite("time", &Dynamics::time)
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)
-        .def_readwrite("time", &Dynamics::time)
+        .def_readwrite("seeds_dispersed", &Dynamics::seeds_dispersed)
+        .def_readwrite("fire_spatial_extent", &Dynamics::fire_spatial_extent)
         .def("init_state", &Dynamics::init_state)
         .def("set_global_kernel", &Dynamics::set_global_kernel)
         .def("update", &Dynamics::update)

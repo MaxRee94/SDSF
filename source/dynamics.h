@@ -15,8 +15,8 @@ public:
 		mass_budget_factor(_mass_budget_factor), growth_rate_multiplier(_growth_rate_multiplier),
 		radius_suppr_flamm_min(_max_radius * _radius_suppr_flamm_min),
 		flamm_d_radius((_cellsize * _min_suppressed_flammability - _cellsize * _max_suppressed_flammability) / (_max_radius * radius_range_suppr_flamm)),
-		max_suppressed_flammability(_cellsize* _max_suppressed_flammability),
-		min_suppressed_flammability(_cellsize* _min_suppressed_flammability),
+		max_suppressed_flammability(_cellsize * _max_suppressed_flammability),
+		min_suppressed_flammability(_cellsize * _min_suppressed_flammability),
 		max_radius(_max_radius), verbosity(_verbosity)
 	{
 		time = 0;
@@ -97,6 +97,7 @@ public:
 			}
 		}
 		if (verbosity > 0) printf("Number of seed bearing trees: %i, #seeds dispersed: %i \n", x, j);
+		seeds_dispersed = j;
 	}
 	void burn() {
 		update_tree_flammabilities();
@@ -104,15 +105,18 @@ public:
 		vector<float> fire_ignition_times = get_ordered_fire_ignition_times();
 		int no_burned_cells = 0;
 		int re_ignitions = 0;
+		fire_spatial_extent = 0;
 		for (int i = 0; i < fire_ignition_times.size(); i++) {
 			Cell* sav_cell = grid->get_random_savanna_cell();
 			int _no_burned_cells = percolate(sav_cell, fire_ignition_times[i]);
 			no_burned_cells += _no_burned_cells;
 			if (_no_burned_cells <= 1 && re_ignitions < 5) { // If fire did not spread beyond ignition point, re-do percolation.
 				re_ignitions++;
-				i--;
+				i--; continue;
 			}
+			fire_spatial_extent += no_burned_cells * (grid->cellsize * grid->cellsize);
 		}
+		fire_spatial_extent /= fire_ignition_times.size();
 		if (verbosity > 0) {
 			printf("Cells burned: %i \n", no_burned_cells);
 			printf("Number of fires: %i \n", fire_ignition_times.size());
@@ -151,25 +155,10 @@ public:
 		Tree* tree = pop->get(cell->tree);
 		if (verbosity == 2) printf("Killing tree %i ... \n", tree->id);
 
-		// Obtain cells within radius of killed tree that are not part of neighboring trees.
-		vector<Cell*> burned_cells = {};
-		grid->get_cells_within_radius(tree, &burned_cells); // Get all cells within killed tree radius
+		// Obtain neighbors that overlap with the killed tree. Burn cells without overlap.
+		// For each cell that overlaps, ensure that the ownership of each cell is transferred to the neighbors.
 		vector<Tree*> neighbors = state.get_tree_neighbors(tree);
-		for (auto& neighbor : neighbors) {
-			grid->get_cells_within_radius(neighbor, &burned_cells, true); // Exclude cells that fall within radius of neighbors
-		}
-
-		// Burn cells and add to queue
-		for (Cell* _cell : burned_cells) {
-			queue.push(_cell);
-			grid->set_to_savanna(_cell->pos, cell->time_last_fire);
-			grid->state_distribution[grid->pos_2_idx(_cell->pos)] = -6;
-		}
-
-		// Change tree occupancy for overlapped cells to that of neighbors.
-		for (auto& neighbor : neighbors) {
-			grid->populate_tree_domain(neighbor, true);
-		}
+		grid->burn_tree_domain(tree, queue, neighbors, false, cell->time_last_fire);
 
 		state.population.remove(tree);
 	}
@@ -226,10 +215,12 @@ public:
 	float flamm_d_radius = 0;
 	float max_radius = 0;
 	float cellsize = 0;
+	float fire_spatial_extent = 0;
 	int timestep = 0;
 	int time = 0;
 	int pop_size = 0;
 	int verbosity = 0;
+	int seeds_dispersed = 0;
 	State state;
 	Population* pop = 0;
 	Grid* grid = 0;
