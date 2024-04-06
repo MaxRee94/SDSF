@@ -123,9 +123,12 @@ public:
 		}
 	}
 	float get_suppressed_flammability(Tree* tree, float fire_free_interval) {
+		if (tree->flamm_update_timestep == time) return tree->flammability;
 		float cumulative_radius = tree->radius;
 		float d_radius = max(cumulative_radius - radius_suppr_flamm_min, 0);
-		return max(max_suppressed_flammability + d_radius * flamm_d_radius, min_suppressed_flammability);
+		tree->flammability = max(max_suppressed_flammability + d_radius * flamm_d_radius, min_suppressed_flammability) / cumulative_radius;
+		tree->flamm_update_timestep = time;
+		return max(max_suppressed_flammability + d_radius * flamm_d_radius, min_suppressed_flammability) / cumulative_radius;
 	}
 	float get_unsuppressed_flammability(float fire_free_interval) {
 		return fire_free_interval * unsuppressed_flammability;
