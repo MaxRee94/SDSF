@@ -63,6 +63,54 @@ def visualize_difference(image1, image2, image_width=1000):
     visualize_image(img, image_width)
 
 
+class Graphs:
+    def __init__(self, dynamics, datatype="Tree cover", width=6, height=4):
+        self.times = [0]
+        self.dynamics = dynamics
+        self.datatype = datatype
+        self.data = []
+        self.add_datapoint()
+
+        # to run GUI event loop
+        plt.ion()
+ 
+        # here we are creating sub plots
+        self.figure, self.ax = plt.subplots(figsize=(width, height))
+        self.line1, = self.ax.plot(self.times, self.data)
+ 
+        # setting title
+        plt.title(datatype, fontsize=12)
+ 
+        # setting x-axis label and y-axis label
+        plt.xlabel("Timestep (years)")
+        plt.ylabel(datatype)
+        
+        # Set y lim
+    def add_datapoint(self):
+        print("datatype: ", self.datatype)
+        if self.datatype=="Tree cover":
+            self.data.append(self.dynamics.state.grid.get_tree_cover())
+    def update(self):
+        self.add_datapoint()
+        self.times.append(self.dynamics.time)
+ 
+        # updating data values
+        self.line1.set_xdata(self.times)
+        self.line1.set_ydata(self.data)
+        
+        plt.xlim(self.times[0], self.times[-1])
+        plt.ylim(min(self.data), max(self.data))
+ 
+        # drawing updated values
+        self.figure.canvas.draw()
+ 
+        # This will run the GUI event
+        # loop until all UI events
+        # currently waiting have been processed
+        self.figure.canvas.flush_events()
+     
+
+
 
     
     

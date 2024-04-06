@@ -73,6 +73,7 @@ def updateloop(dynamics, **user_args):
     vis.save_image(img, imagepath)
     print("Beginning simulation...")
     datapath = None
+    treecover_graph = vis.Graphs(dynamics, "Tree cover")
     while not termination_condition_satisfied(dynamics, start, user_args):
         dynamics.update()
         img = vis.visualize(
