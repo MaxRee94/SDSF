@@ -1,7 +1,9 @@
+from dataclasses import dataclass
 import sys
 
 import cv2
 import visualization as vis
+import file_handling as io
 import numpy as np
 import time
 import os
@@ -70,6 +72,7 @@ def updateloop(dynamics, **user_args):
     imagepath = os.path.join(str(Path(os.getcwd()).parent.parent), "data_out/image_timeseries/" + str(dynamics.time) + ".png")
     vis.save_image(img, imagepath)
     print("Beginning simulation...")
+    datapath = None
     while not termination_condition_satisfied(dynamics, start, user_args):
         dynamics.update()
         img = vis.visualize(
@@ -78,6 +81,8 @@ def updateloop(dynamics, **user_args):
         )
         imagepath = os.path.join(str(Path(os.getcwd()).parent.parent), "data_out/image_timeseries/" + str(dynamics.time) + ".png")
         vis.save_image(img, imagepath, get_max(1000, img.shape[0]))
+        datapath = io.export_state(dynamics, datapath)
+        treecover_graph.update()
 
     cv2.destroyAllWindows()
 

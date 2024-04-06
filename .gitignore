@@ -3,6 +3,8 @@ source/DBR-sim/.vs/
 build/
 source/__pycache__/
 data_out/
+source/DBR-sim/DawnCache/
+source/DBR-sim/GPUCache/
 
 # Visaul studio files
 *.pyproj
@@ -205,4 +207,5 @@ cython_debug/
 # Pre-compiled python files
 .pyc
 .cpython-312.pyc
+*.pyperf
 
