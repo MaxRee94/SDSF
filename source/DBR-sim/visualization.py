@@ -35,9 +35,9 @@ def get_image(grid, collect_states, color_dict):
     if (color_dict == {0:0, 1:255}):
         img *= 255
     elif (len(color_dict[0]) == 3):
-        new_img = np.zeros((grid.size, grid.size, 3), np.uint8)
-        for i in range(grid.size):
-            for j in range(grid.size):
+        new_img = np.zeros((grid.width, grid.width, 3), np.uint8)
+        for i in range(grid.width):
+            for j in range(grid.width):
                 new_img[i, j] = color_dict[img[i, j]]
         img = new_img.copy()
             
@@ -64,7 +64,24 @@ def visualize_difference(image1, image2, image_width=1000):
 
 
 class Graphs:
-    def __init__(self, dynamics, datatype="Tree cover", width=6, height=4):
+    def __init__(self, dynamics, width=6, height=4):
+        self.dynamics = dynamics
+        self.types = {"histogram": ["Firefree Interval"], "timeseries": ["Tree cover"]}
+        self.graphs = []
+        for graph_type, datatypes in self.types.items():
+            for datatype in datatypes:
+                if graph_type == "timeseries":
+                    _graph = Graph(dynamics, datatype, width, height)
+                elif graph_type == "histogram":
+                    _graph = Histogram(dynamics, datatype, width, height)
+                self.graphs.append(_graph)
+    def update(self):
+        for graph in self.graphs:
+            graph.update()
+
+
+class Graph:
+    def __init__(self, dynamics, datatype, width=6, height=4):
         self.times = [0]
         self.dynamics = dynamics
         self.datatype = datatype
@@ -84,11 +101,10 @@ class Graphs:
         # setting x-axis label and y-axis label
         plt.xlabel("Timestep (years)")
         plt.ylabel(datatype)
-        
-        # Set y lim
+      
     def add_datapoint(self):
         print("datatype: ", self.datatype)
-        if self.datatype=="Tree cover":
+        if self.datatype == "Tree cover":
             self.data.append(self.dynamics.state.grid.get_tree_cover())
     def update(self):
         self.add_datapoint()
@@ -100,6 +116,56 @@ class Graphs:
         
         plt.xlim(self.times[0], self.times[-1])
         plt.ylim(min(self.data), max(self.data))
+ 
+        # drawing updated values
+        self.figure.canvas.draw()
+ 
+        # This will run the GUI event
+        # loop until all UI events
+        # currently waiting have been processed
+        self.figure.canvas.flush_events()
+
+
+class Histogram:
+    def __init__(self, dynamics, datatype, width=6, height=4, no_bins = 40):
+        self.no_bins = no_bins
+        self.bins = []
+        self.counts = []
+        self.dynamics = dynamics
+        self.datatype = datatype
+        self.replace_data()
+
+        # to run GUI event loop
+        plt.ion()
+ 
+        # here we are creating sub plots
+        self.figure, self.ax = plt.subplots(figsize=(width, height))
+        self.hist, = self.ax.plot(self.bins[:-1], self.bins, self.counts)
+ 
+        # setting title
+        plt.title(datatype, fontsize=12)
+ 
+        # setting x-axis label and y-axis label
+        plt.xlabel(datatype)
+        plt.ylabel("Number of cells")
+
+    def replace_data(self):
+        if self.datatype == "Firefree Interval":
+            print("no bins: ", self.no_bins)
+            raw_data = self.dynamics.get_firefree_interval_histogram(self.no_bins)
+            print(raw_data)
+            self.counts = raw_data[: self.no_bins]
+            self.bins = raw_data[self.no_bins :]
+
+    def update(self):
+        self.replace_data()
+ 
+        # updating data values
+        self.hist.bins = self.bins
+        self.hist.set_ydata(self.bin_counts)
+        
+        plt.xlim(self.bins[0], self.bins[-1])
+        plt.ylim(min(self.counts), max(self.counts))
  
         # drawing updated values
         self.figure.canvas.draw()

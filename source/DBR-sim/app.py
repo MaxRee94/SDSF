@@ -17,15 +17,15 @@ from x64.Release import dbr_cpp as cpp
 
 
 
-def init(timestep=None, gridsize=None, cellsize=None, max_radius=None,
+def init(timestep=None, gridsize=None, cellsize=None, max_radius=None, image_width=None,
          treecover=None, self_ignition_factor=None, flammability=None,
          rainfall=None, unsuppressed_flammability=None, 
          verbosity=None, radius_q1=None, radius_q2=None, seed_bearing_threshold=None,
          mass_budget_factor=None, dispersal_mode=None, linear_diffusion_q1=None, linear_diffusion_q2=None,
          dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, seed_mass=None,
          flammability_coefficients_and_constants=None,
-         **_):
-    cpp.check_communication()
+         **user_args):
+    # Initialize dynamics object and state
     dynamics = cpp.Dynamics(
         timestep, cellsize, self_ignition_factor, rainfall, seed_bearing_threshold,
         mass_budget_factor, growth_rate_multiplier, unsuppressed_flammability, flammability_coefficients_and_constants[0],
@@ -34,11 +34,22 @@ def init(timestep=None, gridsize=None, cellsize=None, max_radius=None,
     )
     dynamics.init_state(gridsize, radius_q1, radius_q2, seed_mass)
     dynamics.state.set_tree_cover(treecover)
-    print("disp mode: ", dispersal_mode)
     if (dispersal_mode == "linear_diffusion"):
         dynamics.set_global_kernel(linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max)
     
-    return dynamics
+    # Create a color dictionary
+    no_colors = 100
+    color_dict = vis.get_color_dict(no_colors, begin=0.3, end=0.6)
+    collect_states = True
+    print("Visualizing state at t = 0")
+    img = vis.visualize(
+        dynamics.state.grid, image_width, collect_states=collect_states,
+        color_dict=color_dict
+    )
+    imagepath = os.path.join(str(Path(os.getcwd()).parent.parent), "data_out/image_timeseries/" + str(dynamics.time) + ".png")
+    vis.save_image(img, imagepath)
+
+    return dynamics, color_dict
 
 
 def termination_condition_satisfied(dynamics, start_time, user_args):
@@ -56,24 +67,12 @@ def termination_condition_satisfied(dynamics, start_time, user_args):
     return satisfied
 
 
-def updateloop(dynamics, **user_args):
+def updateloop(dynamics, color_dict, **user_args):
     start = time.time()
-    is_within_timelimit = True
-    print("Creating color dict...")
-    # dynamics.state.population.size() + 1
-    no_colors = 1000
-    color_dict = vis.get_color_dict(no_colors, begin=0.2, end=0.7)
-    collect_states = True
-    print("Visualizing state at t = 0")
-    img = vis.visualize(
-        dynamics.state.grid, user_args["image_width"], collect_states=collect_states,
-        color_dict=color_dict
-    )
-    imagepath = os.path.join(str(Path(os.getcwd()).parent.parent), "data_out/image_timeseries/" + str(dynamics.time) + ".png")
-    vis.save_image(img, imagepath)
     print("Beginning simulation...")
     datapath = None
-    treecover_graph = vis.Graphs(dynamics, "Tree cover")
+    collect_states = True
+    graphs = vis.Graphs(dynamics)
     while not termination_condition_satisfied(dynamics, start, user_args):
         dynamics.update()
         img = vis.visualize(
@@ -83,7 +82,7 @@ def updateloop(dynamics, **user_args):
         imagepath = os.path.join(str(Path(os.getcwd()).parent.parent), "data_out/image_timeseries/" + str(dynamics.time) + ".png")
         vis.save_image(img, imagepath, get_max(1000, img.shape[0]))
         datapath = io.export_state(dynamics, datapath)
-        treecover_graph.update()
+        graphs.update()
 
     cv2.destroyAllWindows()
 
@@ -98,8 +97,8 @@ def main(**user_args):
         do_tests(**user_args)
         return
         
-    dynamics = init(**user_args)
-    updateloop(dynamics, **user_args)
+    dynamics, color_dict = init(**user_args)
+    updateloop(dynamics, color_dict, **user_args)
  
 
 
