@@ -12,7 +12,7 @@ void check_communication() {
     printf("Verified python->cpp communication.\n");
 }
 
-py::array_t<int> as_numpy_array(int* distribution, int width) {
+py::array_t<int> as_2d_numpy_array(int* distribution, int width) {
     constexpr size_t element_size = sizeof(int);
     size_t shape[2]{ width, width };
     size_t strides[2]{ width * element_size, element_size };
@@ -62,10 +62,10 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&>())
         .def("get_tree_cover", &Grid::get_tree_cover)
-        .def_readwrite("size", &Grid::size)
+        .def_readwrite("width", &Grid::width)
         .def("get_distribution", [](Grid &grid, bool &collect_states) {
             int* state_distribution = grid.get_state_distribution(collect_states);
-            return as_numpy_array(state_distribution, grid.size);
+            return as_2d_numpy_array(state_distribution, grid.width);
         });
 
     py::class_<Dynamics>(module, "Dynamics")
@@ -80,7 +80,11 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def("init_state", &Dynamics::init_state)
         .def("set_global_kernel", &Dynamics::set_global_kernel)
         .def("update", &Dynamics::update)
-        .def("simulate_fires", &Dynamics::burn);
+        .def("simulate_fires", &Dynamics::burn)
+        .def("get_firefree_interval_histogram", [](Dynamics& dynamics, int& no_bins) {
+            float* histo = dynamics.get_firefree_interval_histogram(no_bins);
+            return as_1d_numpy_array(histo, no_bins * 2 + 1);
+        });
 
     py::class_<Population>(module, "Population")
         .def(py::init<>())

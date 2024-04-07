@@ -206,6 +206,37 @@ public:
 		}
 		return no_burned_cells;
 	}
+	float* get_firefree_interval_histogram(int no_bins) {
+		printf("no bins: %i \n", no_bins);
+		auto [min, max] = get_fire_free_interval_extremes();
+		float binsize = (max - min) / (float)no_bins;
+		float* histo = new float[no_bins * 2 + 1];
+		for (int i = 0; i < no_bins; i++) {
+			float bin_min = min + (float)i * binsize;
+			float bin_max = bin_min + binsize;
+			histo[i] = (float)get_firefree_interval_bin(min + (float)i * binsize, max);
+			histo[i + no_bins] = bin_min;
+		}
+		histo[no_bins * 2] = binsize * (float)no_bins;
+		return histo;
+	}
+	int get_firefree_interval_bin(float min, float max) {
+		float bin = 0;
+		for (int i = 0; i < grid->no_cells; i++) {
+			float interval = time - grid->distribution[i].time_last_fire;
+			if (interval >= min && interval < max) bin++;
+		}
+		return bin;
+	}
+	pair<float, float> get_fire_free_interval_extremes() {
+		float min = INFINITY; float max = 0;
+		for (int i = 0; i < grid->no_cells; i++) {
+			float interval = time - grid->distribution[i].time_last_fire;
+			if (interval < min) min = interval;
+			else if (interval > max) max = interval;
+		}
+		return pair<float, float>(min, max);
+	}
 	float unsuppressed_flammability = 0;
 	float min_suppressed_flammability = 0;
 	float max_suppressed_flammability = 0;

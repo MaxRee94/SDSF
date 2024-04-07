@@ -45,7 +45,7 @@ public:
 		vector<float> dists = {help::get_dist(a, b)};
 		for (int i = 0; i < 8; i++) {
 			float dist = help::get_dist(
-				neighbor_offsets[i] * grid.size * grid.cellsize, a
+				neighbor_offsets[i] * grid.width * grid.cellsize, a
 			);
 			dists.push_back(dist);
 		}
@@ -82,7 +82,7 @@ public:
 			grid.populate_tree_domain(tree);
 
 			if (population.size() % 1000 == 0) {
-				printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
+				printf("Current tree cover: %f, current population width: %i\n", grid.get_tree_cover(), population.size());
 			}
 			continue;
 		}

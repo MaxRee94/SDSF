@@ -20,11 +20,11 @@ public:
 class Grid {
 public:
 	Grid() = default;
-	Grid(int _size, float _cellsize) {
-		size = _size;
+	Grid(int _width, float _cellsize) {
+		width = _width;
 		cellsize = _cellsize;
-		size_r = (float)size * cellsize;
-		no_cells = size * size;
+		width_r = (float)width * cellsize;
+		no_cells = width * width;
 		no_savanna_cells = no_cells;
 		init_grid_cells();
 		reset_state_distr();
@@ -40,17 +40,17 @@ public:
 		state_distribution = new int[no_cells];
 	}
 	int pos_2_idx(pair<int, int> pos) {
-		return size * pos.second + pos.first;
+		return width * pos.second + pos.first;
 	}
 	pair<float, float> get_random_real_position() {
-		float x = help::get_rand_float(0, size_r);
-		float y = help::get_rand_float(0, size_r);
+		float x = help::get_rand_float(0, width_r);
+		float y = help::get_rand_float(0, width_r);
 		pair<float, float> position = pair(x, y);
 		return position;
 	}
 	pair<int, int> get_random_grid_position() {
-		int x = help::get_rand_uint(0, size);
-		int y = help::get_rand_uint(0, size);
+		int x = help::get_rand_uint(0, width);
+		int y = help::get_rand_uint(0, width);
 		pair<int, int> position(x, y);
 		return position;
 	}
@@ -86,8 +86,8 @@ public:
 		}
 	}
 	pair<int, int> idx_2_pos(int idx) {
-		int x = idx % size;
-		int y = idx / size;
+		int x = idx % width;
+		int y = idx / width;
 		return pair<int, int>(x, y);
 	}
 	float get_tree_cover() {
@@ -95,7 +95,7 @@ public:
 	}
 	Cell* get_cell_at_position(pair<int, int> pos) {
 		cap(pos);
-		return &distribution[pos.second * size + pos.first];
+		return &distribution[pos.second * width + pos.first];
 	}
 	Cell* get_cell_at_position(pair<float, float> _pos) {
 		pair<int, int> pos = get_gridbased_position(_pos);
@@ -156,7 +156,7 @@ public:
 	int* get_state_distribution(bool collect = true) {
 		if (collect) {
 			for (int i = 0; i < no_cells; i++) {
-				if (distribution[i].state == 1) state_distribution[i] = distribution[i].tree % 1000;
+				if (distribution[i].state == 1) state_distribution[i] = distribution[i].tree % 100;
 			}
 		}
 		return state_distribution;
@@ -191,17 +191,17 @@ public:
 	}
 	void set_to_forest(pair<int, int> position_grid, Tree* tree) {
 		cap(position_grid);
-		set_to_forest(position_grid.second * size + position_grid.first, tree);
+		set_to_forest(position_grid.second * width + position_grid.first, tree);
 	}
 	void set_to_savanna(pair<int, int> position_grid, float time_last_fire = -1) {
 		cap(position_grid);
 		set_to_savanna(pos_2_idx(position_grid), time_last_fire);
 	}
 	void cap(pair<int, int> &position_grid) {
-		if (position_grid.first < 0) position_grid.first = size + (position_grid.first % size);
-		if (position_grid.second < 0) position_grid.second = size + (position_grid.second % size);
-		position_grid.first %= size;
-		position_grid.second %= size;
+		if (position_grid.first < 0) position_grid.first = width + (position_grid.first % width);
+		if (position_grid.second < 0) position_grid.second = width + (position_grid.second % width);
+		position_grid.first %= width;
+		position_grid.second %= width;
 	}
 	pair<int, int> get_gridbased_position(pair<float, float> position) {
 		return pair<int, int>(position.first / cellsize, position.second / cellsize);
@@ -209,9 +209,9 @@ public:
 	pair<float, float> get_real_position(pair<int, int> position) {
 		return pair<int, int>(position.first * cellsize, position.second * cellsize);
 	}
-	int size = 0;
+	int width = 0;
 	int no_cells = 0;
-	float size_r = 0;
+	float width_r = 0;
 	float cellsize = 1.5;
 	Cell* distribution = 0;
 	int* state_distribution = 0;
