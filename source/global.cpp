@@ -29,13 +29,14 @@ py::array_t<int> as_2d_numpy_array(int* distribution, int width) {
     return numpy_array;
 }
 
-py::array_t<float> as_1d_numpy_array(float* distribution, int width) {
+py::array_t<float> as_1d_numpy_array(float* distribution, int size) {
     constexpr size_t element_size = sizeof(float);
-    size_t shape[1]{ width };
-    size_t strides[1]{ width * element_size };
+    size_t shape[1]{ size };
+    size_t strides[1]{ element_size };
     auto numpy_array = py::array_t<float>(shape, strides);
     auto setter = numpy_array.mutable_unchecked<1>();
 
+    printf("no elements: %i \n", size);
     for (size_t i = 0; i < numpy_array.shape(0); i++)
     {
         setter(i) = distribution[i];
@@ -81,9 +82,9 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def("set_global_kernel", &Dynamics::set_global_kernel)
         .def("update", &Dynamics::update)
         .def("simulate_fires", &Dynamics::burn)
-        .def("get_firefree_interval_histogram", [](Dynamics& dynamics, int& no_bins) {
-            float* histo = dynamics.get_firefree_interval_histogram(no_bins);
-            return as_1d_numpy_array(histo, no_bins * 2 + 1);
+        .def("get_firefree_intervals", [](Dynamics& dynamics) {
+            float* intervals = dynamics.get_firefree_intervals();
+            return as_1d_numpy_array(intervals, dynamics.grid->no_cells);
         });
 
     py::class_<Population>(module, "Population")

@@ -9,7 +9,7 @@ public:
 	int tree = 0;
 	pair<int, int> pos;
 	int idx = 0;
-	float time_last_fire = -999.0;
+	float time_last_fire = 0;
 	bool operator==(const Cell& cell) const
 	{
 		return pos == cell.pos;
@@ -177,7 +177,7 @@ public:
 		}
 		distribution[idx].state = 1;
 		distribution[idx].tree = tree->id;
-		distribution[idx].time_last_fire = -1.0;
+		distribution[idx].time_last_fire = 0;
 	}
 	void set_to_savanna(int idx, float _time_last_fire = -1) {
 		if (distribution[idx].state == 1) {

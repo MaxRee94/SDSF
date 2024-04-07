@@ -129,10 +129,9 @@ class Graph:
 class Histogram:
     def __init__(self, dynamics, datatype, width=6, height=4, no_bins = 40):
         self.no_bins = no_bins
-        self.bins = []
-        self.counts = []
         self.dynamics = dynamics
         self.datatype = datatype
+        self.data = None
         self.replace_data()
 
         # to run GUI event loop
@@ -140,7 +139,13 @@ class Histogram:
  
         # here we are creating sub plots
         self.figure, self.ax = plt.subplots(figsize=(width, height))
-        self.hist, = self.ax.plot(self.bins[:-1], self.bins, self.counts)
+        N, bins, self.bar_container = self.ax.hist(self.data, bins=self.no_bins)
+        self.rect_width = self.bar_container.patches[0].get_width()
+        initial_xrange = bins[-1] - bins[0]
+        initial_hist_width = 0
+        for rect in self.bar_container.patches:
+            initial_hist_width += rect.get_width()
+        self.width_over_range = initial_xrange / initial_hist_width
  
         # setting title
         plt.title(datatype, fontsize=12)
@@ -151,21 +156,26 @@ class Histogram:
 
     def replace_data(self):
         if self.datatype == "Firefree Interval":
-            print("no bins: ", self.no_bins)
-            raw_data = self.dynamics.get_firefree_interval_histogram(self.no_bins)
-            print(raw_data)
-            self.counts = raw_data[: self.no_bins]
-            self.bins = raw_data[self.no_bins :]
+            self.data = self.dynamics.get_firefree_intervals()
 
     def update(self):
         self.replace_data()
  
-        # updating data values
-        self.hist.bins = self.bins
-        self.hist.set_ydata(self.bin_counts)
+        counts, bins = np.histogram(self.data)
+
+        # Update x limits
+        self.ax.set_xlim([bins[0], bins[-1]])
+        self.ax.set_ylim([min(counts), max(counts)])
         
-        plt.xlim(self.bins[0], self.bins[-1])
-        plt.ylim(min(self.counts), max(self.counts))
+        # updating data values
+        xrange = bins[-1] - bins[0]
+        x = 0
+        rect_width = (xrange * self.width_over_range) / self.no_bins
+        for count, rect in zip(counts, self.bar_container.patches):
+            rect.set_height(count)
+            rect.set_width(rect_width)
+            rect.set_x(x)
+            x += rect_width
  
         # drawing updated values
         self.figure.canvas.draw()
