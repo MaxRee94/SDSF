@@ -29,6 +29,20 @@ py::array_t<int> as_numpy_array(int* distribution, int width) {
     return numpy_array;
 }
 
+py::array_t<float> as_1d_numpy_array(float* distribution, int width) {
+    constexpr size_t element_size = sizeof(float);
+    size_t shape[1]{ width };
+    size_t strides[1]{ width * element_size };
+    auto numpy_array = py::array_t<float>(shape, strides);
+    auto setter = numpy_array.mutable_unchecked<1>();
+
+    for (size_t i = 0; i < numpy_array.shape(0); i++)
+    {
+        setter(i) = distribution[i];
+    }
+    return numpy_array;
+}
+
 
 PYBIND11_MODULE(dbr_cpp, module) {
     module.doc() = "DBR-cpp module (contains python extensions written in c++)";
