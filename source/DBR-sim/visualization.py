@@ -145,7 +145,7 @@ class Histogram:
         initial_hist_width = 0
         for rect in self.bar_container.patches:
             initial_hist_width += rect.get_width()
-        self.width_over_range = initial_xrange / initial_hist_width
+        self.width_over_range = initial_hist_width / initial_xrange
  
         # setting title
         plt.title(datatype, fontsize=12)
@@ -162,6 +162,7 @@ class Histogram:
         self.replace_data()
  
         counts, bins = np.histogram(self.data)
+        print("==== Counts: \n", counts)
 
         # Update x limits
         self.ax.set_xlim([bins[0], bins[-1]])
@@ -170,7 +171,7 @@ class Histogram:
         # updating data values
         xrange = bins[-1] - bins[0]
         x = 0
-        rect_width = (xrange * self.width_over_range) / self.no_bins
+        rect_width = ((xrange * self.width_over_range) / self.no_bins)
         for count, rect in zip(counts, self.bar_container.patches):
             rect.set_height(count)
             rect.set_width(rect_width)
