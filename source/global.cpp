@@ -52,7 +52,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
     py::class_<State>(module, "State")
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
-            const float&>())
+            const float&, const float&>())
         .def("repopulate_grid", &State::repopulate_grid)
         .def("set_tree_cover", &State::set_tree_cover)
         .def_readwrite("grid", &State::grid)
@@ -71,7 +71,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
     py::class_<Dynamics>(module, "Dynamics")
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
-            const float&, const float&, const float&, const float&, const float&, const int&>())
+            const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const int&>())
         .def_readwrite("time", &Dynamics::time)
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)

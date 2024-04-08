@@ -8,7 +8,8 @@ public:
 	Dynamics(
 		int _timestep, float _cellsize, float _self_ignition_factor, float _rainfall, float _seed_bearing_threshold, float _mass_budget_factor,
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
-		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_radius, int _verbosity
+		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_radius, float _saturation_threshold, float _fire_resistance_argmin,
+		float _fire_resistance_argmax, int _verbosity
 	) :
 		timestep(_timestep), cellsize(_cellsize), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_seed_bearing_threshold),
@@ -17,7 +18,8 @@ public:
 		flamm_d_radius((_cellsize * _min_suppressed_flammability - _cellsize * _max_suppressed_flammability) / (_max_radius * radius_range_suppr_flamm)),
 		max_suppressed_flammability(_cellsize * _max_suppressed_flammability),
 		min_suppressed_flammability(_cellsize * _min_suppressed_flammability),
-		max_radius(_max_radius), verbosity(_verbosity)
+		max_radius(_max_radius), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold), fire_resistance_argmin(_fire_resistance_argmin),
+		fire_resistance_argmax(_fire_resistance_argmax)
 	{
 		time = 0;
 		help::init_RNG();
@@ -25,7 +27,10 @@ public:
 		grid = &state.grid;
 	};
 	void init_state(int gridsize, float radius_q1, float radius_q2, float _seed_mass) {
-		state = State(gridsize, cellsize, max_radius, radius_q1, radius_q2, seed_bearing_threshold, mass_budget_factor, _seed_mass);
+		state = State(
+			gridsize, cellsize, max_radius, radius_q1, radius_q2, seed_bearing_threshold, mass_budget_factor,
+			_seed_mass, saturation_threshold
+		);
 		disperser = Disperser(&state);
 		neighbor_offsets = state.neighbor_offsets;
 	}
@@ -39,11 +44,6 @@ public:
 		disperse();
 		burn();
 		grow();
-
-		/*for (int i = 0; i < grid->no_cells; i++) {
-			Cell cell = grid->distribution[i];
-			printf("no trees in cell: %i \n", cell.trees.size());
-		}*/
 
 		// Do post-simulation cleanup and data reporting
 		state.repopulate_grid(0);
@@ -140,8 +140,19 @@ public:
 		}
 		else return get_savanna_flammability(fire_free_interval);
 	}
+	float get_stem_diameter(float crown_diameter) {
+		return pow(10.0f, (log10(crown_diameter) + 0.12) / 0.63);
+	}
+	float get_bark_thickness(float stem_diameter) {
+		return 0.31 * pow(stem_diameter, 1.276);
+	}
 	bool tree_dies(Tree* tree, float fire_free_interval) {
-		return 1; // TEMP: a tree always dies if one of the cells it occupies is ignited (TODO: make dependent on fire-free interval and fire resistance)
+		float stem_diameter = get_stem_diameter(tree->radius * 2.0f);
+		float bark_thickness = get_bark_thickness(stem_diameter);
+		float survival_probability = help::get_sigmoid(bark_thickness, fire_resistance_argmin, fire_resistance_argmax);
+		//printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", stem_diameter, bark_thickness, survival_probability);
+		return help::get_rand_float(0.0f, 1.0f) < survival_probability; 
+		// COMMENT: We currently assume topkill always implies death, but resprouting should also be possible. (TODO: make death dependent on fire-free interval)
 	}
 	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue) {
 		if (verbosity == 2) printf("Killing tree %i ... \n", tree->id);
@@ -224,6 +235,9 @@ public:
 	float max_radius = 0;
 	float cellsize = 0;
 	float fire_spatial_extent = 0;
+	float saturation_threshold = 0;
+	float fire_resistance_argmin = 0;
+	float fire_resistance_argmax = 0;
 	int timestep = 0;
 	int time = 0;
 	int pop_size = 0;

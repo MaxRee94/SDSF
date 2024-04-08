@@ -27,6 +27,8 @@ defaults = {
     "growth_rate_multiplier": 0.2,
     "seed_mass": 0.01,
     "flammability_coefficients_and_constants": [0.01, 0.03, 0.05, 0.4],
+    "saturation_threshold": 3,
+    "fire_resistance_range": [1, 90],
 }
 
 gui_defaults = {
@@ -327,6 +329,31 @@ _parameter_config = {
                  " function's output given the tree radius.")
             ),
             "default": defaults["flammability_coefficients_and_constants"],
+        },
+    },
+    "saturation_threshold": {
+        "keys": {
+            "cli": ["--saturation_threshold", "-st"]
+        },
+        "settings": {
+            "type": float,
+            "help": (
+                "The minimum number of trees in a cell to prohibit seed germination due to competition for locally available resources."
+            ),
+            "default": defaults["saturation_threshold"],
+        },
+    },
+    "fire_resistance_range": {
+        "keys": {
+            "cli": ["--fire_resistance_range", "-frr"]
+        },
+        "settings": {
+            "nargs": "*",
+            "type": float,
+            "help": (
+                ("Minimum- and maximum values of bark thickness between which fire resistance varies.")
+            ),
+            "default": defaults["fire_resistance_range"],
         },
     },
 }

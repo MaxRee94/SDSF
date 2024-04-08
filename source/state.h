@@ -13,11 +13,12 @@ public:
 	}
 	State(
 		int gridsize, float cellsize, float max_radius, float radius_q1, float radius_q2,
-		float _seed_bearing_threshold, float _mass_budget_factor, float _seed_mass
+		float _seed_bearing_threshold, float _mass_budget_factor, float _seed_mass, float _saturation_threshold
 	) {
 		seed_bearing_threshold = _seed_bearing_threshold;
 		mass_budget_factor = _mass_budget_factor / help::cubed(max_radius); // Normalize by maximum radius
 		seed_mass = _seed_mass;
+		saturation_threshold = _saturation_threshold;
 		population = Population(max_radius, cellsize, radius_q1, radius_q2, mass_budget_factor);
 		grid = Grid(gridsize, cellsize);
 		init_neighbor_offset();
@@ -105,6 +106,6 @@ public:
 	float seed_bearing_threshold = 0;
 	float mass_budget_factor = 0;
 	float seed_mass = 0;
-	float saturation_threshold = 0.333f;
+	float saturation_threshold = 0;
 };
 

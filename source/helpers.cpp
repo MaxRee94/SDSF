@@ -359,6 +359,14 @@ bool help::ends_with(string full_string, string ending) {
     }
 }
 
+float help::get_sigmoid(float x, float x_min, float x_max) {
+    if (x < x_min) return 0;
+    if (x > x_max) return 1;
+    float x1 = pow(10, (6.0f * x) / (x_max - x_min));
+    float x2 = 2.0f * log10(x1) - 5 - x_min;
+    return 1.0 / (1 + exp(- x2));
+}
+
 bool help::have_overlap(vector<int>* larger_vector, vector<int>* smaller_vector) {
     for (auto& item : *smaller_vector) {
         if (help::is_in(larger_vector, item)) return true;

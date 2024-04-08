@@ -107,6 +107,8 @@ namespace help {
 
 	void remove(vector<int>* vec, int item);
 
+	float get_sigmoid(float x, float x_min, float x_max);
+
 	template <typename T>
 	T pop(vector<T>* vec, int idx);
 
