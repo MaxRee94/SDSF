@@ -36,7 +36,6 @@ py::array_t<float> as_1d_numpy_array(float* distribution, int size) {
     auto numpy_array = py::array_t<float>(shape, strides);
     auto setter = numpy_array.mutable_unchecked<1>();
 
-    printf("no elements: %i \n", size);
     for (size_t i = 0; i < numpy_array.shape(0); i++)
     {
         setter(i) = distribution[i];

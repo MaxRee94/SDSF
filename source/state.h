@@ -105,5 +105,6 @@ public:
 	float seed_bearing_threshold = 0;
 	float mass_budget_factor = 0;
 	float seed_mass = 0;
+	float saturation_threshold = 0.333f;
 };
 

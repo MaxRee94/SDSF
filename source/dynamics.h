@@ -37,8 +37,13 @@ public:
 
 		// Do simulation
 		disperse();
-		grow();
 		burn();
+		grow();
+
+		/*for (int i = 0; i < grid->no_cells; i++) {
+			Cell cell = grid->distribution[i];
+			printf("no trees in cell: %i \n", cell.trees.size());
+		}*/
 
 		// Do post-simulation cleanup and data reporting
 		state.repopulate_grid(0);
@@ -100,7 +105,6 @@ public:
 		seeds_dispersed = j;
 	}
 	void burn() {
-		update_tree_flammabilities();
 		if (verbosity == 2) printf("Updated tree flammabilities.\n");
 		vector<float> fire_ignition_times = get_ordered_fire_ignition_times();
 		int no_burned_cells = 0;
@@ -122,65 +126,58 @@ public:
 			printf("Number of fires: %i \n", fire_ignition_times.size());
 		}
 	}
-	float get_suppressed_flammability(Tree* tree, float fire_free_interval) {
-		if (tree->flamm_update_timestep == time) return tree->flammability;
-		float cumulative_radius = tree->radius;
-		float d_radius = max(cumulative_radius - radius_suppr_flamm_min, 0);
-		tree->flammability = max(max_suppressed_flammability + d_radius * flamm_d_radius, min_suppressed_flammability) / cumulative_radius;
-		tree->flamm_update_timestep = time;
-		return max(max_suppressed_flammability + d_radius * flamm_d_radius, min_suppressed_flammability) / cumulative_radius;
+	float get_forest_flammability(Cell* cell, float fire_free_interval) {
+		float d_radius = max(cell->cumulative_radius - radius_suppr_flamm_min, 0);
+		float flammability = max(max_suppressed_flammability + d_radius * flamm_d_radius, min_suppressed_flammability) / cell->cumulative_radius;
+		return flammability;
 	}
-	float get_unsuppressed_flammability(float fire_free_interval) {
+	float get_savanna_flammability(float fire_free_interval) {
 		return fire_free_interval * unsuppressed_flammability;
 	}
-	float get_flammability(Cell* cell, float fire_free_interval) {
+	float get_cell_flammability(Cell* cell, float fire_free_interval) {
 		if (cell->state == 1) {
-			return get_suppressed_flammability(pop->get(cell->tree), fire_free_interval);
+			return get_forest_flammability(cell, fire_free_interval);
 		}
-		else return get_unsuppressed_flammability(fire_free_interval);
+		else return get_savanna_flammability(fire_free_interval);
 	}
-	void update_tree_flammabilities() {
-		vector<Tree*> trees = {};
-		int j = 0;
-		for (int i = 0; i < grid->no_cells; i++) {
-			if (grid->distribution[i].state == 0) continue;
-
-			// TODO: Once functionality to store multiple trees per cell is implemented, add a check here to only compute flammability
-			// in case there is only one tree in the cell.
-			pop->get(grid->distribution[i].tree)->flammability = get_suppressed_flammability(pop->get(grid->distribution[i].tree), 1);
-			if (verbosity == 2 && i % 1000 == 0) printf("Flammability value: %f \n", pop->get(grid->distribution[i].tree)->flammability);
-		}
+	bool tree_dies(Tree* tree, float fire_free_interval) {
+		return 1; // TEMP: a tree always dies if one of the cells it occupies is ignited (TODO: make dependent on fire-free interval and fire resistance)
 	}
-	bool tree_dies(Cell* cell, float fire_free_interval) {
-		return 1; // TEMP: trees always die if ignited (TODO: make dependent on fire-free interval and fire resistance)
-	}
-	void kill_tree(Cell* cell, queue<Cell*>& queue) {
-		Tree* tree = pop->get(cell->tree);
+	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue) {
 		if (verbosity == 2) printf("Killing tree %i ... \n", tree->id);
-
-		// Obtain neighbors that overlap with the killed tree. Burn cells without overlap.
-		// For each cell that overlaps, ensure that the ownership of each cell is transferred to the neighbors.
-		vector<Tree*> neighbors = state.get_tree_neighbors(tree);
-		grid->burn_tree_domain(tree, queue, neighbors, false, cell->time_last_fire);
-
+		grid->burn_tree_domain(tree, queue, time_last_fire);
 		state.population.remove(tree);
 	}
-	void induce_mortality(Cell* cell, float fire_free_interval, queue<Cell*>& queue) {
-		if (tree_dies(cell, fire_free_interval)) {
-			kill_tree(cell, queue);
+	void induce_tree_mortality(Cell* cell, float fire_free_interval, queue<Cell*>& queue) {
+		for (auto [tree_id, _] : cell->trees) {
+			Tree* tree = pop->get(tree_id);
+			if (tree->last_mortality_check == time) continue; // Skip mortality evaluation if this was already done in the current timestep.
+			if (tree_dies(tree, fire_free_interval)) {
+				kill_tree(tree, cell->time_last_fire, queue);
+			}
+			tree->last_mortality_check = time;
+		}
+	}
+	void kill_seedlings(Cell* cell) {
+		for (auto [tree_id, _] : cell->trees) {
+			pop->remove(tree_id);
+			cell->trees.erase(tree_id);
 		}
 	}
 	inline bool cell_will_ignite(Cell* cell, float t_start) {
 		if (t_start - cell->time_last_fire < 10e-4) {
 			return false; // Do not ignite cells which have already been burned by the current fire.
 		}
-		return help::get_rand_float(0.0, 1.0) < get_flammability(cell, min(t_start - cell->time_last_fire, 1));
+		return help::get_rand_float(0.0, 1.0) < get_cell_flammability(cell, min(t_start - cell->time_last_fire, 1));
 	}
 	inline void burn_cell(Cell* cell, float t_start, queue<Cell*> &queue) {
 		cell->time_last_fire = t_start;
 		grid->state_distribution[grid->pos_2_idx(cell->pos)] = -5;
 		if (cell->state == 1) {
-			induce_mortality(cell, t_start - cell->time_last_fire, queue);
+			induce_tree_mortality(cell, t_start - cell->time_last_fire, queue);
+		}
+		else {
+			kill_seedlings(cell);
 		}
 	}
 	int percolate(Cell* cell, float t_start) {

@@ -6,10 +6,11 @@ class Cell {
 public:
 	Cell() = default;
 	int state = 0;
-	int tree = 0;
-	pair<int, int> pos;
 	int idx = 0;
 	float time_last_fire = 0;
+	map<int, int> trees;
+	float cumulative_radius = 0;
+	pair<int, int> pos;
 	bool operator==(const Cell& cell) const
 	{
 		return pos == cell.pos;
@@ -67,7 +68,8 @@ public:
 	void reset() {
 		for (int i = 0; i < no_cells; i++) {
 			distribution[i].state = 0;
-			distribution[i].tree = 0;
+			distribution[i].trees.clear();
+			distribution[i].cumulative_radius = 0;
 		}
 		no_forest_cells = 0;
 		no_savanna_cells = no_cells;
@@ -129,26 +131,32 @@ public:
 			}
 		}
 	}
-	void burn_tree_domain(Tree* tree, queue<Cell*>& queue, vector<Tree*>& neighbors, bool add_tree = true, float time_last_fire = -1) {
+	void burn_tree_domain(Tree* tree, queue<Cell*>& queue, float time_last_fire = -1) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
-		int radius_gb = round((tree->radius / cellsize) * 1.5);
+		int radius_gb = round((tree->radius * 1.5) / cellsize);
 		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x += 1) {
 			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y += 1) {
 				pair<float, float> position(x * cellsize, y * cellsize);
 				if (tree->is_within_radius(position)) {
 					Cell* cell = get_cell_at_position(position);
-					bool overlap = false;
-					for (int j = 0; j < neighbors.size(); j++) {
-						overlap = neighbors[j]->is_within_radius(position);
-						if (overlap) {
-							cell->tree = tree->id;
-							break;
-						}
-					}
-					if (overlap) continue;
-					set_to_savanna(cell->idx, time_last_fire);
 					queue.push(cell);
-					state_distribution[cell->idx] = -6;
+					if (distribution[cell->idx].state == 0) continue;
+					
+					// Remove tree id from cell->trees.
+					int map_size = cell->trees.size();
+					auto it = cell->trees.find(tree->id);
+					if (it != cell->trees.end()) cell->trees.erase(it);
+
+					// Update cumulative radius
+					cell->cumulative_radius -= tree->radius;
+
+					// Set cell to savanna if it is no longer occupied by trees larger than the cell itself.
+					if (cell->cumulative_radius < (cellsize * 0.7)) {
+						set_to_savanna(cell->idx, time_last_fire);
+						state_distribution[cell->idx] = -6;
+						continue;
+					}
+					state_distribution[cell->idx] = -5;
 				}
 			}
 		}
@@ -156,7 +164,7 @@ public:
 	int* get_state_distribution(bool collect = true) {
 		if (collect) {
 			for (int i = 0; i < no_cells; i++) {
-				if (distribution[i].state == 1) state_distribution[i] = distribution[i].tree % 100;
+				if (distribution[i].state == 1) state_distribution[i] = distribution[i].trees.begin()->first % 100 + 1;
 			}
 		}
 		return state_distribution;
@@ -176,18 +184,17 @@ public:
 			no_forest_cells++;
 		}
 		distribution[idx].state = 1;
-		distribution[idx].tree = tree->id;
+		distribution[idx].trees[tree->id] = tree->id;
+		if (tree->id == 0) cout << "pushing back tree id 0\n";
+		distribution[idx].cumulative_radius += tree->radius;
 		distribution[idx].time_last_fire = 0;
 	}
 	void set_to_savanna(int idx, float _time_last_fire = -1) {
-		if (distribution[idx].state == 1) {
-			no_savanna_cells++;
-			no_forest_cells--;
-		}
-		//else cout << "was already savanna\n";
+		no_savanna_cells += (distribution[idx].state == 1);
+		no_forest_cells -= (distribution[idx].state == 1);
+
 		distribution[idx].state = 0;
-		distribution[idx].tree = 0;
-		if (_time_last_fire > -1) distribution[idx].time_last_fire = _time_last_fire;
+		distribution[idx].time_last_fire = _time_last_fire;
 	}
 	void set_to_forest(pair<int, int> position_grid, Tree* tree) {
 		cap(position_grid);

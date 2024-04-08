@@ -107,7 +107,11 @@ namespace help {
 
 	void remove(vector<int>* vec, int item);
 
-	pair<int, int> pop(vector<pair<int, int>>* vec, int idx);
+	template <typename T>
+	T pop(vector<T>* vec, int idx);
+
+	template <typename T, typename U>
+	pair<T, U> pop(map<T, U>* map, int idx);
 
 	float get_dist(pair<float, float> p1, pair<float, float> p2);
 

@@ -38,11 +38,10 @@ public:
 	}
 	float radius = -1;
 	float radius_tmin1 = -1;
-	float flammability = -1;
 	int life_phase = 0;
-	int flamm_update_timestep = -1;
+	int last_mortality_check = 0;
 	pair<float, float> position = pair(0, 0);
-	uint id = 0;
+	uint id = -1;
 };
 
 
@@ -102,11 +101,6 @@ public:
 
 		return &members[tree.id];
 	}
-	void store_positions() {
-		for (auto& [id, tree] : members) {
-			positions[tree.id] = tree.position;
-		}
-	}
 	Kernel* add_kernel_linear_diffusion(int tree_id, float q1, float q2, float min, float max) {
 		Kernel kernel(tree_id, q1, q2, min, max);
 		kernels[tree_id] = kernel;
@@ -119,28 +113,23 @@ public:
 	Tree* get(int id) {
 		return &members[id];
 	}
+	void get(vector<int>& ids, vector<Tree*> &trees) {
+		for (int id : ids) trees.push_back(get(id));
+	}
 	Crop* get_crop(int id) {
 		return &crops[id];
 	}
 	Strategy* get_strat(int id) {
 		return &strategies[id];
 	}
-	void check_positions() {
-		for (auto& [id, tree] : members) {
-			if (tree.position != positions[tree.id]) {
-				printf(
-					"id %i position (%f, %f) differs from stored position (%f, %f), id %i \n",
-					tree.id, tree.position.first, tree.position.second, 
-					positions[tree.id].first, positions[tree.id].second, tree.id
-				);
-			}
-		}
-	}
 	int size() {
 		return members.size();
 	}
 	void remove(Tree* tree) {
 		members.erase(tree->id);
+	}
+	void remove(int id) {
+		members.erase(id);
 	}
 	bool is_population_member(Tree* tree) {
 		auto it = members.find(tree->id);
@@ -159,7 +148,6 @@ public:
 	float radius_q2 = 0;
 	float seed_mass = 0;
 	Tree removed_tree;
-	map<uint, pair<float, float>> positions;
 	int no_created_trees = 0;
 	float mass_budget_factor = 0;
 };

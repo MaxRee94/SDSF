@@ -333,11 +333,18 @@ void help::remove(vector<int>* vec, int item) {
     else throw("Error: Cannot remove item from vector because it is not present\n");
 }
 
-pair<int, int> help::pop(vector<pair<int, int>>* vec, int idx) {
-    pair<int, int> item = vec->at(idx);
+template <typename T>
+T help::pop(vector<T>* vec, int idx) {
+    T item = vec->at(idx);
     vec->erase(vec->begin() + idx);
     return item;
 }
+template pair<int, int> help::pop<pair<int, int>>(vector<pair<int, int>>* vec, int idx);
+template float help::pop<float>(vector<float>* vec, int idx);
+template int help::pop<int>(vector<int>* vec, int idx);
+
+//template <typename T, typename U>
+//pair<T, U> pop(map<T, U>* map, int idx);
 
 float help::cubed(float val) {
     return val * val * val;

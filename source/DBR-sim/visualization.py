@@ -103,9 +103,10 @@ class Graph:
         plt.ylabel(datatype)
       
     def add_datapoint(self):
-        print("datatype: ", self.datatype)
         if self.datatype == "Tree cover":
             self.data.append(self.dynamics.state.grid.get_tree_cover())
+        elif self.datatype == "Seeds dispersed":
+            self.data.append(self.dynamics.seeds_dispersed)
     def update(self):
         self.add_datapoint()
         self.times.append(self.dynamics.time)
@@ -162,7 +163,6 @@ class Histogram:
         self.replace_data()
  
         counts, bins = np.histogram(self.data)
-        print("==== Counts: \n", counts)
 
         # Update x limits
         self.ax.set_xlim([bins[0], bins[-1]])
