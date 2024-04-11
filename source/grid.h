@@ -93,7 +93,8 @@ public:
 		return pair<int, int>(x, y);
 	}
 	float get_tree_cover() {
-		return (float)no_forest_cells / (float)(no_cells);
+		tree_cover = (float)no_forest_cells / (float)(no_cells);
+		return tree_cover;
 	}
 	Cell* get_cell_at_position(pair<int, int> pos) {
 		cap(pos);
@@ -131,7 +132,7 @@ public:
 			}
 		}
 	}
-	void burn_tree_domain(Tree* tree, queue<Cell*>& queue, float time_last_fire = -1) {
+	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
 		int radius_gb = round((tree->radius * 1.5) / cellsize);
 		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x += 1) {
@@ -139,7 +140,6 @@ public:
 				pair<float, float> position(x * cellsize, y * cellsize);
 				if (tree->is_within_radius(position)) {
 					Cell* cell = get_cell_at_position(position);
-					queue.push(cell);
 					if (distribution[cell->idx].state == 0) continue;
 					
 					// Remove tree id from cell->trees.
@@ -152,6 +152,7 @@ public:
 
 					// Set cell to savanna if it is no longer occupied by trees larger than the cell itself.
 					if (cell->cumulative_radius < (cellsize * 0.7)) {
+						queue.push(cell);
 						set_to_savanna(cell->idx, time_last_fire);
 						state_distribution[cell->idx] = -6;
 						continue;
@@ -161,10 +162,15 @@ public:
 			}
 		}
 	}
+	void kill_tree_domain(Tree* tree) {
+		queue<Cell*> dummy;
+		burn_tree_domain(tree, dummy);
+	}
 	int* get_state_distribution(bool collect = true) {
 		if (collect) {
 			for (int i = 0; i < no_cells; i++) {
-				if (distribution[i].state == 1) state_distribution[i] = distribution[i].trees.begin()->first % 100 + 1;
+				//if (distribution[i].state == 1) state_distribution[i] = distribution[i].trees.begin()->first % 100 + 1;
+				if (distribution[i].state == 1) state_distribution[i] = min(distribution[i].cumulative_radius, 9) * 10 + 1;
 			}
 		}
 		return state_distribution;
@@ -194,7 +200,7 @@ public:
 		no_forest_cells -= (distribution[idx].state == 1);
 
 		distribution[idx].state = 0;
-		distribution[idx].time_last_fire = _time_last_fire;
+		if (_time_last_fire != -1) distribution[idx].time_last_fire = _time_last_fire;
 	}
 	void set_to_forest(pair<int, int> position_grid, Tree* tree) {
 		cap(position_grid);
@@ -219,6 +225,7 @@ public:
 	int width = 0;
 	int no_cells = 0;
 	float width_r = 0;
+	float tree_cover = 0;
 	float cellsize = 1.5;
 	Cell* distribution = 0;
 	int* state_distribution = 0;

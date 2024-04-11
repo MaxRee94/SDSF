@@ -56,13 +56,15 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def("repopulate_grid", &State::repopulate_grid)
         .def("set_tree_cover", &State::set_tree_cover)
         .def_readwrite("grid", &State::grid)
-        .def_readwrite("population", &State::population);
+        .def_readwrite("population", &State::population)
+        .def_readwrite("initial_tree_cover", &State::initial_tree_cover);
 
     py::class_<Grid>(module, "Grid")
         .def(py::init<>())
         .def(py::init<const int&, const float&>())
         .def("get_tree_cover", &Grid::get_tree_cover)
         .def_readwrite("width", &Grid::width)
+        .def_readwrite("tree_cover", &Grid::tree_cover)
         .def("get_distribution", [](Grid &grid, bool &collect_states) {
             int* state_distribution = grid.get_state_distribution(collect_states);
             return as_2d_numpy_array(state_distribution, grid.width);
@@ -71,7 +73,8 @@ PYBIND11_MODULE(dbr_cpp, module) {
     py::class_<Dynamics>(module, "Dynamics")
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
-            const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const int&>())
+            const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
+            const float&, const int&>())
         .def_readwrite("time", &Dynamics::time)
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)

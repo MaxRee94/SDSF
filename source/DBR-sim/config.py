@@ -5,13 +5,13 @@ import string
 defaults = {
     "gridsize": 1000,
     "treecover": 0.5,
-    "cellsize": 1.5,
+    "cellsize": 1,
     "max_radius": 6.0,
     "image_width": 1000,
     "timestep": 1,
     "timelimit": 1e32,
-    "self_ignition_factor": 20.0,
-    "unsuppressed_flammability": 0.25,
+    "self_ignition_factor": 140,
+    "unsuppressed_flammability": 0.4,
     "rainfall": 0.1,
     "test": "none",
     "radius_q1": 1,
@@ -24,11 +24,15 @@ defaults = {
     "linear_diffusion_q2": 0,
     "dispersal_min": 0,
     "dispersal_max": 300,
-    "growth_rate_multiplier": 0.2,
+    "growth_rate_multiplier": 0.1,
     "seed_mass": 0.01,
-    "flammability_coefficients_and_constants": [0.01, 0.03, 0.05, 0.4],
+    "flammability_coefficients_and_constants": [0.1, 0.35, 0, 1],
     "saturation_threshold": 3,
-    "fire_resistance_range": [1, 90],
+    "fire_resistance_params": [8.5, 50, 2.857],
+    "constant_mortality": 0.03,
+    "csv_path": "",
+    "headless": False,
+    "max_timesteps": 1e9,
 }
 
 gui_defaults = {
@@ -343,19 +347,66 @@ _parameter_config = {
             "default": defaults["saturation_threshold"],
         },
     },
-    "fire_resistance_range": {
+    "fire_resistance_params": {
         "keys": {
-            "cli": ["--fire_resistance_range", "-frr"]
+            "cli": ["--fire_resistance_params", "-frp"]
         },
         "settings": {
             "nargs": "*",
             "type": float,
             "help": (
-                ("Minimum- and maximum values of bark thickness between which fire resistance varies.")
+                ("Parameters to tree mortality sigmoid function, which takes bark thickness as input and returns survival probability.")
             ),
-            "default": defaults["fire_resistance_range"],
+            "default": defaults["fire_resistance_params"],
         },
     },
+    "constant_mortality": {
+        "keys": {
+            "cli": ["--constant_mortality", "-cm"]
+        },
+        "settings": {
+            "type": float,
+            "help": (
+                "Constant background mortality rate, independent of fire risk."
+            ),
+            "default": defaults["constant_mortality"],
+        },
+    },
+    "headless": {
+        "keys": {
+            "cli": ["--headless", "-hl"]
+        },
+        "settings": {
+            "action": "store_true",
+            "help": (
+                "Run DBR-sim in headless mode."
+            ),
+        },
+    },
+    "csv_path": {
+        "keys": {
+            "cli": ["--csv_path", "-csv"]
+        },
+        "settings": {
+            "type": str,
+            "help": (
+                "CSV path to export data to."
+            ),
+            "default": defaults["csv_path"],
+        },
+    },
+    "max_timesteps": {
+        "keys": {
+            "cli": ["--max_timesteps", "-mt"]
+        },
+        "settings": {
+            "type": str,
+            "help": (
+                "Maximum number of timesteps to run simulation for."
+            ),
+            "default": defaults["max_timesteps"],
+        },
+    }
 }
 
 

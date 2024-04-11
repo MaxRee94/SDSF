@@ -82,11 +82,13 @@ public:
 	Population() = default;
 	Population(float _max_radius, float _cellsize, float _radius_q1, float _radius_q2, float _mass_budget_factor) : max_radius(_max_radius),
 		cellsize(_cellsize), radius_q1(_radius_q1), radius_q2(_radius_q2), mass_budget_factor(_mass_budget_factor)
-	{}
+	{
+		radius_probability_model = help::LinearProbabilityModel(radius_q1, radius_q2, 0, max_radius);
+	}
 	Tree* add(pair<float, float> position, Strategy &strategy, float radius = -2) {
 		// Create tree
 		if (radius == -1) radius = max_radius;
-		else if (radius == -2) radius = help::sample_linear_distribution(radius_q1, radius_q2, 0, max_radius);
+		else if (radius == -2) radius = radius_probability_model.sample();
 		float radius_tmin1 = radius * 0.9; // TEMP. TODO: Make dependent on growth curve.
 		Tree tree(no_created_trees + 1, position, radius, radius_tmin1, 1);
 		members[tree.id] = tree;
@@ -142,6 +144,7 @@ public:
 	unordered_map<int, Crop> crops;
 	unordered_map<int, Kernel> kernels;
 	unordered_map<int, Strategy> strategies;
+	help::LinearProbabilityModel radius_probability_model;
 	float max_radius = 0;
 	float cellsize = 0;
 	float radius_q1 = 0;

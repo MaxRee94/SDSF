@@ -16,9 +16,9 @@ def get_color_dict(no_values, begin=0.0, end=1.0):
             get_max((-765/3 + (x * (2 * 255/no_values))), 0)
         ), np.uint8) for v, x in zip(range(1, no_values + 1), x_range)
     }
-    color_dict[0] = np.array((0, 0, 0), np.uint8)
-    color_dict[-5] = np.array((0, 150, 220))
-    color_dict[-6] = np.array((0, 0, 110))
+    color_dict[0] = np.array((0, 130, 140), np.uint8)
+    color_dict[-5] = np.array((0, 0, 0), np.uint8)
+    color_dict[-6] = np.array((0, 0, 110), np.uint8)
     #for key, val in color_dict.items():
     #   print(key, " -- ", val)
     return color_dict
@@ -143,6 +143,7 @@ class Histogram:
         N, bins, self.bar_container = self.ax.hist(self.data, bins=self.no_bins)
         self.rect_width = self.bar_container.patches[0].get_width()
         initial_xrange = bins[-1] - bins[0]
+        self.rect_width = self.bar_container.patches[0].get_width()
         initial_hist_width = 0
         for rect in self.bar_container.patches:
             initial_hist_width += rect.get_width()
@@ -171,7 +172,7 @@ class Histogram:
         # updating data values
         xrange = bins[-1] - bins[0]
         x = 0
-        rect_width = ((xrange * self.width_over_range) / self.no_bins)
+        rect_width = ((xrange * self.width_over_range) / self.no_bins) * 4.0
         for count, rect in zip(counts, self.bar_container.patches):
             rect.set_height(count)
             rect.set_width(rect_width)

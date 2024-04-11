@@ -83,11 +83,11 @@ public:
 			grid.populate_tree_domain(tree);
 
 			if (population.size() % 1000 == 0) {
-				printf("Current tree cover: %f, current population width: %i\n", grid.get_tree_cover(), population.size());
+				printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
 			}
 			continue;
 		}
-		printf("Final tree cover: %f\n", grid.get_tree_cover());
+		printf("Final tree cover: %f\n", grid.tree_cover);
 
 		// Count no small trees
 		int no_small = 0;
@@ -98,12 +98,14 @@ public:
 		}
 		printf("- Fraction small trees: %f \n", (float)no_small / (float)population.size());
 
+		initial_tree_cover = grid.tree_cover;
 		repopulate_grid(0);
 	}
 	Grid grid;
 	Population population;
 	pair<int, int>* neighbor_offsets = 0;
 	float seed_bearing_threshold = 0;
+	float initial_tree_cover = 0;
 	float mass_budget_factor = 0;
 	float seed_mass = 0;
 	float saturation_threshold = 0;

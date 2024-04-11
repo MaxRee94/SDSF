@@ -107,7 +107,7 @@ namespace help {
 
 	void remove(vector<int>* vec, int item);
 
-	float get_sigmoid(float x, float x_min, float x_max);
+	float get_sigmoid(float x, float x_min, float x_max, float x_stretch);
 
 	template <typename T>
 	T pop(vector<T>* vec, int idx);
@@ -172,6 +172,41 @@ namespace help {
 	// Solve for x in quadratic function f(x), given coefficients (a and b), constant c, and value y = f(x)
 	float get_lowest_solution_for_quadratic(float y, float a, float b, float c);
 
-	// Sample linear distribution
-	float sample_linear_distribution(float q1, float q2, float min, float max);
+	class LinearProbabilityModel {
+	public:
+		LinearProbabilityModel();
+		LinearProbabilityModel(float _q1, float _q2, float _min, float _max);
+		float sample();
+		float q1 = 0;
+		float q2 = 0;
+		float min = 0;
+		float max = 0;
+		float a = 0;
+		float b = 0;
+	};
+
+	class ProbModelPiece {
+	public:
+		ProbModelPiece();
+		ProbModelPiece(float _xmin, float _xmax, float _ybegin, float _yend);
+		float intersection(float cdf_y);
+		float xmin = 0;
+		float xmax = 0;
+		float ybegin = 0;
+		float yend = 0;
+		float ysize = 0;
+		float xsize = 0;
+	};
+
+	class PieceWiseLinearProbModel {
+	public:
+		PieceWiseLinearProbModel();
+		PieceWiseLinearProbModel(float _xmax, int _resolution);
+		float pdf(float x);
+		void build_cdf();
+		float sample();
+		float xmax = 0;
+		float resolution = 0;
+		ProbModelPiece* cdf_pieces = 0;
+	};
 };

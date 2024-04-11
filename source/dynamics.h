@@ -9,7 +9,7 @@ public:
 		int _timestep, float _cellsize, float _self_ignition_factor, float _rainfall, float _seed_bearing_threshold, float _mass_budget_factor,
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
 		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_radius, float _saturation_threshold, float _fire_resistance_argmin,
-		float _fire_resistance_argmax, int _verbosity
+		float _fire_resistance_argmax, float _fire_resistance_stretch, float _background_mortality, int _verbosity
 	) :
 		timestep(_timestep), cellsize(_cellsize), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_seed_bearing_threshold),
@@ -19,12 +19,16 @@ public:
 		max_suppressed_flammability(_cellsize * _max_suppressed_flammability),
 		min_suppressed_flammability(_cellsize * _min_suppressed_flammability),
 		max_radius(_max_radius), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold), fire_resistance_argmin(_fire_resistance_argmin),
-		fire_resistance_argmax(_fire_resistance_argmax)
+		fire_resistance_argmax(_fire_resistance_argmax), fire_resistance_stretch(_fire_resistance_stretch), background_mortality(_background_mortality)
 	{
 		time = 0;
 		help::init_RNG();
 		pop = &state.population;
 		grid = &state.grid;
+
+		// temp
+
+
 	};
 	void init_state(int gridsize, float radius_q1, float radius_q2, float _seed_mass) {
 		state = State(
@@ -44,9 +48,11 @@ public:
 		disperse();
 		burn();
 		grow();
+		induce_background_mortality();
 
 		// Do post-simulation cleanup and data reporting
 		state.repopulate_grid(0);
+		grid->redo_count();
 		if (verbosity > 0) report_state();
 	}
 	void report_state() {
@@ -104,6 +110,13 @@ public:
 		if (verbosity > 0) printf("Number of seed bearing trees: %i, #seeds dispersed: %i \n", x, j);
 		seeds_dispersed = j;
 	}
+	void induce_background_mortality() {
+		for (auto& [id, tree] : pop->members) {
+			if (help::get_rand_float(0, 1) < background_mortality) {
+				kill_tree(&tree);
+			}
+		}
+	}
 	void burn() {
 		if (verbosity == 2) printf("Updated tree flammabilities.\n");
 		vector<float> fire_ignition_times = get_ordered_fire_ignition_times();
@@ -149,14 +162,19 @@ public:
 	bool tree_dies(Tree* tree, float fire_free_interval) {
 		float stem_diameter = get_stem_diameter(tree->radius * 2.0f);
 		float bark_thickness = get_bark_thickness(stem_diameter);
-		float survival_probability = help::get_sigmoid(bark_thickness, fire_resistance_argmin, fire_resistance_argmax);
-		//printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", stem_diameter, bark_thickness, survival_probability);
-		return help::get_rand_float(0.0f, 1.0f) < survival_probability; 
+		float survival_probability = help::get_sigmoid(bark_thickness, fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
+		if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", stem_diameter, bark_thickness, survival_probability);
+		return help::get_rand_float(0.0f, 1.0f) > survival_probability; 
 		// COMMENT: We currently assume topkill always implies death, but resprouting should also be possible. (TODO: make death dependent on fire-free interval)
 	}
 	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue) {
 		if (verbosity == 2) printf("Killing tree %i ... \n", tree->id);
 		grid->burn_tree_domain(tree, queue, time_last_fire);
+		state.population.remove(tree);
+	}
+	void kill_tree(Tree* tree) {
+		if (verbosity == 2) printf("Killing tree %i ... \n", tree->id);
+		grid->kill_tree_domain(tree);
 		state.population.remove(tree);
 	}
 	void induce_tree_mortality(Cell* cell, float fire_free_interval, queue<Cell*>& queue) {
@@ -238,6 +256,8 @@ public:
 	float saturation_threshold = 0;
 	float fire_resistance_argmin = 0;
 	float fire_resistance_argmax = 0;
+	float fire_resistance_stretch = 0;
+	float background_mortality = 0;
 	int timestep = 0;
 	int time = 0;
 	int pop_size = 0;

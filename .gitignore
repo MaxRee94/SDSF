@@ -5,6 +5,7 @@ source/__pycache__/
 data_out/
 source/DBR-sim/DawnCache/
 source/DBR-sim/GPUCache/
+*.bat
 
 # Visaul studio files
 *.pyproj

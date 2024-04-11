@@ -359,12 +359,9 @@ bool help::ends_with(string full_string, string ending) {
     }
 }
 
-float help::get_sigmoid(float x, float x_min, float x_max) {
-    if (x < x_min) return 0;
-    if (x > x_max) return 1;
-    float x1 = pow(10, (6.0f * x) / (x_max - x_min));
-    float x2 = 2.0f * log10(x1) - 5 - x_min;
-    return 1.0 / (1 + exp(- x2));
+float help::get_sigmoid(float x, float x_min, float x_max, float x_stretch) {
+    float x2 = 2.0f * log10(x * 1e6f) - 5 - x_min;
+    return 1.0 / (1 + exp(- x2 * x_stretch));
 }
 
 bool help::have_overlap(vector<int>* larger_vector, vector<int>* smaller_vector) {
@@ -464,21 +461,73 @@ float help::get_lowest_solution_for_quadratic(float y, float a, float b, float c
     return (result1 < result2 ? result1 : result2);
 }
 
-float help::sample_linear_distribution(float q1, float q2, float min, float max) {
+help::LinearProbabilityModel::LinearProbabilityModel() = default;
+help::LinearProbabilityModel::LinearProbabilityModel(float _q1, float _q2, float _min, float _max) {
+    q1 = _q1;
+    q2 = _q2;
+    min = _min;
+    max = _max;
+
     float xrange = (max - min);
-    float a = (q2 - q1) / xrange;
-    float b = q1;
+    a = (q2 - q1) / xrange;
+    b = q1;
     float cdf_of_xrange = 0.5 * a * xrange * xrange + b * xrange; // CDF(xrange)
-    
+
     // Scale PDF such that it integrates to 1, i.e., so that CDF(xrange) = 1
     a /= cdf_of_xrange;
     b /= cdf_of_xrange;
-    // TODO (optimization): Create a separate LinearProbabilityModel-class which scales the PDF once and can then be reused for sampling repeatedly.
-
-    // Sample PDF through the inverse transform method, i.e.:
-    // Solve for dx in CDF(dx) = y, where y is a random number drawn from a uniform distribution with range [0,1]
+}
+float help::LinearProbabilityModel::sample() {
     float cdf_of_dx = help::get_rand_float(0, 1); // Obtain CDF(dx)
     float dx = get_lowest_solution_for_quadratic(cdf_of_dx, a / 2.0, b, 0); // Get corresponding value dx
     return min + dx;
+}
+
+help::ProbModelPiece::ProbModelPiece() = default;
+help::ProbModelPiece::ProbModelPiece(float _xmin, float _xmax, float _ybegin, float _yend) {
+    xmin = _xmin; xmax = _xmax;
+    ybegin = _ybegin; yend = _yend;
+};
+float help::ProbModelPiece::intersection(float cdf_y) {
+    if (cdf_y >= ybegin && cdf_y < yend) {
+        float y_diff = cdf_y - ybegin;
+        return xmin + (y_diff / ysize) * xsize;
+    }
+    return -1;
+};
+
+help::PieceWiseLinearProbModel::PieceWiseLinearProbModel() = default;
+help::PieceWiseLinearProbModel::PieceWiseLinearProbModel(float _xmax, int _resolution) {
+    xmax = _xmax;
+    resolution = _resolution;
+    cdf_pieces = new ProbModelPiece[resolution];
+    build_cdf();
+}
+float help::PieceWiseLinearProbModel::pdf(float x) {
+    return 0.01 * x; // Dummy return value; OVERRIDE THIS FUNCTION TO USE YOUR CUSTOM PDF.
+}
+void help::PieceWiseLinearProbModel::build_cdf() {
+    float piece_width = xmax / (float)resolution;
+    float xmin = 0.0f;
+    float xmax = piece_width;
+    float cdf = 0.0f;
+    for (int i = 0; i < resolution; i++) {
+        float pdf_begin = pdf(xmin);
+        float pdf_end = pdf(xmax);
+        float piece_area = min(pdf_begin, pdf_end) * piece_width + 0.5f * abs(pdf_begin - pdf_end) * piece_width;
+        float cdf_min = cdf;
+        cdf += piece_area;
+        float cdf_max = cdf;
+        cdf_pieces[i] = ProbModelPiece(xmin, xmax, cdf_min, cdf_max);
+        xmin += piece_width;
+        xmax += piece_width;
+    }
+}
+float help::PieceWiseLinearProbModel::sample() {
+    float cdf_y = help::get_rand_float(0.0f, 1.0f);
+    for (int i = 0; i < resolution; i++) {
+        float intersection = cdf_pieces[i].intersection(cdf_y);
+        if (intersection != -1) return intersection;
+    }
 }
 
