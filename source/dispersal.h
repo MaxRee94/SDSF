@@ -38,11 +38,15 @@ public:
 };
 
 
-class Anemochory : Disperser {
+class WindDispersal : Disperser {
 public:
-	Anemochory() = default;
-	Anemochory(State* _state) : Disperser(_state) {
-
+	WindDispersal() = default;
+	WindDispersal(State* _state) : Disperser(_state) {};
+	float get_dist(Crop* crop) {
+		return crop->kernel->get_wind_dispersed_dist();
+	}
+	void disperse(Crop* crop) {
+		Disperser::disperse(crop);
 	}
 };
 

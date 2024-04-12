@@ -101,6 +101,12 @@ PYBIND11_MODULE(dbr_cpp, module) {
 
     py::class_<PieceWiseLinearProbModel>(module, "PieceWiseLinearProbModel")
         .def(py::init<>())
-        .def(py::init<const float&, const int&>())
+        .def(py::init<const float&>())
         .def("sample", &PieceWiseLinearProbModel::sample);
+
+    py::class_<Kernel>(module, "Kernel")
+        .def(py::init<>())
+        .def(py::init < const int&, const float&, const float&, const float&, const float&>())
+        .def(py::init < const int&, const float&, const float&, const float&, const float&, const float&>())
+        .def("get_dist", &Kernel::get_dist);
 }

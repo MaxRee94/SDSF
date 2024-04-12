@@ -25,10 +25,6 @@ public:
 		help::init_RNG();
 		pop = &state.population;
 		grid = &state.grid;
-
-		// temp
-
-
 	};
 	void init_state(int gridsize, float radius_q1, float radius_q2, float _seed_mass) {
 		state = State(
@@ -36,6 +32,7 @@ public:
 			_seed_mass, saturation_threshold
 		);
 		disperser = Disperser(&state);
+		wind_disperser = WindDispersal(&state);
 		neighbor_offsets = state.neighbor_offsets;
 	}
 	void update() {
@@ -103,7 +100,12 @@ public:
 			}
 			crop->update(tree);
 			for (int i = 0; i < crop->no_seeds; i++) {
-				disperser.disperse(crop);
+				if (crop->kernel->type == "wind") {
+					wind_disperser.disperse(crop);
+				}
+				else {
+					disperser.disperse(crop);
+				}
 				j++;
 			}
 		}
@@ -267,6 +269,7 @@ public:
 	Population* pop = 0;
 	Grid* grid = 0;
 	Disperser disperser;
+	WindDispersal wind_disperser;
 	pair<int, int>* neighbor_offsets = 0;
 	Kernel global_kernel;
 };

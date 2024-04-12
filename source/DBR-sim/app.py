@@ -121,10 +121,15 @@ def do_tests(**user_args):
  
 
 def main(**user_args):
-    # cpp.init_RNG()
-    # probmodel = cpp.PieceWiseLinearProbModel(50, 100)
-    # vis.visualize_kernel(probmodel)
-    # return
+    cpp.init_RNG()
+    dist_max = 200
+    windspeed_gmean = 20
+    windspeed_stdev = 5
+    seed_terminal_speed = 0.5
+    abscission_height = 30
+    wind_kernel = cpp.Kernel(1, dist_max, windspeed_gmean, windspeed_stdev, seed_terminal_speed, abscission_height)
+    vis.visualize_kernel(wind_kernel)
+    return
 
     if user_args["test"] == "all":
         do_tests(**user_args)

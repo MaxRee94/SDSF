@@ -10,7 +10,9 @@
 #include <unordered_map>
 
 #define _USE_MATH_DEFINES
+#include <cmath>
 #include <math.h>
+
 
 
 using namespace std;
@@ -202,12 +204,12 @@ namespace help {
 	class PieceWiseLinearProbModel {
 	public:
 		PieceWiseLinearProbModel();
-		PieceWiseLinearProbModel(float _xmax, int _resolution);
-		float pdf(float x);
-		void build_cdf();
-		float sample();
+		PieceWiseLinearProbModel(float _xmax);
+		virtual float pdf(float x);
+		virtual float sample();
+		void build();
 		float xmax = 0;
-		float resolution = 0;
+		float resolution = 100.0f;
 		ProbModelPiece* cdf_pieces = 0;
 	};
 };
