@@ -176,7 +176,7 @@ namespace help {
 	public:
 		LinearProbabilityModel();
 		LinearProbabilityModel(float _q1, float _q2, float _min, float _max);
-		float sample();
+		float linear_sample();
 		float q1 = 0;
 		float q2 = 0;
 		float min = 0;

@@ -477,7 +477,7 @@ help::LinearProbabilityModel::LinearProbabilityModel(float _q1, float _q2, float
     a /= cdf_of_xrange;
     b /= cdf_of_xrange;
 }
-float help::LinearProbabilityModel::sample() {
+float help::LinearProbabilityModel::linear_sample() {
     float cdf_of_dx = help::get_rand_float(0, 1); // Obtain CDF(dx)
     float dx = get_lowest_solution_for_quadratic(cdf_of_dx, a / 2.0, b, 0); // Get corresponding value dx
     return min + dx;
@@ -501,6 +501,7 @@ void help::ProbModelPiece::rescale(float factor) {
     ymin *= factor; ymax *= factor;
     ysize = ymax - ymin;
 }
+
 
 help::PieceWiseLinearProbModel::PieceWiseLinearProbModel() = default;
 help::PieceWiseLinearProbModel::PieceWiseLinearProbModel(float _xmax, int _resolution) {
@@ -536,7 +537,8 @@ void help::PieceWiseLinearProbModel::build_cdf() {
 }
 float help::PieceWiseLinearProbModel::sample() {
     float cdf_y = help::get_rand_float(0.0f, 1.0f);
-    for (int i = 0; i < resolution; i++) {
+    int lowbound_piece_idx = (int)(cdf_y * (float)resolution) - 1;
+    for (int i = lowbound_piece_idx; i < resolution; i++) {
         float x = cdf_pieces[i].intersect(cdf_y);
         if (x != -1) {
             return x;

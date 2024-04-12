@@ -118,27 +118,13 @@ def updateloop(dynamics, color_dict, **user_args):
 def do_tests(**user_args):
     tests = cpp.Tests()
     tests.run_all(True)
-
-def visualize_kernel(kernel):
-    vals = []
-    no_samples = 1000000
-    for i in range(no_samples):
-        if i % (no_samples / 5) == 0:
-            print(f"Sampling... ({i} / {no_samples})")
-        val = kernel.sample()
-        vals.append(val)
-    plt.hist(vals, bins=100)
-    plt.title("Samples taken using custom probability model")
-    plt.show()
-    
+ 
 
 def main(**user_args):
-    cpp.init_RNG()
-    probmodel = cpp.PieceWiseLinearProbModel(10, 100)
-    visualize_kernel(probmodel)
-
-    #temp
-    return
+    # cpp.init_RNG()
+    # probmodel = cpp.PieceWiseLinearProbModel(50, 100)
+    # vis.visualize_kernel(probmodel)
+    # return
 
     if user_args["test"] == "all":
         do_tests(**user_args)

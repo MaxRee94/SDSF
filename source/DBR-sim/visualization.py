@@ -62,6 +62,19 @@ def visualize_difference(image1, image2, image_width=1000):
     
     visualize_image(img, image_width)
 
+def visualize_kernel(kernel):
+    vals = []
+    no_samples = 1000000
+    for i in range(no_samples):
+        if i % (no_samples / 5) == 0:
+            print(f"Sampling... ({i} / {no_samples})")
+        val = kernel.sample()
+        vals.append(val)
+    plt.hist(vals, bins=100)
+    plt.title("Samples taken using custom probability model")
+    print("samples: ", vals[0], vals[int(no_samples/5 * 1)], vals[int(no_samples/5 * 2)], vals[int(no_samples/5 * 3)], vals[int(no_samples/5 * 4)], vals[-1])
+    plt.show()
+
 
 class Graphs:
     def __init__(self, dynamics, width=6, height=4):

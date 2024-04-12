@@ -12,10 +12,13 @@ public:
 		_pop = &state->population;
 		_grid = &state->grid;
 	}
+	float get_dist(Crop* crop) {
+		return crop->kernel->get_ld_dist();
+	}
 	void disperse(Crop* crop) {
 		// Compute deposition location
 		pair<float, float> direction = get_random_direction();
-		float distance = crop->kernel->sample();
+		float distance = get_dist(crop);
 		pair<float, float> depos_location = crop->origin + distance * direction;
 		Cell* cell = _grid->get_cell_at_position(depos_location);
 
