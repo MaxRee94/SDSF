@@ -484,17 +484,23 @@ float help::LinearProbabilityModel::sample() {
 }
 
 help::ProbModelPiece::ProbModelPiece() = default;
-help::ProbModelPiece::ProbModelPiece(float _xmin, float _xmax, float _ybegin, float _yend) {
+help::ProbModelPiece::ProbModelPiece(float _xmin, float _xmax, float _ymin, float _ymax) {
     xmin = _xmin; xmax = _xmax;
-    ybegin = _ybegin; yend = _yend;
+    ymin = _ymin; ymax = _ymax;
+    ysize = ymax - ymin;
+    xsize = xmax - xmin;
 };
-float help::ProbModelPiece::intersection(float cdf_y) {
-    if (cdf_y >= ybegin && cdf_y < yend) {
-        float y_diff = cdf_y - ybegin;
+float help::ProbModelPiece::intersect(float cdf_y) {
+    if (cdf_y >= ymin && cdf_y <= ymax) {
+        float y_diff = cdf_y - ymin;
         return xmin + (y_diff / ysize) * xsize;
     }
     return -1;
 };
+void help::ProbModelPiece::rescale(float factor) {
+    ymin *= factor; ymax *= factor;
+    ysize = ymax - ymin;
+}
 
 help::PieceWiseLinearProbModel::PieceWiseLinearProbModel() = default;
 help::PieceWiseLinearProbModel::PieceWiseLinearProbModel(float _xmax, int _resolution) {
@@ -504,30 +510,38 @@ help::PieceWiseLinearProbModel::PieceWiseLinearProbModel(float _xmax, int _resol
     build_cdf();
 }
 float help::PieceWiseLinearProbModel::pdf(float x) {
-    return 0.01 * x; // Dummy return value; OVERRIDE THIS FUNCTION TO USE YOUR CUSTOM PDF.
+    return 0.01 * x * x; // Dummy return value; OVERRIDE THIS FUNCTION TO USE YOUR CUSTOM PDF.
 }
 void help::PieceWiseLinearProbModel::build_cdf() {
     float piece_width = xmax / (float)resolution;
-    float xmin = 0.0f;
-    float xmax = piece_width;
-    float cdf = 0.0f;
+    float _xmin = 0.0f;
+    float _xmax = piece_width;
+    float cdf_maximum = 0.0f;
     for (int i = 0; i < resolution; i++) {
-        float pdf_begin = pdf(xmin);
-        float pdf_end = pdf(xmax);
+        float pdf_begin = pdf(_xmin);
+        float pdf_end = pdf(_xmax);
         float piece_area = min(pdf_begin, pdf_end) * piece_width + 0.5f * abs(pdf_begin - pdf_end) * piece_width;
-        float cdf_min = cdf;
-        cdf += piece_area;
-        float cdf_max = cdf;
-        cdf_pieces[i] = ProbModelPiece(xmin, xmax, cdf_min, cdf_max);
-        xmin += piece_width;
-        xmax += piece_width;
+        float _cdf_min = cdf_maximum;
+        cdf_maximum += piece_area;
+        cdf_pieces[i] = ProbModelPiece(_xmin, _xmax, _cdf_min, cdf_maximum);
+        _xmin += piece_width;
+        _xmax += piece_width;
+    }
+
+    // Rescale CDF pieces to ensure CDF maximum is exactly 1
+    float scale_factor = 1.0f / cdf_maximum;
+    for (int i = 0; i < resolution; i++) {
+        cdf_pieces[i].rescale(scale_factor);
     }
 }
 float help::PieceWiseLinearProbModel::sample() {
     float cdf_y = help::get_rand_float(0.0f, 1.0f);
     for (int i = 0; i < resolution; i++) {
-        float intersection = cdf_pieces[i].intersection(cdf_y);
-        if (intersection != -1) return intersection;
+        float x = cdf_pieces[i].intersect(cdf_y);
+        if (x != -1) {
+            return x;
+        }
     }
+    return xmax;
 }
 

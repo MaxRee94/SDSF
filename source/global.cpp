@@ -48,6 +48,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
     module.doc() = "DBR-cpp module (contains python extensions written in c++)";
 
     module.def("check_communication", &check_communication);
+    module.def("init_RNG", &help::init_RNG);
 
     py::class_<State>(module, "State")
         .def(py::init<>())
@@ -97,4 +98,9 @@ PYBIND11_MODULE(dbr_cpp, module) {
     py::class_<Tests>(module, "Tests")
         .def(py::init<>())
         .def("run_all", &Tests::run_all);
+
+    py::class_<PieceWiseLinearProbModel>(module, "PieceWiseLinearProbModel")
+        .def(py::init<>())
+        .def(py::init<const float&, const int&>())
+        .def("sample", &PieceWiseLinearProbModel::sample);
 }

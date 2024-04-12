@@ -188,12 +188,13 @@ namespace help {
 	class ProbModelPiece {
 	public:
 		ProbModelPiece();
-		ProbModelPiece(float _xmin, float _xmax, float _ybegin, float _yend);
-		float intersection(float cdf_y);
+		ProbModelPiece(float _xmin, float _xmax, float _ymin, float _ymax);
+		float intersect(float cdf_y);
+		void rescale(float factor);
 		float xmin = 0;
 		float xmax = 0;
-		float ybegin = 0;
-		float yend = 0;
+		float ymin = 0;
+		float ymax = 0;
 		float ysize = 0;
 		float xsize = 0;
 	};
