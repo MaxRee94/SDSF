@@ -209,7 +209,7 @@ namespace help {
 		virtual float sample();
 		void build();
 		float xmax = 0;
-		float resolution = 100.0f;
+		float resolution = 1000.0f;
 		ProbModelPiece* cdf_pieces = 0;
 	};
 };

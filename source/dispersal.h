@@ -12,7 +12,7 @@ public:
 		_pop = &state->population;
 		_grid = &state->grid;
 	}
-	float get_dist(Crop* crop) {
+	virtual float get_dist(Crop* crop) {
 		return crop->kernel->get_ld_dist();
 	}
 	void disperse(Crop* crop) {
@@ -38,15 +38,12 @@ public:
 };
 
 
-class WindDispersal : Disperser {
+class WindDispersal : public Disperser {
 public:
 	WindDispersal() = default;
 	WindDispersal(State* _state) : Disperser(_state) {};
 	float get_dist(Crop* crop) {
 		return crop->kernel->get_wind_dispersed_dist();
-	}
-	void disperse(Crop* crop) {
-		Disperser::disperse(crop);
 	}
 };
 

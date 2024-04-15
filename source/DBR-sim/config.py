@@ -19,9 +19,10 @@ defaults = {
     "verbosity": 0,
     "seed_bearing_threshold": 0.4,
     "mass_budget_factor": 1e-2,
-    "dispersal_mode": "linear_diffusion",
+    "dispersal_mode": "wind",
     "linear_diffusion_q1": 1,
     "linear_diffusion_q2": 0,
+    "wind_dispersal_params": [30, 5, 0.1, 15],
     "dispersal_min": 0,
     "dispersal_max": 300,
     "growth_rate_multiplier": 0.1,
@@ -271,6 +272,19 @@ _parameter_config = {
                 "The relative probability of sampling short distances when using a linear diffusion model for seed dispersal."
             ),
             "default": defaults["linear_diffusion_q2"],
+        },
+    },
+    "wind_dispersal_params": {
+        "keys": {
+            "cli": ["--wind_dispersal_params", "-wdp"]
+        },
+        "settings": {
+            "nargs": "*",
+            "type": float,
+            "help": (
+                ("Parameters for the wind dispersal model, in the order [windspeed geometric mean, windspeed stdev, seed terminal speed, abscission height].")
+            ),
+            "default": defaults["wind_dispersal_params"],
         },
     },
     "dispersal_min": {

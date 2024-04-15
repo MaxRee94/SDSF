@@ -25,7 +25,7 @@ def init(timestep=None, gridsize=None, cellsize=None, max_radius=None, image_wid
          mass_budget_factor=None, dispersal_mode=None, linear_diffusion_q1=None, linear_diffusion_q2=None,
          dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, seed_mass=None,
          flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
-         constant_mortality=None, headless=False,
+         constant_mortality=None, headless=False, wind_dispersal_params=None,
          **user_args):
     # Initialize dynamics object and state
     dynamics = cpp.Dynamics(
@@ -38,7 +38,9 @@ def init(timestep=None, gridsize=None, cellsize=None, max_radius=None, image_wid
     dynamics.init_state(gridsize, radius_q1, radius_q2, seed_mass)
     dynamics.state.set_tree_cover(treecover)
     if (dispersal_mode == "linear_diffusion"):
-        dynamics.set_global_kernel(linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max)
+        dynamics.set_global_linear_kernel(linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max)
+    elif (dispersal_mode == "wind"):
+        dynamics.set_global_wind_kernel(*wind_dispersal_params);
     
     # Create a color dictionary
     no_colors = 100
@@ -121,15 +123,15 @@ def do_tests(**user_args):
  
 
 def main(**user_args):
-    cpp.init_RNG()
-    dist_max = 200
-    windspeed_gmean = 20
-    windspeed_stdev = 5
-    seed_terminal_speed = 0.5
-    abscission_height = 30
-    wind_kernel = cpp.Kernel(1, dist_max, windspeed_gmean, windspeed_stdev, seed_terminal_speed, abscission_height)
-    vis.visualize_kernel(wind_kernel)
-    return
+    # cpp.init_RNG()
+    # dist_max = 200
+    # windspeed_gmean = 20
+    # windspeed_stdev = 6
+    # seed_terminal_speed = 1.5
+    # abscission_height = 15
+    # wind_kernel = cpp.Kernel(1, dist_max, windspeed_gmean, windspeed_stdev, seed_terminal_speed, abscission_height)
+    # vis.visualize_kernel(wind_kernel)
+    # return
 
     if user_args["test"] == "all":
         do_tests(**user_args)

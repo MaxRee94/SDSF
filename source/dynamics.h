@@ -84,9 +84,13 @@ public:
 			grow_tree(tree);
 		}
 	}
-	void set_global_kernel(float lin_diffuse_q1, float lin_diffuse_q2, float min, float max) {
+	void set_global_linear_kernel(float lin_diffuse_q1, float lin_diffuse_q2, float min, float max) {
 		global_kernel = Kernel(1, lin_diffuse_q1, lin_diffuse_q2, min, max);
-		cout << "Global kernel created. " << endl;
+		cout << "Global kernel created (Linear diffusion). " << endl;
+	}
+	void set_global_wind_kernel(float wspeed_gmean, float wspeed_stdev, float seed_tspeed, float abs_height) {
+		global_kernel = Kernel(1, grid->width_r, wspeed_gmean, wspeed_stdev, seed_tspeed, abs_height);
+		cout << "Global kernel created (Wind dispersal). " << endl;
 	}
 	void disperse() {
 		int x = 0;
@@ -100,6 +104,7 @@ public:
 			}
 			crop->update(tree);
 			for (int i = 0; i < crop->no_seeds; i++) {
+				//wind_disperser.disperse(crop);
 				if (crop->kernel->type == "wind") {
 					wind_disperser.disperse(crop);
 				}

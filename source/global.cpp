@@ -82,7 +82,8 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def_readwrite("seeds_dispersed", &Dynamics::seeds_dispersed)
         .def_readwrite("fire_spatial_extent", &Dynamics::fire_spatial_extent)
         .def("init_state", &Dynamics::init_state)
-        .def("set_global_kernel", &Dynamics::set_global_kernel)
+        .def("set_global_linear_kernel", &Dynamics::set_global_linear_kernel)
+        .def("set_global_wind_kernel", &Dynamics::set_global_wind_kernel)
         .def("update", &Dynamics::update)
         .def("simulate_fires", &Dynamics::burn)
         .def("get_firefree_intervals", [](Dynamics& dynamics) {

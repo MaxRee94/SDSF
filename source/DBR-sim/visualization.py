@@ -70,7 +70,7 @@ def visualize_kernel(kernel):
             print(f"Sampling... ({i} / {no_samples})")
         val = kernel.get_dist()
         vals.append(val)
-    plt.hist(vals, bins=100)
+    plt.hist(vals, bins=50)
     plt.title("Samples taken using custom probability model")
     print("samples: ", vals[0], vals[int(no_samples/5 * 1)], vals[int(no_samples/5 * 2)], vals[int(no_samples/5 * 3)], vals[int(no_samples/5 * 4)], vals[-1])
     plt.show()
