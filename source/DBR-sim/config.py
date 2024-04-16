@@ -2,10 +2,18 @@
 import argparse
 import string
 import json
+import os
+
+
+# global constants
+REPOSITORY_BASEDIR = os.path.dirname(os.path.dirname(os.getcwd()))
+DATA_IN_DIR = REPOSITORY_BASEDIR + "/data_in"
+DATA_OUT_DIR = REPOSITORY_BASEDIR + "/data_out"
+BUILD_DIR = REPOSITORY_BASEDIR + "/build"
 
 
 defaults = {
-    "gridsize": 1000,
+    "grid_width": 1000,
     "treecover": 0.5,
     "cellsize": 1,
     "max_radius": 6.0,
@@ -26,6 +34,7 @@ defaults = {
     "linear_diffusion_q2": 0,
     "wind_dispersal_params": [30, 5, 0.1, 15],
     "animal_dispersal_params": '{"bird": {"popsize": 20, "fruitsize_pref": 0.02}}',
+    "multi_disperser_params": f"{DATA_IN_DIR}/multi_disperser_params.json",
     "dispersal_min": 0,
     "dispersal_max": 300,
     "growth_rate_multiplier": 0.1,
@@ -40,7 +49,7 @@ defaults = {
 }
 
 gui_defaults = {
-    "gridsize": defaults["gridsize"],
+    "grid_width": defaults["grid_width"],
     "treecover": defaults["treecover"],
     "setting2": [
         "default1",
@@ -50,16 +59,16 @@ gui_defaults = {
 }
 
 _parameter_config = {
-    "gridsize": {
+    "grid_width": {
         "keys": {
-            "cli": ["--gridsize", "-gs"]
+            "cli": ["--grid_width", "-gw"]
         },
         "settings": {
             "type": int,
             "help": (
-                "The number of grid cells to be used along one axis of the spatial domain."
+                "The width (measured by the number of cells along the horizontal- or vertical axis) of the spatial domain."
             ),
-            "default": defaults["gridsize"],
+            "default": defaults["grid_width"],
         },
     },
     "treecover": {
@@ -435,6 +444,19 @@ _parameter_config = {
                 ('Parameters for zoochory, to be entered as a json string in the format {"animal1": {"popsize": <your int>, "fruitsize_pref": <your float>}}.')
             ),
             "default": defaults["animal_dispersal_params"],
+        },
+    },
+    "multi_disperser_params": {
+        "keys": {
+            "cli": ["--multi_disperser_params", "-mdp"]
+        },
+        "settings": {
+            "nargs": "*",
+            "type": str,
+            "help": (
+                "Path to a json file containing parameters for multiple dispersers."
+            ),
+            "default": defaults["multi_disperser_params"],
         },
     }
 }

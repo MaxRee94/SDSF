@@ -2,31 +2,36 @@ from dataclasses import dataclass
 import sys
 
 import cv2
-import visualization as vis
-import file_handling as io
 import numpy as np
 import time
 import os
 from pathlib import Path
 from matplotlib import pyplot as plt
+import json
 
+import visualization as vis
+import file_handling as io
 from helpers import *
+from config import *
 
-sys.path.append(r"F:\Development\DBR-sim\build")
+sys.path.append(BUILD_DIR)
 #from x64.Debug import dbr_cpp as cpp
 from x64.Release import dbr_cpp as cpp
 
 
 
-def init(timestep=None, gridsize=None, cellsize=None, max_radius=None, image_width=None,
-         treecover=None, self_ignition_factor=None, flammability=None,
-         rainfall=None, unsuppressed_flammability=None, 
-         verbosity=None, radius_q1=None, radius_q2=None, seed_bearing_threshold=None,
-         mass_budget_factor=None, dispersal_mode=None, linear_diffusion_q1=None, linear_diffusion_q2=None,
-         dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, seed_mass=None,
-         flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
-         constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
-         **user_args):
+def init(
+    timestep=None, grid_width=None, cellsize=None, max_radius=None, image_width=None,
+    treecover=None, self_ignition_factor=None, flammability=None,
+    rainfall=None, unsuppressed_flammability=None, 
+    verbosity=None, radius_q1=None, radius_q2=None, seed_bearing_threshold=None,
+    mass_budget_factor=None, dispersal_mode=None, linear_diffusion_q1=None, linear_diffusion_q2=None,
+    dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, seed_mass=None,
+    flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
+    constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
+    multi_disperser_params=None,
+    **user_args
+    ):
     # Initialize dynamics object and state
     dynamics = cpp.Dynamics(
         timestep, cellsize, self_ignition_factor, rainfall, seed_bearing_threshold,
@@ -35,7 +40,7 @@ def init(timestep=None, gridsize=None, cellsize=None, max_radius=None, image_wid
         flammability_coefficients_and_constants[3], max_radius, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, verbosity
     )
-    dynamics.init_state(gridsize, radius_q1, radius_q2, seed_mass)
+    dynamics.init_state(grid_width, radius_q1, radius_q2, seed_mass)
     dynamics.state.set_tree_cover(treecover)
     if (dispersal_mode == "linear_diffusion"):
         dynamics.set_global_linear_kernel(linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max)
@@ -43,6 +48,10 @@ def init(timestep=None, gridsize=None, cellsize=None, max_radius=None, image_wid
         dynamics.set_global_wind_kernel(*wind_dispersal_params);
     elif (dispersal_mode == "zoochory"):
         dynamics.set_global_zoochory_kernel(animal_dispersal_params)
+    elif (dispersal_mode == "multi"):
+        with open(multi_disperser_params, "r") as mdp_jsonfile:
+            multi_disperser_params = json.load(mdp_jsonfile)
+        dynamics.set_global_multi_kernel(multi_disperser_params)
     
     # Create a color dictionary
     no_colors = 100
@@ -61,7 +70,7 @@ def init(timestep=None, gridsize=None, cellsize=None, max_radius=None, image_wid
         img = vis.get_image(dynamics.state.grid, collect_states, color_dict)
    
     # Export image file
-    imagepath = os.path.join(str(Path(os.getcwd()).parent.parent), "data_out/image_timeseries/" + str(dynamics.time) + ".png")
+    imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
     vis.save_image(img, imagepath)
 
     return dynamics, color_dict
@@ -102,11 +111,12 @@ def updateloop(dynamics, color_dict, **user_args):
             # Get a color image representation of the initial state
             img = vis.get_image(dynamics.state.grid, collect_states, color_dict)
         else:
+            # Get a color image representation of the initial state and show it.
             img = vis.visualize(
                 dynamics.state.grid, user_args["image_width"], collect_states=collect_states,
                 color_dict=color_dict
             )
-        imagepath = os.path.join(str(Path(os.getcwd()).parent.parent), "data_out/image_timeseries/" + str(dynamics.time) + ".png")
+        imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
         vis.save_image(img, imagepath, get_max(1000, img.shape[0]))
         csv_path = io.export_state(dynamics, csv_path, init_csv)
         init_csv = False

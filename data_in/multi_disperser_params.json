@@ -1,0 +1,18 @@
+{
+	"linear": {
+        "q1": 1,
+        "q2": 0,
+        "dist_min": 0,
+        "dist_max": 200
+    },
+    "wind": {
+        "wspeed_gmean": 30,
+        "wspeed_stdev": 5
+    },
+    "zoochory": {
+        "bird": {
+            "popsize": 20,
+            "fruitsize_pref": 0.02
+        }
+    }
+}
