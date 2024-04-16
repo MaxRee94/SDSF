@@ -25,7 +25,7 @@ def init(timestep=None, gridsize=None, cellsize=None, max_radius=None, image_wid
          mass_budget_factor=None, dispersal_mode=None, linear_diffusion_q1=None, linear_diffusion_q2=None,
          dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, seed_mass=None,
          flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
-         constant_mortality=None, headless=False, wind_dispersal_params=None,
+         constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
          **user_args):
     # Initialize dynamics object and state
     dynamics = cpp.Dynamics(
@@ -41,6 +41,8 @@ def init(timestep=None, gridsize=None, cellsize=None, max_radius=None, image_wid
         dynamics.set_global_linear_kernel(linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max)
     elif (dispersal_mode == "wind"):
         dynamics.set_global_wind_kernel(*wind_dispersal_params);
+    elif (dispersal_mode == "zoochory"):
+        dynamics.set_global_zoochory_kernel(animal_dispersal_params)
     
     # Create a color dictionary
     no_colors = 100

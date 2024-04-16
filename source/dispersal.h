@@ -1,6 +1,5 @@
 #pragma once
-#include "state.h"
-#include "grid_agent.forward.h"
+#include "animals.h"
 
 
 
@@ -29,7 +28,7 @@ public:
 
 		// If seed germinates, create a new tree at the seed deposition location 
 		Strategy strategy = *(_pop->get_strat(crop->id));
-		Tree* tree = _pop->add(depos_location, strategy, 0.1); // TEMP: Arbitrary starting radius of 0.1. TODO: replace with 0 once growth curve is implemented.
+		Tree* tree = _pop->add(depos_location, strategy, 0.1); // TEMP: Arbitrary starting radius of 0.1. TODO: replace with 0 once proper growth curve is implemented.
 		cell->trees[tree->id] = tree->id;
 	}
 	Population* _pop = 0;

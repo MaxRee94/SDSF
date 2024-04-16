@@ -8,8 +8,9 @@ using namespace help;
 class LinearDiffusionKernel : public LinearProbabilityModel {
 public:
 	LinearDiffusionKernel() = default;
-	LinearDiffusionKernel(int tree_id, float _q1, float _q2, float _min, float _max) : 
-		LinearProbabilityModel(_q1, _q2, _min, _max) {}
+	LinearDiffusionKernel(float _q1, float _q2, float _min, float _max) : 
+		LinearProbabilityModel(_q1, _q2, _min, _max) {
+	}
 	float get_ld_dist() {
 		return LinearProbabilityModel::linear_sample();
 	}
@@ -19,7 +20,7 @@ public:
 class WindKernel : public PieceWiseLinearProbModel {
 public:
 	WindKernel() = default;
-	WindKernel(int _tree_id, float _dist_max, float _wspeed_gmean, float _wspeed_stdev, float _seed_tspeed, float _abs_height) :
+	WindKernel(float _dist_max, float _wspeed_gmean, float _wspeed_stdev, float _seed_tspeed, float _abs_height) :
 		PieceWiseLinearProbModel(_dist_max)
 	{
 		dist_max = _dist_max;
@@ -52,12 +53,13 @@ class Kernel : public LinearDiffusionKernel, public WindKernel {
 public:
 	Kernel() = default;
 	Kernel(int _tree_id, float _q1, float _q2, float _min, float _max) :
-		LinearDiffusionKernel(_tree_id, _q1, _q2, _min, _max)
+		LinearDiffusionKernel(_q1, _q2, _min, _max)
 	{
+		id = _tree_id;
 		type = "linear";
 	}
 	Kernel(int _tree_id, float _dist_max, float _wspeed_gmean, float _wspeed_stdev, float _seed_tspeed, float _abs_height) :
-		WindKernel(_tree_id, _dist_max, _wspeed_gmean, _wspeed_stdev, _seed_tspeed, _abs_height)
+		WindKernel(_dist_max, _wspeed_gmean, _wspeed_stdev, _seed_tspeed, _abs_height)
 	{
 		id = _tree_id;
 		type = "wind";

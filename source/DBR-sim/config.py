@@ -1,6 +1,8 @@
 """DBR-sim defaults and constants."""
 import argparse
 import string
+import json
+
 
 defaults = {
     "gridsize": 1000,
@@ -23,6 +25,7 @@ defaults = {
     "linear_diffusion_q1": 1,
     "linear_diffusion_q2": 0,
     "wind_dispersal_params": [30, 5, 0.1, 15],
+    "animal_dispersal_params": '{"bird": {"popsize": 20, "fruitsize_pref": 0.02}}',
     "dispersal_min": 0,
     "dispersal_max": 300,
     "growth_rate_multiplier": 0.1,
@@ -419,6 +422,19 @@ _parameter_config = {
                 "Maximum number of timesteps to run simulation for."
             ),
             "default": defaults["max_timesteps"],
+        },
+    },
+    "animal_dispersal_params": {
+        "keys": {
+            "cli": ["--animal_dispersal_params", "-adp"]
+        },
+        "settings": {
+            "nargs": "*",
+            "type": json.loads,
+            "help": (
+                ('Parameters for zoochory, to be entered as a json string in the format {"animal1": {"popsize": <your int>, "fruitsize_pref": <your float>}}.')
+            ),
+            "default": defaults["animal_dispersal_params"],
         },
     }
 }

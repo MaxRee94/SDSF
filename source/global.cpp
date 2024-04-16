@@ -82,13 +82,17 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def_readwrite("seeds_dispersed", &Dynamics::seeds_dispersed)
         .def_readwrite("fire_spatial_extent", &Dynamics::fire_spatial_extent)
         .def("init_state", &Dynamics::init_state)
-        .def("set_global_linear_kernel", &Dynamics::set_global_linear_kernel)
-        .def("set_global_wind_kernel", &Dynamics::set_global_wind_kernel)
         .def("update", &Dynamics::update)
         .def("simulate_fires", &Dynamics::burn)
         .def("get_firefree_intervals", [](Dynamics& dynamics) {
             float* intervals = dynamics.get_firefree_intervals();
             return as_1d_numpy_array(intervals, dynamics.grid->no_cells);
+        })
+        .def("set_global_linear_kernel", &Dynamics::set_global_linear_kernel)
+        .def("set_global_wind_kernel", &Dynamics::set_global_wind_kernel)
+        .def("set_global_zoochory_kernel", [](Dynamics& dynamics, const py::dict& _zoochory_map) {
+            std::map<string, std::map<string, float>> zoochory_map = py::cast <std::map<string, std::map<string, float>> >(_zoochory_map);
+            dynamics.set_global_zoochory_kernel(zoochory_map);
         });
 
     py::class_<Population>(module, "Population")

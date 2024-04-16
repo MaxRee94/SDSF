@@ -92,6 +92,11 @@ public:
 		global_kernel = Kernel(1, grid->width_r, wspeed_gmean, wspeed_stdev, seed_tspeed, abs_height);
 		cout << "Global kernel created (Wind dispersal). " << endl;
 	}
+	void set_global_zoochory_kernel(map<string, map<string, float>> species_params) {
+		global_kernel = Kernel(1, 1, 0, 0, 200); // TEMP: Placeholder until zoochory parsing and dispersal is implemented.
+		cout << "Global kernel created (TEMPORARY PLACEHOLDER FOR ZOOCHORY: LINEAR DIFFUSION).\n";
+		//cout << "Global kernel created (Zoochory, i.e. dispersal by animals). \n";"
+	}
 	void disperse() {
 		int x = 0;
 		int j = 0;
