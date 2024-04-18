@@ -8,6 +8,7 @@
 #include <iostream>
 #include <queue>
 #include <unordered_map>
+#include <random>
 
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -211,5 +212,96 @@ namespace help {
 		float xmax = 0;
 		float resolution = 1000.0f;
 		ProbModelPiece* cdf_pieces = 0;
+	};
+
+	class NormalProbModel {
+	public:
+		NormalProbModel() = default;
+		NormalProbModel(float mean, float stdev) {
+			distribution = normal_distribution<float>(mean, stdev);
+			generator = default_random_engine(rand());
+		};
+		virtual float get_normal_distr_sample() {
+			return distribution(generator);
+		}
+		normal_distribution<float> distribution;
+		default_random_engine generator;
+	};
+
+	class UniformProbModel {
+	public:
+		UniformProbModel() = default;
+		UniformProbModel(float _min, float _max) {
+			min = _min; max = _max;
+		};
+		virtual float get_uniform_sample() {
+			return help::get_rand_float(min, max);
+		}
+		float min = 0;
+		float max = 0;
+	};
+
+	class ConstantModel {
+	public:
+		ConstantModel() = default;
+		ConstantModel(float _constant) {
+			constant = _constant;
+		};
+		virtual float get_constant() {
+			return constant;
+		}
+		float constant = 0;
+	};
+
+	class DiscreteModel {
+	public:
+		DiscreteModel() = default;
+		DiscreteModel(float _prob0, float _prob1, float _prob2) {
+			prob0 = _prob0;
+			prob1 = _prob1;
+			prob2 = _prob2;
+		};
+		virtual float pick_outcome() {
+			float uniform_sample = help::get_rand_float(0, 1);
+			if (uniform_sample < prob0) {
+				return 0;
+			}
+			else if (uniform_sample < (prob0 + prob1)) {
+				return 1;
+			}
+			else {
+				return 2;
+			}
+		}
+		float prob0 = 0;
+		float prob1 = 0;
+		float prob2 = 0;
+	};
+
+	class ProbModel : public DiscreteModel, public LinearProbabilityModel, public NormalProbModel, public UniformProbModel {
+	public:
+		ProbModel() = default;
+		ProbModel(float _prob0, float _prob1, float _prob2) : DiscreteModel(_prob0, _prob1, _prob2) { type = "discrete"; };
+		ProbModel(float _min, float _max) : UniformProbModel(_min, _max) { type = "uniform"; };
+		ProbModel(float _mean, float _stdev, int dummy) : NormalProbModel(_mean, _stdev) { type = "normal"; };
+		ProbModel(float _q1, float _q2, float _min, float _max) : LinearProbabilityModel(_q1, _q2, _min, _max) { type = "linear"; };
+		float sample() {
+			if (type == "uniform") {
+				return UniformProbModel::get_uniform_sample();
+			}
+			else if (type == "normal") {
+				return NormalProbModel::get_normal_distr_sample();
+			}
+			else if (type == "linear") {
+				return LinearProbabilityModel::linear_sample();
+			}
+			else if (type == "discrete") {
+				return DiscreteModel::pick_outcome();
+			}
+			else {
+				return -999;
+			}
+		}
+		string type = "none";
 	};
 };
