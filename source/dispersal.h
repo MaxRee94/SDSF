@@ -15,21 +15,14 @@ public:
 		return crop->kernel->get_ld_dist();
 	}
 	void disperse(Crop* crop) {
-		// Compute deposition location
+		// Compute seed deposition location
 		pair<float, float> direction = get_random_direction();
 		float distance = get_dist(crop);
-		pair<float, float> depos_location = crop->origin + distance * direction;
-		Cell* cell = _grid->get_cell_at_position(depos_location);
+		pair<float, float> seed_deposition_location = crop->origin + distance * direction;
 
-		// Suppress germination of seeds in areas with increased competition
-		if (help::get_rand_float(0, 1) < ((float)cell->trees.size() * state->saturation_threshold)) {
-			return;
-		}
-
-		// If seed germinates, create a new tree at the seed deposition location 
-		Strategy strategy = *(_pop->get_strat(crop->id));
-		Tree* tree = _pop->add(depos_location, strategy, 0.1); // TEMP: Arbitrary starting radius of 0.1. TODO: replace with 0 once proper growth curve is implemented.
-		cell->trees[tree->id] = tree->id;
+		// Create seed and germinate if viable
+		Seed seed(crop->strategy, seed_deposition_location, state);
+		seed.germinate_if_location_is_viable();
 	}
 	Population* _pop = 0;
 	Grid* _grid = 0;
@@ -47,11 +40,19 @@ public:
 };
 
 
-class Zoochory : Disperser {
+class AnimalDispersal : public Disperser {
 public:
-	Zoochory() = default;
-	Zoochory(State* _state) : Disperser(_state) {
-
+	AnimalDispersal() = default;
+	AnimalDispersal(State* _state) : Disperser(_state) {};
+	void disperse(Animals &animals, Fruits &fruits) {
+		animals.initialize_population();
+		animals.place();
+		vector<Seed> seeds;
+		animals.disperse(fruits, seeds);
+		for (Seed& seed : seeds) {
+			seed.germinate_if_location_is_viable();
+		}
 	}
+	Animals animals;
 };
 

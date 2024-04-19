@@ -13,13 +13,16 @@ public:
 	}
 	State(
 		int gridsize, float cellsize, float max_radius, float radius_q1, float radius_q2,
-		float _seed_bearing_threshold, float _mass_budget_factor, float _seed_mass, float _saturation_threshold
+		float _seed_bearing_threshold, float _mass_budget_factor, float _seed_mass, float _saturation_threshold,
+		map<string, map<string, float>> &strategy_distribution_params
 	) {
 		seed_bearing_threshold = _seed_bearing_threshold;
 		mass_budget_factor = _mass_budget_factor / help::cubed(max_radius); // Normalize by maximum radius
 		seed_mass = _seed_mass;
 		saturation_threshold = _saturation_threshold;
-		population = Population(max_radius, cellsize, radius_q1, radius_q2, mass_budget_factor);
+		population = Population(
+			max_radius, cellsize, radius_q1, radius_q2, mass_budget_factor, strategy_distribution_params
+		);
 		grid = Grid(gridsize, cellsize);
 		init_neighbor_offset();
 	}
@@ -39,6 +42,7 @@ public:
 		grid.reset();
 		for (auto& [id, tree] : population.members) {
 			grid.populate_tree_domain(&tree);
+			tree.update_life_phase(population.max_radius, seed_bearing_threshold);
 		}
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
@@ -74,13 +78,18 @@ public:
 		help::init_RNG();
 		grid.reset();
 
+		int wind_trees = 0;
+		int animal_trees = 0;
 		while (grid.get_tree_cover() < _tree_cover) {
 			pair<float, float> position = grid.get_random_real_position();
-			
-			// TEMP: all strategies are initially the same. TODO: Add option to make these variable according to prob. distribution
-			Strategy strategy(seed_mass, 1.0); // TEMP: Seed density of 1 for now
-			Tree* tree = population.add(position, strategy, -2);
+			Tree* tree = population.add(position);
 			grid.populate_tree_domain(tree);
+			if (population.get_strat(tree->id)->vector == "wind") {
+				wind_trees++;
+			}
+			else if (population.get_strat(tree->id)->vector == "animal") {
+				animal_trees++;
+			}
 
 			if (population.size() % 1000 == 0) {
 				printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
@@ -88,6 +97,9 @@ public:
 			continue;
 		}
 		printf("Final tree cover: %f\n", grid.tree_cover);
+		printf("Wind trees: %i, Animal trees: %i\n", wind_trees, animal_trees);
+		printf("First tree's strategy: \n");
+		population.get_strat(10)->print();
 
 		// Count no small trees
 		int no_small = 0;

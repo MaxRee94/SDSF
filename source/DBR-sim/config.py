@@ -6,7 +6,10 @@ import os
 
 
 # global constants
-REPOSITORY_BASEDIR = os.path.dirname(os.path.dirname(os.getcwd()))
+cwd = os.getcwd()
+if cwd.endswith("source"):
+    cwd = cwd + "/DBR-sim"
+REPOSITORY_BASEDIR = os.path.dirname(os.path.dirname(cwd))
 DATA_IN_DIR = REPOSITORY_BASEDIR + "/data_in"
 DATA_OUT_DIR = REPOSITORY_BASEDIR + "/data_out"
 BUILD_DIR = REPOSITORY_BASEDIR + "/build"
@@ -28,8 +31,8 @@ defaults = {
     "radius_q2": 0,
     "verbosity": 0,
     "seed_bearing_threshold": 0.4,
-    "mass_budget_factor": 1e-2,
-    "dispersal_mode": "wind",
+    "mass_budget_factor": 1,
+    "dispersal_mode": "all",
     "linear_diffusion_q1": 1,
     "linear_diffusion_q2": 0,
     "wind_dispersal_params": [30, 5, 0.1, 15],
@@ -46,6 +49,7 @@ defaults = {
     "csv_path": "",
     "headless": False,
     "max_timesteps": 1e9,
+    "strategy_distribution_params": f"{DATA_IN_DIR}/strategy_distribution_params.json",
 }
 
 gui_defaults = {
@@ -441,7 +445,7 @@ _parameter_config = {
             "nargs": "*",
             "type": json.loads,
             "help": (
-                ('Parameters for zoochory, to be entered as a json string in the format {"animal1": {"popsize": <your int>, "fruitsize_pref": <your float>}}.')
+                ('Parameters for animal, to be entered as a json string in the format {"animal1": {"popsize": <your int>, "fruitsize_pref": <your float>}}.')
             ),
             "default": defaults["animal_dispersal_params"],
         },
@@ -451,12 +455,23 @@ _parameter_config = {
             "cli": ["--multi_disperser_params", "-mdp"]
         },
         "settings": {
-            "nargs": "*",
             "type": str,
             "help": (
                 "Path to a json file containing parameters for multiple dispersers."
             ),
             "default": defaults["multi_disperser_params"],
+        },
+    },
+    "strategy_distribution_params": {
+        "keys": {
+            "cli": ["--strategy_distribution_params", "-sdp"]
+        },
+        "settings": {
+            "type": str,
+            "help": (
+                "Path to a json file containing parameters for the distribution of strategies."
+            ),
+            "default": defaults["strategy_distribution_params"],
         },
     }
 }

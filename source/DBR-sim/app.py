@@ -15,9 +15,28 @@ from helpers import *
 from config import *
 
 sys.path.append(BUILD_DIR)
-#from x64.Debug import dbr_cpp as cpp
-from x64.Release import dbr_cpp as cpp
+from x64.Debug import dbr_cpp as cpp
+#from x64.Release import dbr_cpp as cpp
 
+
+def set_dispersal_kernel(
+        dynamics, dispersal_mode, linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max,
+        wind_dispersal_params, multi_disperser_params, animal_dispersal_params
+    ):
+    if (dispersal_mode == "linear_diffusion"):
+        dynamics.set_global_linear_kernel(linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max)
+    elif (dispersal_mode == "wind"):
+        dynamics.set_global_wind_kernel(*wind_dispersal_params);
+    elif (dispersal_mode == "animal"):
+        dynamics.set_global_animal_kernel(animal_dispersal_params)
+    elif (dispersal_mode == "all"):
+        with open(multi_disperser_params, "r") as mdp_jsonfile:
+            multi_disperser_params = json.load(mdp_jsonfile)
+        animal_dispersal_params = multi_disperser_params["animal"]
+        multi_disperser_params.pop("animal")
+        dynamics.set_global_kernels(multi_disperser_params, animal_dispersal_params)
+
+    return dynamics
 
 
 def init(
@@ -29,34 +48,34 @@ def init(
     dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, seed_mass=None,
     flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
-    multi_disperser_params=None,
+    multi_disperser_params=None, strategy_distribution_params=None,
     **user_args
     ):
+    
+    # Obtain strategy distribution parameters
+    with open(strategy_distribution_params, "r") as sdp_jsonfile:
+        strategy_distribution_params = json.load(sdp_jsonfile)
+
     # Initialize dynamics object and state
     dynamics = cpp.Dynamics(
         timestep, cellsize, self_ignition_factor, rainfall, seed_bearing_threshold,
         mass_budget_factor, growth_rate_multiplier, unsuppressed_flammability, flammability_coefficients_and_constants[0],
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
         flammability_coefficients_and_constants[3], max_radius, saturation_threshold, fire_resistance_params[0],
-        fire_resistance_params[1], fire_resistance_params[2], constant_mortality, verbosity
+        fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, verbosity
     )
     dynamics.init_state(grid_width, radius_q1, radius_q2, seed_mass)
     dynamics.state.set_tree_cover(treecover)
-    if (dispersal_mode == "linear_diffusion"):
-        dynamics.set_global_linear_kernel(linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max)
-    elif (dispersal_mode == "wind"):
-        dynamics.set_global_wind_kernel(*wind_dispersal_params);
-    elif (dispersal_mode == "zoochory"):
-        dynamics.set_global_zoochory_kernel(animal_dispersal_params)
-    elif (dispersal_mode == "multi"):
-        with open(multi_disperser_params, "r") as mdp_jsonfile:
-            multi_disperser_params = json.load(mdp_jsonfile)
-        dynamics.set_global_multi_kernel(multi_disperser_params)
+    dynamics = set_dispersal_kernel(
+        dynamics, dispersal_mode, linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max,
+        wind_dispersal_params, multi_disperser_params, animal_dispersal_params
+    )
     
     # Create a color dictionary
     no_colors = 100
     color_dict = vis.get_color_dict(no_colors, begin=0.3, end=0.6)
     
+    # Visualize the initial state
     collect_states = True
     print("Visualizing state at t = 0")
     if not headless:

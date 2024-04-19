@@ -9,10 +9,62 @@ using namespace help;
 class Strategy {
 public:
 	Strategy() = default;
-	Strategy(float _seed_mass, float _seed_density) : seed_mass(_seed_mass), seed_density(_seed_density) {}
+	Strategy(string _vector, float _seed_mass, float _diaspore_mass, int _no_seeds_per_diaspore) :
+		vector(_vector), seed_mass(_seed_mass), diaspore_mass(_diaspore_mass), no_seeds_per_diaspore(_no_seeds_per_diaspore)
+	{}
+	void print() {
+		printf("id: %d, seed_mass: %f, diaspore_mass: %f, no_seeds_per_diaspore: %d, vector: %s \n",
+			id, seed_mass, diaspore_mass, no_seeds_per_diaspore, vector.c_str()
+		);
+	}
 	int id = -1;
 	float seed_mass = 0;
-	float seed_density = 0;
+	float diaspore_mass = 0;
+	int no_seeds_per_diaspore = 0;
+	string vector = "none";
+};
+
+
+class StrategyGenerator {
+public:
+	StrategyGenerator() = default;
+	StrategyGenerator(map<string, map<string, float>> user_parameters) {
+		for (auto& [trait, value_range] : user_parameters) {
+			ProbModel prob_model;
+			if (distribution_types[value_range["distribution_type"]] == "uniform") {
+				prob_model = ProbModel(value_range["min"], value_range["max"]);
+			}
+			else if (distribution_types[value_range["distribution_type"]] == "linear") {
+				prob_model = ProbModel(value_range["q1"], value_range["q2"], value_range["min"], value_range["max"]);
+			}
+			else if (distribution_types[value_range["distribution_type"]] == "normal") {
+				prob_model = ProbModel(value_range["mean"], value_range["stdev"], 0);
+			}
+			else if (distribution_types[value_range["distribution_type"]] == "discrete") {
+				prob_model = ProbModel(value_range["probability0"], value_range["probability1"], value_range["probability2"]);
+			}
+			trait_distributions[trait] = prob_model;
+		}
+	}
+	string pick_vector() {
+		int vector = trait_distributions["vector"].sample();
+		if (vector == 0) return "linear";
+		else if (vector == 1) return "wind";
+		else return "animal";
+	}
+	float get_diaspore_mass(float no_seeds_per_diaspore, float seed_mass) {
+		float cumulative_seed_mass_per_diaspore = seed_mass * no_seeds_per_diaspore;
+		return cumulative_seed_mass_per_diaspore + trait_distributions["diaspore_unladen_mass"].sample();
+	}
+	void generate(Strategy &strategy) {
+		float seed_mass = trait_distributions["seed_mass"].sample();
+		int no_seeds_per_diaspore = round(trait_distributions["no_seeds_per_diaspore"].sample());
+		float diaspore_mass = get_diaspore_mass(no_seeds_per_diaspore, seed_mass);
+		string vector = pick_vector();
+		strategy = Strategy(vector, seed_mass, diaspore_mass, no_seeds_per_diaspore);
+	}
+	map<string, ProbModel> trait_distributions;
+	map<int, string> distribution_types = { { 0, "uniform" }, {1, "linear"}, {2, "normal"}, {3, "discrete"} };
 };
 
 
@@ -36,6 +88,9 @@ public:
 		float dist = help::get_dist(position, pos2);
 		return dist < radius;
 	}
+	void update_life_phase(float max_radius, float seed_bearing_threshold) {
+		if (radius > (seed_bearing_threshold * max_radius)) life_phase = 2;
+	}
 	float radius = -1;
 	float radius_tmin1 = -1;
 	int life_phase = 0;
@@ -48,8 +103,9 @@ public:
 class Crop {
 public:
 	Crop() = default;
-	Crop(Strategy &strategy, Tree& tree, float _mass_budget_factor) {
-		seed_mass = strategy.seed_mass;
+	Crop(Strategy &_strategy, Tree& tree, float _mass_budget_factor) {
+		strategy = _strategy;
+		seed_mass = _strategy.seed_mass;
 		mass_budget_factor = _mass_budget_factor;
 		origin = tree.position;
 		id = tree.id;
@@ -61,16 +117,22 @@ public:
 		mass *= mass_budget_factor;
 	}
 	void compute_no_seeds() {
-		no_seeds = mass / seed_mass;
+		no_seeds = no_diaspora * strategy.no_seeds_per_diaspore;
+	}
+	void compute_no_diaspora() {
+		no_diaspora = mass / strategy.diaspore_mass;
 	}
 	void update(Tree& tree) {
 		compute_mass(tree);
+		compute_no_diaspora();
 		compute_no_seeds();
 	}
 	float mass = 0;
 	int no_seeds = 0;
+	int no_diaspora = 0;
 	float seed_mass = 0;
 	float mass_budget_factor = 0;
+	Strategy strategy;
 	Kernel* kernel = 0;
 	pair<float, float> origin = pair<float, float>(0, 0);
 	int id = -1;
@@ -80,12 +142,15 @@ public:
 class Population {
 public:
 	Population() = default;
-	Population(float _max_radius, float _cellsize, float _radius_q1, float _radius_q2, float _mass_budget_factor) : max_radius(_max_radius),
-		cellsize(_cellsize), radius_q1(_radius_q1), radius_q2(_radius_q2), mass_budget_factor(_mass_budget_factor)
+	Population(float _max_radius, float _cellsize, float _radius_q1, float _radius_q2, float _mass_budget_factor, 
+		map<string, map<string, float>> strategy_parameters
+	) : max_radius(_max_radius), cellsize(_cellsize), radius_q1(_radius_q1), radius_q2(_radius_q2),
+		mass_budget_factor(_mass_budget_factor)
 	{
+		strategy_generator = StrategyGenerator(strategy_parameters);
 		radius_probability_model = help::LinearProbabilityModel(radius_q1, radius_q2, 0, max_radius);
 	}
-	Tree* add(pair<float, float> position, Strategy &strategy, float radius = -2) {
+	Tree* add(pair<float, float> position, Strategy* _strategy = 0, float radius = -2) {
 		// Create tree
 		if (radius == -1) radius = max_radius;
 		else if (radius == -2) radius = radius_probability_model.linear_sample();
@@ -94,11 +159,19 @@ public:
 		members[tree.id] = tree;
 		no_created_trees++;
 
+		// Create strategy
+		Strategy strategy;
+		if (_strategy != nullptr) {
+			strategy = *_strategy;
+		}
+		else {
+			strategy_generator.generate(strategy);
+			strategy.id = tree.id;
+			strategies[tree.id] = strategy;
+		} 
+
 		// Create crop
-		strategy.id = tree.id;
-		strategies[tree.id] = strategy;
 		Crop crop(strategy, tree, mass_budget_factor);
-		crop.update(tree);
 		crops[tree.id] = crop;
 
 		return &members[tree.id];
@@ -145,6 +218,7 @@ public:
 	unordered_map<int, Kernel> kernels;
 	unordered_map<int, Strategy> strategies;
 	help::LinearProbabilityModel radius_probability_model;
+	StrategyGenerator strategy_generator;
 	float max_radius = 0;
 	float cellsize = 0;
 	float radius_q1 = 0;

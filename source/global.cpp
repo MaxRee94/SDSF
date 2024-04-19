@@ -53,7 +53,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
     py::class_<State>(module, "State")
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
-            const float&, const float&>())
+            const float&, const float&, map<string, map<string, float>>& >())
         .def("repopulate_grid", &State::repopulate_grid)
         .def("set_tree_cover", &State::set_tree_cover)
         .def_readwrite("grid", &State::grid)
@@ -75,7 +75,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
-            const float&, const int&>())
+            const float&, const map<string, map<string, float>>&, const int& >())
         .def_readwrite("time", &Dynamics::time)
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)
@@ -90,14 +90,15 @@ PYBIND11_MODULE(dbr_cpp, module) {
         })
         .def("set_global_linear_kernel", &Dynamics::set_global_linear_kernel)
         .def("set_global_wind_kernel", &Dynamics::set_global_wind_kernel)
-        .def("set_global_zoochory_kernel", [](Dynamics& dynamics, const py::dict& _zoochory_map) {
-            std::map<string, std::map<string, float>> zoochory_map = py::cast <std::map<string, std::map<string, float>> >(_zoochory_map);
-            dynamics.set_global_zoochory_kernel(zoochory_map);
-        });
+        .def("set_global_animal_kernel", [](Dynamics& dynamics, const py::dict& _animal_dispersal_map) {
+            std::map<string, std::map<string, float>> animal_dispersal_map = py::cast<std::map<string, std::map<string, float>>>(_animal_dispersal_map);
+            dynamics.set_global_animal_kernel(animal_dispersal_map);
+        })
+        .def("set_global_kernels", &Dynamics::set_global_kernels);
 
     py::class_<Population>(module, "Population")
         .def(py::init<>())
-        .def(py::init<const float&, const float&, const float&, const float&, const float&>())
+        .def(py::init<const float&, const float&, const float&, const float&, const float&, const map<string, map<string, float>>& >())
         .def("size", &Population::size);
     
     py::class_<Tests>(module, "Tests")

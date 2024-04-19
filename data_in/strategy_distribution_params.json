@@ -1,0 +1,25 @@
+{
+    "seed_mass" : {
+        "distribution_type": 0,
+        "min": 0.001,
+        "max": 0.01
+    },
+    "diaspore_unladen_mass": {
+        "distribution_type": 1,
+        "q1": 1,
+        "q2": 0,
+        "min": 0.001,
+        "max": 0.03
+    },
+    "no_seeds_per_diaspore": {
+        "distribution_type": 2,
+        "mean": 8,
+        "stdev": 2
+    },
+    "vector": {
+        "distribution_type": 3,
+        "probability0": 0,
+        "probability1": 0,
+        "probability2": 1
+    }
+}

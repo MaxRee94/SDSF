@@ -9,7 +9,8 @@ public:
 		int _timestep, float _cellsize, float _self_ignition_factor, float _rainfall, float _seed_bearing_threshold, float _mass_budget_factor,
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
 		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_radius, float _saturation_threshold, float _fire_resistance_argmin,
-		float _fire_resistance_argmax, float _fire_resistance_stretch, float _background_mortality, int _verbosity
+		float _fire_resistance_argmax, float _fire_resistance_stretch, float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
+		int _verbosity
 	) :
 		timestep(_timestep), cellsize(_cellsize), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_seed_bearing_threshold),
@@ -19,7 +20,8 @@ public:
 		max_suppressed_flammability(_cellsize * _max_suppressed_flammability),
 		min_suppressed_flammability(_cellsize * _min_suppressed_flammability),
 		max_radius(_max_radius), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold), fire_resistance_argmin(_fire_resistance_argmin),
-		fire_resistance_argmax(_fire_resistance_argmax), fire_resistance_stretch(_fire_resistance_stretch), background_mortality(_background_mortality)
+		fire_resistance_argmax(_fire_resistance_argmax), fire_resistance_stretch(_fire_resistance_stretch), background_mortality(_background_mortality),
+		strategy_distribution_params(_strategy_distribution_params)
 	{
 		time = 0;
 		help::init_RNG();
@@ -29,10 +31,11 @@ public:
 	void init_state(int gridsize, float radius_q1, float radius_q2, float _seed_mass) {
 		state = State(
 			gridsize, cellsize, max_radius, radius_q1, radius_q2, seed_bearing_threshold, mass_budget_factor,
-			_seed_mass, saturation_threshold
+			_seed_mass, saturation_threshold, strategy_distribution_params
 		);
-		disperser = Disperser(&state);
+		linear_disperser = Disperser(&state);
 		wind_disperser = WindDispersal(&state);
+		animal_dispersal = AnimalDispersal(&state);
 		neighbor_offsets = state.neighbor_offsets;
 	}
 	void update() {
@@ -54,7 +57,7 @@ public:
 	}
 	void report_state() {
 		printf("- Tree cover: %f, #trees: %i \n", grid->get_tree_cover(), pop->size());
-		if (time == 1 && global_kernel.id != -1 && verbosity > 0) {
+		if (time == 1 && global_kernels.size() != 0 && verbosity > 0) {
 			Crop* crop = pop->get_crop(1);
 			printf("total biomass/tree: %f \n", crop->mass);
 			printf("seed mass: %f \n", crop->seed_mass);
@@ -85,41 +88,67 @@ public:
 		}
 	}
 	void set_global_linear_kernel(float lin_diffuse_q1, float lin_diffuse_q2, float min, float max) {
-		global_kernel = Kernel(1, lin_diffuse_q1, lin_diffuse_q2, min, max);
+		global_kernels["linear"] = Kernel(1, lin_diffuse_q1, lin_diffuse_q2, min, max);
 		cout << "Global kernel created (Linear diffusion). " << endl;
 	}
 	void set_global_wind_kernel(float wspeed_gmean, float wspeed_stdev, float seed_tspeed, float abs_height) {
-		global_kernel = Kernel(1, grid->width_r, wspeed_gmean, wspeed_stdev, seed_tspeed, abs_height);
+		global_kernels["wind"] = Kernel(1, grid->width_r, wspeed_gmean, wspeed_stdev, seed_tspeed, abs_height);
 		cout << "Global kernel created (Wind dispersal). " << endl;
 	}
-	void set_global_zoochory_kernel(map<string, map<string, float>> species_params) {
-		global_kernel = Kernel(1, 1, 0, 0, 200); // TEMP: Placeholder until zoochory parsing and dispersal is implemented.
-		cout << "Global kernel created (TEMPORARY PLACEHOLDER FOR ZOOCHORY: LINEAR DIFFUSION).\n";
-		//cout << "Global kernel created (Zoochory, i.e. dispersal by animals). \n";"
+	void set_global_animal_kernel(map<string, map<string, float>>animal_kernel_params) {
+		global_kernels["animal"] = Kernel(1, "animal");
+		animals = Animals(&state, animal_kernel_params);
+		cout << "Global kernel created (Dispersal by animals). \n";
+	}
+	void set_global_kernels(map<string, map<string, float>> nonanimal_kernel_params, map<string, map<string, float>> animal_kernel_params) {
+		map<string, float> params = nonanimal_kernel_params["linear"];
+		set_global_linear_kernel(params["lin_diffuse_q1"], params["lin_diffuse_q2"], params["min"], params["max"]);
+		params = nonanimal_kernel_params["wind"];
+		set_global_wind_kernel(params["wspeed_gmean"], params["wspeed_stdev"], params["seed_tspeed"], params["abs_height"]);
+		set_global_animal_kernel(animal_kernel_params);
+	}
+	bool does_global_kernel_exist(string type) {
+		return global_kernels.find(type) != global_kernels.end();
+	}
+	void ensure_crop_has_kernel(Crop* crop) {
+		if (crop->kernel == nullptr) {
+			string tree_dispersal_vector = pop->get_strat(crop->id)->vector;
+			if (does_global_kernel_exist(tree_dispersal_vector))
+				crop->kernel = pop->add_kernel(crop->id, global_kernels[tree_dispersal_vector]);
+			else {
+				printf("No global kernel found for tree dispersal vector %s. \n", tree_dispersal_vector.c_str());
+				exit(1);
+			}
+		}
 	}
 	void disperse() {
 		int x = 0;
 		int j = 0;
+		int pre_dispersal_popsize = pop->size();
 		for (auto& [id, tree] : pop->members) {
-			if (tree.radius < (seed_bearing_threshold * pop->max_radius)) continue;
+			if (tree.life_phase < 2) continue;
 			x++;
 			Crop* crop = pop->get_crop(id);
-			if (crop->kernel == nullptr) {
-				if (global_kernel.id != -1) crop->kernel = pop->add_kernel(id, global_kernel);
-			}
+			ensure_crop_has_kernel(crop);
 			crop->update(tree);
-			for (int i = 0; i < crop->no_seeds; i++) {
-				//wind_disperser.disperse(crop);
+			if (x == 1) printf("Crop mass: %f, diaspore mass: %f \n", crop->mass, crop->strategy.diaspore_mass);
+			for (int i = 0; i < crop->no_diaspora; i++) {
 				if (crop->kernel->type == "wind") {
 					wind_disperser.disperse(crop);
 				}
-				else {
-					disperser.disperse(crop);
+				else if (crop->kernel->type == "animal") {
+					fruits.add_fruit(crop);
 				}
-				j++;
+				else {
+					linear_disperser.disperse(crop);
+				}
 			}
+			j += crop->no_seeds;
 		}
-		if (verbosity > 0) printf("Number of seed bearing trees: %i, #seeds dispersed: %i \n", x, j);
+		if (fruits.are_available()) {
+			animal_dispersal.disperse(animals, fruits);
+		}
+		if (verbosity > 0) printf("Number of seed bearing trees: %i, #seeds (all): %i, #germinated seeds: %i \n", x, j, pop->size() - pre_dispersal_popsize);
 		seeds_dispersed = j;
 	}
 	void induce_background_mortality() {
@@ -278,9 +307,13 @@ public:
 	State state;
 	Population* pop = 0;
 	Grid* grid = 0;
-	Disperser disperser;
+	Disperser linear_disperser;
 	WindDispersal wind_disperser;
+	AnimalDispersal animal_dispersal;
 	pair<int, int>* neighbor_offsets = 0;
-	Kernel global_kernel;
+	map<string, Kernel> global_kernels;
+	map<string, map<string, float>> strategy_distribution_params;
+	Fruits fruits;
+	Animals animals;
 };
 

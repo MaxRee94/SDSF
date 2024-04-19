@@ -64,6 +64,9 @@ public:
 		id = _tree_id;
 		type = "wind";
 	}
+	Kernel(int _tree_id, string _type) : type(_type), id(_tree_id) {
+		// Arbitrary kernel without built-in functionality, currently only used for animal dispersal
+	}
 	float get_ld_dist() {
 		return LinearDiffusionKernel::get_ld_dist();
 	}

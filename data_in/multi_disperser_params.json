@@ -9,9 +9,16 @@
         "wspeed_gmean": 30,
         "wspeed_stdev": 5
     },
-    "zoochory": {
-        "bird": {
-            "popsize": 20,
+    "animal": {
+        "population": {
+            "density": 20 
+        },
+        "Turdus iliacus": {
+            "population_fraction": 0.2,
+            "fruitsize_pref": 0.02
+        },
+        "Turdus philomelos": {
+            "population_fraction": 0.8,
             "fruitsize_pref": 0.02
         }
     }
