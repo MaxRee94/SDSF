@@ -46,6 +46,11 @@ std::pair<T, U> operator+(const std::pair<T, U>& l, const std::pair<T, U>& r) {
 }
 
 template <typename T, typename U>
+std::pair<T, U> operator-(const std::pair<T, U>& l, const std::pair<T, U>& r) {
+	return { l.first - r.first,l.second - r.second };
+}
+
+template <typename T, typename U>
 std::pair<T, U> operator*(const float& s, const std::pair<T, U>& p) {
 	return { s * p.first, s * p.second };
 }
@@ -276,6 +281,21 @@ namespace help {
 		float prob0 = 0;
 		float prob1 = 0;
 		float prob2 = 0;
+	};
+
+
+	class GammaProbModel {
+	public:
+		GammaProbModel() = default;
+		GammaProbModel(float shape, float scale) {
+			generator = default_random_engine(rand());
+			distribution = std::gamma_distribution<float>(shape, scale);
+		};
+		virtual float get_gamma_sample() {
+			return distribution(generator);
+		}
+		gamma_distribution<float> distribution;
+		default_random_engine generator;
 	};
 
 	class ProbModel : public DiscreteModel, public LinearProbabilityModel, public NormalProbModel, public UniformProbModel {

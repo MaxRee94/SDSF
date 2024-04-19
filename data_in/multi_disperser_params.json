@@ -15,11 +15,21 @@
         },
         "Turdus iliacus": {
             "population_fraction": 0.2,
-            "fruitsize_pref": 0.02
+            "fruitsize_pref": 0.02,
+            "gut_passage_time_shape": 1.59,
+            "gut_passage_time_scale": 13.51351,
+            "rest_time_shape": 0.849,
+            "rest_time_scale": 1.567,
+            "speed": 6
         },
-        "Turdus philomelos": {
+        "Turdus pilaris": {
             "population_fraction": 0.8,
-            "fruitsize_pref": 0.02
+            "fruitsize_pref": 0.02,
+            "gut_passage_time_shape": 1.59,
+            "gut_passage_time_scale": 28.0112,
+            "rest_time_shape": 1.472,
+            "rest_time_scale": 1.114,
+            "speed": 6
         }
     }
 }

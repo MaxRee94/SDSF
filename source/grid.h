@@ -56,6 +56,19 @@ public:
 		pair<int, int> position(x, y);
 		return position;
 	}
+	Cell* get_random_forest_cell() {
+		int i = 0;
+		int fetch_attempt_limit = 1e6;
+		while (i < 1e6) {
+			pair<int, int> pos = get_random_grid_position();
+			Cell* cell = get_cell_at_position(pos);
+			if (cell->state == 1) return cell;
+		}
+		throw("Runtime error: Could not find forest cell after %i attempts.\n", fetch_attempt_limit);
+	}
+	pair<float, float> get_real_cell_position(Cell* cell) {
+		return pair<float, float>(cell->pos.first * cellsize, cell->pos.second * cellsize);
+	}
 	Cell* get_random_savanna_cell() {
 		int i = 0;
 		int fetch_attempt_limit = 1e6;

@@ -15,8 +15,8 @@ from helpers import *
 from config import *
 
 sys.path.append(BUILD_DIR)
-from x64.Debug import dbr_cpp as cpp
-#from x64.Release import dbr_cpp as cpp
+#from x64.Debug import dbr_cpp as cpp
+from x64.Release import dbr_cpp as cpp
 
 
 def set_dispersal_kernel(

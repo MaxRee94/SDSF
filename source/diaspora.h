@@ -21,6 +21,9 @@ public:
 			germinate();
 		}
 	}
+	void set_deposition_location(pair<float, float> _deposition_location) {
+		deposition_location = _deposition_location;
+	}
 	Strategy strategy;
 	pair<float, float> deposition_location;
 	State* state;

@@ -137,7 +137,16 @@ public:
 					wind_disperser.disperse(crop);
 				}
 				else if (crop->kernel->type == "animal") {
-					fruits.add_fruit(crop);
+					fruits.add_fruit(crop);		// TODO: Add fruit locations and abundances to a coarse grid representation of fruit abundance.
+												// The grid could perhaps be stored in the fruits object itself. Something like:
+												// fruits.coarse_grid->add_crop(crop);
+												// ----- in diaspora.h --> class Fruits ------
+												// void add_crop(Crop* crop) {
+												//		FruitCell fruit_cell = get_fruit_cell(pop->get(crop->id).position);
+												//		fruit_cell.add_crop(crop);
+												// }
+												// Also, the if-statements in this for-loop should be extracted from the loop, and animal dispersal
+												// should be done without a loop altogether (so that we can add an entire crop with one call).
 				}
 				else {
 					linear_disperser.disperse(crop);
