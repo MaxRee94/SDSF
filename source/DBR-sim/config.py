@@ -49,7 +49,8 @@ defaults = {
     "csv_path": "",
     "headless": False,
     "max_timesteps": 1e9,
-    "strategy_distribution_params": f"{DATA_IN_DIR}/strategy_distribution_params.json",
+    "resource_grid_relative_size": f"{DATA_IN_DIR}/strategy_distribution_params.json",
+    "resource_grid_relative_size": 0.1,
 }
 
 gui_defaults = {
@@ -472,6 +473,18 @@ _parameter_config = {
                 "Path to a json file containing parameters for the distribution of strategies."
             ),
             "default": defaults["strategy_distribution_params"],
+        },
+    },
+    "resource_grid_relative_size": {
+        "keys": {
+            "cli": ["--resource_grid_relative_size", "-rgrs"]
+        },
+        "settings": {
+            "type": float,
+            "help": (
+                "The relative size (in number of cells along the vertical- or horizontal axis) of the resource grid versus the regular grid."
+            ),
+            "default": defaults["resource_grid_relative_size"],
         },
     }
 }

@@ -1,6 +1,5 @@
 #pragma once
-#include "state.h"
-#include "diaspora.h"
+#include "animal_resources.h"
 #include "grid_agent.forward.h"
 
 

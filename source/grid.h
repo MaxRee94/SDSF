@@ -79,7 +79,7 @@ public:
 		}
 		throw("Runtime error: Could not find savanna cell after %i attempts.\n", fetch_attempt_limit);
 	}
-	void reset() {
+	virtual void reset() {
 		for (int i = 0; i < no_cells; i++) {
 			distribution[i].state = 0;
 			distribution[i].trees.clear();
@@ -234,13 +234,13 @@ public:
 		return pair<int, int>(position.first / cellsize, position.second / cellsize);
 	}
 	pair<float, float> get_real_position(pair<int, int> position) {
-		return pair<int, int>(position.first * cellsize, position.second * cellsize);
+		return pair<float, float>((float)position.first * cellsize, (float)position.second * cellsize);
 	}
 	int width = 0;
 	int no_cells = 0;
 	float width_r = 0;
 	float tree_cover = 0;
-	float cellsize = 1.5;
+	float cellsize = 0;
 	Cell* distribution = 0;
 	int* state_distribution = 0;
 	int no_savanna_cells = 0;

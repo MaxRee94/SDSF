@@ -10,7 +10,7 @@ public:
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
 		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_radius, float _saturation_threshold, float _fire_resistance_argmin,
 		float _fire_resistance_argmax, float _fire_resistance_stretch, float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
-		int _verbosity
+		float _resource_grid_relative_size, int _verbosity
 	) :
 		timestep(_timestep), cellsize(_cellsize), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_seed_bearing_threshold),
@@ -21,7 +21,7 @@ public:
 		min_suppressed_flammability(_cellsize * _min_suppressed_flammability),
 		max_radius(_max_radius), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold), fire_resistance_argmin(_fire_resistance_argmin),
 		fire_resistance_argmax(_fire_resistance_argmax), fire_resistance_stretch(_fire_resistance_stretch), background_mortality(_background_mortality),
-		strategy_distribution_params(_strategy_distribution_params)
+		strategy_distribution_params(_strategy_distribution_params), resource_grid_relative_size(_resource_grid_relative_size)
 	{
 		time = 0;
 		help::init_RNG();
@@ -98,6 +98,7 @@ public:
 	void set_global_animal_kernel(map<string, map<string, float>>animal_kernel_params) {
 		global_kernels["animal"] = Kernel(1, "animal");
 		animals = Animals(&state, animal_kernel_params);
+		init_resource_grid();
 		cout << "Global kernel created (Dispersal by animals). \n";
 	}
 	void set_global_kernels(map<string, map<string, float>> nonanimal_kernel_params, map<string, map<string, float>> animal_kernel_params) {
@@ -106,6 +107,11 @@ public:
 		params = nonanimal_kernel_params["wind"];
 		set_global_wind_kernel(params["wspeed_gmean"], params["wspeed_stdev"], params["seed_tspeed"], params["abs_height"]);
 		set_global_animal_kernel(animal_kernel_params);
+	}
+	void init_resource_grid() {
+		int resource_grid_no_cells_x = round((float)grid->width * resource_grid_relative_size);
+		float resource_grid_cellsize = grid->width_r / (float)resource_grid_no_cells_x;
+		resource_grid = ResourceGrid(&state, resource_grid_no_cells_x, resource_grid_cellsize);
 	}
 	bool does_global_kernel_exist(string type) {
 		return global_kernels.find(type) != global_kernels.end();
@@ -142,8 +148,8 @@ public:
 												// fruits.coarse_grid->add_crop(crop);
 												// ----- in diaspora.h --> class Fruits ------
 												// void add_crop(Crop* crop) {
-												//		FruitCell fruit_cell = get_fruit_cell(pop->get(crop->id).position);
-												//		fruit_cell.add_crop(crop);
+												//		FruitCell* fruit_cell = get_fruit_cell(pop->get(crop->id).position);
+												//		fruit_cell->add_crop(crop);
 												// }
 												// Also, the if-statements in this for-loop should be extracted from the loop, and animal dispersal
 												// should be done without a loop altogether (so that we can add an entire crop with one call).
@@ -308,6 +314,7 @@ public:
 	float fire_resistance_argmax = 0;
 	float fire_resistance_stretch = 0;
 	float background_mortality = 0;
+	float resource_grid_relative_size = 0;
 	int timestep = 0;
 	int time = 0;
 	int pop_size = 0;
@@ -319,6 +326,7 @@ public:
 	Disperser linear_disperser;
 	WindDispersal wind_disperser;
 	AnimalDispersal animal_dispersal;
+	ResourceGrid resource_grid;
 	pair<int, int>* neighbor_offsets = 0;
 	map<string, Kernel> global_kernels;
 	map<string, map<string, float>> strategy_distribution_params;

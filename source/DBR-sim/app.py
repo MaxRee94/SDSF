@@ -48,7 +48,7 @@ def init(
     dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, seed_mass=None,
     flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
-    multi_disperser_params=None, strategy_distribution_params=None,
+    multi_disperser_params=None, strategy_distribution_params=None, resource_grid_relative_size=None,
     **user_args
     ):
     
@@ -62,7 +62,8 @@ def init(
         mass_budget_factor, growth_rate_multiplier, unsuppressed_flammability, flammability_coefficients_and_constants[0],
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
         flammability_coefficients_and_constants[3], max_radius, saturation_threshold, fire_resistance_params[0],
-        fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, verbosity
+        fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
+        resource_grid_relative_size, verbosity
     )
     dynamics.init_state(grid_width, radius_q1, radius_q2, seed_mass)
     dynamics.state.set_tree_cover(treecover)

@@ -9,7 +9,7 @@ public:
 	State() {
 		grid = Grid();
 		population = Population();
-		init_neighbor_offset();
+		init_neighbor_offsets();
 	}
 	State(
 		int gridsize, float cellsize, float max_radius, float radius_q1, float radius_q2,
@@ -24,9 +24,9 @@ public:
 			max_radius, cellsize, radius_q1, radius_q2, mass_budget_factor, strategy_distribution_params
 		);
 		grid = Grid(gridsize, cellsize);
-		init_neighbor_offset();
+		init_neighbor_offsets();
 	}
-	void init_neighbor_offset() {
+	void init_neighbor_offsets() {
 		neighbor_offsets = new pair<int, int>[8];
 		int q = 0;
 		for (int i = -1; i < 2; i++) {
