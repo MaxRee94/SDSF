@@ -11,7 +11,8 @@
     },
     "animal": {
         "population": {
-            "density": 20 
+            "density": 1,
+            "no_iterations": 100
         },
         "Turdus iliacus": {
             "population_fraction": 0.2,
@@ -20,7 +21,15 @@
             "gut_passage_time_scale": 13.51351,
             "rest_time_shape": 0.849,
             "rest_time_scale": 1.567,
-            "speed": 6
+            "speed": 6,
+            "a_d": -4.407,
+            "b_d": -0.647,
+            "a_c": 1.082,
+            "b_c": 1.397,
+            "a_f": 16.833,
+            "b_f": 0.601,
+            "a_o": -0.073,
+            "b_o": -3.718
         },
         "Turdus pilaris": {
             "population_fraction": 0.8,
@@ -29,7 +38,15 @@
             "gut_passage_time_scale": 28.0112,
             "rest_time_shape": 1.472,
             "rest_time_scale": 1.114,
-            "speed": 6
+            "speed": 6,
+            "a_d": -3.717,
+            "b_d": -0.398,
+            "a_c": 0.746,
+            "b_c": 1.762,
+            "a_f": 3.577,
+            "b_f": 0.847,
+            "a_o": -1.429,
+            "b_o": -1.361
         }
     }
 }

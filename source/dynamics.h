@@ -95,10 +95,10 @@ public:
 		global_kernels["wind"] = Kernel(1, grid->width_r, wspeed_gmean, wspeed_stdev, seed_tspeed, abs_height);
 		cout << "Global kernel created (Wind dispersal). " << endl;
 	}
-	void set_global_animal_kernel(map<string, map<string, float>>animal_kernel_params) {
+	void set_global_animal_kernel(map<string, map<string, float>> &animal_kernel_params) {
 		global_kernels["animal"] = Kernel(1, "animal");
 		animals = Animals(&state, animal_kernel_params);
-		init_resource_grid();
+		init_resource_grid(animal_kernel_params);
 		cout << "Global kernel created (Dispersal by animals). \n";
 	}
 	void set_global_kernels(map<string, map<string, float>> nonanimal_kernel_params, map<string, map<string, float>> animal_kernel_params) {
@@ -108,62 +108,61 @@ public:
 		set_global_wind_kernel(params["wspeed_gmean"], params["wspeed_stdev"], params["seed_tspeed"], params["abs_height"]);
 		set_global_animal_kernel(animal_kernel_params);
 	}
-	void init_resource_grid() {
+	void init_resource_grid(map<string, map<string, float>> &animal_kernel_params) {
 		int resource_grid_no_cells_x = round((float)grid->width * resource_grid_relative_size);
+		printf("resource grid no cells x: %i \n", resource_grid_no_cells_x);
 		float resource_grid_cellsize = grid->width_r / (float)resource_grid_no_cells_x;
-		resource_grid = ResourceGrid(&state, resource_grid_no_cells_x, resource_grid_cellsize);
+		vector<string> species = {};
+		for (auto& [_species, _] : animal_kernel_params) species.push_back(_species);
+		resource_grid = ResourceGrid(&state, resource_grid_no_cells_x, resource_grid_cellsize, species);
 	}
 	bool does_global_kernel_exist(string type) {
 		return global_kernels.find(type) != global_kernels.end();
 	}
-	void ensure_crop_has_kernel(Crop* crop) {
+	bool ensure_crop_has_kernel(Crop* crop) {
 		if (crop->kernel == nullptr) {
 			string tree_dispersal_vector = pop->get_strat(crop->id)->vector;
 			if (does_global_kernel_exist(tree_dispersal_vector))
 				crop->kernel = pop->add_kernel(crop->id, global_kernels[tree_dispersal_vector]);
 			else {
-				printf("No global kernel found for tree dispersal vector %s. \n", tree_dispersal_vector.c_str());
-				exit(1);
+				printf("\n\n-------------- ERROR: No global kernel found for tree dispersal vector %s. \n\n", tree_dispersal_vector.c_str());
+				//exit(1); Let's not exit the program for now
+				return false;
 			}
 		}
+		return true;
 	}
 	void disperse() {
 		int x = 0;
 		int j = 0;
 		int pre_dispersal_popsize = pop->size();
+		resource_grid.reset();
 		for (auto& [id, tree] : pop->members) {
 			if (tree.life_phase < 2) continue;
 			x++;
 			Crop* crop = pop->get_crop(id);
-			ensure_crop_has_kernel(crop);
+			bool has_kernel = ensure_crop_has_kernel(crop);
+			if (!has_kernel) {
+				printf("crop id: %i \n ", crop->id);
+				continue;
+			}
 			crop->update(tree);
-			if (x == 1) printf("Crop mass: %f, diaspore mass: %f \n", crop->mass, crop->strategy.diaspore_mass);
-			for (int i = 0; i < crop->no_diaspora; i++) {
-				if (crop->kernel->type == "wind") {
-					wind_disperser.disperse(crop);
-				}
-				else if (crop->kernel->type == "animal") {
-					fruits.add_fruit(crop);		// TODO: Add fruit locations and abundances to a coarse grid representation of fruit abundance.
-												// The grid could perhaps be stored in the fruits object itself. Something like:
-												// fruits.coarse_grid->add_crop(crop);
-												// ----- in diaspora.h --> class Fruits ------
-												// void add_crop(Crop* crop) {
-												//		FruitCell* fruit_cell = get_fruit_cell(pop->get(crop->id).position);
-												//		fruit_cell->add_crop(crop);
-												// }
-												// Also, the if-statements in this for-loop should be extracted from the loop, and animal dispersal
-												// should be done without a loop altogether (so that we can add an entire crop with one call).
-				}
-				else {
-					linear_disperser.disperse(crop);
-				}
+			if (crop->kernel->type == "animal") {
+				resource_grid.add_crop(tree, crop);
+			}
+			else if (crop->kernel->type == "wind") {
+				wind_disperser.disperse_crop(crop);
+			}
+			else {
+				linear_disperser.disperse_crop(crop);
 			}
 			j += crop->no_seeds;
 		}
-		if (fruits.are_available()) {
-			animal_dispersal.disperse(animals, fruits);
+		if (resource_grid.has_fruits) {
+			animal_dispersal.disperse(animals, &resource_grid, 1);
 		}
 		if (verbosity > 0) printf("Number of seed bearing trees: %i, #seeds (all): %i, #germinated seeds: %i \n", x, j, pop->size() - pre_dispersal_popsize);
+		if (verbosity > 0) printf("Number of fruits: %i \n", resource_grid.total_no_fruits);
 		seeds_dispersed = j;
 	}
 	void induce_background_mortality() {
@@ -172,6 +171,9 @@ public:
 				kill_tree(&tree);
 			}
 		}
+	}
+	float* get_resource_grid_colors() {
+		return resource_grid.get_color_distribution();
 	}
 	void burn() {
 		if (verbosity == 2) printf("Updated tree flammabilities.\n");
@@ -330,7 +332,6 @@ public:
 	pair<int, int>* neighbor_offsets = 0;
 	map<string, Kernel> global_kernels;
 	map<string, map<string, float>> strategy_distribution_params;
-	Fruits fruits;
 	Animals animals;
 };
 

@@ -26,6 +26,10 @@ uint help::get_rand_uint(int min, int max) {
     return round(help::get_rand_float(min, max));
 }
 
+int help::get_rand_int(int min, int max) {
+    return round(help::get_rand_float(min, max));
+}
+
 bool help::is_in(std::vector<int>* vec, int item) {
     return find(vec->begin(), vec->end(), item) != vec->end();
 }
@@ -448,6 +452,10 @@ float help::get_dist(pair<float, float> p1, pair<float, float> p2) {
     float xdif = (p1.first - p2.first);
     float ydif = (p1.second - p2.second);
     return sqrtf(xdif * xdif + ydif * ydif);
+}
+
+float help::get_manhattan_dist(pair<float, float> p1, pair<float, float> p2) {
+	return abs(p1.first - p2.first) + abs(p1.second - p2.second);
 }
 
 float help::exponential_function(float x, float a, float b, float c) {

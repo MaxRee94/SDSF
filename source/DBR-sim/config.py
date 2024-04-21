@@ -49,7 +49,7 @@ defaults = {
     "csv_path": "",
     "headless": False,
     "max_timesteps": 1e9,
-    "resource_grid_relative_size": f"{DATA_IN_DIR}/strategy_distribution_params.json",
+    "strategy_distribution_params": f"{DATA_IN_DIR}/strategy_distribution_params.json",
     "resource_grid_relative_size": 0.1,
 }
 

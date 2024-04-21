@@ -29,6 +29,23 @@ py::array_t<int> as_2d_numpy_array(int* distribution, int width) {
     return numpy_array;
 }
 
+py::array_t<float> as_2d_numpy_array(float* distribution, int width) {
+    constexpr size_t element_size = sizeof(float);
+    size_t shape[2]{ width, width };
+    size_t strides[2]{ width * element_size, element_size };
+    auto numpy_array = py::array_t<float>(shape, strides);
+    auto setter = numpy_array.mutable_unchecked<2>();
+
+    for (size_t i = 0; i < numpy_array.shape(0); i++)
+    {
+        for (size_t j = 0; j < numpy_array.shape(1); j++)
+        {
+            setter(i, j) = distribution[i * width + j];
+        }
+    }
+    return numpy_array;
+}
+
 py::array_t<float> as_1d_numpy_array(float* distribution, int size) {
     constexpr size_t element_size = sizeof(float);
     size_t shape[1]{ size };
@@ -94,7 +111,15 @@ PYBIND11_MODULE(dbr_cpp, module) {
             std::map<string, std::map<string, float>> animal_dispersal_map = py::cast<std::map<string, std::map<string, float>>>(_animal_dispersal_map);
             dynamics.set_global_animal_kernel(animal_dispersal_map);
         })
-        .def("set_global_kernels", &Dynamics::set_global_kernels);
+        .def("set_global_kernels", [](Dynamics& dynamics, const py::dict& _nonanimal_kernel_params, const py::dict& _animal_kernel_params) {
+            std::map<string, std::map<string, float>> nonanimal_kernel_params = py::cast<std::map<string, std::map<string, float>>>(_nonanimal_kernel_params);
+            std::map<string, std::map<string, float>> animal_kernel_params = py::cast<std::map<string, std::map<string, float>>>(_animal_kernel_params);
+            dynamics.set_global_kernels(nonanimal_kernel_params, animal_kernel_params);
+        })
+        .def("get_resouce_grid_colors", [](Dynamics& dynamics, string& type) {
+            float* color_distribution = dynamics.resource_grid.get_color_distribution(type);
+            return as_2d_numpy_array(color_distribution, dynamics.resource_grid.width);
+        });
 
     py::class_<Population>(module, "Population")
         .def(py::init<>())

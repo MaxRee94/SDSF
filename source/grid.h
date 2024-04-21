@@ -66,6 +66,11 @@ public:
 		}
 		throw("Runtime error: Could not find forest cell after %i attempts.\n", fetch_attempt_limit);
 	}
+	Cell* get_random_cell() {
+		pair<int, int> pos = get_random_grid_position();
+		Cell* cell = get_cell_at_position(pos);
+		return cell;
+	}
 	pair<float, float> get_real_cell_position(Cell* cell) {
 		return pair<float, float>(cell->pos.first * cellsize, cell->pos.second * cellsize);
 	}

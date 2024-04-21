@@ -8,12 +8,12 @@
         "distribution_type": 1,
         "q1": 1,
         "q2": 0,
-        "min": 0.001,
+        "min": 0.0005,
         "max": 0.03
     },
     "no_seeds_per_diaspore": {
         "distribution_type": 2,
-        "mean": 8,
+        "mean": 3,
         "stdev": 2
     },
     "vector": {

@@ -58,7 +58,7 @@ public:
 	}
 	void generate(Strategy &strategy) {
 		float seed_mass = trait_distributions["seed_mass"].sample();
-		int no_seeds_per_diaspore = round(trait_distributions["no_seeds_per_diaspore"].sample());
+		int no_seeds_per_diaspore = max(1, round(trait_distributions["no_seeds_per_diaspore"].sample()));
 		float diaspore_mass = get_diaspore_mass(no_seeds_per_diaspore, seed_mass);
 		string vector = pick_vector();
 		strategy = Strategy(vector, seed_mass, diaspore_mass, no_seeds_per_diaspore);
@@ -166,9 +166,9 @@ public:
 		}
 		else {
 			strategy_generator.generate(strategy);
-			strategy.id = tree.id;
-			strategies[tree.id] = strategy;
 		} 
+		strategy.id = tree.id;
+		strategies[tree.id] = strategy;
 
 		// Create crop
 		Crop crop(strategy, tree, mass_budget_factor);

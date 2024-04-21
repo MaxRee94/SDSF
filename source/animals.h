@@ -6,29 +6,55 @@
 class Animal {
 public:
 	Animal() = default;
-	Animal(map<string, float> _traits, string _species, State* _state) {
+	Animal(map<string, float> _traits, string _species, State* _state, ResourceGrid* _resource_grid) {
+		resource_grid = _resource_grid;
 		traits = _traits;
 		species = _species;
 		state = _state;
-		inv_speed = 1.0f / traits["speed"];
+		recipr_speed = 1.0f / traits["speed"];
 		init_prob_distributions();
 	}
 	void init_prob_distributions() {
 		gut_passage_time_distribution = GammaProbModel(traits["gut_passage_time_shape"], traits["gut_passage_time_scale"]);
 		rest_time_distribution = GammaProbModel(traits["rest_time_shape"], traits["rest_time_scale"]);
 	}
-	void update(vector<Seed> &seeds) {
+	void update(vector<Seed> &seeds, int iteration) {
+		float begin_time = curtime;
 		rest();
-		digest(seeds);
+		eat(begin_time);
+		digest(seeds, iteration);
 		move();
-		digest(seeds);
+		digest(seeds, iteration);
 	}
 	void rest() {
 		moving = false;
 		float rest_time = rest_time_distribution.get_gamma_sample() * 60.0f;
 		curtime += rest_time;
 	}
-	void eat(Fruit &fruit) {
+	float get_biomass_consumption_budget() {
+		return 0.2f; // TEMP: replace with value drawn from species-dependent poisson distribution.
+	}
+	void eat(float begin_time) {
+		float biomass_consumption_budget = get_biomass_consumption_budget();
+		int no_fruits_consumed = 0;
+		while (biomass_consumption_budget > 0) {
+			Fruit fruit;
+			bool fruit_available = resource_grid->extract_fruit(position, fruit);
+			if (!fruit_available) break;
+			eat_fruit(fruit);
+			//printf("eating fruit with mass %f\n", fruit.strategy.diaspore_mass);
+			biomass_consumption_budget -= fruit.strategy.diaspore_mass;
+			no_fruits_consumed++;
+		}
+		set_ingestion_times(begin_time, no_fruits_consumed);
+	}
+	void set_ingestion_times(float begin_time, float no_fruits_consumed) {
+		float time_stepsize = (curtime - begin_time) / no_fruits_consumed;
+		for (int i = 0; i < stomach_content.size(); i++) {
+			stomach_content[stomach_content.size() - 1 - i].second.second = begin_time + (float)(i + 1) * time_stepsize;
+		}
+	}
+	void eat_fruit(Fruit &fruit) {
 		vector<Seed> seeds;
 		fruit.get_seeds(seeds);
 		for (auto& seed : seeds) {
@@ -37,15 +63,15 @@ public:
 			stomach_content.push_back(pair<Seed, pair<float, float>>(seed, times));
 		}
 	}
-	void digest(vector<Seed> &seeds_to_disperse) {
+	void digest(vector<Seed> &seeds_to_disperse, int iteration) {
 		vector<pair<Seed, pair<float, float>>> _stomach_content;
 		for (int i = 0; i < stomach_content.size(); i++) {
 			auto [gut_passage_time, ingestion_time] = stomach_content[i].second;
 			if (gut_passage_time + ingestion_time <= curtime) {
 				float defecation_time = gut_passage_time + ingestion_time;
 				float time_since_defecation = curtime - defecation_time;
-				Seed seed = stomach_content[i].first;
-				defecate(seed, time_since_defecation, seeds_to_disperse);
+				if (iteration > 4) // Ignore the first 5 iterations (after Morales et al 2013)
+					defecate(stomach_content[i].first, time_since_defecation, seeds_to_disperse);
 			}
 			else {
 				_stomach_content.push_back(stomach_content[i]);
@@ -53,30 +79,39 @@ public:
 		}
 		stomach_content = _stomach_content;
 	}
-	Cell* select_destination() {
-		Cell* destination = state->grid.get_random_forest_cell(); // TEMP: replace with landscape-dependent cell selection.
-		return destination;
+	pair<float, float> select_destination() {
+		resource_grid->update_probability_distribution(species, traits, position);
+		pair<float, float> destination = state->grid.get_random_real_position();
+		return destination; // TEMP: replace with landscape-dependent cell selection.
 	}
 	void move() {
 		moving = true;
-		Cell* destination = select_destination(); // TEMP. TODO: use coarse grid cells as destinations. Ensure these are populated with fruit abundances beforehand (to get a map of fruit abundance).
-		pair<float, float> destination_position = state->grid.get_real_cell_position(destination);
-		float distance = help::get_dist(position, destination_position);
-		trajectory = destination_position - position;
-		travel_time = distance * inv_speed;
+		pair<float, float> destination = select_destination();
+		//printf("destination: %f, %f\n", destination.first, destination.second);
+		float distance = help::get_dist(position, destination);
+		trajectory = destination - position;
+		position = destination;
+		travel_time = distance * recipr_speed;
 		curtime += travel_time;
 	}
 	pair<float, float> get_backwards_traced_location(float time_since_defecation) {
 		return position - (time_since_defecation / travel_time) * trajectory;
 	}
 	void defecate(Seed &seed, float time_since_defecation, vector<Seed>& seeds_to_disperse) {
-		pair<float, float> deposition_location;
+		pair<float, float> seed_deposition_location;
 		if (moving) {
-			deposition_location = get_backwards_traced_location(time_since_defecation);
+			seed_deposition_location = get_backwards_traced_location(time_since_defecation);
+			//printf("(backwardstraced) defecating seed at %f, %f\n", seed_deposition_location.first, seed_deposition_location.second);
 		}
-		seed.deposition_location = deposition_location;
+		else {
+			seed_deposition_location = position;
+			//printf("(standing still) defecating seed at %f, %f\n", seed_deposition_location.first, seed_deposition_location.second);
+		}
+		resource_grid->get_random_location_within_cell(seed_deposition_location);
+		seed.deposition_location = seed_deposition_location;
 		seeds_to_disperse.push_back(seed);
 	}
+	ResourceGrid* resource_grid = 0;
 	map<string, float> traits;
 	vector<pair<Seed, pair<float, float>>> stomach_content;
 	pair<float, float> position;
@@ -87,7 +122,7 @@ public:
 	GammaProbModel rest_time_distribution;
 	State* state = 0;
 	float curtime = 0;
-	float inv_speed = 0;
+	float recipr_speed = 0;
 	float travel_time = 0;
 	bool moving = false;
 };
@@ -96,38 +131,63 @@ public:
 class Animals {
 public:
 	Animals() = default;
-	Animals(State* _state, map<string, map<string, float>> &_animal_kernel_params) {
+	Animals(State* _state, map<string, map<string, float>> _animal_kernel_params) {
 		state = _state;
 		tree_population = &state->population;
 		grid = &state->grid;
-		total_no_animals = animal_kernel_params["population"]["density"] * state->grid.area;
 		animal_kernel_params = _animal_kernel_params;
+		total_no_animals = round(animal_kernel_params["population"]["density"] * (state->grid.area / 1e6));
+		no_iterations = animal_kernel_params["population"]["no_iterations"];
 		animal_kernel_params.erase("population");
 	}
-	void initialize_population() {
+	void print_animal_kernel_params(map<string, map<string, float>>& _animal_kernel_params) {
+		for (auto& [species, params] : animal_kernel_params) {
+			printf("species: %s\n", species.c_str());
+			for (auto& [param, value] : params) {
+				printf("%s: %f\n", param.c_str(), value);
+			}
+		}
+	}
+	void initialize_population(ResourceGrid* resource_grid) {
 		for (auto& [species, params] : animal_kernel_params) {
 			int popsize = round(total_no_animals * params["population_fraction"]);
 			vector<Animal> species_population;
-			create_species_population(popsize, species_population, params, species);
+			create_species_population(popsize, species_population, params, species, resource_grid);
 			total_animal_population[species] = species_population;
 		}
 	}
 	void create_species_population(
-		int popsize, vector<Animal> &species_population, map<string, float> traits, string species
+		int popsize, vector<Animal>& species_population, map<string, float> traits, string species,
+		ResourceGrid* resource_grid
 	) {
 		for (int i = 0; i < popsize; i++) {
-			Animal animal(traits, species, state);
+			Animal animal(traits, species, state, resource_grid);
 			species_population.push_back(animal);
 		}
 	}
 	void place() {
 		for (auto& [species, species_population] : total_animal_population) {
 			for (auto& animal : species_population) {
-				animal.position = grid->get_random_real_position(); // TEMP: random position. TODO: Make dependent on fruit availability.
+				animal.position = grid->get_random_real_position();
 			}
 		}
 	}
-	void disperse(Fruits& fruits, vector<Seed> seeds) {
+	void disperse(vector<Seed>& seeds) {
+		place();
+		for (int i = 0; i < no_iterations; i++) {
+			for (auto& [species, species_population] : total_animal_population) {
+				for (auto& animal : species_population) {
+					animal.update(seeds, i);
+				}
+			}
+		}
+	}
+	int popsize() {
+		int total_popsize = 0;
+		for (auto& [species, species_population] : total_animal_population) {
+			total_popsize += species_population.size();
+		}
+		return total_popsize;
 	}
 	Population* tree_population = 0;
 	map<string, vector<Animal>> total_animal_population;
@@ -136,4 +196,5 @@ public:
 	State* state = 0;
 	float total_no_animals = 0;
 	int verbose = 0;
+	int no_iterations = 0;
 };

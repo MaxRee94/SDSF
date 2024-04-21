@@ -113,6 +113,8 @@ namespace help {
 
 	uint get_rand_uint(int min, int max);
 
+	int get_rand_int(int min, int max);
+
 	void remove(vector<int>* vec, int item);
 
 	float get_sigmoid(float x, float x_min, float x_max, float x_stretch);
@@ -124,6 +126,8 @@ namespace help {
 	pair<T, U> pop(map<T, U>* map, int idx);
 
 	float get_dist(pair<float, float> p1, pair<float, float> p2);
+
+	float get_manhattan_dist(pair<float, float> p1, pair<float, float> p2);
 
 	std::string add_padding(std::string basestring, int version);
 

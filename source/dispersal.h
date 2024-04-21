@@ -14,15 +14,20 @@ public:
 	virtual float get_dist(Crop* crop) {
 		return crop->kernel->get_ld_dist();
 	}
-	void disperse(Crop* crop) {
+	void disperse_seed(Crop* crop) {
 		// Compute seed deposition location
 		pair<float, float> direction = get_random_direction();
 		float distance = get_dist(crop);
 		pair<float, float> seed_deposition_location = crop->origin + distance * direction;
 
 		// Create seed and germinate if viable
-		Seed seed(crop->strategy, seed_deposition_location, state);
-		seed.germinate_if_location_is_viable();
+		Seed seed(*_pop->get_strat(crop->id), seed_deposition_location);
+		seed.germinate_if_location_is_viable(state);
+	}
+	void disperse_crop(Crop* crop) {
+		for (int i = 0; i < crop->no_diaspora; i++) {
+			disperse_seed(crop);
+		}
 	}
 	Population* _pop = 0;
 	Grid* _grid = 0;
@@ -44,13 +49,15 @@ class AnimalDispersal : public Disperser {
 public:
 	AnimalDispersal() = default;
 	AnimalDispersal(State* _state) : Disperser(_state) {};
-	void disperse(Animals &animals, Fruits &fruits) {
-		animals.initialize_population();
+	void disperse(Animals &animals, ResourceGrid* resource_grid, int verbosity = 0) {
+		resource_grid->compute_cover_and_fruit_abundance();
+		animals.initialize_population(resource_grid);
 		animals.place();
 		vector<Seed> seeds;
-		animals.disperse(fruits, seeds);
-		for (Seed& seed : seeds) {
-			seed.germinate_if_location_is_viable();
+		animals.disperse(seeds);
+		if (verbosity > 0) printf("Animal popsize: %i (%f), No seeds dispersed: %i\n", animals.popsize(), animals.total_no_animals, seeds.size());
+		for (int i = 0; i < seeds.size(); i++) {
+			seeds[i].germinate_if_location_is_viable(state);
 		}
 	}
 	Animals animals;
