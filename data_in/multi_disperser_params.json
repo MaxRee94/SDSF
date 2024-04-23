@@ -11,7 +11,7 @@
     },
     "animal": {
         "population": {
-            "density": 1,
+            "density": 10,
             "no_iterations": 100
         },
         "Turdus iliacus": {

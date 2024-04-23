@@ -50,7 +50,7 @@ public:
 		vector<float> dists = {help::get_dist(a, b)};
 		for (int i = 0; i < 8; i++) {
 			float dist = help::get_dist(
-				neighbor_offsets[i] * grid.width * grid.cellsize, a
+				neighbor_offsets[i] * grid.width_r + b, a
 			);
 			dists.push_back(dist);
 		}

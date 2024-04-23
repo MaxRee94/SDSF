@@ -511,6 +511,55 @@ void help::ProbModelPiece::rescale(float factor) {
 }
 
 
+help::DiscreteProbModelPiece::DiscreteProbModelPiece() = default;
+help::DiscreteProbModelPiece::DiscreteProbModelPiece(int _idx, float _ymin, float _ymax) {
+    idx = _idx;
+    ymin = _ymin; ymax = _ymax;
+    ysize = ymax - ymin;
+};
+int help::DiscreteProbModelPiece::intersect(float cdf_y) {
+    if (cdf_y >= ymin && cdf_y <= ymax) {
+        return idx;
+    }
+    return -1;
+};
+void help::DiscreteProbModelPiece::rescale(float factor) {
+    ymin *= factor; ymax *= factor;
+    ysize = ymax - ymin;
+}
+
+
+int help::binary_search(float* arr, int size, float target) {
+    int l = 0;
+    int r = size - 1;
+    while (l <= r) {
+        int m = l + (r - l) / 2;
+
+        // Check if target is present at mid
+        float next_element;
+        if (m < size - 1) {
+            next_element = arr[m + 1];
+        }
+        else {
+            next_element = INFINITY;
+        }
+        if (target >= arr[m] && target <= next_element)
+            return m;
+
+        // If target greater, ignore left half
+        if (arr[m] < target)
+            l = m + 1;
+
+        // If target is smaller, ignore right half
+        else
+            r = m - 1;
+    }
+
+    // If we reach here, then element was not present
+    return -1;
+}
+
+
 help::PieceWiseLinearProbModel::PieceWiseLinearProbModel() = default;
 help::PieceWiseLinearProbModel::PieceWiseLinearProbModel(float _xmax) {
     xmax = _xmax;

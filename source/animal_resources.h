@@ -44,6 +44,7 @@ public:
 		width_r = (float)width * cellsize;
 		size = width * width;
 		cells = new ResourceCell[size];
+		selection_probabilities = DiscreteProbabilityModel(size);
 		init_property_distributions(species);
 		init_cells();
 		init_neighbor_offsets();
@@ -52,8 +53,9 @@ public:
 		d = new float[size];
 		cover = new float[size];
 		fruit_abundance = new float[size];
-		k = new float[size];
-		color_distribution = new float[size];
+		selection_probabilities.probabilities = new float[size];
+		color_distribution = new int[size];
+		for (int i = 0; i < size; i++) color_distribution[i] = 0;
 		for (int i = 0; i < species.size(); i++) {
 			c[species[i]] = new float[size];
 			f[species[i]] = new float[size];
@@ -103,10 +105,18 @@ public:
 			}
 		}
 	}
+	void update_fruit_abundance(ResourceCell* cell, string species, map<string, float> &species_params) {
+		fruit_abundance[cell->idx] = cell->get_fruit_abundance_index();
+		f[species][cell->idx] = tanh(pow((fruit_abundance[cell->idx] / species_params["a_f"]), species_params["b_f"]));
+	}
+	void update_fruit_abundance(pair<float, float> position, string species, map<string, float> &species_params) {
+		ResourceCell* cell = get_resource_cell_at_position(position);
+		update_fruit_abundance(cell, species, species_params);
+	}
 	bool extract_fruit(pair<int, int> pos, Fruit &fruit) {
 		ResourceCell* cell = get_resource_cell_at_position(pos);
 		bool success = cell->extract_random_fruit(fruit);
-		fruit_abundance[cell->idx] = cell->get_fruit_abundance_index();
+		total_no_fruits--;
 		return success;
 	}
 	pair<int, int> _idx_2_pos(int idx) {
@@ -114,10 +124,13 @@ public:
 		int y = idx / width;
 		return pair<int, int>(x, y);
 	}
-	void get_random_location_within_cell(pair<float, float> &deposition_location) {
-		ResourceCell* cell = get_resource_cell_at_position(deposition_location);
+	void get_random_location_within_cell(ResourceCell* cell, pair<float, float>& deposition_location) {
 		deposition_location.first = help::get_rand_float((float)cell->pos.first * cellsize, (float)(cell->pos.first + 1) * cellsize);
 		deposition_location.second = help::get_rand_float((float)cell->pos.second * cellsize, (float)(cell->pos.second + 1) * cellsize);
+	}
+	void get_random_location_within_cell(pair<float, float>& deposition_location) {
+		ResourceCell* cell = get_resource_cell_at_position(deposition_location);
+		get_random_location_within_cell(cell, deposition_location);
 	}
 	ResourceCell* get_resource_cell_at_position(pair<int, int> pos) {
 		cap(pos);
@@ -130,37 +143,52 @@ public:
 	pair<float, float> get_real_cell_position(ResourceCell* cell) {
 		return pair<float, float>(cell->pos.first * cellsize, cell->pos.second * cellsize);
 	}
-	float get_dist(pair<float, float> a, pair<float, float> b, bool manhattan = true, bool verbose = false) {
+	float get_resourcegrid_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
 		vector<float> dists = { help::get_manhattan_dist(a, b)};
-		float min_dist = 1e9f;
+		float min_dist = dists[0];
 		int min_idx = 0;
 		for (int i = 0; i < 8; i++) {
 			float dist = help::get_manhattan_dist(
 				neighbor_offsets[i] * width_r + b, a
 			);
-			if (dist < min_dist) {
+			if (dist < min_dist && dist > 0) {
 				min_dist = dist;
-				min_idx = i;
+				min_idx = i + 1;
 			}
 			dists.push_back(dist);
 		}
-		if (verbose) printf("normal dist: %f, periodic dist: %f \n", dists[0], dists[min_idx]);
-		return help::get_dist(a, neighbor_offsets[min_idx] * width_r + b);
+		float dist;
+		if (min_idx != 0) dist = help::get_dist(neighbor_offsets[min_idx - 1] * width_r + b, a);
+		else dist = help::get_dist(a, b);
+		if (verbose) printf("normal dist: %f, periodic dist: %f \n", dists[0], dist);
+		return dist;
 	}
-	float* get_color_distribution(string collect = "fruits") {
-		if (collect == "fruits") {
+	int* get_color_distribution(string species, string collect = "distance") {
+		if (collect == "distance") {
 			for (int i = 0; i < no_cells; i++) {
-				color_distribution[i] = cells[i].fruits.no_fruits();
+				float color = d[i] * 100;
+				color_distribution[i] = color;
 			}
 		}
+		else if (collect == "fruits") {
+			for (int i = 0; i < no_cells; i++) {
+				color_distribution[i] = f[species][i] * 100;
+			}
+		}
+		else if (collect == "cover") {
+			for (int i = 0; i < no_cells; i++) {
+				color_distribution[i] = c[species][i] * 100;
+			}
+		}
+		printf("collected %s for species %s \n", collect.c_str(), species.c_str());
 		return color_distribution;
 	}
-	void compute_d(pair<float, float> &cur_position, float a_d, float b_d) {
+	void compute_d(pair<float, float>& cur_position, float a_d, float b_d) {
 		float a_d_recipr = 1.0f / a_d;
 		for (int i = 0; i < size; i++) {
-			pair<float, float> cell_pos = get_real_position(_idx_2_pos(i));
-			float dist = get_dist(cur_position, cell_pos) * 0.05f;
-			d[i] = 1.0f - tanh(pow((-dist * a_d_recipr), b_d));
+			pair<float, float> cell_pos = get_real_position(cells[i].pos);
+			float dist = get_resourcegrid_dist(cur_position, cell_pos) * 0.05f;
+			d[i] = tanh(pow((-dist * a_d_recipr), b_d));
 		}
 	}
 	void compute_c(string species, float a_c, float b_c) {
@@ -168,7 +196,6 @@ public:
 		float a_c_recipr = 1.0f / a_c;
 		for (int i = 0; i < size; i++) {
 			_c[i] = tanh(pow((cover[i] * a_c_recipr), b_c));
-			//printf("cover: %f, pow: %f, c: %f \n", cover[i], pow((cover[i] * a_c_recipr), b_c), _c[i]);
 		}
 	}
 	void compute_f(string species, float a_f, float b_f) {
@@ -176,14 +203,20 @@ public:
 		float a_f_recipr = 1.0f / a_f;
 		for (int i = 0; i < size; i++) {
 			_f[i] = tanh(pow((fruit_abundance[i] * a_f_recipr), b_f));
-			//printf("fai: %f, pow: %f, f: %f \n", fruit_abundance[i], pow((fruit_abundance[i] * a_f_recipr), b_f), _f[i]);
 		}
 	}
-	void update_probability_distribution(string species, map<string, float> &species_params, pair<float, float> &cur_position) {
-		compute_d(cur_position, species_params["a_d"], species_params["b_d"]);
+	void update_cover_and_fruit_probabilities(string species, map<string, float>& species_params) {
 		compute_c(species, species_params["a_c"], species_params["b_c"]);
 		compute_f(species, species_params["a_f"], species_params["b_f"]);
+	}
+	void update_probability_distribution(string species, map<string, float> &species_params, pair<float, float> &cur_position) {
+		color_distribution[pos_2_idx(cur_position)] += 1;
+		compute_d(cur_position, species_params["a_d"], species_params["b_d"]);
 		compute_k(species);
+	}
+	ResourceCell* select_cell() {
+		int idx = selection_probabilities.sample();
+		return &cells[idx];
 	}
 	State* state = 0;
 	Grid* grid = 0;
@@ -194,12 +227,14 @@ public:
 	float* cover = 0;
 	float* fruit_abundance = 0;
 	float* d = 0;
-	float* k = 0;
+	int iteration = -1;
+	DiscreteProbabilityModel selection_probabilities;
 	pair<float, float>* neighbor_offsets = 0;
 	int size = 0;
-	float* color_distribution = 0;
+	int* color_distribution = 0;
 	bool has_fruits = false;
 	int total_no_fruits = 0;
+
 private:
 	void init_cells() {
 		int no_gridcells_along_x_per_resource_cell = (float)grid->width / (float)width;
@@ -214,14 +249,14 @@ private:
 		float* _f = f[species];
 		float sum = 0.0f;
 		for (int i = 0; i < size; i++) {
-			k[i] = d[i] * _c[i] * _f[i];
-			sum += k[i];
+			selection_probabilities.probabilities[i] = d[i] * _c[i] * _f[i];
+			sum += selection_probabilities.probabilities[i];
 		}
 		float sum_recipr = 1.0f / sum;
 		for (int i = 0; i < size; i++) {
-			k[i] *= sum_recipr;
-			printf("prob at %d: %f \n", i, k[i]);
+			selection_probabilities.probabilities[i] *= sum_recipr;
 		}
+		selection_probabilities.build_cdf();
 	}
 };
 

@@ -23,21 +23,25 @@ def get_color_dict(no_values, begin=0.0, end=1.0):
     #   print(key, " -- ", val)
     return color_dict
 
-def visualize_image(img, image_width):
-    img_resized = cv2.resize(img, (image_width, image_width),
+
+def visualize_image(img, image_width, interpolation="none"):
+    if interpolation == "none":
+        img_resized = cv2.resize(img, (image_width, image_width),
+               interpolation = cv2.INTER_NEAREST)
+    elif interpolation == "linear":
+        img_resized = cv2.resize(img, (image_width, image_width),
                interpolation = cv2.INTER_LINEAR)
 
     cv2.imshow("DBR Simulation (TEST)", img_resized)
     cv2.waitKey(1)
 
-def get_image(grid, collect_states, color_dict):
-    img = grid.get_distribution(collect_states)
+def get_image(img, color_dict, width):
     if (color_dict == {0:0, 1:255}):
         img *= 255
     elif (len(color_dict[0]) == 3):
-        new_img = np.zeros((grid.width, grid.width, 3), np.uint8)
-        for i in range(grid.width):
-            for j in range(grid.width):
+        new_img = np.zeros((width, width, 3), np.uint8)
+        for i in range(width):
+            for j in range(width):
                 new_img[i, j] = color_dict[img[i, j]]
         img = new_img.copy()
             
@@ -45,8 +49,12 @@ def get_image(grid, collect_states, color_dict):
     
     return img
 
+def get_image_from_grid(grid, collect_states, color_dict):
+    img = grid.get_distribution(collect_states)
+    return get_image(img, color_dict, grid.width)
+
 def visualize(grid, image_width=1000, collect_states=True, color_dict={0:0, 1:255}):
-    img = get_image(grid, collect_states, color_dict)    
+    img = get_image_from_grid(grid, collect_states, color_dict)    
     visualize_image(img, image_width)
     
     return img
@@ -55,6 +63,13 @@ def save_image(img, path, image_width = 1000):
     img_resized = cv2.resize(img, (image_width, image_width),
                interpolation = cv2.INTER_LINEAR)
     cv2.imwrite(path, img_resized)
+
+def save_resource_grid_colors(dynamics, species, resource, path, color_dict, resource_grid_relative_size, image_width=1000):
+    arr = dynamics.get_resource_grid_colors(species, resource)
+    arr -= arr.min()
+    arr = (arr / arr.max() * 100).astype(np.uint8)
+    img = get_image(arr, color_dict, 100)
+    save_image(img, path, image_width)
 
 def visualize_difference(image1, image2, image_width=1000):
     img = np.array([image2, image2, image1], np.uint8)

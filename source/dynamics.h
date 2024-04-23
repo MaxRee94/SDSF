@@ -110,7 +110,6 @@ public:
 	}
 	void init_resource_grid(map<string, map<string, float>> &animal_kernel_params) {
 		int resource_grid_no_cells_x = round((float)grid->width * resource_grid_relative_size);
-		printf("resource grid no cells x: %i \n", resource_grid_no_cells_x);
 		float resource_grid_cellsize = grid->width_r / (float)resource_grid_no_cells_x;
 		vector<string> species = {};
 		for (auto& [_species, _] : animal_kernel_params) species.push_back(_species);
@@ -172,8 +171,8 @@ public:
 			}
 		}
 	}
-	float* get_resource_grid_colors() {
-		return resource_grid.get_color_distribution();
+	int* get_resource_grid_colors(string species, string type) {
+		return resource_grid.get_color_distribution(species, type);
 	}
 	void burn() {
 		if (verbosity == 2) printf("Updated tree flammabilities.\n");

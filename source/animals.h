@@ -9,6 +9,8 @@ public:
 	Animal(map<string, float> _traits, string _species, State* _state, ResourceGrid* _resource_grid) {
 		resource_grid = _resource_grid;
 		traits = _traits;
+		traits["a_c_recipr"] = 1.0f / traits["a_c"];
+		traits["a_f_recipr"] = 1.0f / traits["a_f"];
 		species = _species;
 		state = _state;
 		recipr_speed = 1.0f / traits["speed"];
@@ -18,34 +20,35 @@ public:
 		gut_passage_time_distribution = GammaProbModel(traits["gut_passage_time_shape"], traits["gut_passage_time_scale"]);
 		rest_time_distribution = GammaProbModel(traits["rest_time_shape"], traits["rest_time_scale"]);
 	}
-	void update(vector<Seed> &seeds, int iteration) {
+	void update(vector<Seed> &seeds, int _iteration) {
 		float begin_time = curtime;
+		iteration = _iteration;
 		rest();
 		eat(begin_time);
-		digest(seeds, iteration);
+		digest(seeds);
 		move();
-		digest(seeds, iteration);
+		digest(seeds);
 	}
 	void rest() {
 		moving = false;
-		float rest_time = rest_time_distribution.get_gamma_sample() * 60.0f;
+		float rest_time = rest_time_distribution.get_gamma_sample() * 60.0f; // Multiply by 60 to convert minutes to seconds.
 		curtime += rest_time;
 	}
-	float get_biomass_consumption_budget() {
+	float get_biomass_appetite() {
 		return 0.2f; // TEMP: replace with value drawn from species-dependent poisson distribution.
 	}
 	void eat(float begin_time) {
-		float biomass_consumption_budget = get_biomass_consumption_budget();
+		float biomass_appetite = get_biomass_appetite();
 		int no_fruits_consumed = 0;
-		while (biomass_consumption_budget > 0) {
+		while (biomass_appetite > 0) {
 			Fruit fruit;
 			bool fruit_available = resource_grid->extract_fruit(position, fruit);
 			if (!fruit_available) break;
 			eat_fruit(fruit);
-			//printf("eating fruit with mass %f\n", fruit.strategy.diaspore_mass);
-			biomass_consumption_budget -= fruit.strategy.diaspore_mass;
+			biomass_appetite -= fruit.strategy.diaspore_mass;
 			no_fruits_consumed++;
 		}
+		resource_grid->update_fruit_abundance(position, species, traits);
 		set_ingestion_times(begin_time, no_fruits_consumed);
 	}
 	void set_ingestion_times(float begin_time, float no_fruits_consumed) {
@@ -63,8 +66,8 @@ public:
 			stomach_content.push_back(pair<Seed, pair<float, float>>(seed, times));
 		}
 	}
-	void digest(vector<Seed> &seeds_to_disperse, int iteration) {
-		vector<pair<Seed, pair<float, float>>> _stomach_content;
+	void digest(vector<Seed> &seeds_to_disperse) {
+		vector<pair<Seed, pair<float, float>>> _stomach_content = {};
 		for (int i = 0; i < stomach_content.size(); i++) {
 			auto [gut_passage_time, ingestion_time] = stomach_content[i].second;
 			if (gut_passage_time + ingestion_time <= curtime) {
@@ -81,13 +84,14 @@ public:
 	}
 	pair<float, float> select_destination() {
 		resource_grid->update_probability_distribution(species, traits, position);
-		pair<float, float> destination = state->grid.get_random_real_position();
-		return destination; // TEMP: replace with landscape-dependent cell selection.
+		ResourceCell* cell = resource_grid->select_cell();
+		pair<float, float> destination;
+		resource_grid->get_random_location_within_cell(cell, destination);
+		return destination;
 	}
 	void move() {
 		moving = true;
 		pair<float, float> destination = select_destination();
-		//printf("destination: %f, %f\n", destination.first, destination.second);
 		float distance = help::get_dist(position, destination);
 		trajectory = destination - position;
 		position = destination;
@@ -101,11 +105,9 @@ public:
 		pair<float, float> seed_deposition_location;
 		if (moving) {
 			seed_deposition_location = get_backwards_traced_location(time_since_defecation);
-			//printf("(backwardstraced) defecating seed at %f, %f\n", seed_deposition_location.first, seed_deposition_location.second);
 		}
 		else {
 			seed_deposition_location = position;
-			//printf("(standing still) defecating seed at %f, %f\n", seed_deposition_location.first, seed_deposition_location.second);
 		}
 		resource_grid->get_random_location_within_cell(seed_deposition_location);
 		seed.deposition_location = seed_deposition_location;
@@ -124,6 +126,7 @@ public:
 	float curtime = 0;
 	float recipr_speed = 0;
 	float travel_time = 0;
+	int iteration = -1;
 	bool moving = false;
 };
 
@@ -177,6 +180,7 @@ public:
 		for (int i = 0; i < no_iterations; i++) {
 			for (auto& [species, species_population] : total_animal_population) {
 				for (auto& animal : species_population) {
+					if (i == 0) animal.resource_grid->update_cover_and_fruit_probabilities(species, animal.traits);
 					animal.update(seeds, i);
 				}
 			}

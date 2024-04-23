@@ -41,6 +41,9 @@ public:
 		}
 		state_distribution = new int[no_cells];
 	}
+	int pos_2_idx(pair<float, float> pos) {
+		return width * (pos.second / cellsize) + (pos.first / cellsize);
+	}
 	int pos_2_idx(pair<int, int> pos) {
 		return width * pos.second + pos.first;
 	}

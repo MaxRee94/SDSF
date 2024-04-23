@@ -14,7 +14,7 @@
 #include <cmath>
 #include <math.h>
 
-
+#include "timer.h"
 
 using namespace std;
 #define INV_RAND_MAX  1.0f / (float)RAND_MAX
@@ -42,6 +42,11 @@ typedef std::set < std::pair<int, double>, _comparator> PairSet;
 
 template <typename T, typename U>
 std::pair<T, U> operator+(const std::pair<T, U>& l, const std::pair<T, U>& r) {
+	return { l.first + r.first,l.second + r.second };
+}
+
+template <typename T, typename U, typename V, typename W>
+std::pair<T, U> operator+(const std::pair<T, U>& l, const std::pair<V, W>& r) {
 	return { l.first + r.first,l.second + r.second };
 }
 
@@ -174,6 +179,9 @@ namespace help {
 	// Get maximum
 	double get_max(vector<double>* distribution);
 
+	// Do binary search in array of floats
+	int binary_search(float* arr, int size, float target);
+
 	// Get minimum
 	template <typename T>
 	double get_min(vector<T>* distribution);
@@ -209,6 +217,18 @@ namespace help {
 		float ymax = 0;
 		float ysize = 0;
 		float xsize = 0;
+	};
+
+	class DiscreteProbModelPiece {
+	public:
+		DiscreteProbModelPiece();
+		DiscreteProbModelPiece(int idx, float _ymin, float _ymax);
+		int intersect(float cdf_y);
+		void rescale(float factor);
+		int idx = 0;
+		float ymin = 0;
+		float ymax = 0;
+		float ysize = 0;
 	};
 
 	class PieceWiseLinearProbModel {
@@ -262,10 +282,42 @@ namespace help {
 		float constant = 0;
 	};
 
-	class DiscreteModel {
+	class DiscreteProbabilityModel{
 	public:
-		DiscreteModel() = default;
-		DiscreteModel(float _prob0, float _prob1, float _prob2) {
+		DiscreteProbabilityModel() = default;
+		DiscreteProbabilityModel(int _size) {
+			partitioning_resolution = round(sqrtf(_size));
+			size = _size;
+			probabilities = new float[size];
+			cdf = new float[size];
+		};
+		void build_cdf() {
+			float height = 0.0f;
+			for (int i = 0; i < size; i++) {
+				cdf[i] = height;
+				height += probabilities[i];
+			}
+		}
+		int sample() {
+			float cdf_sample = help::get_rand_float(0.0f, 1.0f);
+			int idx = binary_search(cdf, size, cdf_sample);
+			if (idx != -1) return idx;
+			idx = help::get_rand_int(0, size - 1);
+			return idx;
+		}
+		float* probabilities = 0;
+		float* cdf = 0;
+		int partitioning_resolution = 0;
+		map<float, pair<int, int>> cdf_partitioning;
+		DiscreteProbModelPiece* cdf_pieces = 0;
+		float piece_width = 0;
+		int size = 0;
+	};
+
+	class SmallDiscreteProbabilityModel {
+	public:
+		SmallDiscreteProbabilityModel() = default;
+		SmallDiscreteProbabilityModel(float _prob0, float _prob1, float _prob2) {
 			prob0 = _prob0;
 			prob1 = _prob1;
 			prob2 = _prob2;
@@ -287,7 +339,6 @@ namespace help {
 		float prob2 = 0;
 	};
 
-
 	class GammaProbModel {
 	public:
 		GammaProbModel() = default;
@@ -302,10 +353,10 @@ namespace help {
 		default_random_engine generator;
 	};
 
-	class ProbModel : public DiscreteModel, public LinearProbabilityModel, public NormalProbModel, public UniformProbModel {
+	class ProbModel : public SmallDiscreteProbabilityModel, public LinearProbabilityModel, public NormalProbModel, public UniformProbModel {
 	public:
 		ProbModel() = default;
-		ProbModel(float _prob0, float _prob1, float _prob2) : DiscreteModel(_prob0, _prob1, _prob2) { type = "discrete"; };
+		ProbModel(float _prob0, float _prob1, float _prob2) : SmallDiscreteProbabilityModel(_prob0, _prob1, _prob2) { type = "discrete"; };
 		ProbModel(float _min, float _max) : UniformProbModel(_min, _max) { type = "uniform"; };
 		ProbModel(float _mean, float _stdev, int dummy) : NormalProbModel(_mean, _stdev) { type = "normal"; };
 		ProbModel(float _q1, float _q2, float _min, float _max) : LinearProbabilityModel(_q1, _q2, _min, _max) { type = "linear"; };
@@ -320,7 +371,7 @@ namespace help {
 				return LinearProbabilityModel::linear_sample();
 			}
 			else if (type == "discrete") {
-				return DiscreteModel::pick_outcome();
+				return SmallDiscreteProbabilityModel::pick_outcome();
 			}
 			else {
 				return -999;
