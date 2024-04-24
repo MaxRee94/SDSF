@@ -23,14 +23,14 @@ public:
 		stomach_content.clear();
 		total_no_seeds_consumed = 0;
 	}
-	void update(vector<Seed> &seeds, int _iteration, State* state, ResourceGrid* resource_grid) {
+	void update(int &no_seeds_dispersed, int _iteration, State* state, ResourceGrid* resource_grid) {
 		float begin_time = curtime;
 		iteration = _iteration;
 		rest();
 		eat(resource_grid, begin_time);
-		digest(resource_grid, seeds);
+		digest(resource_grid, no_seeds_dispersed);
 		move(resource_grid);
-		digest(resource_grid, seeds);
+		digest(resource_grid, no_seeds_dispersed);
 	}
 	void rest() {
 		moving = false;
@@ -70,7 +70,7 @@ public:
 			total_no_seeds_consumed++;
 		}
 	}
-	void digest(ResourceGrid* resource_grid, vector<Seed> &seeds_to_disperse) {
+	void digest(ResourceGrid* resource_grid, int& no_seeds_dispersed) {
 		for (auto& [seed_id, seed_plus_times] : stomach_content) {
 			auto [gut_passage_time, ingestion_time] = seed_plus_times.second;
 			if (gut_passage_time + ingestion_time <= curtime) {
@@ -78,7 +78,7 @@ public:
 				float time_since_defecation = curtime - defecation_time;
 				if (iteration > 4) { // Ignore the first 5 iterations (after Morales et al 2013)
 					Seed &to_defecate = seed_plus_times.first;
-					defecate(to_defecate, time_since_defecation, seeds_to_disperse, resource_grid);
+					defecate(to_defecate, time_since_defecation, no_seeds_dispersed, resource_grid);
 					stomach_content.erase(seed_id);
 				}
 			}
@@ -103,7 +103,7 @@ public:
 	pair<float, float> get_backwards_traced_location(float time_since_defecation) {
 		return position - (time_since_defecation / travel_time) * trajectory;
 	}
-	void defecate(Seed seed, float time_since_defecation, vector<Seed>& seeds_to_disperse, ResourceGrid* resource_grid) {
+	void defecate(Seed &seed, float time_since_defecation, int &no_seeds_dispersed, ResourceGrid* resource_grid) {
 		pair<float, float> seed_deposition_location;
 		if (moving) {
 			seed_deposition_location = get_backwards_traced_location(time_since_defecation);
@@ -113,7 +113,8 @@ public:
 		}
 		resource_grid->get_random_location_within_cell(seed_deposition_location);
 		seed.deposition_location = seed_deposition_location;
-		seeds_to_disperse.push_back(seed);
+		bool germination = seed.germinate_if_location_is_viable(resource_grid->state);
+		no_seeds_dispersed++;
 	}
 	map<string, float> traits;
 	map<int, pair<Seed, pair<float, float>>> stomach_content;
@@ -172,13 +173,13 @@ public:
 			}
 		}
 	}
-	void disperse(vector<Seed>& seeds, State* state, ResourceGrid* resource_grid) {
+	void disperse(int& no_seeds_dispersed, State* state, ResourceGrid* resource_grid) {
 		place(state);
 		for (int i = 0; i < no_iterations; i++) {
 			for (auto& [species, species_population] : total_animal_population) {
 				for (auto& animal : species_population) {
 					if (i == 0) resource_grid->update_cover_and_fruit_probabilities(species, animal.traits);
-					animal.update(seeds, i, state, resource_grid);
+					animal.update(no_seeds_dispersed, i, state, resource_grid);
 				}
 			}
 			if (i + 1 == no_iterations) printf("end time after %i iterations: %f \n", i + 1, total_animal_population["Turdus pilaris"][0].curtime);

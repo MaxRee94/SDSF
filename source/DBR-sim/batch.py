@@ -8,6 +8,7 @@ import os
 import visualization as vis
 from helpers import *
 import numpy as np
+import time
 
 
 def main(process_index=None, control_variable=None, control_range=None, extra_parameters=None):
@@ -48,6 +49,7 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
     total_results_csv = csv_parent_dir + "/{}_results.csv".format(csv_parent_dir.split("state data/")[1])
     init_csv = True
     i = 0
+    time_budget_per_run = 60 * 60
     while control_value < control_range[1]:
         print(f"\nBeginning simulation with {control_variable}={str(control_value)} (process idx {str(process_index)})...")
         singlerun_csv_path = csv_parent_dir + f"/{control_variable}={str(control_value)}_process_{str(process_index)}.csv"
@@ -56,11 +58,26 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
         params[control_variable] = control_value
         print("csv path: ", params["csv_path"])
         print("image path: ", singlerun_image_path)
-        dynamics = app.main(**params)
+        
+        run_starttime = time.time()
+        q = 0
+        while True:
+            try:
+                if q > 0:
+                    print(f"\n\n -------- Error in app.main(). Restarting (attempt {q})...")
+                dynamics = app.main(**params)
+            except:
+                curtime = time.time()
+                if (curtime - run_starttime) > time_budget_per_run:
+                    print(f"\n\n -------- Error in app.main(). Time budget exceeded after {q} attempts. Skipping to next run.")
+                    break
+                q += 1
+            
         try:
             _io.export_state(dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value)
         except:
             time.sleep(3)
+            _io.export_state(dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value)
         init_csv = False
         control_value = control_range[0] + control_range[2] * i + process_index * (control_range[2] / 7)
         i+=1

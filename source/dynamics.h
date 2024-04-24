@@ -45,7 +45,7 @@ public:
 		grid->reset_state_distr();
 
 		// Do simulation
-		disperse();
+		if (time > 1) disperse();
 		burn();
 		grow();
 		induce_background_mortality();
@@ -172,6 +172,14 @@ public:
 		if (resource_grid.has_fruits) {
 			animal_dispersal.disperse(&state, &resource_grid, 1);
 		}
+
+		// HOTFIX: Remove trees with id -1
+		for (auto& [id, tree] : pop->members) {
+			if (tree.id == -1) {
+				pop->remove(id);
+			}
+		}
+
 		if (verbosity > 0) printf("Number of seed bearing trees: %i, #seeds (all): %i, #germinated seeds: %i \n", x, j, pop->size() - pre_dispersal_popsize);
 		if (verbosity > 0) printf("Number of fruits: %i \n", resource_grid.total_no_fruits);
 		seeds_dispersed = j;
@@ -280,8 +288,8 @@ public:
 	}
 	int percolate(Cell* cell, float t_start) {
 		std::queue<Cell*> queue;
-		queue.push(cell);
 		burn_cell(cell, t_start, queue);
+		queue.push(cell);
 		int no_burned_cells = 1;
 		if (verbosity == 2) printf("Percolating fire...\n");
 		pop_size = state.population.size();
@@ -293,8 +301,8 @@ public:
 			for (int i = 0; i < 8; i++) {
 				Cell* neighbor = grid->get_cell_at_position(cell->pos + neighbor_offsets[i]);
 				if (cell_will_ignite(neighbor, t_start)) {
-					queue.push(neighbor);
 					burn_cell(neighbor, t_start, queue);
+					queue.push(neighbor);
 					no_burned_cells++;
 				}
 			}

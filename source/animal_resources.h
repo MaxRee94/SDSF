@@ -11,11 +11,11 @@ public:
 		fruits.clear();
 	}
 	bool extract_random_fruit(Fruit &fruit) {
-		if (fruits.no_fruits() == 0) return false;
+		if (fruits.no_fruits() <= 0) return false;
 		int rand_idx = help::get_rand_int(0, fruits.no_fruits() - 1);
-		fruits.get(rand_idx, fruit);
+		bool success = fruits.get(rand_idx, fruit);
 		fruits.remove(rand_idx);
-		return true;
+		return success;
 	}
 	float get_fruit_abundance_index() {
 		if (fruits.no_fruits() == 0) return 0.0f;
@@ -204,7 +204,7 @@ public:
 		else if (collect == "k") {
 			for (int i = 0; i < no_cells; i++) {
 				float color = selection_probabilities.probabilities[i] * 1000000;
-				color = f[species][i] * c[species][i] * dist_aggregate[i] * 1000000;
+				//color = f[species][i] * c[species][i] * dist_aggregate[i] * 1000000;
 				color_distribution[i] = color;
 			}
 		}

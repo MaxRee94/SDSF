@@ -42,16 +42,9 @@ public:
 	void disperse(State* state, ResourceGrid* resource_grid, int verbosity = 0) {
 		resource_grid->compute_cover_and_fruit_abundance();
 		animals.place(state);
-		vector<Seed> seeds;
-		animals.disperse(seeds, state, resource_grid);
-		if (verbosity > 0) printf("Animal popsize: %i (%f), No seeds dispersed: %i\n", animals.popsize(), animals.total_no_animals, seeds.size());
-		for (int i = 0; i < seeds.size(); i++) {
-			bool germinated = seeds[i].germinate_if_location_is_viable(state);
-			if (germinated) {
-				int id = state->population.no_created_trees - 1;
-				//printf("Germinated tree id: %i (key: %i)\n", state->population.get(id)->id, id);
-			}
-		}
+		int no_seeds_dispersed = 0;
+		animals.disperse(no_seeds_dispersed, state, resource_grid);
+		if (verbosity > 0) printf("Animal popsize: %i, No seeds dispersed: %i\n", animals.popsize(), no_seeds_dispersed);
 	}
 	Animals animals;
 };

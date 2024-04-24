@@ -74,6 +74,7 @@ def init(
         dynamics, dispersal_mode, linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max,
         wind_dispersal_params, multi_disperser_params, animal_dispersal_params
     )
+    dynamics.state.repopulate_grid(0)
     
     # Create a color dictionary
     no_colors = 100
@@ -130,7 +131,8 @@ def updateloop(dynamics, color_dict, **user_args):
         graphs = vis.Graphs(dynamics)
     while not termination_condition_satisfied(dynamics, start, user_args):
         dynamics.update()
-        continue
+        print("finished update")
+        #continue
         if user_args["headless"]:
             # Get a color image representation of the initial state
             img = vis.get_image_from_grid(dynamics.state.grid, collect_states, color_dict)

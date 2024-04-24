@@ -79,10 +79,13 @@ public:
 	void clear() {
 		fruits.clear();
 	}
-	void get(int idx, Fruit &fruit) {
+	bool get(int idx, Fruit &fruit) {
+		if (idx >= fruits.size()) return false;
 		fruit = fruits[idx];
+		return true;
 	}
 	void remove(int idx) {
+		if (idx >= fruits.size()) return;
 		fruits.erase(fruits.begin() + idx);
 	}
 	vector<Fruit> fruits;
