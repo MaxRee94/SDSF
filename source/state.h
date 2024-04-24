@@ -41,6 +41,7 @@ public:
 		if (verbosity == 2) cout << "Repopulating grid..." << endl;
 		grid.reset();
 		for (auto& [id, tree] : population.members) {
+			if (id == -1 || tree.id == -1) population.remove(id); // HOTFIX: Sometimes trees are not initialized properly and need to be removed.
 			grid.populate_tree_domain(&tree);
 			tree.update_life_phase(population.max_radius, seed_bearing_threshold);
 		}
@@ -83,6 +84,7 @@ public:
 		while (grid.get_tree_cover() < _tree_cover) {
 			pair<float, float> position = grid.get_random_real_position();
 			Tree* tree = population.add(position);
+			if (tree->id == -1) population.remove(population.no_created_trees - 1); // HOTFIX: Sometimes trees are not initialized properly and need to be removed.
 			grid.populate_tree_domain(tree);
 			if (population.get_strat(tree->id)->vector == "wind") {
 				wind_trees++;

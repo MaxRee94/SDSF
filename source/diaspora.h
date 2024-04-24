@@ -6,7 +6,7 @@
 class Seed {
 public:
 	Seed() = default;
-	Seed(Strategy& _strategy
+	Seed(Strategy &_strategy
 	) :
 		strategy(_strategy)
 	{};
@@ -47,7 +47,7 @@ private:
 class Fruit {
 public:
 	Fruit() = default;
-	Fruit(Strategy &_strategy, State* _state) : strategy(_strategy), state(_state) {};
+	Fruit(Strategy &_strategy) : strategy(_strategy) {};
 	void get_seeds(vector<Seed>& seeds) {
 		for (int i = 0; i < strategy.no_seeds_per_diaspore; i++) {
 			Seed seed(strategy);
@@ -55,24 +55,18 @@ public:
 		}
 	}
 	Strategy strategy;
-	State* state = 0;
 };
 
 
 class Fruits {
 public:
 	Fruits() = default;
-	Fruits(State* _state) {
-		state = _state;
-		_pop = &state->population;
-		_grid = &state->grid;
-	}
 	void push(Fruit &fruit) {
 		fruits.push_back(fruit);
 	}
 	void add_fruits(Crop* crop) {
 		for (int i = 0; i < crop->no_diaspora; i++) {
-			Fruit fruit(crop->strategy, state);
+			Fruit fruit(crop->strategy);
 			fruits.push_back(fruit);
 		}
 	}
@@ -91,9 +85,6 @@ public:
 	void remove(int idx) {
 		fruits.erase(fruits.begin() + idx);
 	}
-	State* state = 0;
-	Population* _pop = 0;
-	Grid* _grid = 0;
 	vector<Fruit> fruits;
 };
 

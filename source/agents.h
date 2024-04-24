@@ -31,16 +31,17 @@ public:
 	StrategyGenerator(map<string, map<string, float>> user_parameters) {
 		for (auto& [trait, value_range] : user_parameters) {
 			ProbModel prob_model;
-			if (distribution_types[value_range["distribution_type"]] == "uniform") {
+			string distribution_type = distribution_types[value_range["distribution_type"]];
+			if (distribution_type == "uniform") {
 				prob_model = ProbModel(value_range["min"], value_range["max"]);
 			}
-			else if (distribution_types[value_range["distribution_type"]] == "linear") {
+			else if (distribution_type == "linear") {
 				prob_model = ProbModel(value_range["q1"], value_range["q2"], value_range["min"], value_range["max"]);
 			}
-			else if (distribution_types[value_range["distribution_type"]] == "normal") {
+			else if (distribution_type == "normal") {
 				prob_model = ProbModel(value_range["mean"], value_range["stdev"], 0);
 			}
-			else if (distribution_types[value_range["distribution_type"]] == "discrete") {
+			else if (distribution_type == "discrete") {
 				prob_model = ProbModel(value_range["probability0"], value_range["probability1"], value_range["probability2"]);
 			}
 			trait_distributions[trait] = prob_model;
@@ -71,7 +72,6 @@ public:
 class Tree {
 public:
 	Tree() = default;
-	Tree(pair<float, float> _position) : position(_position) {};
 	Tree(int _id, pair<float, float> _position, float _radius, float _radius_tmin1) : position(_position), radius(_radius), radius_tmin1(_radius_tmin1) {
 		id = _id;
 	};
@@ -114,6 +114,11 @@ public:
 		float radius_avg = (tree.radius + tree.radius_tmin1) * 0.5;
 		//printf("radius avg: %f, cur radius: %f, old radius: %f, cubed radius: %f \n", radius_avg, tree_radius, tree_radius_tmin1, cubed(radius_avg));
 		mass = cubed(radius_avg) - (cubed(tree.radius) - cubed(tree.radius_tmin1));
+		if (mass < 0) {
+			printf("mass calculated: %f, \n", mass);
+			printf("tree id: %i, crop id %i, radius: %f, radius_tmin1: %f \n", tree.id, id, tree.radius, tree.radius_tmin1);
+		}
+		mass = max(0, mass);
 		mass *= mass_budget_factor;
 	}
 	void compute_no_seeds() {
@@ -123,6 +128,7 @@ public:
 		no_diaspora = mass / strategy.diaspore_mass;
 	}
 	void update(Tree& tree) {
+		if (tree.id != id) printf("\n\n--------------- CROP ID (%i) DOES NOT MATCH TREE ID (%i) ---------------\n\n", id, tree.id);
 		compute_mass(tree);
 		compute_no_diaspora();
 		compute_no_seeds();
@@ -133,7 +139,6 @@ public:
 	float seed_mass = 0;
 	float mass_budget_factor = 0;
 	Strategy strategy;
-	Kernel* kernel = 0;
 	pair<float, float> origin = pair<float, float>(0, 0);
 	int id = -1;
 };
@@ -176,13 +181,8 @@ public:
 
 		return &members[tree.id];
 	}
-	Kernel* add_kernel_linear_diffusion(int tree_id, float q1, float q2, float min, float max) {
-		Kernel kernel(tree_id, q1, q2, min, max);
-		kernels[tree_id] = kernel;
-		return &kernel;
-	}
-	Kernel* add_kernel(int tree_id, Kernel &kernel) {
-		kernels[tree_id] = kernel;
+	Kernel* add_kernel(string tree_dispersal_vector, Kernel &kernel) {
+		kernels[tree_dispersal_vector] = kernel;
 		return &kernel;
 	}
 	Tree* get(int id) {
@@ -196,6 +196,9 @@ public:
 	}
 	Strategy* get_strat(int id) {
 		return &strategies[id];
+	}
+	Kernel* get_kernel(int id) {
+		return &kernels[strategies[id].vector];
 	}
 	int size() {
 		return members.size();
@@ -215,8 +218,8 @@ public:
 	}
 	unordered_map<int, Tree> members;
 	unordered_map<int, Crop> crops;
-	unordered_map<int, Kernel> kernels;
 	unordered_map<int, Strategy> strategies;
+	unordered_map<string, Kernel> kernels;
 	help::LinearProbabilityModel radius_probability_model;
 	StrategyGenerator strategy_generator;
 	float max_radius = 0;

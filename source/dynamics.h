@@ -33,9 +33,9 @@ public:
 			gridsize, cellsize, max_radius, radius_q1, radius_q2, seed_bearing_threshold, mass_budget_factor,
 			_seed_mass, saturation_threshold, strategy_distribution_params
 		);
-		linear_disperser = Disperser(&state);
-		wind_disperser = WindDispersal(&state);
-		animal_dispersal = AnimalDispersal(&state);
+		linear_disperser = Disperser();
+		wind_disperser = WindDispersal();
+		animal_dispersal = AnimalDispersal();
 		neighbor_offsets = state.neighbor_offsets;
 	}
 	void update() {
@@ -57,12 +57,6 @@ public:
 	}
 	void report_state() {
 		printf("- Tree cover: %f, #trees: %i \n", grid->get_tree_cover(), pop->size());
-		if (time == 1 && global_kernels.size() != 0 && verbosity > 0) {
-			Crop* crop = pop->get_crop(1);
-			printf("total biomass/tree: %f \n", crop->mass);
-			printf("seed mass: %f \n", crop->seed_mass);
-			printf("no seeds: %i \n", crop->no_seeds);
-		}
 		if (verbosity == 2) for (auto& [id, tree] : pop->members) if (id % 500 == 0) printf("Radius of tree %i : %f \n", id, tree.radius);
 	}
 	vector<float> get_ordered_fire_ignition_times() {
@@ -80,6 +74,7 @@ public:
 	void grow_tree(Tree &tree) {
 		// TEMP: constant growth rate. TODO: Make dependent on radius and life phase (resprout or seedling)
 		tree.radius_tmin1 = tree.radius;
+		if (tree.radius >= pop->max_radius) return;
 		tree.radius = min(tree.radius + sqrtf(tree.radius) * growth_rate_multiplier, pop->max_radius);
 	}
 	void grow() {
@@ -89,20 +84,25 @@ public:
 	}
 	void set_global_linear_kernel(float lin_diffuse_q1, float lin_diffuse_q2, float min, float max) {
 		global_kernels["linear"] = Kernel(1, lin_diffuse_q1, lin_diffuse_q2, min, max);
+		pop->add_kernel("linear", global_kernels["linear"]);
 		cout << "Global kernel created (Linear diffusion). " << endl;
 	}
 	void set_global_wind_kernel(float wspeed_gmean, float wspeed_stdev, float seed_tspeed, float abs_height) {
 		global_kernels["wind"] = Kernel(1, grid->width_r, wspeed_gmean, wspeed_stdev, seed_tspeed, abs_height);
+		pop->add_kernel("wind", global_kernels["wind"]);
 		cout << "Global kernel created (Wind dispersal). " << endl;
 	}
 	void set_global_animal_kernel(map<string, map<string, float>> &animal_kernel_params) {
 		global_kernels["animal"] = Kernel(1, "animal");
-		animals = Animals(&state, animal_kernel_params);
 		init_resource_grid(animal_kernel_params);
+		animal_dispersal.animals = Animals(&state, animal_kernel_params);
+		animal_dispersal.animals.initialize_population();
+		pop->add_kernel("animal", global_kernels["animal"]);
 		cout << "Global kernel created (Dispersal by animals). \n";
 	}
 	void set_global_kernels(map<string, map<string, float>> nonanimal_kernel_params, map<string, map<string, float>> animal_kernel_params) {
-		map<string, float> params = nonanimal_kernel_params["linear"];
+		map<string, float> params;
+		params = nonanimal_kernel_params["linear"];
 		set_global_linear_kernel(params["lin_diffuse_q1"], params["lin_diffuse_q2"], params["min"], params["max"]);
 		params = nonanimal_kernel_params["wind"];
 		set_global_wind_kernel(params["wspeed_gmean"], params["wspeed_stdev"], params["seed_tspeed"], params["abs_height"]);
@@ -118,11 +118,11 @@ public:
 	bool does_global_kernel_exist(string type) {
 		return global_kernels.find(type) != global_kernels.end();
 	}
-	bool ensure_crop_has_kernel(Crop* crop) {
-		if (crop->kernel == nullptr) {
-			string tree_dispersal_vector = pop->get_strat(crop->id)->vector;
+	bool ensure_kernel_exists(int id) {
+		if (pop->get_kernel(id)->id == -1) {
+			string tree_dispersal_vector = pop->get_strat(id)->vector;
 			if (does_global_kernel_exist(tree_dispersal_vector))
-				crop->kernel = pop->add_kernel(crop->id, global_kernels[tree_dispersal_vector]);
+				pop->add_kernel(tree_dispersal_vector, global_kernels[tree_dispersal_vector]);
 			else {
 				printf("\n\n-------------- ERROR: No global kernel found for tree dispersal vector %s. \n\n", tree_dispersal_vector.c_str());
 				//exit(1); Let's not exit the program for now
@@ -139,26 +139,38 @@ public:
 		for (auto& [id, tree] : pop->members) {
 			if (tree.life_phase < 2) continue;
 			x++;
+			if (id == -1 || tree.id == -1) {
+				printf("tree = %i, with key = %i \n", tree.id, id);
+				pop->remove(id);
+				continue;
+			}
 			Crop* crop = pop->get_crop(id);
-			bool has_kernel = ensure_crop_has_kernel(crop);
-			if (!has_kernel) {
-				printf("crop id: %i \n ", crop->id);
+			if (crop->id == -1) {
+				printf("crop id was -1. Removing tree %i \n", id);
+				pop->remove(id);
+				continue;
+			}
+			bool kernel_exists = ensure_kernel_exists(id);
+			if (!kernel_exists) {
+				printf("----- crop id: %i \n ", crop->id);
+				pop->remove(id);
 				continue;
 			}
 			crop->update(tree);
-			if (crop->kernel->type == "animal") {
+			//printf("tree radius: %f, tree radius t-1: %f, crop mass: %f, no diaspora: %i, no seeds: %i \n", tree.radius, tree.radius_tmin1, crop->mass, crop->no_diaspora, crop->no_seeds);
+			if (pop->get_kernel(id)->type == "animal") {
 				resource_grid.add_crop(tree, crop);
 			}
-			else if (crop->kernel->type == "wind") {
-				wind_disperser.disperse_crop(crop);
+			else if (pop->get_kernel(id)->type == "wind") {
+				wind_disperser.disperse_crop(crop, &state);
 			}
 			else {
-				linear_disperser.disperse_crop(crop);
+				linear_disperser.disperse_crop(crop, &state);
 			}
 			j += crop->no_seeds;
 		}
 		if (resource_grid.has_fruits) {
-			animal_dispersal.disperse(animals, &resource_grid, 1);
+			animal_dispersal.disperse(&state, &resource_grid, 1);
 		}
 		if (verbosity > 0) printf("Number of seed bearing trees: %i, #seeds (all): %i, #germinated seeds: %i \n", x, j, pop->size() - pre_dispersal_popsize);
 		if (verbosity > 0) printf("Number of fruits: %i \n", resource_grid.total_no_fruits);

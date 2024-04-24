@@ -65,7 +65,7 @@ def save_image(img, path, image_width = 1000):
     cv2.imwrite(path, img_resized)
 
 def save_resource_grid_colors(dynamics, species, resource, path, color_dict, resource_grid_relative_size, image_width=1000):
-    arr = dynamics.get_resource_grid_colors(species, resource)
+    arr = dynamics.get_resource_grid_colors(species, resource, 0)
     arr -= arr.min()
     arr = (arr / arr.max() * 100).astype(np.uint8)
     img = get_image(arr, color_dict, 100)

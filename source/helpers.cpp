@@ -543,8 +543,9 @@ int help::binary_search(float* arr, int size, float target) {
         else {
             next_element = INFINITY;
         }
-        if (target >= arr[m] && target <= next_element)
+        if (target >= arr[m] && target <= next_element) {
             return m;
+        }   
 
         // If target greater, ignore left half
         if (arr[m] < target)

@@ -11,11 +11,11 @@
     },
     "animal": {
         "population": {
-            "density": 10,
+            "density": 100,
             "no_iterations": 100
         },
         "Turdus iliacus": {
-            "population_fraction": 0.2,
+            "population_fraction": 0.05,
             "fruitsize_pref": 0.02,
             "gut_passage_time_shape": 1.59,
             "gut_passage_time_scale": 13.51351,
@@ -32,7 +32,7 @@
             "b_o": -3.718
         },
         "Turdus pilaris": {
-            "population_fraction": 0.8,
+            "population_fraction": 0.95,
             "fruitsize_pref": 0.02,
             "gut_passage_time_shape": 1.59,
             "gut_passage_time_scale": 28.0112,

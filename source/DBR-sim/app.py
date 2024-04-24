@@ -9,6 +9,8 @@ import os
 from pathlib import Path
 from matplotlib import pyplot as plt
 import json
+import scipy.stats as stats
+import math
 
 import visualization as vis
 import file_handling as io
@@ -16,8 +18,8 @@ from helpers import *
 from config import *
 
 sys.path.append(BUILD_DIR)
-#from x64.Debug import dbr_cpp as cpp
-from x64.Release import dbr_cpp as cpp
+from x64.Debug import dbr_cpp as cpp
+#from x64.Release import dbr_cpp as cpp
 
 
 def set_dispersal_kernel(
@@ -75,7 +77,7 @@ def init(
     
     # Create a color dictionary
     no_colors = 100
-    color_dict = vis.get_color_dict(no_colors, begin=0.3, end=0.6)
+    color_dict = vis.get_color_dict(no_colors, begin=0.2, end=0.5)
     
     # Visualize the initial state
     collect_states = True
@@ -139,14 +141,18 @@ def updateloop(dynamics, color_dict, **user_args):
             )
         imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
         vis.save_image(img, imagepath, get_max(1000, img.shape[0]))
-        
+
         # Get color image representations of the resource grid from the last iteration
         cover_path = os.path.join(DATA_OUT_DIR, "image_timeseries/cover/" + str(dynamics.time) + ".png")
         fruits_path = os.path.join(DATA_OUT_DIR, "image_timeseries/fruits/" + str(dynamics.time) + ".png")
         visits_path = os.path.join(DATA_OUT_DIR, "image_timeseries/visits/" + str(dynamics.time) + ".png")
+        distance_path = os.path.join(DATA_OUT_DIR, "image_timeseries/distance/" + str(dynamics.time) + ".png")
+        k_path = os.path.join(DATA_OUT_DIR, "image_timeseries/k/" + str(dynamics.time) + ".png")
         vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "cover", cover_path, color_dict, user_args["resource_grid_relative_size"])
         vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "fruits", fruits_path, color_dict, user_args["resource_grid_relative_size"])
         vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "visits", visits_path, color_dict, user_args["resource_grid_relative_size"])
+        vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "distance", distance_path, color_dict, user_args["resource_grid_relative_size"])
+        vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "k", k_path, color_dict, user_args["resource_grid_relative_size"])
 
         csv_path = io.export_state(dynamics, csv_path, init_csv)
         init_csv = False
@@ -163,18 +169,42 @@ def updateloop(dynamics, color_dict, **user_args):
 def do_tests(**user_args):
     tests = cpp.Tests()
     tests.run_all(True)
- 
+
+
+def test_kernel():
+    cpp.init_RNG()
+    dist_max = 200
+    windspeed_gmean = 20
+    windspeed_stdev = 6
+    seed_terminal_speed = 1.5
+    abscission_height = 15
+    wind_kernel = cpp.Kernel(1, dist_max, windspeed_gmean, windspeed_stdev, seed_terminal_speed, abscission_height)
+    vis.visualize_kernel(wind_kernel)
+    return
+
+
+def test_discrete_probmodel():
+    cpp.init_RNG()
+    # Get a list of probabilities (normal distributed)
+    x_interval = np.linspace(-3, 3, 100)
+    probabilities = np.array(stats.norm.pdf(x_interval))
+    probabilities = list(probabilities / np.sum(probabilities))
+    #print("probs: ", probabilities)
+    
+    # Create the discrete probability model
+    probmodel = cpp.DiscreteProbabilityModel(100)
+    probmodel.set_probabilities(probabilities)
+    
+    # Plot samples from the model
+    samples = [probmodel.sample() for i in range(100000)]
+    plt.hist(samples, bins=50)
+    plt.show()
+
 
 def main(**user_args):
-    # cpp.init_RNG()
-    # dist_max = 200
-    # windspeed_gmean = 20
-    # windspeed_stdev = 6
-    # seed_terminal_speed = 1.5
-    # abscission_height = 15
-    # wind_kernel = cpp.Kernel(1, dist_max, windspeed_gmean, windspeed_stdev, seed_terminal_speed, abscission_height)
-    # vis.visualize_kernel(wind_kernel)
-    # return
+    # test_kernel()
+    #test_discrete_probmodel()
+    #return
 
     if user_args["test"] == "all":
         do_tests(**user_args)

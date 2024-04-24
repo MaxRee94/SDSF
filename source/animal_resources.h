@@ -8,8 +8,6 @@ public:
 	ResourceCell() = default;
 	ResourceCell(pair<int, int> _position, int _idx): pos(_position), idx(_idx) {}
 	void reset() {
-		trees.clear();
-		tree_cover = 0.0f;
 		fruits.clear();
 	}
 	bool extract_random_fruit(Fruit &fruit) {
@@ -27,8 +25,6 @@ public:
 	pair<int, int> grid_bb_min;
 	pair<int, int> grid_bb_max;
 	int idx = 0;
-	vector<int> trees;
-	float tree_cover = 0.0f;
 	Fruits fruits;
 };
 
@@ -40,7 +36,6 @@ public:
 		width = _width;
 		state = _state;
 		grid = &state->grid;
-		pop = &state->population;
 		width_r = (float)width * cellsize;
 		size = width * width;
 		cells = new ResourceCell[size];
@@ -53,9 +48,12 @@ public:
 		d = new float[size];
 		cover = new float[size];
 		fruit_abundance = new float[size];
+		dist_aggregate = new float[size];
 		selection_probabilities.probabilities = new float[size];
 		color_distribution = new int[size];
-		for (int i = 0; i < size; i++) color_distribution[i] = 0;
+		visits = new int[size];
+		for (int i = 0; i < size; i++) visits[i] = 0;
+		for (int i = 0; i < size; i++) dist_aggregate[i] = 0;
 		for (int i = 0; i < species.size(); i++) {
 			c[species[i]] = new float[size];
 			f[species[i]] = new float[size];
@@ -66,15 +64,15 @@ public:
 			cells[i].reset();
 		}
 		has_fruits = false;
+		total_no_fruits = 0;
 	}
 	void add_crop(Tree &tree, Crop* crop) {
 		ResourceCell* cell = get_resource_cell_at_position(tree.position);
 		cell->fruits.add_fruits(crop);
 		total_no_fruits += crop->no_diaspora;
-		cell->trees.push_back(tree.id);
 		has_fruits = true;
 	}
-	float get_tree_cover_within_bb(pair<int, int> bb_min, pair<int, int> bb_max) {
+	float get_tree_cover_within_resourcegrid_bb(pair<int, int> bb_min, pair<int, int> bb_max) {
 		int no_forest_cells = 0;
 		int no_cells = 0;
 		for (int x = bb_min.first; x < bb_max.first; x++) {
@@ -89,7 +87,7 @@ public:
 	void compute_cover_and_fruit_abundance() {
 		for (int i = 0; i < size; i++) {
 			ResourceCell* cell = &cells[i];
-			cover[i] = get_tree_cover_within_bb(cell->grid_bb_min, cell->grid_bb_max);
+			cover[i] = get_tree_cover_within_resourcegrid_bb(cell->grid_bb_min, cell->grid_bb_max);
 			cover[i] = asin(sqrt(cover[i]));
 			fruit_abundance[i] = cell->get_fruit_abundance_index();
 		}
@@ -143,14 +141,17 @@ public:
 	pair<float, float> get_real_cell_position(ResourceCell* cell) {
 		return pair<float, float>(cell->pos.first * cellsize, cell->pos.second * cellsize);
 	}
-	float get_resourcegrid_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
-		vector<float> dists = { help::get_manhattan_dist(a, b)};
+	float get_resourcegrid_dist(pair<float, float> a, pair<float, float>* b, bool verbose = false) {
+		// This function yields the minimum distance, taking into account periodic boundary conditions.
+		// WARNING: Position b may be modified in the process to a position outside of the grid.
+		vector<float> dists = { help::get_manhattan_dist(a, *b)};
 		float min_dist = dists[0];
 		int min_idx = 0;
 		for (int i = 0; i < 8; i++) {
 			float dist = help::get_manhattan_dist(
-				neighbor_offsets[i] * width_r + b, a
+				neighbor_offsets[i] * width_r + *b, a
 			);
+
 			if (dist < min_dist && dist > 0) {
 				min_dist = dist;
 				min_idx = i + 1;
@@ -158,15 +159,30 @@ public:
 			dists.push_back(dist);
 		}
 		float dist;
-		if (min_idx != 0) dist = help::get_dist(neighbor_offsets[min_idx - 1] * width_r + b, a);
-		else dist = help::get_dist(a, b);
+		if (min_idx != 0) {
+			dist = help::get_dist(neighbor_offsets[min_idx - 1] * width_r + *b, a);
+			*b = neighbor_offsets[min_idx - 1] * width_r + *b;
+		}
+		else dist = help::get_dist(a, *b);
 		if (verbose) printf("normal dist: %f, periodic dist: %f \n", dists[0], dist);
 		return dist;
 	}
-	int* get_color_distribution(string species, string collect = "distance") {
+	float get_resourcegrid_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
+		// This function yields the minimum distance, taking into account periodic boundary conditions.
+		// Position b is not modified in the process.
+		pair<float, float> _b = b;
+		return get_resourcegrid_dist(a, &_b, verbose);
+	}
+	pair<float, float> get_shortest_trajectory(pair<float, float> a, pair<float, float> _b, float &distance) {
+		pair<float, float> b = _b;
+		distance = get_resourcegrid_dist(a, &b); // Modify position b if needed to ensure it is at the shortest distance from a.
+		//printf("new b: %f, %f. Trajectory: %f, %f \n", b.first, b.second, (b-a).first, (b-a).second);
+		return b - a;
+	}
+	int* get_color_distribution(string species, string collect = "distance", int verbosity = 0) {
 		if (collect == "distance") {
 			for (int i = 0; i < no_cells; i++) {
-				float color = d[i] * 100;
+				float color = dist_aggregate[i] * 10000;
 				color_distribution[i] = color;
 			}
 		}
@@ -180,7 +196,19 @@ public:
 				color_distribution[i] = c[species][i] * 100;
 			}
 		}
-		printf("collected %s for species %s \n", collect.c_str(), species.c_str());
+		else if (collect == "visits") {
+			for (int i = 0; i < no_cells; i++) {
+				color_distribution[i] = visits[i] * 40;
+			}
+		}
+		else if (collect == "k") {
+			for (int i = 0; i < no_cells; i++) {
+				float color = selection_probabilities.probabilities[i] * 1000000;
+				color = f[species][i] * c[species][i] * dist_aggregate[i] * 1000000;
+				color_distribution[i] = color;
+			}
+		}
+		if (verbosity > 0) printf("collected %s for species %s \n", collect.c_str(), species.c_str());
 		return color_distribution;
 	}
 	void compute_d(pair<float, float>& cur_position, float a_d, float b_d) {
@@ -189,6 +217,7 @@ public:
 			pair<float, float> cell_pos = get_real_position(cells[i].pos);
 			float dist = get_resourcegrid_dist(cur_position, cell_pos) * 0.05f;
 			d[i] = tanh(pow((-dist * a_d_recipr), b_d));
+			dist_aggregate[i] += d[i];
 		}
 	}
 	void compute_c(string species, float a_c, float b_c) {
@@ -208,9 +237,11 @@ public:
 	void update_cover_and_fruit_probabilities(string species, map<string, float>& species_params) {
 		compute_c(species, species_params["a_c"], species_params["b_c"]);
 		compute_f(species, species_params["a_f"], species_params["b_f"]);
+		for (int i = 0; i < size; i++) dist_aggregate[i] = 0;
+		for (int i = 0; i < size; i++) visits[i] = 0;
 	}
 	void update_probability_distribution(string species, map<string, float> &species_params, pair<float, float> &cur_position) {
-		color_distribution[pos_2_idx(cur_position)] += 1;
+		visits[pos_2_idx(cur_position)] += 1;
 		compute_d(cur_position, species_params["a_d"], species_params["b_d"]);
 		compute_k(species);
 	}
@@ -220,13 +251,14 @@ public:
 	}
 	State* state = 0;
 	Grid* grid = 0;
-	Population* pop = 0;
 	ResourceCell* cells = 0;
 	map<string, float*> c;
 	map<string, float*> f;
+	float* dist_aggregate = 0;
 	float* cover = 0;
 	float* fruit_abundance = 0;
 	float* d = 0;
+	int* visits = 0;
 	int iteration = -1;
 	DiscreteProbabilityModel selection_probabilities;
 	pair<float, float>* neighbor_offsets = 0;

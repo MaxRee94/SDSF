@@ -121,6 +121,22 @@ PYBIND11_MODULE(dbr_cpp, module) {
             return as_2d_numpy_array(color_distribution, dynamics.resource_grid.width);
         });
 
+    py::class_<DiscreteProbabilityModel>(module, "DiscreteProbabilityModel")
+        .def(py::init<>())
+        .def(py::init<const int&>())
+        .def("set_probabilities", [](DiscreteProbabilityModel& model, py::array_t<float>& arr) {
+            auto buf1 = arr.request();
+            float* ptr = (float*)buf1.ptr;
+            size_t size = buf1.shape[0];
+			for (int x = 0; x < size; x++) {
+                model.probabilities[x] = ptr[x];
+            }
+            model.build_cdf();
+		})
+        .def("sample", [](DiscreteProbabilityModel& model) {
+            return model.sample();
+        });
+
     py::class_<Population>(module, "Population")
         .def(py::init<>())
         .def(py::init<const float&, const float&, const float&, const float&, const float&, const map<string, map<string, float>>& >())
