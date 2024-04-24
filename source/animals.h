@@ -21,6 +21,7 @@ public:
 	void reset() {
 		curtime = 0;
 		stomach_content.clear();
+		total_no_seeds_consumed = 0;
 	}
 	void update(vector<Seed> &seeds, int _iteration, State* state, ResourceGrid* resource_grid) {
 		float begin_time = curtime;
@@ -41,57 +42,47 @@ public:
 	}
 	void eat(ResourceGrid* resource_grid, float begin_time) {
 		float biomass_appetite = get_biomass_appetite();
-		int no_seeds_consumed = 0;
+		vector<int> consumed_seed_ids = {};
 		while (biomass_appetite > 0) {
 			Fruit fruit;
 			bool fruit_available = resource_grid->extract_fruit(position, fruit);
 			if (!fruit_available) break;
-			eat_fruit(fruit, no_seeds_consumed);
+			eat_fruit(fruit, consumed_seed_ids);
 			biomass_appetite -= fruit.strategy.diaspore_mass;
 		}
 		resource_grid->update_fruit_abundance(position, species, traits);
-		set_ingestion_times(begin_time, no_seeds_consumed);
+		set_ingestion_times(begin_time, consumed_seed_ids);
 	}
-	void set_ingestion_times(float begin_time, int no_seeds_consumed) {
-		float time_stepsize = (curtime - begin_time) / (float)no_seeds_consumed;
-		//printf("begin time: %f, curtime: %f, time_stepsize: %f\n", begin_time, curtime, time_stepsize);
-		for (int i = 0; i < no_seeds_consumed; i++) {
-			stomach_content[stomach_content.size() - 1 - i].second.second = curtime - (float)(i + 1) * time_stepsize;
-			//printf("ingestion time: %f\n", stomach_content[stomach_content.size() - 1 - i].second.second);
+	void set_ingestion_times(float begin_time, vector<int> &consumed_seed_ids) {
+		float time_stepsize = (curtime - begin_time) / (float)consumed_seed_ids.size();
+		for (int i = consumed_seed_ids.size() - 1; i >= 0; i--) {
+			stomach_content[consumed_seed_ids[i]].second.second = curtime - (float)(i + 1) * time_stepsize;
 		}
 	}
-	void eat_fruit(Fruit &fruit, int &no_fruits_consumed) {
+	void eat_fruit(Fruit &fruit, vector<int> &consumed_seed_ids) {
 		vector<Seed> seeds;
 		fruit.get_seeds(seeds);
 		for (auto& seed : seeds) {
 			float gut_passage_time = gut_passage_time_distribution.get_gamma_sample() * 60.0f; // Multiply by 60 to convert minutes to seconds.
 			pair<float, float> times(gut_passage_time, curtime);
-			stomach_content.push_back(pair<Seed, pair<float, float>>(seed, times));
-			no_fruits_consumed++;
+			stomach_content[total_no_seeds_consumed] = pair<Seed, pair<float, float>>(seed, times);
+			consumed_seed_ids.push_back(total_no_seeds_consumed);
+			total_no_seeds_consumed++;
 		}
 	}
 	void digest(ResourceGrid* resource_grid, vector<Seed> &seeds_to_disperse) {
-		vector<pair<Seed, pair<float, float>>> _stomach_content = {};
-		/*for (auto& [seed, times] : stomach_content) {
-			auto [gut_passage_time, ingestion_time] = times;
-			printf("gut_passage_time: %f, ingestion_time: %f\n", gut_passage_time, ingestion_time);
-		}*/
-		for (int i = 0; i < stomach_content.size(); i++) {
-			auto [gut_passage_time, ingestion_time] = stomach_content[i].second;
+		for (auto& [seed_id, seed_plus_times] : stomach_content) {
+			auto [gut_passage_time, ingestion_time] = seed_plus_times.second;
 			if (gut_passage_time + ingestion_time <= curtime) {
 				float defecation_time = gut_passage_time + ingestion_time;
 				float time_since_defecation = curtime - defecation_time;
-				if (iteration > 4) {// Ignore the first 5 iterations (after Morales et al 2013)
-					Seed to_defecate = stomach_content[i].first;
+				if (iteration > 4) { // Ignore the first 5 iterations (after Morales et al 2013)
+					Seed &to_defecate = seed_plus_times.first;
 					defecate(to_defecate, time_since_defecation, seeds_to_disperse, resource_grid);
+					stomach_content.erase(seed_id);
 				}
 			}
-			else {
-				pair<Seed, pair<float, float>> to_remain = stomach_content[i];
-				_stomach_content.push_back(to_remain);
-			}
 		}
-		stomach_content = _stomach_content;
 	}
 	pair<float, float> select_destination(ResourceGrid* resource_grid) {
 		resource_grid->update_probability_distribution(species, traits, position);
@@ -125,7 +116,7 @@ public:
 		seeds_to_disperse.push_back(seed);
 	}
 	map<string, float> traits;
-	vector<pair<Seed, pair<float, float>>> stomach_content;
+	map<int, pair<Seed, pair<float, float>>> stomach_content;
 	pair<float, float> position;
 	pair<float, float> trajectory;
 	string species;
@@ -135,6 +126,7 @@ public:
 	float recipr_speed = 0;
 	float travel_time = 0;
 	int iteration = -1;
+	int total_no_seeds_consumed = 0;
 	bool moving = false;
 };
 

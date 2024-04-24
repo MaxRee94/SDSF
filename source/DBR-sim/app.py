@@ -18,8 +18,8 @@ from helpers import *
 from config import *
 
 sys.path.append(BUILD_DIR)
-from x64.Debug import dbr_cpp as cpp
-#from x64.Release import dbr_cpp as cpp
+#from x64.Debug import dbr_cpp as cpp
+from x64.Release import dbr_cpp as cpp
 
 
 def set_dispersal_kernel(
@@ -130,6 +130,7 @@ def updateloop(dynamics, color_dict, **user_args):
         graphs = vis.Graphs(dynamics)
     while not termination_condition_satisfied(dynamics, start, user_args):
         dynamics.update()
+        continue
         if user_args["headless"]:
             # Get a color image representation of the initial state
             img = vis.get_image_from_grid(dynamics.state.grid, collect_states, color_dict)
