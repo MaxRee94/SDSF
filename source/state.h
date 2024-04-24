@@ -75,6 +75,25 @@ public:
 		float search_radius = (round(base->radius * 1.1) + population.max_radius);
 		return get_tree_neighbors(base->position, search_radius, base->id);
 	}
+	void set_cover_from_image(float* image, int img_width, int img_height) {
+		float pixel_size = grid.width_r / (float)img_width;
+		int no_gridcells_along_x_per_pixel = round(grid.width_r / img_width);
+		pair<int, int> bb = pair<int, int>(no_gridcells_along_x_per_pixel, no_gridcells_along_x_per_pixel);
+		for (int x = 0; x < img_width; x++) {
+			for (int y = 0; y < img_height; y++) {
+				float pixel_value = image[y * img_width + x];
+				pair<int, int> pixel_position(x, y);
+				pair<int, int> grid_bb_min = no_gridcells_along_x_per_pixel * pixel_position;
+				pair<int, int> grid_bb_max = grid_bb_min + bb;
+				float cur_cover = grid.get_tree_cover_within_bb(grid_bb_min, grid_bb_max);
+				if (cur_cover < pixel_value) {
+					pair<float, float> position = grid.get_random_location_within_cell(grid_bb_min);
+					Tree* tree = population.add(position);
+					grid.populate_tree_domain(tree);
+				}
+			}
+		}
+	}
 	void set_tree_cover(float _tree_cover) {
 		help::init_RNG();
 		grid.reset();

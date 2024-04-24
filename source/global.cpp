@@ -12,6 +12,19 @@ void check_communication() {
     printf("Verified python->cpp communication.\n");
 }
 
+void convert_from_numpy_array(py::array_t<float>& img, float*& cover_image, int& width, int& height) {
+	auto buf1 = img.request();
+	float* ptr = (float*)buf1.ptr;
+	width = buf1.shape[0];
+	height = buf1.shape[1];
+	cover_image = new float[width * height];
+	for (int x = 0; x < width; x++) {
+		for (int y = 0; y < height; y++) {
+			cover_image[x * height + y] = ptr[x * height + y];
+		}
+	}
+}
+
 py::array_t<int> as_2d_numpy_array(int* distribution, int width) {
     constexpr size_t element_size = sizeof(int);
     size_t shape[2]{ width, width };
@@ -73,6 +86,12 @@ PYBIND11_MODULE(dbr_cpp, module) {
             const float&, const float&, map<string, map<string, float>>& >())
         .def("repopulate_grid", &State::repopulate_grid)
         .def("set_tree_cover", &State::set_tree_cover)
+        .def("set_cover_from_image", [](State& state, py::array_t<float>& img) {
+            float* cover_image;
+            int width, height;
+            convert_from_numpy_array(img, cover_image, width, height);
+            state.set_cover_from_image(cover_image, width, height);
+        })
         .def_readwrite("grid", &State::grid)
         .def_readwrite("population", &State::population)
         .def_readwrite("initial_tree_cover", &State::initial_tree_cover);
@@ -116,8 +135,8 @@ PYBIND11_MODULE(dbr_cpp, module) {
             std::map<string, std::map<string, float>> animal_kernel_params = py::cast<std::map<string, std::map<string, float>>>(_animal_kernel_params);
             dynamics.set_global_kernels(nonanimal_kernel_params, animal_kernel_params);
         })
-        .def("get_resource_grid_colors", [](Dynamics& dynamics, string& species, string& type) {
-            int* color_distribution = dynamics.resource_grid.get_color_distribution(species, type);
+        .def("get_resource_grid_colors", [](Dynamics& dynamics, string& species, string& type, int& verbosity) {
+            int* color_distribution = dynamics.resource_grid.get_color_distribution(species, type, verbosity);
             return as_2d_numpy_array(color_distribution, dynamics.resource_grid.width);
         });
 

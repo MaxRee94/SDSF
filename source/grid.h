@@ -69,6 +69,13 @@ public:
 		}
 		throw("Runtime error: Could not find forest cell after %i attempts.\n", fetch_attempt_limit);
 	}
+	pair<float, float> get_random_location_within_cell(pair<int, int> &gridbased_location) {
+		Cell* cell = get_cell_at_position(gridbased_location);
+		pair<float, float> real_position = get_real_cell_position(cell);
+		float x = help::get_rand_float(real_position.first, real_position.first + cellsize);
+		float y = help::get_rand_float(real_position.second, real_position.second + cellsize);
+		return pair<float, float>(x, y);
+	}
 	Cell* get_random_cell() {
 		pair<int, int> pos = get_random_grid_position();
 		Cell* cell = get_cell_at_position(pos);
@@ -223,6 +230,18 @@ public:
 
 		distribution[idx].state = 0;
 		if (_time_last_fire != -1) distribution[idx].time_last_fire = _time_last_fire;
+	}
+	float get_tree_cover_within_bb(pair<int, int> bb_min, pair<int, int> bb_max) {
+		int no_forest_cells = 0;
+		int no_cells = 0;
+		for (int x = bb_min.first; x < bb_max.first; x++) {
+			for (int y = bb_min.second; y < bb_max.second; y++) {
+				Cell* cell = get_cell_at_position(pair<int, int>(x, y));
+				no_forest_cells += cell->state;
+				no_cells++;
+			}
+		}
+		return (float)no_forest_cells / (float)no_cells;
 	}
 	void set_to_forest(pair<int, int> position_grid, Tree* tree) {
 		cap(position_grid);
