@@ -198,7 +198,7 @@ public:
 		for (int i = 0; i < no_iterations; i++) {
 			for (auto& [species, species_population] : total_animal_population) {
 				for (auto& animal : species_population) {
-					if (i == 0) {
+					if (i % 5 == 0) {
 						resource_grid->update_cover_and_fruit_probabilities(species, animal.traits);
 					}
 					animal.update(no_seeds_dispersed, i, state, resource_grid);

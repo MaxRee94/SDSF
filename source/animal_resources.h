@@ -66,8 +66,8 @@ public:
 		has_fruits = false;
 		total_no_fruits = 0;
 	}
-	void add_crop(Tree &tree, Crop* crop) {
-		ResourceCell* cell = get_resource_cell_at_position(tree.position);
+	void add_crop(pair<float, float> position, Crop* crop) {
+		ResourceCell* cell = get_resource_cell_at_position(position);
 		cell->fruits.add_fruits(crop);
 		total_no_fruits += crop->no_diaspora;
 		has_fruits = true;
@@ -183,6 +183,12 @@ public:
 		if (collect == "distance") {
 			for (int i = 0; i < no_cells; i++) {
 				float color = dist_aggregate[i] * 10000;
+				color_distribution[i] = color;
+			}
+		}
+		if (collect == "distance_single") {
+			for (int i = 0; i < no_cells; i++) {
+				float color = d[i] * 10000;
 				color_distribution[i] = color;
 			}
 		}

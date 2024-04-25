@@ -20,7 +20,7 @@
     "vector": {
         "distribution_type": 3,
         "probability0": 0,
-        "probability1": 0,
-        "probability2": 1
+        "probability1": 0.5,
+        "probability2": 0.5
     }
 }

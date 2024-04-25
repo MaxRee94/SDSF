@@ -148,29 +148,28 @@ public:
 		resource_grid.reset();
 		Timer timer; timer.start();
 		for (auto& [id, tree] : pop->members) {
+			// Get crop and kernel
 			if (tree.life_phase < 2) continue;
 			x++;
 			if (id == -1 || tree.id == -1) {
-				printf("tree = %i, with key = %i \n", tree.id, id);
 				pop->remove(id);
 				continue;
 			}
 			Crop* crop = pop->get_crop(id);
 			if (crop->id == -1) {
-				printf("crop id was -1. Removing tree %i \n", id);
 				pop->remove(id);
 				continue;
 			}
 			bool kernel_exists = ensure_kernel_exists(id);
 			if (!kernel_exists) {
-				printf("----- crop id: %i \n ", crop->id);
 				pop->remove(id);
 				continue;
 			}
 			crop->update(tree);
-			//printf("tree radius: %f, tree radius t-1: %f, crop mass: %f, no diaspora: %i, no seeds: %i \n", tree.radius, tree.radius_tmin1, crop->mass, crop->no_diaspora, crop->no_seeds);
+
+			// Add crop or disperse seeds, depending on dispersal vector type
 			if (pop->get_kernel(id)->type == "animal") {
-				resource_grid.add_crop(tree, crop);
+				resource_grid.add_crop(tree.position, crop);
 			}
 			else if (pop->get_kernel(id)->type == "wind") {
 				wind_disperser.disperse_crop(crop, &state);

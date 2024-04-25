@@ -31,7 +31,7 @@ defaults = {
     "radius_q2": 0,
     "verbosity": 0,
     "seed_bearing_threshold": 0.4,
-    "mass_budget_factor": 1,
+    "mass_budget_factor": 0.1,
     "dispersal_mode": "all",
     "linear_diffusion_q1": 1,
     "linear_diffusion_q2": 0,
