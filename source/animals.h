@@ -27,10 +27,29 @@ public:
 		float begin_time = curtime;
 		iteration = _iteration;
 		rest();
+		Timer timer; 
+		if (verbosity && iteration == 10) {
+			timer.start();
+		}
 		eat(resource_grid, begin_time);
+		if (verbosity && iteration == 10) {
+			timer.stop(); printf("	Eating took %f seconds\n", timer.elapsedSeconds());
+			timer.start();
+		}
 		digest(resource_grid, no_seeds_dispersed);
+		if (verbosity && iteration == 10) {
+			timer.stop(); printf("	Digesting (1) took %f seconds\n", timer.elapsedSeconds());
+			timer.start();
+		}
 		move(resource_grid);
+		if (verbosity && iteration == 10) {
+			timer.stop(); printf("	Moving took %f seconds\n", timer.elapsedSeconds());
+			timer.start();
+		}
 		digest(resource_grid, no_seeds_dispersed);
+		if (verbosity && iteration == 10) {
+			timer.stop(); printf("	Digesting (2)  took %f seconds\n", timer.elapsedSeconds());
+		}
 	}
 	void rest() {
 		moving = false;
@@ -127,6 +146,7 @@ public:
 	float recipr_speed = 0;
 	float travel_time = 0;
 	int iteration = -1;
+	int verbosity = 0;
 	int total_no_seeds_consumed = 0;
 	bool moving = false;
 };
@@ -178,11 +198,12 @@ public:
 		for (int i = 0; i < no_iterations; i++) {
 			for (auto& [species, species_population] : total_animal_population) {
 				for (auto& animal : species_population) {
-					if (i == 0) resource_grid->update_cover_and_fruit_probabilities(species, animal.traits);
+					if (i == 0) {
+						resource_grid->update_cover_and_fruit_probabilities(species, animal.traits);
+					}
 					animal.update(no_seeds_dispersed, i, state, resource_grid);
 				}
 			}
-			if (i + 1 == no_iterations) printf("end time after %i iterations: %f \n", i + 1, total_animal_population["Turdus pilaris"][0].curtime);
 		}
 	}
 	int popsize() {

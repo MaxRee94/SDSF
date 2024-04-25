@@ -42,16 +42,26 @@ public:
 		// Prepare next iteration
 		time++;
 		printf("Time: %i\n", time);
+		if (verbosity > 0) printf("Resetting state distr... \n");
 		grid->reset_state_distr();
 
 		// Do simulation
+		Timer timer; timer.start();
+		if (verbosity > 0) printf("Beginning dispersal... \n");
 		if (time > 1) disperse();
+		timer.stop();
+		if (verbosity > 0) printf("Dispersal took %f seconds. Beginning burn... \n", timer.elapsedSeconds());
+		timer.start();
 		burn();
+		timer.stop();
+		if (verbosity > 0) printf("Percolation took %f seconds. Beginning growth... \n", timer.elapsedSeconds());
 		grow();
+		if (verbosity > 0) printf("Inducing background mortality... \n");
 		induce_background_mortality();
 
 		// Do post-simulation cleanup and data reporting
-		state.repopulate_grid(0);
+		state.repopulate_grid(verbosity);
+		if (verbosity > 0) printf("Redoing grid count... \n");
 		grid->redo_count();
 		if (verbosity > 0) report_state();
 	}
@@ -136,6 +146,7 @@ public:
 		int j = 0;
 		int pre_dispersal_popsize = pop->size();
 		resource_grid.reset();
+		Timer timer; timer.start();
 		for (auto& [id, tree] : pop->members) {
 			if (tree.life_phase < 2) continue;
 			x++;
@@ -169,9 +180,12 @@ public:
 			}
 			j += crop->no_seeds;
 		}
+		timer.stop(); printf("Dispersing non-animal seeds and/or adding crops took %f seconds. \n", timer.elapsedSeconds());
+		timer.start();
 		if (resource_grid.has_fruits) {
 			animal_dispersal.disperse(&state, &resource_grid, 1);
 		}
+		timer.stop(); printf("Dispersing animal seeds took %f seconds. \n", timer.elapsedSeconds());
 
 		// HOTFIX: Remove trees with id -1
 		for (auto& [id, tree] : pop->members) {

@@ -40,7 +40,9 @@ class AnimalDispersal : public Disperser {
 public:
 	AnimalDispersal() : Disperser() {};
 	void disperse(State* state, ResourceGrid* resource_grid, int verbosity = 0) {
+		Timer timer; timer.start();
 		resource_grid->compute_cover_and_fruit_abundance();
+		timer.stop(); printf("Time taken to compute cover and fruit abundance: %f\n", timer.elapsedSeconds());
 		animals.place(state);
 		int no_seeds_dispersed = 0;
 		animals.disperse(no_seeds_dispersed, state, resource_grid);
