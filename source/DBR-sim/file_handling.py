@@ -2,6 +2,7 @@ import csv
 import os
 from pathlib import Path
 import datetime
+import cv2
 
 
 
@@ -34,6 +35,11 @@ def export_state(dynamics, path="", init_csv=True, control_variable=None, contro
         writer.writerow(result)
         
     return path
+
+
+def import_image(fpath):
+    img = cv2.imread(fpath)
+    return img
 
 
 

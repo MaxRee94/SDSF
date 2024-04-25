@@ -161,7 +161,7 @@ public:
 			}
 		}
 	}
-	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1) {
+	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = true) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
 		int radius_gb = round((tree->radius * 1.5) / cellsize);
 		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x += 1) {
@@ -183,7 +183,7 @@ public:
 					if (cell->cumulative_radius < (cellsize * 0.7)) {
 						queue.push(cell);
 						set_to_savanna(cell->idx, time_last_fire);
-						state_distribution[cell->idx] = -6;
+						if (store_tree_death_in_color_distribution) state_distribution[cell->idx] = -6;
 						continue;
 					}
 					state_distribution[cell->idx] = -5;
@@ -191,9 +191,9 @@ public:
 			}
 		}
 	}
-	void kill_tree_domain(Tree* tree) {
+	void kill_tree_domain(Tree* tree, bool store_tree_death_in_color_distribution = true) {
 		queue<Cell*> dummy;
-		burn_tree_domain(tree, dummy);
+		burn_tree_domain(tree, dummy, -1, store_tree_death_in_color_distribution);
 	}
 	int* get_state_distribution(bool collect = true) {
 		if (collect) {
@@ -261,6 +261,10 @@ public:
 		return pair<int, int>(position.first / cellsize, position.second / cellsize);
 	}
 	pair<float, float> get_real_position(pair<int, int> position) {
+		return pair<float, float>((float)position.first * cellsize, (float)position.second * cellsize);
+	}
+	pair<float, float> get_real_position(int idx) {
+		pair<int, int> position = idx_2_pos(idx);
 		return pair<float, float>((float)position.first * cellsize, (float)position.second * cellsize);
 	}
 	int width = 0;

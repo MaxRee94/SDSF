@@ -52,6 +52,7 @@ def init(
     flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_relative_size=None,
+    initial_pattern_image=None,
     **user_args
     ):
     
@@ -69,7 +70,17 @@ def init(
         resource_grid_relative_size, verbosity
     )
     dynamics.init_state(grid_width, radius_q1, radius_q2, seed_mass)
-    dynamics.state.set_tree_cover(treecover)
+    
+    # Set initial tree cover
+    if initial_pattern_image == "none":
+        dynamics.state.set_tree_cover(treecover)
+    else:
+        img = io.import_image(initial_pattern_image)[:,:,0] / 255
+        img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
+        print("Setting tree cover from image...")
+        dynamics.state.set_cover_from_image(img)
+
+    # Set dispersal kernel
     dynamics = set_dispersal_kernel(
         dynamics, dispersal_mode, linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max,
         wind_dispersal_params, multi_disperser_params, animal_dispersal_params
@@ -130,9 +141,11 @@ def updateloop(dynamics, color_dict, **user_args):
     if not user_args["headless"]:
         graphs = vis.Graphs(dynamics)
     while not termination_condition_satisfied(dynamics, start, user_args):
+        print("-- Starting update (calling from python)")
         dynamics.update()
-        print("finished update")
+        print("-- Finished update")
         #continue
+        print("-- Visualizing image...")
         if user_args["headless"]:
             # Get a color image representation of the initial state
             img = vis.get_image_from_grid(dynamics.state.grid, collect_states, color_dict)
@@ -142,21 +155,23 @@ def updateloop(dynamics, color_dict, **user_args):
                 dynamics.state.grid, user_args["image_width"], collect_states=collect_states,
                 color_dict=color_dict
             )
+        print("-- Saving image...")
         imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
         vis.save_image(img, imagepath, get_max(1000, img.shape[0]))
 
         # Get color image representations of the resource grid from the last iteration
-        cover_path = os.path.join(DATA_OUT_DIR, "image_timeseries/cover/" + str(dynamics.time) + ".png")
-        fruits_path = os.path.join(DATA_OUT_DIR, "image_timeseries/fruits/" + str(dynamics.time) + ".png")
-        visits_path = os.path.join(DATA_OUT_DIR, "image_timeseries/visits/" + str(dynamics.time) + ".png")
-        distance_path = os.path.join(DATA_OUT_DIR, "image_timeseries/distance/" + str(dynamics.time) + ".png")
-        k_path = os.path.join(DATA_OUT_DIR, "image_timeseries/k/" + str(dynamics.time) + ".png")
-        vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "cover", cover_path, color_dict, user_args["resource_grid_relative_size"])
-        vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "fruits", fruits_path, color_dict, user_args["resource_grid_relative_size"])
-        vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "visits", visits_path, color_dict, user_args["resource_grid_relative_size"])
-        vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "distance", distance_path, color_dict, user_args["resource_grid_relative_size"])
-        vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "k", k_path, color_dict, user_args["resource_grid_relative_size"])
+        # cover_path = os.path.join(DATA_OUT_DIR, "image_timeseries/cover/" + str(dynamics.time) + ".png")
+        # fruits_path = os.path.join(DATA_OUT_DIR, "image_timeseries/fruits/" + str(dynamics.time) + ".png")
+        # visits_path = os.path.join(DATA_OUT_DIR, "image_timeseries/visits/" + str(dynamics.time) + ".png")
+        # distance_path = os.path.join(DATA_OUT_DIR, "image_timeseries/distance/" + str(dynamics.time) + ".png")
+        # k_path = os.path.join(DATA_OUT_DIR, "image_timeseries/k/" + str(dynamics.time) + ".png")
+        # vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "cover", cover_path, color_dict, user_args["resource_grid_relative_size"])
+        # vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "fruits", fruits_path, color_dict, user_args["resource_grid_relative_size"])
+        # vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "visits", visits_path, color_dict, user_args["resource_grid_relative_size"])
+        # vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "distance", distance_path, color_dict, user_args["resource_grid_relative_size"])
+        # vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "k", k_path, color_dict, user_args["resource_grid_relative_size"])
 
+        print("-- Exporting state...")
         csv_path = io.export_state(dynamics, csv_path, init_csv)
         init_csv = False
         if not user_args["headless"]:

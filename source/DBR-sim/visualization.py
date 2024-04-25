@@ -17,10 +17,9 @@ def get_color_dict(no_values, begin=0.0, end=1.0):
         ), np.uint8) for v, x in zip(range(1, no_values + 1), x_range)
     }
     color_dict[0] = np.array((0, 0, 0), np.uint8)
-    color_dict[-5] = np.array((0, 130, 140), np.uint8)
+    #color_dict[-5] = np.array((0, 130, 140), np.uint8)
+    color_dict[-5] = np.array((0, 0, 0), np.uint8)
     color_dict[-6] = np.array((0, 0, 110), np.uint8)
-    #for key, val in color_dict.items():
-    #   print(key, " -- ", val)
     return color_dict
 
 
@@ -60,15 +59,14 @@ def visualize(grid, image_width=1000, collect_states=True, color_dict={0:0, 1:25
     return img
 
 def save_image(img, path, image_width = 1000):
-    img_resized = cv2.resize(img, (image_width, image_width),
-               interpolation = cv2.INTER_LINEAR)
+    img_resized = cv2.resize(img, (image_width, image_width), interpolation = cv2.INTER_LINEAR)
     cv2.imwrite(path, img_resized)
 
 def save_resource_grid_colors(dynamics, species, resource, path, color_dict, resource_grid_relative_size, image_width=1000):
     arr = dynamics.get_resource_grid_colors(species, resource, 0)
     arr -= arr.min()
     arr = (arr / arr.max() * 100).astype(np.uint8)
-    img = get_image(arr, color_dict, 100)
+    img = get_image(arr, color_dict, int(dynamics.state.grid.width * resource_grid_relative_size))
     save_image(img, path, image_width)
 
 def visualize_difference(image1, image2, image_width=1000):

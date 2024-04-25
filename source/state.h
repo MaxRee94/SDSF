@@ -48,24 +48,43 @@ public:
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
 	float get_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
-		vector<float> dists = {help::get_dist(a, b)};
+		vector<float> dists = {help::get_manhattan_dist(a, b)};
+		float min_dist = dists[0];
+		int min_idx = 0;
 		for (int i = 0; i < 8; i++) {
 			float dist = help::get_dist(
 				neighbor_offsets[i] * grid.width_r + b, a
 			);
+			if (dist < min_dist && dist > 0) {
+				min_dist = dist;
+				min_idx = i + 1;
+			}
 			dists.push_back(dist);
 		}
-		if (verbose) printf("normal dist: %f, periodic dist: %f \n", dists[0], help::get_min(&dists));
-		return help::get_min(&dists);
+		float dist;
+		if (min_idx != 0) {
+			dist = help::get_dist(neighbor_offsets[min_idx - 1] * grid.width_r + b, a);
+		}
+		else dist = help::get_dist(a, b);
+		return dist;
 	}
-	vector<Tree*> get_tree_neighbors(pair<float, float> baseposition, float search_radius, int base_id = -1) {
+	vector<Tree*> get_tree_neighbors(pair<float, float> baseposition, float search_radius, int& closest_idx, int base_id = -1, bool stop_on_1 = false) {
 		vector<Tree*> neighbors;
+		float min_dist = INFINITY;
+		int idx = 0;
 		for (auto& [id, candidate] : population.members) {
 			if (base_id != -1 && id == base_id) {
 				continue;
 			}
-			if (get_dist(candidate.position, baseposition) < search_radius) {
+			float dist = get_dist(candidate.position, baseposition);
+			if (dist < search_radius) {
 				neighbors.push_back(&candidate);
+				if (dist < min_dist) {
+					min_dist = dist;
+					closest_idx = idx;
+				}
+				if (stop_on_1) return neighbors;
+				idx++;
 			}
 		}
 		return neighbors;
@@ -73,26 +92,50 @@ public:
 	vector<Tree*> get_tree_neighbors(Tree* base) {
 		vector<Tree*> neighbors;
 		float search_radius = (round(base->radius * 1.1) + population.max_radius);
-		return get_tree_neighbors(base->position, search_radius, base->id);
+		int dummy;
+		return get_tree_neighbors(base->position, search_radius, dummy, base->id);
+	}
+	vector<Tree*> get_tree_neighbors(pair<float, float> baseposition, float search_radius) {
+		int dummy;
+		return get_tree_neighbors(baseposition, search_radius, dummy);
 	}
 	void set_cover_from_image(float* image, int img_width, int img_height) {
 		float pixel_size = grid.width_r / (float)img_width;
 		int no_gridcells_along_x_per_pixel = round(grid.width_r / img_width);
 		pair<int, int> bb = pair<int, int>(no_gridcells_along_x_per_pixel, no_gridcells_along_x_per_pixel);
-		for (int x = 0; x < img_width; x++) {
-			for (int y = 0; y < img_height; y++) {
-				float pixel_value = image[y * img_width + x];
-				pair<int, int> pixel_position(x, y);
-				pair<int, int> grid_bb_min = no_gridcells_along_x_per_pixel * pixel_position;
-				pair<int, int> grid_bb_max = grid_bb_min + bb;
-				float cur_cover = grid.get_tree_cover_within_bb(grid_bb_min, grid_bb_max);
-				if (cur_cover < pixel_value) {
-					pair<float, float> position = grid.get_random_location_within_cell(grid_bb_min);
-					Tree* tree = population.add(position);
-					grid.populate_tree_domain(tree);
-				}
-			}
+		int iteration_budget = 5;
+		int j = 0;
+
+		// Get cumulative intended tree cover 
+		float integral_image_cover = 0;
+		for (int i = 0; i < img_width * img_height; i++) {
+			integral_image_cover += image[i];
 		}
+		integral_image_cover /= (float)(img_width * img_height);
+		printf("Integral image cover: %f\n", integral_image_cover);
+
+		// Create probability model
+		DiscreteProbabilityModel probmodel = DiscreteProbabilityModel(grid.no_cells);
+		float sum = 0;
+		for (int i = 0; i < grid.no_cells; i++) {
+			probmodel.probabilities[i] = image[i];
+			sum += image[i];
+		}
+		float recipr_sum = 1.0f / sum;
+		for (int i = 0; i < grid.no_cells; i++) {
+			probmodel.probabilities[i] *= recipr_sum;
+		}
+		probmodel.build_cdf();
+
+		// Set tree cover
+		while (grid.get_tree_cover() < integral_image_cover) {
+			int idx = probmodel.sample();
+			pair<float, float> position = grid.get_real_position(idx);
+			Tree* tree = population.add(position);
+			grid.populate_tree_domain(tree);
+			if (population.size() % 10000 == 0) printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
+		}
+		printf("Finished setting tree cover from image.\n");
 	}
 	void set_tree_cover(float _tree_cover) {
 		help::init_RNG();

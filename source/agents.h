@@ -96,7 +96,7 @@ public:
 	int life_phase = 0;
 	int last_mortality_check = 0;
 	pair<float, float> position = pair(0, 0);
-	uint id = -1;
+	int id = -1;
 };
 
 

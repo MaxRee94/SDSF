@@ -5,6 +5,7 @@ source/__pycache__/
 data_out/
 source/DBR-sim/DawnCache/
 source/DBR-sim/GPUCache/
+data_in/
 *.bat
 
 # Visaul studio files
@@ -210,3 +211,6 @@ cython_debug/
 .cpython-312.pyc
 *.pyperf
 
+# Miscellaneous binary files
+.ipch
+source/DBR-sim/.vs/DBR_Python/v17/ipch/AutoPCH/13075d2d37738811/GLOBAL.ipch

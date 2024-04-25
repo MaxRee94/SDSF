@@ -51,6 +51,7 @@ defaults = {
     "max_timesteps": 1e9,
     "strategy_distribution_params": f"{DATA_IN_DIR}/strategy_distribution_params.json",
     "resource_grid_relative_size": 0.1,
+    "initial_pattern_image": "none",
 }
 
 gui_defaults = {
@@ -486,7 +487,19 @@ _parameter_config = {
             ),
             "default": defaults["resource_grid_relative_size"],
         },
-    }
+    },
+    "initial_pattern_image": {
+        "keys": {
+            "cli": ["--initial_pattern_image", "-ipi"]
+        },
+        "settings": {
+            "type": str,
+            "help": (
+                "Path to an image file with an initial tree cover pattern."
+            ),
+            "default": defaults["initial_pattern_image"],
+        },
+    },
 }
 
 
