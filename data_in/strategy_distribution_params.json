@@ -4,7 +4,7 @@
         "min": 0.001,
         "max": 0.01
     },
-    "diaspore_unladen_mass": {
+    "fruit_pulp_mass": {
         "distribution_type": 1,
         "q1": 1,
         "q2": 0,

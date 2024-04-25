@@ -9,8 +9,9 @@ using namespace help;
 class Strategy {
 public:
 	Strategy() = default;
-	Strategy(string _vector, float _seed_mass, float _diaspore_mass, int _no_seeds_per_diaspore) :
-		vector(_vector), seed_mass(_seed_mass), diaspore_mass(_diaspore_mass), no_seeds_per_diaspore(_no_seeds_per_diaspore)
+	Strategy(string _vector, float _seed_mass, float _diaspore_mass, int _no_seeds_per_diaspore, float _seed_tspeed) :
+		vector(_vector), seed_mass(_seed_mass), diaspore_mass(_diaspore_mass), no_seeds_per_diaspore(_no_seeds_per_diaspore),
+		seed_tspeed(_seed_tspeed)
 	{}
 	void print() {
 		printf("id: %d, seed_mass: %f, diaspore_mass: %f, no_seeds_per_diaspore: %d, vector: %s \n",
@@ -21,6 +22,7 @@ public:
 	float seed_mass = 0;
 	float diaspore_mass = 0;
 	int no_seeds_per_diaspore = 0;
+	float seed_tspeed = 0;
 	string vector = "none";
 };
 
@@ -53,16 +55,33 @@ public:
 		else if (vector == 1) return "wind";
 		else return "animal";
 	}
-	float get_diaspore_mass(float no_seeds_per_diaspore, float seed_mass) {
-		float cumulative_seed_mass_per_diaspore = seed_mass * no_seeds_per_diaspore;
-		return cumulative_seed_mass_per_diaspore + trait_distributions["diaspore_unladen_mass"].sample();
+	float compute_wing_mass(float cumulative_seed_mass) {
+		// Estimate wing mass based on correlation we found in seed- and wing measurement data taken from (Greene and Johnson, 1993)
+		return (cumulative_seed_mass - 33.87) / 3.6609f;
+	}
+	float get_diaspore_mass(float no_seeds_per_diaspore, float seed_mass, string vector) {
+		float cumulative_seed_mass = seed_mass * no_seeds_per_diaspore;
+		float diaspore_mass;
+		if (vector == "wind") {
+			float wing_mass = compute_wing_mass(cumulative_seed_mass);
+			diaspore_mass = cumulative_seed_mass + wing_mass;
+		}
+		else if (vector == "animal") {
+			diaspore_mass = cumulative_seed_mass + trait_distributions["fruit_pulp_mass"].sample();
+		}
+		return diaspore_mass;
+	}
+	float calculate_tspeed(float diaspore_mass) {
+		// Compute terminal descent velocity based on correlation presented by (Greene and Johnson, 1993)
+		return 0.501f * pow(diaspore_mass, 0.174f);
 	}
 	void generate(Strategy &strategy) {
 		float seed_mass = trait_distributions["seed_mass"].sample();
 		int no_seeds_per_diaspore = max(1, round(trait_distributions["no_seeds_per_diaspore"].sample()));
-		float diaspore_mass = get_diaspore_mass(no_seeds_per_diaspore, seed_mass);
 		string vector = pick_vector();
-		strategy = Strategy(vector, seed_mass, diaspore_mass, no_seeds_per_diaspore);
+		float diaspore_mass = get_diaspore_mass(no_seeds_per_diaspore, seed_mass, vector);
+		float seed_tspeed = calculate_tspeed(diaspore_mass);
+		strategy = Strategy(vector, seed_mass, diaspore_mass, no_seeds_per_diaspore, seed_tspeed);
 	}
 	map<string, ProbModel> trait_distributions;
 	map<int, string> distribution_types = { { 0, "uniform" }, {1, "linear"}, {2, "normal"}, {3, "discrete"} };
