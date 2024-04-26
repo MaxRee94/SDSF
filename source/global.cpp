@@ -83,7 +83,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
     py::class_<State>(module, "State")
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
-            const float&, const float&, map<string, map<string, float>>& >())
+            const float&, const float&, map<string, map<string, float>>&, const float&>())
         .def("repopulate_grid", &State::repopulate_grid)
         .def("set_tree_cover", &State::set_tree_cover)
         .def("set_cover_from_image", [](State& state, py::array_t<float>& img) {
@@ -111,7 +111,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
-            const float&, const map<string, map<string, float>>&, const float&, const int& >())
+            const float&, const map<string, map<string, float>>&, const float&, const float&, const int& >())
         .def_readwrite("time", &Dynamics::time)
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)
@@ -158,7 +158,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
 
     py::class_<Population>(module, "Population")
         .def(py::init<>())
-        .def(py::init<const float&, const float&, const float&, const float&, const float&, const map<string, map<string, float>>& >())
+        .def(py::init<const float&, const float&, const float&, const float&, const float&, const map<string, map<string, float>>&, const float& >())
         .def("size", &Population::size);
     
     py::class_<Tests>(module, "Tests")
@@ -173,6 +173,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
     py::class_<Kernel>(module, "Kernel")
         .def(py::init<>())
         .def(py::init < const int&, const float&, const float&, const float&, const float&>())
-        .def(py::init < const int&, const float&, const float&, const float&, const float&, const float&>())
-        .def("get_dist", &Kernel::get_dist);
+        .def(py::init < const int&, const float&, const float&, const float&, const float&, const float&, const float&, const float&>())
+        .def("get_dist", &Kernel::get_dist)
+        .def("build", &Kernel::build);
 }

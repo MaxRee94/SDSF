@@ -7,11 +7,13 @@
     },
     "wind": {
         "wspeed_gmean": 30,
-        "wspeed_stdev": 5
+        "wspeed_stdev": 5,
+        "wind_direction": 0,
+        "wind_direction_stdev": 3600
     },
     "animal": {
         "population": {
-            "density": 10,
+            "density": 100,
             "no_iterations": 100
         },
         "Turdus iliacus": {

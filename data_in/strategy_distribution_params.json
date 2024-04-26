@@ -2,14 +2,14 @@
     "seed_mass" : {
         "distribution_type": 0,
         "min": 0.001,
-        "max": 0.01
+        "max": 20
     },
     "fruit_pulp_mass": {
         "distribution_type": 1,
         "q1": 1,
         "q2": 0,
-        "min": 0.0005,
-        "max": 0.03
+        "min": 0,
+        "max": 30
     },
     "no_seeds_per_diaspore": {
         "distribution_type": 2,
@@ -19,7 +19,7 @@
     },
     "vector": {
         "distribution_type": 3,
-        "probability0": 0,
+        "probability0": 0.0,
         "probability1": 0.5,
         "probability2": 0.5
     }

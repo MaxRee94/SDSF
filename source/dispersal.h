@@ -6,13 +6,17 @@
 class Disperser {
 public:
 	Disperser() = default;
-	virtual float get_dist(Crop* crop, State* state) {
-		return state->population.get_kernel(crop->id)->get_ld_dist();
+	virtual float get_dist(Kernel* kernel) {
+		return kernel->get_ld_dist();
+	}
+	virtual pair<float, float> get_direction(Kernel* kernel) {
+		return get_random_direction();
 	}
 	void disperse_seed(Crop* crop, State* state) {
 		// Compute seed deposition location
-		pair<float, float> direction = get_random_direction();
-		float distance = get_dist(crop, state);
+		Kernel* kernel = state->population.get_kernel(crop->id);
+		pair<float, float> direction = get_direction(kernel);
+		float distance = get_dist(kernel);
 		pair<float, float> seed_deposition_location = crop->origin + distance * direction;
 
 		// Create seed and germinate if viable
@@ -30,8 +34,12 @@ public:
 class WindDispersal : public Disperser {
 public:
 	WindDispersal() : Disperser() {};
-	float get_dist(Crop* crop, State* state) {
-		return state->population.get_kernel(crop->id)->get_wind_dispersed_dist();
+	pair<float, float> get_direction(Kernel* kernel) {
+		if (kernel->wind_direction_stdev < 360) return get_normal_distributed_direction(kernel->wind_direction, kernel->wind_direction_stdev);
+		else return get_random_direction();
+	}
+	float get_dist(Kernel* kernel) {
+		return kernel->get_wind_dispersed_dist();
 	}
 };
 

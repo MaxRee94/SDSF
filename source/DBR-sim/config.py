@@ -52,6 +52,7 @@ defaults = {
     "strategy_distribution_params": f"{DATA_IN_DIR}/strategy_distribution_params.json",
     "resource_grid_relative_size": 0.1,
     "initial_pattern_image": "none",
+    "mutation_rate": 0.001
 }
 
 gui_defaults = {
@@ -498,6 +499,18 @@ _parameter_config = {
                 "Path to an image file with an initial tree cover pattern."
             ),
             "default": defaults["initial_pattern_image"],
+        },
+    },
+    "mutation_rate": {
+        "keys": {
+            "cli": ["--mutation_rate", "-murate"]
+        },
+        "settings": {
+            "type": float,
+            "help": (
+                "The relative size (in number of cells along the vertical- or horizontal axis) of the resource grid versus the regular grid."
+            ),
+            "default": defaults["mutation_rate"],
         },
     },
 }

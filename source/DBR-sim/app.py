@@ -52,7 +52,7 @@ def init(
     flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_relative_size=None,
-    initial_pattern_image=None,
+    initial_pattern_image=None, mutation_rate=None,
     **user_args
     ):
     
@@ -67,9 +67,15 @@ def init(
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
         flammability_coefficients_and_constants[3], max_radius, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
-        resource_grid_relative_size, verbosity
+        resource_grid_relative_size, mutation_rate, verbosity
     )
     dynamics.init_state(grid_width, radius_q1, radius_q2, seed_mass)
+    
+    # Set dispersal kernel
+    dynamics = set_dispersal_kernel(
+        dynamics, dispersal_mode, linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max,
+        wind_dispersal_params, multi_disperser_params, animal_dispersal_params
+    )
     
     # Set initial tree cover
     if initial_pattern_image == "none":
@@ -79,12 +85,6 @@ def init(
         img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
         print("Setting tree cover from image...")
         dynamics.state.set_cover_from_image(img)
-
-    # Set dispersal kernel
-    dynamics = set_dispersal_kernel(
-        dynamics, dispersal_mode, linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max,
-        wind_dispersal_params, multi_disperser_params, animal_dispersal_params
-    )
     dynamics.state.repopulate_grid(0)
     
     # Create a color dictionary
@@ -200,11 +200,13 @@ def test_kernel():
     cpp.init_RNG()
     dist_max = 200
     windspeed_gmean = 20
-    windspeed_stdev = 6
-    seed_terminal_speed = 1.5
-    abscission_height = 15
-    wind_kernel = cpp.Kernel(1, dist_max, windspeed_gmean, windspeed_stdev, seed_terminal_speed, abscission_height)
-    vis.visualize_kernel(wind_kernel)
+    windspeed_stdev = 3
+    seed_terminal_speed = 0.65
+    abscission_height = 30
+    wind_kernel = cpp.Kernel(1, dist_max, windspeed_gmean, windspeed_stdev, 0, 3600, seed_terminal_speed, abscission_height)
+    vis.visualize_kernel(wind_kernel, "Wind kernel. d_max = {}, w_gmean = {}, \n w_stdev = {}, v_t = {}, h = {}".format(
+        dist_max, windspeed_gmean, windspeed_stdev, seed_terminal_speed, abscission_height)
+    )
     return
 
 
@@ -227,7 +229,7 @@ def test_discrete_probmodel():
 
 
 def main(**user_args):
-    # test_kernel()
+    #test_kernel()
     #test_discrete_probmodel()
     #return
 

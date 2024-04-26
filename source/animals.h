@@ -57,7 +57,7 @@ public:
 		curtime += rest_time;
 	}
 	float get_biomass_appetite() {
-		return 0.2f; // TEMP: replace with value drawn from species-dependent poisson distribution.
+		return 100; // TEMP: replace with value drawn from species-dependent poisson distribution.
 	}
 	void eat(ResourceGrid* resource_grid, float begin_time) {
 		float biomass_appetite = get_biomass_appetite();

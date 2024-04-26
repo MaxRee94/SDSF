@@ -62,11 +62,10 @@ def save_image(img, path, image_width = 1000):
     img_resized = cv2.resize(img, (image_width, image_width), interpolation = cv2.INTER_LINEAR)
     cv2.imwrite(path, img_resized)
 
-def save_resource_grid_colors(dynamics, species, resource, path, color_dict, resource_grid_relative_size, image_width=1000):
+def save_resource_grid_colors(dynamics, species, resource, path, resource_grid_relative_size, image_width=1000):
     arr = dynamics.get_resource_grid_colors(species, resource, 0)
     arr -= arr.min()
-    arr = (arr / arr.max() * 100).astype(np.uint8)
-    img = get_image(arr, color_dict, int(dynamics.state.grid.width * resource_grid_relative_size))
+    img = (arr / arr.max() * 255).astype(np.uint8)
     save_image(img, path, image_width)
 
 def visualize_difference(image1, image2, image_width=1000):
@@ -75,7 +74,7 @@ def visualize_difference(image1, image2, image_width=1000):
     
     visualize_image(img, image_width)
 
-def visualize_kernel(kernel):
+def visualize_kernel(kernel, title="Kernel"):
     vals = []
     no_samples = 1000000
     for i in range(no_samples):
@@ -84,7 +83,7 @@ def visualize_kernel(kernel):
         val = kernel.get_dist()
         vals.append(val)
     plt.hist(vals, bins=50)
-    plt.title("Samples taken using custom probability model")
+    plt.title(title)
     print("samples: ", vals[0], vals[int(no_samples/5 * 1)], vals[int(no_samples/5 * 2)], vals[int(no_samples/5 * 3)], vals[int(no_samples/5 * 4)], vals[-1])
     plt.show()
 
