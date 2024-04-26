@@ -608,3 +608,10 @@ float help::PieceWiseLinearProbModel::sample() {
 }
 
 
+pair<float, float> help::get_normal_distributed_direction(float mean, float stdev) {
+    NormalProbModel prob_model(mean, stdev);
+    float phi = prob_model.get_normal_distr_sample();
+    return pair<float, float>(cos(phi), sin(phi));
+}
+
+

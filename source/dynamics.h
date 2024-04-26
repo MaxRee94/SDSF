@@ -10,7 +10,7 @@ public:
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
 		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_radius, float _saturation_threshold, float _fire_resistance_argmin,
 		float _fire_resistance_argmax, float _fire_resistance_stretch, float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
-		float _resource_grid_relative_size, int _verbosity
+		float _resource_grid_relative_size, float _mutation_rate, int _verbosity
 	) :
 		timestep(_timestep), cellsize(_cellsize), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_seed_bearing_threshold),
@@ -21,7 +21,7 @@ public:
 		min_suppressed_flammability(_cellsize * _min_suppressed_flammability),
 		max_radius(_max_radius), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold), fire_resistance_argmin(_fire_resistance_argmin),
 		fire_resistance_argmax(_fire_resistance_argmax), fire_resistance_stretch(_fire_resistance_stretch), background_mortality(_background_mortality),
-		strategy_distribution_params(_strategy_distribution_params), resource_grid_relative_size(_resource_grid_relative_size)
+		strategy_distribution_params(_strategy_distribution_params), resource_grid_relative_size(_resource_grid_relative_size), mutation_rate(_mutation_rate)
 	{
 		time = 0;
 		help::init_RNG();
@@ -31,7 +31,7 @@ public:
 	void init_state(int gridsize, float radius_q1, float radius_q2, float _seed_mass) {
 		state = State(
 			gridsize, cellsize, max_radius, radius_q1, radius_q2, seed_bearing_threshold, mass_budget_factor,
-			_seed_mass, saturation_threshold, strategy_distribution_params
+			_seed_mass, saturation_threshold, strategy_distribution_params, mutation_rate
 		);
 		linear_disperser = Disperser();
 		wind_disperser = WindDispersal();
@@ -97,8 +97,8 @@ public:
 		pop->add_kernel("linear", global_kernels["linear"]);
 		cout << "Global kernel created (Linear diffusion). " << endl;
 	}
-	void set_global_wind_kernel(float wspeed_gmean, float wspeed_stdev, float seed_tspeed, float abs_height) {
-		global_kernels["wind"] = Kernel(1, grid->width_r, wspeed_gmean, wspeed_stdev, seed_tspeed, abs_height);
+	void set_global_wind_kernel(float wspeed_gmean, float wspeed_stdev, float wind_direction, float wind_direction_stdev) {
+		global_kernels["wind"] = Kernel(1, grid->width_r, wspeed_gmean, wspeed_stdev, wind_direction, wind_direction_stdev);
 		pop->add_kernel("wind", global_kernels["wind"]);
 		cout << "Global kernel created (Wind dispersal). " << endl;
 	}
@@ -115,7 +115,7 @@ public:
 		params = nonanimal_kernel_params["linear"];
 		set_global_linear_kernel(params["lin_diffuse_q1"], params["lin_diffuse_q2"], params["min"], params["max"]);
 		params = nonanimal_kernel_params["wind"];
-		set_global_wind_kernel(params["wspeed_gmean"], params["wspeed_stdev"], params["seed_tspeed"], params["abs_height"]);
+		set_global_wind_kernel(params["wspeed_gmean"], params["wspeed_stdev"], params["wind_direction"], params["wind_direction_stdev"]);
 		set_global_animal_kernel(animal_kernel_params);
 	}
 	void init_resource_grid(map<string, map<string, float>> &animal_kernel_params) {
@@ -179,8 +179,10 @@ public:
 			}
 			j += crop->no_seeds;
 		}
+		printf("Number of seeds that germinated and were not dispersed by animals: %i \n", pop->size() - pre_dispersal_popsize);
 		timer.stop(); printf("Dispersing non-animal seeds and/or adding crops took %f seconds. \n", timer.elapsedSeconds());
 		timer.start();
+		pre_dispersal_popsize = pop->size();
 		if (resource_grid.has_fruits) {
 			animal_dispersal.disperse(&state, &resource_grid, 1);
 		}
@@ -193,7 +195,7 @@ public:
 			}
 		}
 
-		if (verbosity > 0) printf("Number of seed bearing trees: %i, #seeds (all): %i, #germinated seeds: %i \n", x, j, pop->size() - pre_dispersal_popsize);
+		if (verbosity > 0) printf("Number of seed bearing trees: %i, #seeds (all): %i, #germinated animal-dispersed-seeds: %i \n", x, j, pop->size() - pre_dispersal_popsize);
 		if (verbosity > 0) printf("Number of fruits: %i \n", resource_grid.total_no_fruits);
 		seeds_dispersed = j;
 	}
@@ -349,6 +351,7 @@ public:
 	float fire_resistance_stretch = 0;
 	float background_mortality = 0;
 	float resource_grid_relative_size = 0;
+	float mutation_rate = 0;
 	int timestep = 0;
 	int time = 0;
 	int pop_size = 0;

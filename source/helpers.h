@@ -81,6 +81,8 @@ namespace help {
 
 	pair<float, float> get_random_direction();
 
+	pair<float, float> get_normal_distributed_direction(float mean_direction, float direction_stdev);
+
 	//Return whether the given vector <vec> contains the integer <item>
 	bool is_in(std::vector<int>* vec, int item);
 
@@ -237,7 +239,7 @@ namespace help {
 		PieceWiseLinearProbModel(float _xmax);
 		virtual float pdf(float x);
 		virtual float sample();
-		void build();
+		virtual void build();
 		float xmax = 0;
 		float resolution = 1000.0f;
 		ProbModelPiece* cdf_pieces = 0;

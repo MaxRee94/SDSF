@@ -20,12 +20,14 @@ public:
 class WindKernel : public PieceWiseLinearProbModel {
 public:
 	WindKernel() = default;
-	WindKernel(float _dist_max, float _wspeed_gmean, float _wspeed_stdev, float _seed_tspeed, float _abs_height) :
+	WindKernel(float _dist_max, float _wspeed_gmean, float _wspeed_stdev, float _wind_direction, float _wind_direction_stdev, float _seed_tspeed = 0, float _abs_height = 0) :
 		PieceWiseLinearProbModel(_dist_max)
 	{
 		dist_max = _dist_max;
 		wspeed_gmean = _wspeed_gmean;
 		wspeed_stdev = _wspeed_stdev;
+		wind_direction = _wind_direction;
+		wind_direction_stdev = _wind_direction_stdev;
 		seed_tspeed = _seed_tspeed;
 		abs_height = _abs_height;
 		build();
@@ -42,10 +44,13 @@ public:
 	}
 	float wspeed_gmean = 0;
 	float wspeed_stdev = 0;
+	float wind_direction = 0;
+	float wind_direction_stdev = 0;
 	float seed_tspeed = 0;
 	float abs_height = 0;
 	float domain_size = 0;
 	float dist_max = 0;
+	int built = 0;
 };
 
 
@@ -58,8 +63,8 @@ public:
 		id = _tree_id;
 		type = "linear";
 	}
-	Kernel(int _tree_id, float _dist_max, float _wspeed_gmean, float _wspeed_stdev, float _seed_tspeed, float _abs_height) :
-		WindKernel(_dist_max, _wspeed_gmean, _wspeed_stdev, _seed_tspeed, _abs_height)
+	Kernel(int _tree_id, float _dist_max, float _wspeed_gmean, float _wspeed_stdev, float _wind_direction, float _wind_direction_stdev, float _seed_tspeed = 0, float _abs_height = 0) :
+		WindKernel(_dist_max, _wspeed_gmean, _wspeed_stdev, _wind_direction, _wind_direction_stdev, _seed_tspeed, _abs_height)
 	{
 		id = _tree_id;
 		type = "wind";
