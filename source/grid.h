@@ -76,6 +76,10 @@ public:
 		float y = help::get_rand_float(real_position.second, real_position.second + cellsize);
 		return pair<float, float>(x, y);
 	}
+	pair<float, float> get_random_location_within_cell(int idx) {
+		pair<int, int> pos = idx_2_pos(idx);
+		return get_random_location_within_cell(pos);
+	}
 	Cell* get_random_cell() {
 		pair<int, int> pos = get_random_grid_position();
 		Cell* cell = get_cell_at_position(pos);

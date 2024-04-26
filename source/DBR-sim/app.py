@@ -81,10 +81,11 @@ def init(
     if initial_pattern_image == "none":
         dynamics.state.set_tree_cover(treecover)
     else:
-        img = io.import_image(initial_pattern_image)[:,:,0] / 255
+        img = cv2.imread(initial_pattern_image, cv2.IMREAD_GRAYSCALE)
         img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
+        (thresh, img) = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         print("Setting tree cover from image...")
-        dynamics.state.set_cover_from_image(img)
+        dynamics.state.set_cover_from_image(img / 255)
     dynamics.state.repopulate_grid(0)
     
     # Create a color dictionary
@@ -138,8 +139,8 @@ def updateloop(dynamics, color_dict, **user_args):
     csv_path = user_args["csv_path"]
     init_csv = True
     collect_states = True
-    if not user_args["headless"]:
-        graphs = vis.Graphs(dynamics)
+    # if not user_args["headless"]:
+    #     graphs = vis.Graphs(dynamics)
     while not termination_condition_satisfied(dynamics, start, user_args):
         print("-- Starting update (calling from python)")
         dynamics.update()
@@ -176,7 +177,6 @@ def updateloop(dynamics, color_dict, **user_args):
         vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "k", k_path, user_args["resource_grid_relative_size"])
     
         print("-- Exporting state...")
-    
         csv_path = io.export_state(dynamics, csv_path, init_csv)
         init_csv = False
         

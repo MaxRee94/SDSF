@@ -14,8 +14,8 @@ public:
 		seed_tspeed(_seed_tspeed), pulp_to_seed_ratio(_pulp_to_seed_ratio)
 	{}
 	void print() {
-		printf("id: %d, seed_mass: %f, diaspore_mass: %f, no_seeds_per_diaspore: %d, vector: %s \n",
-			id, seed_mass, diaspore_mass, no_seeds_per_diaspore, vector.c_str()
+		printf("id: %d, seed_mass: %f, diaspore_mass: %f, no_seeds_per_diaspore: %d, vector: %s, pulp to seed ratio: %f, seed terminal speed: %f\n",
+			id, seed_mass, diaspore_mass, no_seeds_per_diaspore, vector.c_str(), pulp_to_seed_ratio, seed_tspeed
 		);
 	}
 	int id = -1;
@@ -74,11 +74,12 @@ public:
 		else {
 			diaspore_mass = cumulative_seed_mass;
 		}
+		pulp_to_seed_ratio = fruit_pulp_mass / cumulative_seed_mass;
 		return diaspore_mass;
 	}
 	float calculate_tspeed(float diaspore_mass) {
 		// Compute terminal descent velocity based on correlation presented by (Greene and Johnson, 1993)
-		return 0.501f * pow(diaspore_mass * 1000, 0.174f);
+		return 0.501f * pow(diaspore_mass * 1000, 0.174);
 	}
 	int sample_no_seeds_per_diaspore() {
 		int no_seeds_per_diaspore = round(trait_distributions["no_seeds_per_diaspore"].sample());

@@ -130,7 +130,7 @@ public:
 		// Set tree cover
 		while (grid.get_tree_cover() < integral_image_cover) {
 			int idx = probmodel.sample();
-			pair<float, float> position = grid.get_real_position(idx);
+			pair<float, float> position = grid.get_random_location_within_cell(idx);
 			Tree* tree = population.add(position);
 			grid.populate_tree_domain(tree);
 			if (population.size() % 10000 == 0) printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
@@ -176,6 +176,15 @@ public:
 
 		initial_tree_cover = grid.tree_cover;
 		repopulate_grid(0);
+	}
+	void get_tree_positions(float* x, float* y) {
+		int i = 0;
+		for (auto& [id, tree] : population.members) {
+			if (tree.life_phase < 2) continue; // Only consider trees in the mature phase (life_phase = 2)
+			x[i] = tree.position.first;
+			y[i] = tree.position.second;
+			i++;
+		}
 	}
 	Grid grid;
 	Population population;
