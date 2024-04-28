@@ -247,7 +247,7 @@ public:
 		// Create custom kernel
 		Kernel kernel = kernels[strategy.vector];
 		if (strategy.vector == "wind") {
-			kernel = Kernel(kernel.dist_max, kernel.wspeed_gmean, kernel.wspeed_stdev, kernel.wind_direction, kernel.wind_direction_stdev, strategy.seed_tspeed, max_radius * 4);
+			kernel = Kernel(tree.id, kernel.dist_max, kernel.wspeed_gmean, kernel.wspeed_stdev, kernel.wind_direction, kernel.wind_direction_stdev, strategy.seed_tspeed, max_radius * 4);
 		}
 		kernels_individual[tree.id] = kernel;
 
