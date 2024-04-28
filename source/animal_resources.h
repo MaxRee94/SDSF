@@ -203,19 +203,26 @@ public:
 			}
 		}
 		else if (collect == "visits") {
+			float sum_recipr = 1.0f / visits_sum;
+			int max_visits = 0;
 			for (int i = 0; i < no_cells; i++) {
-				color_distribution[i] = visits[i] * 40;
+				if (visits[i] > max_visits) max_visits = visits[i];
+				color_distribution[i] = (float)visits[i] * sum_recipr * 100000;
 			}
+			printf("max visits: %d \n", max_visits);
 		}
 		else if (collect == "k") {
 			for (int i = 0; i < no_cells; i++) {
 				float color = selection_probabilities.probabilities[i] * 1000000;
-				//color = f[species][i] * c[species][i] * dist_aggregate[i] * 1000000;
 				color_distribution[i] = color;
 			}
 		}
 		if (verbosity > 0) printf("collected %s for species %s \n", collect.c_str(), species.c_str());
 		return color_distribution;
+	}
+	ResourceCell* select_random_cell() {
+		int idx = help::get_rand_int(0, size - 1);
+		return &cells[idx];
 	}
 	void compute_d(pair<float, float>& cur_position, float a_d, float b_d) {
 		float a_d_recipr = 1.0f / a_d;
@@ -243,13 +250,17 @@ public:
 	void update_cover_and_fruit_probabilities(string species, map<string, float>& species_params) {
 		compute_c(species, species_params["a_c"], species_params["b_c"]);
 		compute_f(species, species_params["a_f"], species_params["b_f"]);
-		for (int i = 0; i < size; i++) dist_aggregate[i] = 0;
-		for (int i = 0; i < size; i++) visits[i] = 0;
 	}
 	void update_probability_distribution(string species, map<string, float> &species_params, pair<float, float> &cur_position) {
-		visits[pos_2_idx(cur_position)] += 1;
+		visits[pos_2_idx(get_gridbased_position(cur_position))] += 1;
+		visits_sum += 1;
 		compute_d(cur_position, species_params["a_d"], species_params["b_d"]);
 		compute_k(species);
+	}
+	void reset_color_arrays() {
+		for (int i = 0; i < size; i++) visits[i] = 0;
+		for (int i = 0; i < size; i++) dist_aggregate[i] = 0;
+		visits_sum = 0;
 	}
 	ResourceCell* select_cell() {
 		int idx = selection_probabilities.sample();
@@ -265,6 +276,7 @@ public:
 	float* fruit_abundance = 0;
 	float* d = 0;
 	int* visits = 0;
+	float visits_sum = 0;
 	int iteration = -1;
 	DiscreteProbabilityModel selection_probabilities;
 	pair<float, float>* neighbor_offsets = 0;
