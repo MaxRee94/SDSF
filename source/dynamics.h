@@ -179,7 +179,7 @@ public:
 			}
 			j += crop->no_seeds;
 		}
-		printf("Number of seeds that germinated and were not dispersed by animals: %i \n", pop->size() - pre_dispersal_popsize);
+		printf("Number of wind-dispersed seeds that germinated: %i \n", pop->size() - pre_dispersal_popsize);
 		timer.stop(); printf("Dispersing non-animal seeds and/or adding crops took %f seconds. \n", timer.elapsedSeconds());
 		timer.start();
 		pre_dispersal_popsize = pop->size();

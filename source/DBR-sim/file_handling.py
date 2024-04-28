@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 import datetime
 import cv2
+from config import *
+import numpy as np
 
 
 
@@ -40,6 +42,15 @@ def export_state(dynamics, path="", init_csv=True, control_variable=None, contro
 def import_image(fpath):
     img = cv2.imread(fpath)
     return img
+
+def save_numpy_array_to_file(array, path):
+    np.save(path, array)
+
+def save_tree_positions(dynamics):
+    tree_positions = dynamics.state.get_tree_positions()
+    time = str(dynamics.time).zfill(4)
+    save_numpy_array_to_file(tree_positions, f"{DATA_OUT_DIR}/tree_positions/tree_positions_iter_{time}.npy")
+
 
 
 

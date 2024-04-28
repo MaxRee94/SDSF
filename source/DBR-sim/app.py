@@ -81,7 +81,7 @@ def init(
     if initial_pattern_image == "none":
         dynamics.state.set_tree_cover(treecover)
     else:
-        img = cv2.imread(initial_pattern_image, cv2.IMREAD_GRAYSCALE)
+        img = cv2.imread(f"{DATA_IN_DIR}/state patterns/" + initial_pattern_image, cv2.IMREAD_GRAYSCALE)
         img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
         (thresh, img) = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         print("Setting tree cover from image...")
@@ -157,8 +157,8 @@ def updateloop(dynamics, color_dict, **user_args):
                 color_dict=color_dict
             )
         
-        if dynamics.time <= 1:
-            continue
+        # if dynamics.time <= 1:
+        #     continue
 
         print("-- Saving image...")
         imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
@@ -180,6 +180,13 @@ def updateloop(dynamics, color_dict, **user_args):
         csv_path = io.export_state(dynamics, csv_path, init_csv)
         init_csv = False
         
+        #print("-- Computing radial distribution function...")
+        #g_r, radii = compute_radial_distribution_function(dynamics)
+        #vis.visualize_radial_distribution_function(g_r, radii, dynamics.time)
+        
+        print("-- Saving tree positions...")
+        io.save_tree_positions(dynamics)
+
         # print("-- Showing graphs...")
         # if not user_args["headless"]:
         #     graphs.update()

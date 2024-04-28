@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from helpers import *
+from config import *
 
 
 def get_color_dict(no_values, begin=0.0, end=1.0):
@@ -86,6 +87,18 @@ def visualize_kernel(kernel, title="Kernel"):
     plt.title(title)
     print("samples: ", vals[0], vals[int(no_samples/5 * 1)], vals[int(no_samples/5 * 2)], vals[int(no_samples/5 * 3)], vals[int(no_samples/5 * 4)], vals[-1])
     plt.show()
+
+def visualize_radial_distribution_function(g_r, radii, iteration):
+    fig = plt.figure()
+    plt.plot(radii, g_r)
+    fig.suptitle(f'Radial distribution function (iteration {iteration})', fontsize=14)
+    plt.xlabel('radius (m)', fontsize=11)
+    plt.ylabel('g(r)', fontsize=11)
+    fig.show()
+    try:
+        fig.savefig(f'{DATA_OUT_DIR}/radial_distribution_function/g_r_{iteration}.png')
+    except:
+        pass
 
 
 class Graphs:
