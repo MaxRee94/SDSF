@@ -16,7 +16,7 @@ public:
 	{};
 	bool germinate_if_location_is_viable(State* state) {
 		Cell* cell = state->grid.get_cell_at_position(deposition_location);
-		if (!is_outcompeted(cell, state)) {
+		if (!state->is_outcompeted(cell)) {
 			germinate(cell, state);
 			return true;
 		}
@@ -28,14 +28,6 @@ public:
 	Strategy strategy;
 	pair<float, float> deposition_location;
 private:
-	bool is_outcompeted(Cell* cell, State* state) {
-		// Suppress germination of seeds in areas with increased competition
-		float outcompete_likelihood = ((float)cell->trees.size() * state->saturation_threshold);
-		if (help::get_rand_float(0, 1) < outcompete_likelihood) {
-			return true;
-		}
-		return false;
-	}
 	void germinate(Cell* cell, State* state) {
 		// TEMP: Arbitrary starting radius of 0.1. TODO: replace with 0 once proper growth curve is implemented.
 		Tree* tree = state->population.add(deposition_location, &strategy, 0.1);

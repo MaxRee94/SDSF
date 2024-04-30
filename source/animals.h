@@ -106,6 +106,9 @@ public:
 	pair<float, float> select_destination(ResourceGrid* resource_grid) {
 		resource_grid->update_probability_distribution(species, traits, position);
 		ResourceCell* cell = resource_grid->select_cell();
+
+		// TEMP: Select a random cell and a random location within that cell (to compare computational efficiency). 
+		//ResourceCell* cell = resource_grid->select_random_cell();
 		pair<float, float> destination;
 		resource_grid->get_random_location_within_cell(cell, destination);
 		return destination;
@@ -195,6 +198,7 @@ public:
 	}
 	void disperse(int& no_seeds_dispersed, State* state, ResourceGrid* resource_grid) {
 		place(state);
+		resource_grid->reset_color_arrays();
 		for (int i = 0; i < no_iterations; i++) {
 			for (auto& [species, species_population] : total_animal_population) {
 				for (auto& animal : species_population) {

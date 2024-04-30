@@ -47,6 +47,14 @@ public:
 		}
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
+	bool is_outcompeted(Cell* cell) {
+		// Suppress germination of seeds in areas with increased competition
+		float outcompete_likelihood = ((float)cell->trees.size() * saturation_threshold);
+		if (help::get_rand_float(0, 1) < outcompete_likelihood) {
+			return true;
+		}
+		return false;
+	}
 	float get_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
 		vector<float> dists = {help::get_manhattan_dist(a, b)};
 		float min_dist = dists[0];
@@ -106,14 +114,6 @@ public:
 		int iteration_budget = 5;
 		int j = 0;
 
-		// Get cumulative intended tree cover 
-		float integral_image_cover = 0;
-		for (int i = 0; i < img_width * img_height; i++) {
-			integral_image_cover += image[i];
-		}
-		integral_image_cover /= (float)(img_width * img_height);
-		printf("Integral image cover: %f\n", integral_image_cover);
-
 		// Create probability model
 		DiscreteProbabilityModel probmodel = DiscreteProbabilityModel(grid.no_cells);
 		float sum = 0;
@@ -121,21 +121,71 @@ public:
 			probmodel.probabilities[i] = image[i];
 			sum += image[i];
 		}
+		float integral_image_cover = sum / (float)(img_width * img_height);
+		printf("Integral image cover: %f\n", integral_image_cover);
+
+		// Normalize probabilities
 		float recipr_sum = 1.0f / sum;
 		for (int i = 0; i < grid.no_cells; i++) {
+			//printf("prob before: %f\n", probmodel.probabilities[i]);
 			probmodel.probabilities[i] *= recipr_sum;
 		}
 		probmodel.build_cdf();
 
+#if 0:
+		float no_samples = 1e6;
+		float max = 0;
+		map<int, int> _visits;
+		for (int i = 0; i < no_samples; i++) {
+			int idx = probmodel.sample();
+			grid.state_distribution[idx] += 1;
+			if (idx / 1000 == 470) {
+				//printf("idx: %i\n", idx);
+				_visits[idx] = _visits[idx] + 1;
+			}
+			if (grid.state_distribution[idx] > max) {
+				max = grid.state_distribution[idx];
+			}
+			if (grid.state_distribution[idx] < 0) grid.state_distribution[idx] = 0;
+			if (i % 10000 == 0) printf("Sampled: %i\n", i);
+		}
+		float min = INFINITY;
+		for (int i = 0; i < grid.no_cells; i++) {
+			if (grid.state_distribution[i] < min) {
+				min = grid.state_distribution[i];
+			}
+		}
+		for (int i = 0; i < grid.no_cells; i++) grid.state_distribution[i] = round((((float)grid.state_distribution[i] - min) / max) * 99);
+
+		printf("Number of unique cells visited: %i \n", _visits.size());
+		help::print_map(&_visits);
+#endif
+
 		// Set tree cover
+		Timer timer; timer.start();
+		map<int, int> __visits;
 		while (grid.get_tree_cover() < integral_image_cover) {
 			int idx = probmodel.sample();
+			//if (idx / 1000 == 470) {
+			//	//printf("idx: %i\n", idx);
+			//	__visits[idx] = __visits[idx] + 1;
+			//}
 			pair<float, float> position = grid.get_random_location_within_cell(idx);
+			//pair<float, float> position = grid.cellsize * grid.idx_2_pos(idx);
+			Cell* cell = grid.get_cell_at_position(position);
+			if (is_outcompeted(cell)) {
+				continue;
+			}
 			Tree* tree = population.add(position);
 			grid.populate_tree_domain(tree);
 			if (population.size() % 10000 == 0) printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
+			if (timer.elapsedSeconds() > 10) break;
 		}
 		printf("Finished setting tree cover from image.\n");
+
+		//printf("Number of unique cells visited: %i \n", __visits.size());
+		//help::print_map(&__visits);
+
 	}
 	void set_tree_cover(float _tree_cover) {
 		help::init_RNG();

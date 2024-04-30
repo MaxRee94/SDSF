@@ -39,7 +39,7 @@ public:
 		width_r = (float)width * cellsize;
 		size = width * width;
 		cells = new ResourceCell[size];
-		selection_probabilities = DiscreteProbabilityModel(size);
+		selection_probabilities = DiscreteFloatProbabilityModel(size);
 		init_property_distributions(species);
 		init_cells();
 		init_neighbor_offsets();
@@ -49,7 +49,6 @@ public:
 		cover = new float[size];
 		fruit_abundance = new float[size];
 		dist_aggregate = new float[size];
-		selection_probabilities.probabilities = new float[size];
 		color_distribution = new int[size];
 		visits = new int[size];
 		for (int i = 0; i < size; i++) visits[i] = 0;
@@ -278,7 +277,7 @@ public:
 	int* visits = 0;
 	float visits_sum = 0;
 	int iteration = -1;
-	DiscreteProbabilityModel selection_probabilities;
+	DiscreteFloatProbabilityModel selection_probabilities;
 	pair<float, float>* neighbor_offsets = 0;
 	int size = 0;
 	int* color_distribution = 0;

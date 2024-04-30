@@ -17,7 +17,7 @@
 #include "timer.h"
 
 using namespace std;
-#define INV_RAND_MAX  1.0f / (float)RAND_MAX
+#define INV_RAND_MAX  1.0 / RAND_MAX
 
 
 typedef unsigned int uint;
@@ -118,6 +118,10 @@ namespace help {
 
 	float get_rand_float(float min, float max);
 
+	double _get_rand_double(double min, double max);
+
+	double get_rand_double(double min, double max);
+
 	uint get_rand_uint(int min, int max);
 
 	int get_rand_int(int min, int max);
@@ -181,8 +185,13 @@ namespace help {
 	// Get maximum
 	double get_max(vector<double>* distribution);
 
-	// Do binary search in array of floats
-	int binary_search(float* arr, int size, float target);
+	// Do binary search in array of floats or doubles
+	template <typename T>
+	int binary_search(T* arr, int size, T target);
+
+	// Do linear search in array of floats or doubles
+	template <typename T>
+	int do_linear_search(T* arr, int size, T target);
 
 	// Get minimum
 	template <typename T>
@@ -288,7 +297,35 @@ namespace help {
 	public:
 		DiscreteProbabilityModel() = default;
 		DiscreteProbabilityModel(int _size) {
-			partitioning_resolution = round(sqrtf(_size));
+			size = _size;
+			probabilities = new double[size];
+			cdf = new double[size];
+		};
+		void build_cdf() {
+			double height = 0.0f;
+			for (int i = 0; i < size; i++) {
+				cdf[i] = height;
+				height += probabilities[i];
+			}
+		}
+		int sample() {
+			double cdf_sample = help::get_rand_double(0.0f, 1.0);
+			int idx = binary_search(cdf, size, cdf_sample);
+			if (idx != -1) return idx;
+			else return uniform_rand_idx();
+		}
+		int uniform_rand_idx() {
+			return help::get_rand_int(0, size - 1);
+		}
+		double* probabilities = 0;
+		double* cdf = 0;
+		int size = 0;
+	};
+
+	class DiscreteFloatProbabilityModel {
+	public:
+		DiscreteFloatProbabilityModel() = default;
+		DiscreteFloatProbabilityModel(int _size) {
 			size = _size;
 			probabilities = new float[size];
 			cdf = new float[size];
@@ -301,18 +338,16 @@ namespace help {
 			}
 		}
 		int sample() {
-			float cdf_sample = help::get_rand_float(0.0f, 1.0f);
+			float cdf_sample = help::get_rand_float(0.0f, 1.0);
 			int idx = binary_search(cdf, size, cdf_sample);
 			if (idx != -1) return idx;
-			idx = help::get_rand_int(0, size - 1);
-			return idx;
+			else return uniform_rand_idx();
+		}
+		int uniform_rand_idx() {
+			return help::get_rand_int(0, size - 1);
 		}
 		float* probabilities = 0;
 		float* cdf = 0;
-		int partitioning_resolution = 0;
-		map<float, pair<int, int>> cdf_partitioning;
-		DiscreteProbModelPiece* cdf_pieces = 0;
-		float piece_width = 0;
 		int size = 0;
 	};
 

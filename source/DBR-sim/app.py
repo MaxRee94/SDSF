@@ -83,8 +83,9 @@ def init(
     else:
         img = cv2.imread(f"{DATA_IN_DIR}/state patterns/" + initial_pattern_image, cv2.IMREAD_GRAYSCALE)
         img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
-        (thresh, img) = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        #(thresh, img) = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         print("Setting tree cover from image...")
+        print(img / 255)
         dynamics.state.set_cover_from_image(img / 255)
     dynamics.state.repopulate_grid(0)
     
@@ -205,7 +206,7 @@ def do_tests(**user_args):
 
 def test_kernel():
     cpp.init_RNG()
-    dist_max = 200
+    dist_max = 5000
     windspeed_gmean = 20
     windspeed_stdev = 3
     seed_terminal_speed = 0.65

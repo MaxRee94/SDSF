@@ -16,11 +16,11 @@ void convert_from_numpy_array(py::array_t<float>& img, float*& cover_image, int&
 	auto buf1 = img.request();
 	float* ptr = (float*)buf1.ptr;
 	width = buf1.shape[0];
-	height = buf1.shape[1];
+    height = width;
 	cover_image = new float[width * height];
 	for (int x = 0; x < width; x++) {
 		for (int y = 0; y < height; y++) {
-			cover_image[x * height + y] = ptr[x * height + y];
+			cover_image[y * width + x] = ptr[y * width + x];
 		}
 	}
 }

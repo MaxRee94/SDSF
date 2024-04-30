@@ -10,7 +10,8 @@
 
 using namespace std;
 
-
+#define RAND_DOUBLE_PRECISION 0.001
+#define INV_RAND_DOUBLE_PRECISION_PLUSONE 1.0 / (1.0 + RAND_DOUBLE_PRECISION)
 
 void help::init_RNG() {
     srand(time(NULL));
@@ -20,6 +21,17 @@ void help::init_RNG() {
 
 float help::get_rand_float(float min, float max) {
     return min + (float)rand() * INV_RAND_MAX * (max - min);
+}
+
+double help::_get_rand_double(double min, double max) {
+    return min + ((double)rand() * INV_RAND_MAX) * (max - min);
+}
+
+double help::get_rand_double(double min, double max) {
+    float range = max - min;
+    double val = help::_get_rand_double(0, range) + help::_get_rand_double(0, range * RAND_DOUBLE_PRECISION);
+    val = min + INV_RAND_DOUBLE_PRECISION_PLUSONE * val;
+    return val;
 }
 
 uint help::get_rand_uint(int min, int max) {
@@ -528,8 +540,8 @@ void help::DiscreteProbModelPiece::rescale(float factor) {
     ysize = ymax - ymin;
 }
 
-
-int help::binary_search(float* arr, int size, float target) {
+template <typename T>
+int help::binary_search(T* arr, int size, T target) {
     int l = 0;
     int r = size - 1;
     while (l <= r) {
@@ -559,6 +571,23 @@ int help::binary_search(float* arr, int size, float target) {
     // If we reach here, then element was not present
     return -1;
 }
+template int help::binary_search<double>(double* arr, int size, double target);
+template int help::binary_search<float>(float* arr, int size, float target);
+
+template <typename T>
+int help::do_linear_search(T* arr, int size, T target) {
+	for (int i = 0; i < size; i++) {
+		if (arr[i] >= target) {
+			return i;
+		}
+        /*else if (target < 0.48f && target > 0.47f && i >= 470000) {
+            printf("Arr %i (%f) is not greater than target %f\n", i, arr[i], target);
+        }*/
+	}
+	return -1;
+}
+template int help::do_linear_search<double>(double* arr, int size, double target);
+template int help::do_linear_search<float>(float* arr, int size, float target);
 
 
 help::PieceWiseLinearProbModel::PieceWiseLinearProbModel() = default;

@@ -107,8 +107,6 @@ public:
 	void mutate(Strategy& strategy, float mutation_rate) {
 		bool do_mutation = help::get_rand_float(0, 1) < mutation_rate;
 		if (do_mutation) {
-			printf("\nstrategy before mutation: \n");
-			strategy.print();
 			int trait_idx = help::get_rand_int(0, 3);
 			float fruit_pulp_mass = 0;
 			if (trait_idx == 0) {
@@ -127,8 +125,6 @@ public:
 			strategy.diaspore_mass = compute_diaspore_mass(strategy.no_seeds_per_diaspore, strategy.seed_mass, strategy.vector, fruit_pulp_mass, pulp_to_seed_ratio);
 			strategy.seed_tspeed = calculate_tspeed(strategy.diaspore_mass);
 			strategy.pulp_to_seed_ratio = pulp_to_seed_ratio;
-			printf("strategy after mutation: \n");
-			strategy.print();
 		}
 	}
 	map<string, ProbModel> trait_distributions;
@@ -179,14 +175,15 @@ public:
 	}
 	void compute_mass(Tree& tree) {
 		float radius_avg = (tree.radius + tree.radius_tmin1) * 0.5;
-		//printf("radius avg: %f, cur radius: %f, old radius: %f, cubed radius: %f \n", radius_avg, tree_radius, tree_radius_tmin1, cubed(radius_avg));
-		mass = cubed(radius_avg) - (cubed(tree.radius) - cubed(tree.radius_tmin1));
+		float cubed_current_tree_mass = help::cubed(radius_avg);
+		float growth_mass = help::cubed(tree.radius) - help::cubed(tree.radius_tmin1);
+		mass = cubed_current_tree_mass - growth_mass;
 		if (mass < 0) {
-			printf("mass calculated: %f, \n", mass);
+			printf("\n\n--- Error with mass calculation -----\n\nmass calculated: %f, \n", mass);
 			printf("tree id: %i, crop id %i, radius: %f, radius_tmin1: %f \n", tree.id, id, tree.radius, tree.radius_tmin1);
 		}
 		mass = max(0, mass);
-		mass *= mass_budget_factor * 1000;
+		mass *= mass_budget_factor * 1000; // Convert to grams
 	}
 	void compute_no_seeds() {
 		no_seeds = no_diaspora * strategy.no_seeds_per_diaspore;

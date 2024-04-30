@@ -98,7 +98,7 @@ public:
 		cout << "Global kernel created (Linear diffusion). " << endl;
 	}
 	void set_global_wind_kernel(float wspeed_gmean, float wspeed_stdev, float wind_direction, float wind_direction_stdev) {
-		global_kernels["wind"] = Kernel(1, grid->width_r, wspeed_gmean, wspeed_stdev, wind_direction, wind_direction_stdev);
+		global_kernels["wind"] = Kernel(1, grid->width_r * 2.0f, wspeed_gmean, wspeed_stdev, wind_direction, wind_direction_stdev);
 		pop->add_kernel("wind", global_kernels["wind"]);
 		cout << "Global kernel created (Wind dispersal). " << endl;
 	}

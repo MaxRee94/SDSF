@@ -70,8 +70,7 @@ public:
 		throw("Runtime error: Could not find forest cell after %i attempts.\n", fetch_attempt_limit);
 	}
 	pair<float, float> get_random_location_within_cell(pair<int, int> &gridbased_location) {
-		Cell* cell = get_cell_at_position(gridbased_location);
-		pair<float, float> real_position = get_real_cell_position(cell);
+		pair<float, float> real_position((float)gridbased_location.first * cellsize, (float)gridbased_location.second * cellsize);
 		float x = help::get_rand_float(real_position.first, real_position.first + cellsize);
 		float y = help::get_rand_float(real_position.second, real_position.second + cellsize);
 		return pair<float, float>(x, y);
