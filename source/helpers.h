@@ -317,37 +317,28 @@ namespace help {
 		int uniform_rand_idx() {
 			return help::get_rand_int(0, size - 1);
 		}
-		double* probabilities = 0;
-		double* cdf = 0;
-		int size = 0;
-	};
-
-	class DiscreteFloatProbabilityModel {
-	public:
-		DiscreteFloatProbabilityModel() = default;
-		DiscreteFloatProbabilityModel(int _size) {
-			size = _size;
-			probabilities = new float[size];
-			cdf = new float[size];
-		};
-		void build_cdf() {
-			float height = 0.0f;
+		void set_probabilities(double* probs, double &integral) {
+			integral = 0;
 			for (int i = 0; i < size; i++) {
-				cdf[i] = height;
-				height += probabilities[i];
+				probabilities[i] = probs[i];
+				integral += probs[i];
 			}
 		}
-		int sample() {
-			float cdf_sample = help::get_rand_float(0.0f, 1.0);
-			int idx = binary_search(cdf, size, cdf_sample);
-			if (idx != -1) return idx;
-			else return uniform_rand_idx();
+		void set_probabilities(float* probs, float& integral) {
+			integral = 0;
+			for (int i = 0; i < size; i++) {
+				probabilities[i] = probs[i];
+				integral += probs[i];
+			}
 		}
-		int uniform_rand_idx() {
-			return help::get_rand_int(0, size - 1);
+		void normalize(double integral) {
+			double recipr = 1.0 / integral;
+			for (int i = 0; i < size; i++) {
+				probabilities[i] *= recipr;
+			}
 		}
-		float* probabilities = 0;
-		float* cdf = 0;
+		double* probabilities = 0;
+		double* cdf = 0;
 		int size = 0;
 	};
 

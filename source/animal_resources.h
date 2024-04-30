@@ -39,7 +39,7 @@ public:
 		width_r = (float)width * cellsize;
 		size = width * width;
 		cells = new ResourceCell[size];
-		selection_probabilities = DiscreteFloatProbabilityModel(size);
+		selection_probabilities = DiscreteProbabilityModel(size);
 		init_property_distributions(species);
 		init_cells();
 		init_neighbor_offsets();
@@ -208,7 +208,6 @@ public:
 				if (visits[i] > max_visits) max_visits = visits[i];
 				color_distribution[i] = (float)visits[i] * sum_recipr * 100000;
 			}
-			printf("max visits: %d \n", max_visits);
 		}
 		else if (collect == "k") {
 			for (int i = 0; i < no_cells; i++) {
@@ -277,7 +276,7 @@ public:
 	int* visits = 0;
 	float visits_sum = 0;
 	int iteration = -1;
-	DiscreteFloatProbabilityModel selection_probabilities;
+	DiscreteProbabilityModel selection_probabilities;
 	pair<float, float>* neighbor_offsets = 0;
 	int size = 0;
 	int* color_distribution = 0;
@@ -301,10 +300,7 @@ private:
 			selection_probabilities.probabilities[i] = d[i] * _c[i] * _f[i];
 			sum += selection_probabilities.probabilities[i];
 		}
-		float sum_recipr = 1.0f / sum;
-		for (int i = 0; i < size; i++) {
-			selection_probabilities.probabilities[i] *= sum_recipr;
-		}
+		selection_probabilities.normalize(sum);
 		selection_probabilities.build_cdf();
 	}
 };

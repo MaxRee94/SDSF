@@ -116,62 +116,18 @@ public:
 
 		// Create probability model
 		DiscreteProbabilityModel probmodel = DiscreteProbabilityModel(grid.no_cells);
-		float sum = 0;
-		for (int i = 0; i < grid.no_cells; i++) {
-			probmodel.probabilities[i] = image[i];
-			sum += image[i];
-		}
-		float integral_image_cover = sum / (float)(img_width * img_height);
-		printf("Integral image cover: %f\n", integral_image_cover);
-
-		// Normalize probabilities
-		float recipr_sum = 1.0f / sum;
-		for (int i = 0; i < grid.no_cells; i++) {
-			//printf("prob before: %f\n", probmodel.probabilities[i]);
-			probmodel.probabilities[i] *= recipr_sum;
-		}
+		float integral_image_cover;
+		probmodel.set_probabilities(image, integral_image_cover);
+		probmodel.normalize(integral_image_cover);
 		probmodel.build_cdf();
-
-#if 0:
-		float no_samples = 1e6;
-		float max = 0;
-		map<int, int> _visits;
-		for (int i = 0; i < no_samples; i++) {
-			int idx = probmodel.sample();
-			grid.state_distribution[idx] += 1;
-			if (idx / 1000 == 470) {
-				//printf("idx: %i\n", idx);
-				_visits[idx] = _visits[idx] + 1;
-			}
-			if (grid.state_distribution[idx] > max) {
-				max = grid.state_distribution[idx];
-			}
-			if (grid.state_distribution[idx] < 0) grid.state_distribution[idx] = 0;
-			if (i % 10000 == 0) printf("Sampled: %i\n", i);
-		}
-		float min = INFINITY;
-		for (int i = 0; i < grid.no_cells; i++) {
-			if (grid.state_distribution[i] < min) {
-				min = grid.state_distribution[i];
-			}
-		}
-		for (int i = 0; i < grid.no_cells; i++) grid.state_distribution[i] = round((((float)grid.state_distribution[i] - min) / max) * 99);
-
-		printf("Number of unique cells visited: %i \n", _visits.size());
-		help::print_map(&_visits);
-#endif
+		integral_image_cover /= (float)(img_width * img_height);
+		printf("Image cover: %f\n", integral_image_cover);
 
 		// Set tree cover
 		Timer timer; timer.start();
-		map<int, int> __visits;
 		while (grid.get_tree_cover() < integral_image_cover) {
 			int idx = probmodel.sample();
-			//if (idx / 1000 == 470) {
-			//	//printf("idx: %i\n", idx);
-			//	__visits[idx] = __visits[idx] + 1;
-			//}
 			pair<float, float> position = grid.get_random_location_within_cell(idx);
-			//pair<float, float> position = grid.cellsize * grid.idx_2_pos(idx);
 			Cell* cell = grid.get_cell_at_position(position);
 			if (is_outcompeted(cell)) {
 				continue;
@@ -182,10 +138,6 @@ public:
 			if (timer.elapsedSeconds() > 10) break;
 		}
 		printf("Finished setting tree cover from image.\n");
-
-		//printf("Number of unique cells visited: %i \n", __visits.size());
-		//help::print_map(&__visits);
-
 	}
 	void set_tree_cover(float _tree_cover) {
 		help::init_RNG();
