@@ -44,7 +44,7 @@ defaults = {
     "seed_mass": 0.01,
     "flammability_coefficients_and_constants": [0.1, 0.35, 0, 1],
     "saturation_threshold": 3,
-    "fire_resistance_params": [8.5, 50, 2.857],
+    "fire_resistance_params": [8.5, 50, 2.857], # See 'notes/fire_resistance_threshold_curve.xlsx' for details
     "constant_mortality": 0.03,
     "csv_path": "",
     "headless": False,

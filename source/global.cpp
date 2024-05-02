@@ -180,7 +180,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
 
     py::class_<Population>(module, "Population")
         .def(py::init<>())
-        .def(py::init<const float&, const float&, const float&, const float&, const float&, const map<string, map<string, float>>&, const float& >())
+        .def(py::init<const float&, const float&, const float&, const float&, const float&, const map<string, map<string, float>>&, const float&, const float& >())
         .def("size", &Population::size);
     
     py::class_<Tests>(module, "Tests")

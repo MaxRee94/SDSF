@@ -85,15 +85,9 @@ public:
 		std::sort(fire_ignition_times.begin(), fire_ignition_times.end());
 		return fire_ignition_times;
 	}
-	void grow_tree(Tree &tree) {
-		// TEMP: constant growth rate. TODO: Make dependent on radius and life phase (resprout or seedling)
-		tree.radius_tmin1 = tree.radius;
-		if (tree.radius >= pop->max_radius) return;
-		tree.radius = min(tree.radius + sqrtf(tree.radius) * growth_rate_multiplier, pop->max_radius);
-	}
 	void grow() {
 		for (auto& [id, tree] : pop->members) {
-			grow_tree(tree);
+			tree.grow(growth_rate_multiplier, seed_bearing_threshold);
 		}
 	}
 	void set_global_linear_kernel(float lin_diffuse_q1, float lin_diffuse_q2, float min, float max) {
@@ -254,14 +248,10 @@ public:
 		}
 		else return get_savanna_flammability(fire_free_interval);
 	}
-	
 	bool tree_dies(Tree* tree, float fire_free_interval) {
-		float stem_dbh = tree->get_stem_dbh();
-		float bark_thickness = tree->get_bark_thickness(stem_dbh);
-		float survival_probability = help::get_sigmoid(bark_thickness, fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
-		if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", stem_dbh, bark_thickness, survival_probability);
-		return help::get_rand_float(0.0f, 1.0f) > survival_probability; 
+		// if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", stem_dbh, bark_thickness, survival_probability);
 		// COMMENT: We currently assume topkill always implies death, but resprouting should also be possible. (TODO: make death dependent on fire-free interval)
+		return tree->survives_fire(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 	}
 	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue) {
 		if (verbosity == 2) printf("Killing tree %i ... \n", tree->id);

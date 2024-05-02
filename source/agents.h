@@ -144,13 +144,17 @@ public:
 class Tree {
 public:
 	Tree() = default;
-	Tree(int _id, pair<float, float> _position, float _radius, float _radius_tmin1) : position(_position), radius(_radius), radius_tmin1(_radius_tmin1) {
+	Tree(int _id, pair<float, float> _position, float _radius, float _radius_tmin1, float& seed_bearing_threshold) : 
+		position(_position), radius(_radius), radius_tmin1(_radius_tmin1) 
+	{
 		id = _id;
+		update(seed_bearing_threshold);
 	};
-	Tree(int _id, pair<float, float> _position, float _radius, float _radius_tmin1, int _life_phase) :
+	Tree(int _id, pair<float, float> _position, float _radius, float _radius_tmin1, int _life_phase, float &seed_bearing_threshold) :
 		position(_position), radius(_radius), radius_tmin1(_radius_tmin1), life_phase(_life_phase)
 	{
 		id = _id;
+		update(seed_bearing_threshold);
 	};
 	bool operator==(const Tree& tree) const
 	{
@@ -160,21 +164,51 @@ public:
 		float dist = help::get_dist(position, pos2);
 		return dist < radius;
 	}
-	void update_life_phase(float max_radius, float seed_bearing_threshold) {
-		if (radius > (seed_bearing_threshold * max_radius)) life_phase = 2;
+	int get_life_phase(float& seed_bearing_threshold) {
+		if (radius > (seed_bearing_threshold * MAX_RADIUS)) return 2;
+		else return 0;
 	}
-	float get_bark_thickness(float stem_diameter) {
-		return 0.31 * pow(stem_diameter, 1.276);
+	float get_bark_thickness() {
+		return 0.31 * pow(stem_dbh, 1.276);
 	}
 	float get_stem_dbh() {
 		return pow(10.0f, (log10(radius + radius) + 0.12) / 0.63);
 	}
+	float get_survival_probability(float& bark_thickness, float& fire_resistance_argmin, float& fire_resistance_argmax, float& fire_resistance_stretch) {
+		return help::get_sigmoid(bark_thickness, fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
+	}
+	float get_LAI() {
+		return 1; // TEMP: Placeholder. TODO: Implement LAI calculation
+	}
+	bool survives_fire(float &fire_resistance_argmin, float &fire_resistance_argmax, float &fire_resistance_stretch) {
+		float bark_thickness = get_bark_thickness();
+		float survival_probability = get_survival_probability(bark_thickness, fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
+		return help::get_rand_float(0.0f, 1.0f) > survival_probability;
+	}
+	void grow_crown(float& growth_rate_multiplier) {
+		// TEMP: constant growth rate. TODO: Make dependent on radius and life phase (resprout or seedling)
+		radius_tmin1 = radius;
+		if (radius >= MAX_RADIUS) return;
+		radius = min(radius + sqrtf(radius) * growth_rate_multiplier, MAX_RADIUS);
+	}
+	void update(float& seed_bearing_threshold) {
+		life_phase = get_life_phase(seed_bearing_threshold);
+		stem_dbh = get_stem_dbh();
+		LAI = get_LAI();
+	}
+	void grow(float& growth_rate_multiplier, float &seed_bearing_threshold) {
+		grow_crown(growth_rate_multiplier);
+		update(seed_bearing_threshold);
+	}
 	float radius = -1;
 	float radius_tmin1 = -1;
 	int life_phase = 0;
+	float stem_dbh = 0;
+	float LAI = 0;
 	int last_mortality_check = 0;
 	pair<float, float> position = pair(0, 0);
 	int id = -1;
+	float MAX_RADIUS = 5.0f; // TEMP: Hardcoded max radius. TODO: Implement growth curve so that max radius becomes obsolete.
 };
 
 
@@ -227,9 +261,9 @@ class Population {
 public:
 	Population() = default;
 	Population(float _max_radius, float _cellsize, float _radius_q1, float _radius_q2, float _mass_budget_factor, 
-		map<string, map<string, float>> strategy_parameters, float _mutation_rate
+		map<string, map<string, float>> strategy_parameters, float _mutation_rate, float _seed_bearing_threshold
 	) : max_radius(_max_radius), cellsize(_cellsize), radius_q1(_radius_q1), radius_q2(_radius_q2),
-		mass_budget_factor(_mass_budget_factor)
+		mass_budget_factor(_mass_budget_factor), seed_bearing_threshold(_seed_bearing_threshold)
 	{
 		strategy_generator = StrategyGenerator(strategy_parameters);
 		radius_probability_model = help::LinearProbabilityModel(radius_q1, radius_q2, 0, max_radius);
@@ -240,7 +274,7 @@ public:
 		if (radius == -1) radius = max_radius;
 		else if (radius == -2) radius = radius_probability_model.linear_sample();
 		float radius_tmin1 = radius * 0.9; // TEMP. TODO: Make dependent on growth curve.
-		Tree tree(no_created_trees + 1, position, radius, radius_tmin1, 1);
+		Tree tree(no_created_trees + 1, position, radius, radius_tmin1, 1, seed_bearing_threshold);
 		members[tree.id] = tree;
 		no_created_trees++;
 
@@ -262,7 +296,10 @@ public:
 		// Create custom kernel
 		Kernel kernel = kernels[strategy.vector];
 		if (strategy.vector == "wind") {
-			kernel = Kernel(tree.id, kernel.dist_max, kernel.wspeed_gmean, kernel.wspeed_stdev, kernel.wind_direction, kernel.wind_direction_stdev, strategy.seed_tspeed, max_radius * 4);
+			kernel = Kernel(
+				tree.id, kernel.dist_max, kernel.wspeed_gmean, kernel.wspeed_stdev, kernel.wind_direction,
+				kernel.wind_direction_stdev, strategy.seed_tspeed, max_radius * 4
+			);
 		}
 		kernels_individual[tree.id] = kernel;
 
@@ -320,4 +357,5 @@ public:
 	Tree removed_tree;
 	int no_created_trees = 0;
 	float mass_budget_factor = 0;
+	float seed_bearing_threshold = 0;
 };
