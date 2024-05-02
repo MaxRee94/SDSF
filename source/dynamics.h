@@ -16,7 +16,7 @@ public:
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_seed_bearing_threshold),
 		mass_budget_factor(_mass_budget_factor), growth_rate_multiplier(_growth_rate_multiplier),
 		radius_suppr_flamm_min(_max_radius * _radius_suppr_flamm_min),
-		flamm_d_radius((_cellsize * _min_suppressed_flammability - _cellsize * _max_suppressed_flammability) / (_max_radius * radius_range_suppr_flamm)),
+		flamm_delta_radius((_cellsize * _min_suppressed_flammability - _cellsize * _max_suppressed_flammability) / (_max_radius * radius_range_suppr_flamm)),
 		max_suppressed_flammability(_cellsize * _max_suppressed_flammability),
 		min_suppressed_flammability(_cellsize * _min_suppressed_flammability),
 		max_radius(_max_radius), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold), fire_resistance_argmin(_fire_resistance_argmin),
@@ -235,12 +235,11 @@ public:
 		}
 	}
 	float get_forest_flammability(Cell* cell, float fire_free_interval) {
-		float d_radius = max(cell->cumulative_radius - radius_suppr_flamm_min, 0);
-		float flammability = max(max_suppressed_flammability + d_radius * flamm_d_radius, min_suppressed_flammability) / cell->cumulative_radius;
-		return flammability;
+		float fuel_load = cell->get_fuel_load();
+		return fire_free_interval * unsuppressed_flammability * fuel_load; // We assume flammability is directly proportional to fuel load and fire-free interval.
 	}
 	float get_savanna_flammability(float fire_free_interval) {
-		return fire_free_interval * unsuppressed_flammability;
+		return fire_free_interval * unsuppressed_flammability; // We assume grass flammability is directly proportional to fire-free interval.
 	}
 	float get_cell_flammability(Cell* cell, float fire_free_interval) {
 		if (cell->state == 1) {
@@ -335,7 +334,7 @@ public:
 	float seed_bearing_threshold = 0;
 	float growth_rate_multiplier = 0;
 	float radius_suppr_flamm_min = 0;
-	float flamm_d_radius = 0;
+	float flamm_delta_radius = 0;
 	float max_radius = 0;
 	float cellsize = 0;
 	float fire_spatial_extent = 0;

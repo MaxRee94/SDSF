@@ -10,8 +10,15 @@ public:
 	int idx = 0;
 	float time_last_fire = 0;
 	map<int, int> trees;
-	float cumulative_radius = 0;
+	float LAI = 0; // Tree leaf area index
 	pair<int, int> pos;
+	float get_grass_LAI() {
+		return 0.241f * (LAI * LAI) - 1.709f * LAI + 2.899f; // Relationship between grass and tree LAI from Hoffman et al. (2012), figure 2b.
+	}
+	float get_fuel_load() {
+		float grass_LAI = get_grass_LAI();
+		return 0.344946533f * grass_LAI; // Normalize to range [0, 1] by multiplying with inverse of max value (2.899).
+	}
 	bool operator==(const Cell& cell) const
 	{
 		return pos == cell.pos;
@@ -101,7 +108,7 @@ public:
 		for (int i = 0; i < no_cells; i++) {
 			distribution[i].state = 0;
 			distribution[i].trees.clear();
-			distribution[i].cumulative_radius = 0;
+			distribution[i].LAI = 0;
 		}
 		no_forest_cells = 0;
 		no_savanna_cells = no_cells;
@@ -179,11 +186,11 @@ public:
 					auto it = cell->trees.find(tree->id);
 					if (it != cell->trees.end()) cell->trees.erase(it);
 
-					// Update cumulative radius
-					cell->cumulative_radius -= tree->radius;
+					// Update LAI
+					cell->LAI -= tree->LAI;
 
 					// Set cell to savanna if it is no longer occupied by trees larger than the cell itself.
-					if (cell->cumulative_radius < (cellsize * 0.7)) {
+					if (cell->LAI < (cellsize * 0.2)) {
 						queue.push(cell);
 						set_to_savanna(cell->idx, time_last_fire);
 						if (store_tree_death_in_color_distribution) state_distribution[cell->idx] = -6;
@@ -202,7 +209,7 @@ public:
 		if (collect) {
 			for (int i = 0; i < no_cells; i++) {
 				//if (distribution[i].state == 1) state_distribution[i] = distribution[i].trees.begin()->first % 100 + 1;
-				if (distribution[i].state == 1) state_distribution[i] = min(distribution[i].cumulative_radius, 9) * 10 + 1;
+				if (distribution[i].state == 1) state_distribution[i] = min(distribution[i].LAI, 9) * 10 + 1;
 			}
 		}
 		return state_distribution;
@@ -224,7 +231,7 @@ public:
 		distribution[idx].state = 1;
 		distribution[idx].trees[tree->id] = tree->id;
 		if (tree->id == 0) cout << "pushing back tree id 0\n";
-		distribution[idx].cumulative_radius += tree->radius;
+		distribution[idx].LAI += tree->LAI;
 		distribution[idx].time_last_fire = 0;
 	}
 	void set_to_savanna(int idx, float _time_last_fire = -1) {
@@ -232,6 +239,7 @@ public:
 		no_forest_cells -= (distribution[idx].state == 1);
 
 		distribution[idx].state = 0;
+		//distribution[idx].LAI = 0;
 		if (_time_last_fire != -1) distribution[idx].time_last_fire = _time_last_fire;
 	}
 	float get_tree_cover_within_bb(pair<int, int> bb_min, pair<int, int> bb_max) {
