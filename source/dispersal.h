@@ -12,20 +12,36 @@ public:
 	virtual pair<float, float> get_direction(Kernel* kernel) {
 		return get_random_direction();
 	}
-	void disperse_seed(Crop* crop, State* state) {
+	void compute_deposition_location(Crop* crop, State* state, pair<float, float> &deposition_location) {
 		// Compute seed deposition location
 		Kernel* kernel = state->population.get_kernel(crop->id);
 		pair<float, float> direction = get_direction(kernel);
 		float distance = get_dist(kernel);
-		pair<float, float> seed_deposition_location = crop->origin + distance * direction;
-
-		// Create seed and germinate if viable
-		Seed seed(*(state->population.get_strat(crop->id)), seed_deposition_location);
+		deposition_location = crop->origin + distance * direction;
+	}
+	bool seed_can_germinate(Crop* crop) {
+		return help::get_rand_float(0, 1) < crop->strategy.germination_probability;
+	}
+	void germinate_seed(Crop* crop, State* state, pair<float, float>& deposition_location) {
+		// Create seed and germinate if location has suitable conditions (existing LAI not too high).
+		Seed seed(*(state->population.get_strat(crop->id)), deposition_location);
 		seed.germinate_if_location_is_viable(state);
+	}
+	void attempt_seed_germination(Crop* crop, State* state, pair<float, float>& deposition_location) {
+		for (int i = 0; i < crop->strategy.no_seeds_per_diaspore; i++) {
+			if (seed_can_germinate(crop)) {
+				germinate_seed(crop, state, deposition_location);
+			}
+		}
+	}
+	void disperse_diaspore(Crop* crop, State* state) {
+		pair<float, float> deposition_location;
+		compute_deposition_location(crop, state, deposition_location);
+		attempt_seed_germination(crop, state, deposition_location);
 	}
 	void disperse_crop(Crop* crop, State* state) {
 		for (int i = 0; i < crop->no_diaspora; i++) {
-			disperse_seed(crop, state);
+			disperse_diaspore(crop, state);
 		}
 	}
 };
