@@ -67,6 +67,11 @@ public:
 	}
 	void report_state() {
 		printf("- Tree cover: %f, #trees: %i \n", grid->get_tree_cover(), pop->size());
+		printf("----- MEMORY REPORT: ------\n- Trees memory size: %i \n", (pop->members.size() * sizeof(Tree)) >> 10);
+		printf("- Kernels memory size: %i \n", (pop->kernels_individual.size() * sizeof(pair<int, Kernel>)) >> 10);
+		printf("- Crops memory size: %i \n", (pop->crops.size() * sizeof(pair<int, Crop>)) >> 10);
+		printf("- Strategies memory size: %i \n", (pop->strategies.size() * sizeof(Strategy)) >> 10);
+		printf("------ END REPORT ------\n");
 		if (verbosity == 2) for (auto& [id, tree] : pop->members) if (id % 500 == 0) printf("Radius of tree %i : %f \n", id, tree.radius);
 	}
 	vector<float> get_ordered_fire_ignition_times() {
@@ -142,15 +147,16 @@ public:
 		return true;
 	}
 	void disperse() {
-		int x = 0;
-		int j = 0;
+		int no_seed_bearing_trees = 0;
 		int pre_dispersal_popsize = pop->size();
 		resource_grid.reset();
 		Timer timer; timer.start();
+		int total_no_seeds = 0;
+		int wind_dispersed_trees = 0;
 		for (auto& [id, tree] : pop->members) {
 			// Get crop and kernel
 			if (tree.life_phase < 2) continue;
-			x++;
+			no_seed_bearing_trees++;
 			if (id == -1 || tree.id == -1) {
 				pop->remove(id);
 				continue;
@@ -166,6 +172,7 @@ public:
 				continue;
 			}
 			crop->update(tree);
+			total_no_seeds += crop->no_seeds;
 
 			// Add crop or disperse seeds, depending on dispersal vector type
 			if (pop->get_kernel(id)->type == "animal") {
@@ -173,11 +180,11 @@ public:
 			}
 			else if (pop->get_kernel(id)->type == "wind") {
 				wind_disperser.disperse_crop(crop, &state);
+				wind_dispersed_trees++;
 			}
 			else {
 				linear_disperser.disperse_crop(crop, &state);
 			}
-			j += crop->no_seeds;
 		}
 		printf("Number of wind-dispersed seeds that germinated: %i \n", pop->size() - pre_dispersal_popsize);
 		timer.stop(); printf("Dispersing non-animal seeds and/or adding crops took %f seconds. \n", timer.elapsedSeconds());
@@ -195,14 +202,17 @@ public:
 			}
 		}
 
-		if (verbosity > 0) printf("Number of seed bearing trees: %i, #seeds (all): %i, #germinated animal-dispersed-seeds: %i \n", x, j, pop->size() - pre_dispersal_popsize);
+		if (verbosity > 0) printf("Number of seed bearing trees: %i, #seeds (all): %i, #germinated animal-dispersed-seeds: %i \n",
+			no_seed_bearing_trees, total_no_seeds, pop->size() - pre_dispersal_popsize);
 		if (verbosity > 0) printf("Number of fruits: %i \n", resource_grid.total_no_fruits);
-		seeds_dispersed = j;
+		seeds_dispersed = (float)total_no_seeds / (float)no_seed_bearing_trees;
+		printf("Proportion wind dispersed trees: %f \n", wind_dispersed_trees / (float)no_seed_bearing_trees);
 	}
 	void induce_background_mortality() {
 		for (auto& [id, tree] : pop->members) {
 			if (help::get_rand_float(0, 1) < background_mortality) {
-				kill_tree(&tree);
+				state.population.remove(&tree);
+				//kill_tree(&tree);
 			}
 		}
 	}
