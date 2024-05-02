@@ -163,6 +163,12 @@ public:
 	void update_life_phase(float max_radius, float seed_bearing_threshold) {
 		if (radius > (seed_bearing_threshold * max_radius)) life_phase = 2;
 	}
+	float get_bark_thickness(float stem_diameter) {
+		return 0.31 * pow(stem_diameter, 1.276);
+	}
+	float get_stem_dbh() {
+		return pow(10.0f, (log10(radius + radius) + 0.12) / 0.63);
+	}
 	float radius = -1;
 	float radius_tmin1 = -1;
 	int life_phase = 0;
@@ -248,7 +254,10 @@ public:
 			strategy_generator.generate(strategy);
 		} 
 		strategy.id = tree.id;
-		strategies[tree.id] = strategy;
+
+		// Create crop
+		Crop crop(strategy, tree, mass_budget_factor);
+		crops[tree.id] = crop;
 
 		// Create custom kernel
 		Kernel kernel = kernels[strategy.vector];
@@ -256,10 +265,6 @@ public:
 			kernel = Kernel(tree.id, kernel.dist_max, kernel.wspeed_gmean, kernel.wspeed_stdev, kernel.wind_direction, kernel.wind_direction_stdev, strategy.seed_tspeed, max_radius * 4);
 		}
 		kernels_individual[tree.id] = kernel;
-
-		// Create crop
-		Crop crop(strategy, tree, mass_budget_factor);
-		crops[tree.id] = crop;
 
 		return &members[tree.id];
 	}
@@ -276,9 +281,6 @@ public:
 	Crop* get_crop(int id) {
 		return &crops[id];
 	}
-	Strategy* get_strat(int id) {
-		return &strategies[id];
-	}
 	Kernel* get_kernel(string vector) {
 		return &kernels[vector];
 	}
@@ -294,7 +296,6 @@ public:
 	void remove(int id) {
 		members.erase(id);
 		crops.erase(id);
-		strategies.erase(id);
 		kernels_individual.erase(id);
 	}
 	bool is_population_member(Tree* tree) {
@@ -306,7 +307,6 @@ public:
 	}
 	unordered_map<int, Tree> members;
 	unordered_map<int, Crop> crops;
-	unordered_map<int, Strategy> strategies;
 	unordered_map<string, Kernel> kernels;
 	unordered_map<int, Kernel> kernels_individual;
 	help::LinearProbabilityModel radius_probability_model;

@@ -148,10 +148,10 @@ public:
 			Tree* tree = population.add(position);
 			if (tree->id == -1) population.remove(population.no_created_trees - 1); // HOTFIX: Sometimes trees are not initialized properly and need to be removed.
 			grid.populate_tree_domain(tree);
-			if (population.get_strat(tree->id)->vector == "wind") {
+			if (population.get_crop(tree->id)->strategy.vector == "wind") {
 				wind_trees++;
 			}
-			else if (population.get_strat(tree->id)->vector == "animal") {
+			else if (population.get_crop(tree->id)->strategy.vector == "animal") {
 				animal_trees++;
 			}
 
@@ -163,7 +163,7 @@ public:
 		printf("Final tree cover: %f\n", grid.tree_cover);
 		printf("Wind trees: %i, Animal trees: %i\n", wind_trees, animal_trees);
 		printf("First tree's strategy: \n");
-		population.get_strat(10)->print();
+		population.get_crop(10)->strategy.print();
 
 		// Count no small trees
 		int no_small = 0;

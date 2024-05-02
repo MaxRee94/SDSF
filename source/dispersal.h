@@ -24,7 +24,7 @@ public:
 	}
 	void germinate_seed(Crop* crop, State* state, pair<float, float>& deposition_location) {
 		// Create seed and germinate if location has suitable conditions (existing LAI not too high).
-		Seed seed(*(state->population.get_strat(crop->id)), deposition_location);
+		Seed seed(crop->strategy, deposition_location);
 		seed.germinate_if_location_is_viable(state);
 	}
 	void attempt_seed_germination(Crop* crop, State* state, pair<float, float>& deposition_location) {

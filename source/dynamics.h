@@ -70,7 +70,6 @@ public:
 		printf("----- MEMORY REPORT: ------\n- Trees memory size: %i \n", (pop->members.size() * sizeof(Tree)) >> 10);
 		printf("- Kernels memory size: %i \n", (pop->kernels_individual.size() * sizeof(pair<int, Kernel>)) >> 10);
 		printf("- Crops memory size: %i \n", (pop->crops.size() * sizeof(pair<int, Crop>)) >> 10);
-		printf("- Strategies memory size: %i \n", (pop->strategies.size() * sizeof(Strategy)) >> 10);
 		printf("------ END REPORT ------\n");
 		if (verbosity == 2) for (auto& [id, tree] : pop->members) if (id % 500 == 0) printf("Radius of tree %i : %f \n", id, tree.radius);
 	}
@@ -135,7 +134,7 @@ public:
 	}
 	bool ensure_kernel_exists(int id) {
 		if (pop->get_kernel(id)->id == -1) {
-			string tree_dispersal_vector = pop->get_strat(id)->vector;
+			string tree_dispersal_vector = pop->get_crop(id)->strategy.vector;
 			if (does_global_kernel_exist(tree_dispersal_vector))
 				pop->add_kernel(tree_dispersal_vector, global_kernels[tree_dispersal_vector]);
 			else {
