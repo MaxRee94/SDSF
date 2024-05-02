@@ -172,13 +172,21 @@ public:
 		return 0.31 * pow(stem_dbh, 1.276);
 	}
 	float get_stem_dbh() {
-		return pow(10.0f, (log10(radius + radius) + 0.12) / 0.63);
+		return pow(10.0f, (log10(radius + radius) + 0.12) / 0.63); // From Antin et al (2013), figure 1, topright panel (reordered equation). Stem dbh in cm.
 	}
 	float get_survival_probability(float& bark_thickness, float& fire_resistance_argmin, float& fire_resistance_argmax, float& fire_resistance_stretch) {
 		return help::get_sigmoid(bark_thickness, fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 	}
+	float get_leaf_area() {
+		return 0.147 * pow(stem_dbh, 2.053); // From Hoffman et al (2012), figure 5b. Leaf area in m^2
+	}
+	float get_ground_area() {
+		return M_PI * (radius * radius);
+	}
 	float get_LAI() {
-		return 1; // TEMP: Placeholder. TODO: Implement LAI calculation
+		float ground_area = get_ground_area();
+		float leaf_area = get_leaf_area();
+		return leaf_area / ground_area;
 	}
 	bool survives_fire(float &fire_resistance_argmin, float &fire_resistance_argmax, float &fire_resistance_stretch) {
 		float bark_thickness = get_bark_thickness();
@@ -199,6 +207,7 @@ public:
 	void grow(float& growth_rate_multiplier, float &seed_bearing_threshold) {
 		grow_crown(growth_rate_multiplier);
 		update(seed_bearing_threshold);
+		printf("LAI: %f, stem dbh: %f, radius: %f, radius_tmin1: %f \n", LAI, stem_dbh, radius, radius_tmin1);
 	}
 	float radius = -1;
 	float radius_tmin1 = -1;
