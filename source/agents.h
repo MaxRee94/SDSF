@@ -9,13 +9,15 @@ using namespace help;
 class Strategy {
 public:
 	Strategy() = default;
-	Strategy(string _vector, float _seed_mass, float _diaspore_mass, int _no_seeds_per_diaspore, float _seed_tspeed, float _pulp_to_seed_ratio) :
+	Strategy(string _vector, float _seed_mass, float _diaspore_mass, int _no_seeds_per_diaspore, float _seed_tspeed,
+		float _pulp_to_seed_ratio, float _germination_probability
+	) :
 		vector(_vector), seed_mass(_seed_mass), diaspore_mass(_diaspore_mass), no_seeds_per_diaspore(_no_seeds_per_diaspore),
-		seed_tspeed(_seed_tspeed), pulp_to_seed_ratio(_pulp_to_seed_ratio)
+		seed_tspeed(_seed_tspeed), pulp_to_seed_ratio(_pulp_to_seed_ratio), germination_probability(_germination_probability)
 	{}
 	void print() {
-		printf("id: %d, seed_mass: %f, diaspore_mass: %f, no_seeds_per_diaspore: %d, vector: %s, pulp to seed ratio: %f, seed terminal speed: %f\n",
-			id, seed_mass, diaspore_mass, no_seeds_per_diaspore, vector.c_str(), pulp_to_seed_ratio, seed_tspeed
+		printf("id: %d, seed_mass: %f, diaspore_mass: %f, no_seeds_per_diaspore: %d, vector: %s, pulp to seed ratio: %f, seed terminal speed: %f, germination prob: %f\n",
+			id, seed_mass, diaspore_mass, no_seeds_per_diaspore, vector.c_str(), pulp_to_seed_ratio, seed_tspeed, germination_probability
 		);
 	}
 	int id = -1;
@@ -24,6 +26,7 @@ public:
 	int no_seeds_per_diaspore = 0;
 	float seed_tspeed = 0;
 	float pulp_to_seed_ratio = 0;
+	float germination_probability = 0;
 	string vector = "none";
 };
 
@@ -87,12 +90,17 @@ public:
 		return no_seeds_per_diaspore;
 	}
 	float sample_seed_mass(string vector) {
-		float seed_mass = trait_distributions["seed_mass"].sample();
-		if (vector == "wind") seed_mass = min(2.0f, seed_mass); // Cap seed mass for wind dispersal to ~largest observed
+		float seed_mass = 1.0f;
+		if (vector == "wind") seed_mass = trait_distributions["seed_mass_wind"].sample();
+		if (vector == "animal") seed_mass = trait_distributions["seed_mass_animal"].sample();
 		return seed_mass;
 	}
 	float sample_fruit_pulp_mass() {
 		return trait_distributions["fruit_pulp_mass"].sample();
+	}
+	float calculate_germination_probability(float seed_mass) {
+		if (seed_mass < 3) return max(0.1, ((seed_mass / 3.0) * (seed_mass / 3.0)));
+		return 1; // Placeholder. TODO: Implement seed-mass-dependent germination probability function
 	}
 	void generate(Strategy &strategy) {
 		int no_seeds_per_diaspore = sample_no_seeds_per_diaspore();
@@ -102,7 +110,8 @@ public:
 		float pulp_to_seed_ratio;
 		float diaspore_mass = compute_diaspore_mass(no_seeds_per_diaspore, seed_mass, vector, fruit_pulp_mass, pulp_to_seed_ratio);
 		float seed_tspeed = calculate_tspeed(diaspore_mass);
-		strategy = Strategy(vector, seed_mass, diaspore_mass, no_seeds_per_diaspore, seed_tspeed, pulp_to_seed_ratio);
+		float germination_probability = calculate_germination_probability(seed_mass);
+		strategy = Strategy(vector, seed_mass, diaspore_mass, no_seeds_per_diaspore, seed_tspeed, pulp_to_seed_ratio, germination_probability);
 	}
 	void mutate(Strategy& strategy, float mutation_rate) {
 		bool do_mutation = help::get_rand_float(0, 1) < mutation_rate;
