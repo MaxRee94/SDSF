@@ -254,17 +254,12 @@ public:
 		}
 		else return get_savanna_flammability(fire_free_interval);
 	}
-	float get_stem_diameter(float crown_diameter) {
-		return pow(10.0f, (log10(crown_diameter) + 0.12) / 0.63);
-	}
-	float get_bark_thickness(float stem_diameter) {
-		return 0.31 * pow(stem_diameter, 1.276);
-	}
+	
 	bool tree_dies(Tree* tree, float fire_free_interval) {
-		float stem_diameter = get_stem_diameter(tree->radius * 2.0f);
-		float bark_thickness = get_bark_thickness(stem_diameter);
+		float stem_dbh = tree->get_stem_dbh();
+		float bark_thickness = tree->get_bark_thickness(stem_dbh);
 		float survival_probability = help::get_sigmoid(bark_thickness, fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
-		if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", stem_diameter, bark_thickness, survival_probability);
+		if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", stem_dbh, bark_thickness, survival_probability);
 		return help::get_rand_float(0.0f, 1.0f) > survival_probability; 
 		// COMMENT: We currently assume topkill always implies death, but resprouting should also be possible. (TODO: make death dependent on fire-free interval)
 	}
