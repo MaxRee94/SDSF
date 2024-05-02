@@ -124,7 +124,6 @@ public:
 		printf("Image cover: %f\n", integral_image_cover);
 
 		// Set tree cover
-		Timer timer; timer.start();
 		while (grid.get_tree_cover() < integral_image_cover) {
 			int idx = probmodel.sample();
 			pair<float, float> position = grid.get_random_location_within_cell(idx);
@@ -135,7 +134,6 @@ public:
 			Tree* tree = population.add(position);
 			grid.populate_tree_domain(tree);
 			if (population.size() % 10000 == 0) printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
-			if (timer.elapsedSeconds() > 10) break;
 		}
 		printf("Finished setting tree cover from image.\n");
 	}
