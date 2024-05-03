@@ -239,7 +239,7 @@ public:
 		no_forest_cells -= (distribution[idx].state == 1);
 
 		distribution[idx].state = 0;
-		//distribution[idx].LAI = 0;
+		distribution[idx].LAI = 0;
 		if (_time_last_fire != -1) distribution[idx].time_last_fire = _time_last_fire;
 	}
 	float get_tree_cover_within_bb(pair<int, int> bb_min, pair<int, int> bb_max) {

@@ -148,34 +148,51 @@ public:
 		position(_position), radius(_radius), radius_tmin1(_radius_tmin1) 
 	{
 		id = _id;
-		update(seed_bearing_threshold);
+		init();
 	};
 	Tree(int _id, pair<float, float> _position, float _radius, float _radius_tmin1, int _life_phase, float &seed_bearing_threshold) :
 		position(_position), radius(_radius), radius_tmin1(_radius_tmin1), life_phase(_life_phase)
 	{
 		id = _id;
-		update(seed_bearing_threshold);
+		init();
+		//printf("Tree created with id: %i, radius: %f, radius_tmin1: %f, stem dbh: %f, bark thickness: %f, LAI: %f \n", id, radius, radius_tmin1, stem_dbh, bark_thickness, LAI);
 	};
 	bool operator==(const Tree& tree) const
 	{
 		return id == tree.id;
+	}
+	void init() {
+		stem_dbh = get_stem_dbh_from_radius();
+		bark_thickness = get_bark_thickness();
+		LAI = get_LAI();
+		//printf("LAI: %f, stem dbh: %f, radius: %f, radius_tmin1: %f \n", LAI, stem_dbh, radius, radius_tmin1);
 	}
 	bool is_within_radius(pair<float, float> pos2) {
 		float dist = help::get_dist(position, pos2);
 		return dist < radius;
 	}
 	int get_life_phase(float& seed_bearing_threshold) {
-		if (radius > (seed_bearing_threshold * MAX_RADIUS)) return 2;
+		if (radius > seed_bearing_threshold) return 2;
 		else return 0;
 	}
 	float get_bark_thickness() {
-		return 0.31 * pow(stem_dbh, 1.276);
+		return 0.31 * pow(stem_dbh, 1.276); // From Hoffmann et al (2012), figure 5a. Bark thickness in mm.
 	}
-	float get_stem_dbh() {
+	float get_stem_dbh_from_radius() {
 		return pow(10.0f, (log10(radius + radius) + 0.12) / 0.63); // From Antin et al (2013), figure 1, topright panel (reordered equation). Stem dbh in cm.
 	}
-	float get_survival_probability(float& bark_thickness, float& fire_resistance_argmin, float& fire_resistance_argmax, float& fire_resistance_stretch) {
-		return help::get_sigmoid(bark_thickness, fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
+	float get_stem_dbh_increment() {
+		// TODO: Ensure increment is influenced by seed size.
+		float stem_increment = 3.0f * (1.0f - exp(-0.118 * stem_dbh));	// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
+																		// Current stem dbh and increment in cm.
+
+		stem_increment *= (5.0f - LAI) * 0.2f;	// LAI-dependent growth reduction to introduce density dependence. Multiplication factor: ((LAI_max - LAI) / LAI_max) 
+												// From Hoffman et al (2012), Appendix 2.
+
+		return stem_increment;
+	}
+	float get_survival_probability(float& fire_resistance_argmin, float& fire_resistance_argmax, float& fire_resistance_stretch) {
+		return help::get_sigmoid(bark_thickness, fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch); // Sigmoid based on Hoffman et al (2012), figure 2a.
 	}
 	float get_leaf_area() {
 		return 0.147 * pow(stem_dbh, 2.053); // From Hoffman et al (2012), figure 5b. Leaf area in m^2
@@ -189,35 +206,32 @@ public:
 		return leaf_area / ground_area;
 	}
 	bool survives_fire(float &fire_resistance_argmin, float &fire_resistance_argmax, float &fire_resistance_stretch) {
-		float bark_thickness = get_bark_thickness();
-		float survival_probability = get_survival_probability(bark_thickness, fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
+		float survival_probability = get_survival_probability(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 		return help::get_rand_float(0.0f, 1.0f) > survival_probability;
 	}
-	void grow_crown(float& growth_rate_multiplier) {
-		// TEMP: constant growth rate. TODO: Make dependent on radius and life phase (resprout or seedling)
+	float get_crown_radius_from_dbh() {
+		float diameter = pow(10.0f, -0.12 + 0.63 * log10(stem_dbh)); // From Antin et al (2013), figure 1, topright panel. Stem dbh in cm.
+		return diameter * 0.5f;
+	}
+	void grow(float &seed_bearing_threshold) {
+		age++;
 		radius_tmin1 = radius;
-		if (radius >= MAX_RADIUS) return;
-		radius = min(radius + sqrtf(radius) * growth_rate_multiplier, MAX_RADIUS);
-	}
-	void update(float& seed_bearing_threshold) {
+		stem_dbh += get_stem_dbh_increment();
+		radius = get_crown_radius_from_dbh();
 		life_phase = get_life_phase(seed_bearing_threshold);
-		stem_dbh = get_stem_dbh();
+		bark_thickness = get_bark_thickness();
 		LAI = get_LAI();
-	}
-	void grow(float& growth_rate_multiplier, float &seed_bearing_threshold) {
-		grow_crown(growth_rate_multiplier);
-		update(seed_bearing_threshold);
-		printf("LAI: %f, stem dbh: %f, radius: %f, radius_tmin1: %f \n", LAI, stem_dbh, radius, radius_tmin1);
 	}
 	float radius = -1;
 	float radius_tmin1 = -1;
-	int life_phase = 0;
-	float stem_dbh = 0;
+	float stem_dbh = 0.1;
+	float bark_thickness = 0;
 	float LAI = 0;
-	int last_mortality_check = 0;
 	pair<float, float> position = pair(0, 0);
 	int id = -1;
-	float MAX_RADIUS = 5.0f; // TEMP: Hardcoded max radius. TODO: Implement growth curve so that max radius becomes obsolete.
+	int age = -1;
+	int life_phase = 0;
+	int last_mortality_check = 0;
 };
 
 
@@ -232,13 +246,13 @@ public:
 		id = tree.id;
 	}
 	void compute_mass(Tree& tree) {
-		float radius_avg = (tree.radius + tree.radius_tmin1) * 0.5;
-		float cubed_current_tree_mass = help::cubed(radius_avg);
+		//float radius_avg = (tree.radius + tree.radius_tmin1) * 0.5;
+		float cubed_current_tree_mass = help::cubed(tree.radius);
 		float growth_mass = help::cubed(tree.radius) - help::cubed(tree.radius_tmin1);
 		mass = cubed_current_tree_mass - growth_mass;
 		if (mass < 0) {
 			printf("\n\n--- Error with mass calculation -----\n\nmass calculated: %f, \n", mass);
-			printf("tree id: %i, crop id %i, radius: %f, radius_tmin1: %f \n", tree.id, id, tree.radius, tree.radius_tmin1);
+			printf("radius: %f, radius_tmin1: %f, cubed_current_tree_mass: %f, growth_mass: %f \n", tree.radius, tree.radius_tmin1, cubed_current_tree_mass, growth_mass);
 		}
 		mass = max(0, mass);
 		mass *= mass_budget_factor * 1000; // Convert to grams
