@@ -19,7 +19,7 @@ defaults = {
     "grid_width": 1000,
     "treecover": 0.5,
     "cellsize": 1,
-    "max_radius": 6.0,
+    "max_radius": 3.3245,
     "image_width": 1000,
     "timestep": 1,
     "timelimit": 1e32,
