@@ -17,7 +17,7 @@ def get_color_dict(no_values, begin=0.0, end=1.0):
             get_max((-765/3 + (x * (2 * 255/no_values))), 0)
         ), np.uint8) for v, x in zip(range(1, no_values + 1), x_range)
     }
-    color_dict[0] = np.array((0, 0, 0), np.uint8)
+    color_dict[0] = np.array((255, 255, 255), np.uint8)
     #color_dict[-5] = np.array((0, 130, 140), np.uint8)
     color_dict[-5] = np.array((0, 0, 0), np.uint8)
     color_dict[-6] = np.array((0, 0, 110), np.uint8)

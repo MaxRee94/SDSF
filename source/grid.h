@@ -209,7 +209,7 @@ public:
 		if (collect) {
 			for (int i = 0; i < no_cells; i++) {
 				//if (distribution[i].state == 1) state_distribution[i] = distribution[i].trees.begin()->first % 100 + 1;
-				if (distribution[i].state == 1) state_distribution[i] = min(distribution[i].LAI, 9) * 10 + 1;
+				if (distribution[i].state == 1) state_distribution[i] = max(99.0f - (distribution[i].LAI * 19.0f), 1);
 			}
 		}
 		return state_distribution;
