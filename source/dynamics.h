@@ -172,6 +172,7 @@ public:
 				resource_grid.add_crop(tree.position, crop);
 			}
 			else if (pop->get_kernel(id)->type == "wind") {
+				pop->get_kernel(id)->update(tree.height);
 				wind_disperser.disperse_crop(crop, &state);
 				wind_dispersed_trees++;
 			}

@@ -30,7 +30,6 @@ public:
 		wind_direction_stdev = _wind_direction_stdev;
 		seed_tspeed = _seed_tspeed;
 		abs_height = _abs_height;
-		build();
 	};
 	float get_wind_dispersed_dist() {
 		return sample();
@@ -42,15 +41,22 @@ public:
 		float first_fraction = 1.0f / (x * sqrtf(2.0f * M_PI) * wspeed_stdev);
 		return first_fraction * exp(-second_fraction);
 	}
+	void update(float tree_height) {
+		abs_height = tree_height * 0.8f; // Constant factor for now; might change this to be a function of tree height.
+		if ((abs_height - prev_build_height) > 2) { // We rebuild the kernel if the tree height has increased by >2 meters since the last build.
+			build();
+			prev_build_height = abs_height;
+		}
+	}
 	float wspeed_gmean = 0;
 	float wspeed_stdev = 0;
 	float wind_direction = 0;
 	float wind_direction_stdev = 0;
 	float seed_tspeed = 0;
 	float abs_height = 0;
+	float prev_build_height = 1;
 	float domain_size = 0;
 	float dist_max = 0;
-	int built = 0;
 };
 
 
