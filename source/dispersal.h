@@ -20,26 +20,21 @@ public:
 		float distance = get_dist(kernel);
 		deposition_location = crop->origin + distance * direction;
 	}
-	bool seed_can_germinate(Crop* crop) {
-		return true;
-	}
 	void germinate_seed(Crop* crop, State* state, pair<float, float>& deposition_location) {
 		// Create seed and germinate if location has suitable conditions (existing LAI not too high).
 		Seed seed(crop->strategy, deposition_location);
 		seed.germinate_if_location_is_viable(state);
 	}
-	void attempt_seed_germination(Crop* crop, State* state, pair<float, float>& deposition_location) {
+	void germinate_seeds_in_diaspore(Crop* crop, State* state, pair<float, float>& deposition_location) {
 		for (int i = 0; i < crop->strategy.no_seeds_per_diaspore; i++) {
-			if (seed_can_germinate(crop)) {
-				germinate_seed(crop, state, deposition_location);
-			}
+			germinate_seed(crop, state, deposition_location);
 		}
 	}
 	void disperse_diaspore(Crop* crop, State* state) {
 		pair<float, float> deposition_location;
 		compute_deposition_location(crop, state, deposition_location);
 		//deposition_location = state->grid.get_random_real_position();
-		attempt_seed_germination(crop, state, deposition_location);
+		germinate_seeds_in_diaspore(crop, state, deposition_location);
 	}
 	void disperse_crop(Crop* crop, State* state) {
 		for (int i = 0; i < crop->no_diaspora; i++) {

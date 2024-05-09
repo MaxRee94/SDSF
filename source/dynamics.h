@@ -60,6 +60,7 @@ public:
 		induce_background_mortality();
 
 		// Do post-simulation cleanup and data reporting
+		printf("Repopulating grid... \n");
 		state.repopulate_grid(verbosity);
 		if (verbosity > 0) printf("Redoing grid count... \n");
 		grid->redo_count();
@@ -130,13 +131,13 @@ public:
 		for (auto& [_species, _] : animal_kernel_params) species.push_back(_species);
 		resource_grid = ResourceGrid(&state, resource_grid_no_cells_x, resource_grid_cell_width, species);
 	}
-	bool does_global_kernel_exist(string type) {
+	bool global_kernel_exists(string type) {
 		return global_kernels.find(type) != global_kernels.end();
 	}
 	bool ensure_kernel_exists(int id) {
 		if (pop->get_kernel(id)->id == -1) {
 			string tree_dispersal_vector = pop->get_crop(id)->strategy.vector;
-			if (does_global_kernel_exist(tree_dispersal_vector))
+			if (global_kernel_exists(tree_dispersal_vector))
 				pop->add_kernel(tree_dispersal_vector, global_kernels[tree_dispersal_vector]);
 			else {
 				printf("\n\n-------------- ERROR: No global kernel found for tree dispersal vector %s. \n\n", tree_dispersal_vector.c_str());
@@ -146,13 +147,7 @@ public:
 		}
 		return true;
 	}
-	void disperse() {
-		int no_seed_bearing_trees = 0;
-		int pre_dispersal_popsize = pop->size();
-		resource_grid.reset();
-		Timer timer; timer.start();
-		int total_no_seeds = 0;
-		int wind_dispersed_trees = 0;
+	void compute_wind_dispersed_locations(int &no_seed_bearing_trees, int &total_no_seeds, int &wind_dispersed_trees) {
 		for (auto& [id, tree] : pop->members) {
 			// Get crop and kernel
 			if (tree.life_phase < 2) continue;
@@ -187,6 +182,15 @@ public:
 				linear_disperser.disperse_crop(crop, &state);
 			}
 		}
+	}
+	void disperse() {
+		int no_seed_bearing_trees = 0;
+		int pre_dispersal_popsize = pop->size();
+		resource_grid.reset();
+		Timer timer; timer.start();
+		int total_no_seeds = 0;
+		int wind_dispersed_trees = 0;
+		compute_wind_dispersed_locations(no_seed_bearing_trees, total_no_seeds, wind_dispersed_trees);
 		printf("Number of wind-dispersed seeds that germinated: %i \n", pop->size() - pre_dispersal_popsize);
 		timer.stop(); printf("Dispersing non-animal seeds and/or adding crops took %f seconds. \n", timer.elapsedSeconds());
 		timer.start();

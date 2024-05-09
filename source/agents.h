@@ -314,12 +314,11 @@ public:
 		crops[tree.id] = crop;
 
 		// Create custom kernel
-		Kernel* _kernel = get_kernel(strategy.vector);
-		Kernel kernel;
+		Kernel kernel = *get_kernel(strategy.vector);
 		if (strategy.vector == "wind") {
 			kernel = Kernel(
-				tree.id, _kernel->dist_max, _kernel->wspeed_gmean, _kernel->wspeed_stdev, _kernel->wind_direction,
-				_kernel->wind_direction_stdev, strategy.seed_tspeed, max_radius * 4
+				tree.id, kernel.dist_max, kernel.wspeed_gmean, kernel.wspeed_stdev, kernel.wind_direction,
+				kernel.wind_direction_stdev, strategy.seed_tspeed
 			);
 		}
 		kernels_individual[tree.id] = kernel;
