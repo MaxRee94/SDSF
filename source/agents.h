@@ -10,14 +10,14 @@ class Strategy {
 public:
 	Strategy() = default;
 	Strategy(string _vector, float _seed_mass, float _diaspore_mass, int _no_seeds_per_diaspore, float _seed_tspeed,
-		float _pulp_to_seed_ratio, float _germination_probability
+		float _pulp_to_seed_ratio, float _recruitment_probability
 	) :
 		vector(_vector), seed_mass(_seed_mass), diaspore_mass(_diaspore_mass), no_seeds_per_diaspore(_no_seeds_per_diaspore),
-		seed_tspeed(_seed_tspeed), pulp_to_seed_ratio(_pulp_to_seed_ratio), germination_probability(_germination_probability)
+		seed_tspeed(_seed_tspeed), pulp_to_seed_ratio(_pulp_to_seed_ratio), recruitment_probability(_recruitment_probability)
 	{}
 	void print() {
 		printf("id: %d, seed_mass: %f, diaspore_mass: %f, no_seeds_per_diaspore: %d, vector: %s, pulp to seed ratio: %f, seed terminal speed: %f, germination prob: %f\n",
-			id, seed_mass, diaspore_mass, no_seeds_per_diaspore, vector.c_str(), pulp_to_seed_ratio, seed_tspeed, germination_probability
+			id, seed_mass, diaspore_mass, no_seeds_per_diaspore, vector.c_str(), pulp_to_seed_ratio, seed_tspeed, recruitment_probability
 		);
 	}
 	int id = -1;
@@ -26,7 +26,7 @@ public:
 	int no_seeds_per_diaspore = 0;
 	float seed_tspeed = 0;
 	float pulp_to_seed_ratio = 0;
-	float germination_probability = 0;
+	float recruitment_probability = 0;
 	string vector = "none";
 };
 
@@ -98,9 +98,8 @@ public:
 	float sample_fruit_pulp_mass() {
 		return trait_distributions["fruit_pulp_mass"].sample();
 	}
-	float calculate_germination_probability(float seed_mass) {
-		if (seed_mass < 3) return max(0.1, ((seed_mass / 3.0) * (seed_mass / 3.0)));
-		return 1; // Placeholder. TODO: Implement seed-mass-dependent germination probability function
+	float calculate_recruitment_probability(float seed_mass) {
+		return 0.0385 * log(seed_mass) + 0.224; // Fitted to data from Barczyk et al (2024), see file 'seed weight vs seedling success.xlsx'
 	}
 	void generate(Strategy &strategy) {
 		int no_seeds_per_diaspore = sample_no_seeds_per_diaspore();
@@ -110,8 +109,8 @@ public:
 		float pulp_to_seed_ratio;
 		float diaspore_mass = compute_diaspore_mass(no_seeds_per_diaspore, seed_mass, vector, fruit_pulp_mass, pulp_to_seed_ratio);
 		float seed_tspeed = calculate_tspeed(diaspore_mass);
-		float germination_probability = calculate_germination_probability(seed_mass);
-		strategy = Strategy(vector, seed_mass, diaspore_mass, no_seeds_per_diaspore, seed_tspeed, pulp_to_seed_ratio, germination_probability);
+		float recruitment_probability = calculate_recruitment_probability(seed_mass);
+		strategy = Strategy(vector, seed_mass, diaspore_mass, no_seeds_per_diaspore, seed_tspeed, pulp_to_seed_ratio, recruitment_probability);
 	}
 	void mutate(Strategy& strategy, float mutation_rate) {
 		bool do_mutation = help::get_rand_float(0, 1) < mutation_rate;
@@ -257,6 +256,7 @@ public:
 														// where STR' = STR / (influence of seed mass on STR (fitted to normalized STR and seed mass values)), so that
 														// the model is seed mass-normalized).
 		no_seeds *= 0.0771 * exp(-4.956 * (strategy.seed_mass / 3.56)); // Re-introduce (normalized) seed mass influence.
+		no_seeds *= strategy.recruitment_probability;
 	}
 	void compute_no_diaspora() {
 		no_diaspora = no_seeds / strategy.no_seeds_per_diaspore;
@@ -314,11 +314,12 @@ public:
 		crops[tree.id] = crop;
 
 		// Create custom kernel
-		Kernel kernel = kernels[strategy.vector];
+		Kernel* _kernel = get_kernel(strategy.vector);
+		Kernel kernel;
 		if (strategy.vector == "wind") {
 			kernel = Kernel(
-				tree.id, kernel.dist_max, kernel.wspeed_gmean, kernel.wspeed_stdev, kernel.wind_direction,
-				kernel.wind_direction_stdev, strategy.seed_tspeed, max_radius * 4
+				tree.id, _kernel->dist_max, _kernel->wspeed_gmean, _kernel->wspeed_stdev, _kernel->wind_direction,
+				_kernel->wind_direction_stdev, strategy.seed_tspeed, max_radius * 4
 			);
 		}
 		kernels_individual[tree.id] = kernel;
