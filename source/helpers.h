@@ -79,9 +79,13 @@ namespace help {
 
 	void split(std::string basestring, std::string separator, vector<std::string>& substrings);
 
-	pair<float, float> get_random_direction();
+	float dot(pair<float, float> &p1, pair<float, float> &p2);
 
-	pair<float, float> get_normal_distributed_direction(float mean_direction, float direction_stdev);
+	void normalize(pair<float, float>& vec, float length);
+
+	void get_random_unit_vector(pair<float, float> &direction);
+
+	void get_normal_distributed_direction(pair<float, float>& direction, float mean_direction, float direction_stdev);
 
 	//Return whether the given vector <vec> contains the integer <item>
 	bool is_in(std::vector<int>* vec, int item);
@@ -252,6 +256,7 @@ namespace help {
 		float xmax = 0;
 		float resolution = 1000.0f;
 		ProbModelPiece* cdf_pieces = 0;
+		bool built = false;
 	};
 
 	class NormalProbModel {

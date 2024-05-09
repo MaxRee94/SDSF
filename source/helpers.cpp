@@ -68,12 +68,23 @@ std::string help::add_padding(std::string basestring, int version) {
     return basestring + pad;
 }
 
-
-pair<float, float> help::get_random_direction() {
-    float phi = help::get_rand_float(0, 2 * M_PI);
-    return pair<float, float>(cos(phi), sin(phi));
+float help::dot(pair<float, float> &p1, pair<float, float> &p2) {
+	return p1.first * p2.first + p1.second * p2.second;
 }
 
+void help::normalize(pair<float, float> &vec, float length) {
+    vec = vec * (1.0f / length);
+}
+
+void help::get_random_unit_vector(pair<float, float>& vec) {
+    vec = pair<float, float>(help::get_rand_float(-1, 1), help::get_rand_float(-1, 1));
+    float squared_length = dot(vec, vec);
+    while (squared_length > 1) {
+        vec = pair<float, float>(help::get_rand_float(-1, 1), help::get_rand_float(-1, 1));
+        squared_length = dot(vec, vec);
+    }
+    normalize(vec, sqrtf(squared_length));
+}
 
 void help::print_map(std::map<int, int>* map) {
     int i = 0;
@@ -303,7 +314,7 @@ void help::populate_with_zeroes(uint* _array, int dim_x, int dim_y) {
 
 // Function to sort the map according
 // to value in a (key-value) pairs
-void sort(std::map<int, double>& _map, PairSet& _set)
+void help::sort(std::map<int, double>& _map, PairSet& _set)
 {
     _set = PairSet(_map.begin(), _map.end());
 }
@@ -624,6 +635,8 @@ void help::PieceWiseLinearProbModel::build() {
     for (int i = 0; i < resolution; i++) {
         cdf_pieces[i].rescale(scale_factor);
     }
+
+    built = 1;
 }
 float help::PieceWiseLinearProbModel::sample() {
     float cdf_y = help::get_rand_float(0.0f, 1.0f);
@@ -637,10 +650,10 @@ float help::PieceWiseLinearProbModel::sample() {
 }
 
 
-pair<float, float> help::get_normal_distributed_direction(float mean, float stdev) {
-    NormalProbModel prob_model(mean, stdev);
+void help::get_normal_distributed_direction(pair<float, float>& direction, float mean_direction, float direction_stdev) {
+    NormalProbModel prob_model(mean_direction, direction_stdev);
     float phi = prob_model.get_normal_distr_sample();
-    return pair<float, float>(cos(phi), sin(phi));
+    direction = pair<float, float>(cos(phi), sin(phi));
 }
 
 
