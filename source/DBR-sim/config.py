@@ -30,7 +30,7 @@ defaults = {
     "radius_q1": 1,
     "radius_q2": 0,
     "verbosity": 0,
-    "seed_bearing_threshold": 0.4,
+    "seed_bearing_threshold": 0.5, # From Minor and Kobe (2018), Figure 5.
     "mass_budget_factor": 0.1,
     "dispersal_mode": "all",
     "linear_diffusion_q1": 1,
@@ -45,7 +45,7 @@ defaults = {
     "flammability_coefficients_and_constants": [0.1, 0.35, 0, 1],
     "saturation_threshold": 3,
     "fire_resistance_params": [8.5, 50, 2.857], # See 'notes/fire_resistance_threshold_curve.xlsx' for details
-    "constant_mortality": 0.03,
+    "constant_mortality": 0.0181, # Pan-tropical best-estimate from Lewis et al (2004)
     "csv_path": "",
     "headless": False,
     "max_timesteps": 1e9,

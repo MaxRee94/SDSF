@@ -213,6 +213,11 @@ public:
 		float diameter = pow(10.0f, -0.12 + 0.63 * log10(stem_dbh)); // From Antin et al (2013), figure 1, topright panel. Stem dbh in cm.
 		return diameter * 0.5f;
 	}
+	float get_height() {
+		float ln_dbh = log(stem_dbh);
+		return exp(0.865 + 0.760 * ln_dbh - 0.0340 * (ln_dbh * ln_dbh)); // From Chave et al (2014), equation 6a. Value of E obtained by calculating mean of E
+																		 // values for bistable study sites.
+	}
 	void grow(float &seed_bearing_threshold) {
 		age++;
 		radius_tmin1 = radius;
@@ -221,12 +226,14 @@ public:
 		life_phase = get_life_phase(seed_bearing_threshold);
 		bark_thickness = get_bark_thickness();
 		LAI = get_LAI();
+		height = get_height();
 	}
 	float radius = -1;
 	float radius_tmin1 = -1;
 	float stem_dbh = 0.1;
 	float bark_thickness = 0;
 	float LAI = 0;
+	float height = 0;
 	pair<float, float> position = pair(0, 0);
 	int id = -1;
 	int age = -1;
