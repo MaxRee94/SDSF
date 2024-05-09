@@ -12,6 +12,13 @@ public:
 	vector<int> trees;
 	float LAI = 0; // Tree leaf area index
 	pair<int, int> pos;
+	pair<float, int> largest_stem;	// < float: Aboveground biomass of largest tree or seedling that has its stem in this cell,
+									//	 int:   Largest tree index, or index of parent tree if the largest stem belongs to a seedling >
+	bool attempt_to_outcompete_seedling(pair<float, int> seedling) {
+		if (seedling.second > largest_stem.second) {
+			largest_stem = seedling;
+		}
+	}
 	void add_tree(Tree* tree) {
 		trees.push_back(tree->id);
 	}
