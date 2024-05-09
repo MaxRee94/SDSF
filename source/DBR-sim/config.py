@@ -33,10 +33,6 @@ defaults = {
     "seed_bearing_threshold": 0.5, # From Minor and Kobe (2018), Figure 5.
     "mass_budget_factor": 0.1,
     "dispersal_mode": "all",
-    "linear_diffusion_q1": 1,
-    "linear_diffusion_q2": 0,
-    "wind_dispersal_params": [30, 5, 0.1, 15],
-    "animal_dispersal_params": '{"bird": {"popsize": 20, "fruitsize_pref": 0.02}}',
     "multi_disperser_params": f"{DATA_IN_DIR}/multi_disperser_params.json",
     "dispersal_min": 0,
     "dispersal_max": 300,
@@ -269,67 +265,6 @@ _parameter_config = {
             "default": defaults["dispersal_mode"],
         },
     },
-    "linear_diffusion_q1": {
-        "keys": {
-            "cli": ["--linear_diffusion_q1", "-ldq1"]
-        },
-        "settings": {
-            "type": float,
-            "help": (
-                "The relative probability of sampling short distances when using a linear diffusion model for seed dispersal."
-            ),
-            "default": defaults["linear_diffusion_q1"],
-        },
-    },
-    "linear_diffusion_q2": {
-        "keys": {
-            "cli": ["--linear_diffusion_q2", "-ldq2"]
-        },
-        "settings": {
-            "type": float,
-            "help": (
-                "The relative probability of sampling short distances when using a linear diffusion model for seed dispersal."
-            ),
-            "default": defaults["linear_diffusion_q2"],
-        },
-    },
-    "wind_dispersal_params": {
-        "keys": {
-            "cli": ["--wind_dispersal_params", "-wdp"]
-        },
-        "settings": {
-            "nargs": "*",
-            "type": float,
-            "help": (
-                ("Parameters for the wind dispersal model, in the order [windspeed geometric mean, windspeed stdev, seed terminal speed, abscission height].")
-            ),
-            "default": defaults["wind_dispersal_params"],
-        },
-    },
-    "dispersal_min": {
-        "keys": {
-            "cli": ["--dispersal_min", "-dmin"]
-        },
-        "settings": {
-            "type": float,
-            "help": (
-                "The minimum dispersal distance."
-            ),
-            "default": defaults["dispersal_min"],
-        },
-    },
-    "dispersal_max": {
-        "keys": {
-            "cli": ["--dispersal_max", "-dmax"]
-        },
-        "settings": {
-            "type": float,
-            "help": (
-                "The maximum dispersal distance."
-            ),
-            "default": defaults["dispersal_max"],
-        },
-    },
     "growth_rate_multiplier": {
         "keys": {
             "cli": ["--growth_rate_multiplier", "-grm"]
@@ -438,19 +373,6 @@ _parameter_config = {
                 "Maximum number of timesteps to run simulation for."
             ),
             "default": defaults["max_timesteps"],
-        },
-    },
-    "animal_dispersal_params": {
-        "keys": {
-            "cli": ["--animal_dispersal_params", "-adp"]
-        },
-        "settings": {
-            "nargs": "*",
-            "type": json.loads,
-            "help": (
-                ('Parameters for animal, to be entered as a json string in the format {"animal1": {"popsize": <your int>, "fruitsize_pref": <your float>}}.')
-            ),
-            "default": defaults["animal_dispersal_params"],
         },
     },
     "multi_disperser_params": {

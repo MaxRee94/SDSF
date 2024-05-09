@@ -23,18 +23,23 @@ from x64.Release import dbr_cpp as cpp
 
 
 def set_dispersal_kernel(
-        dynamics, dispersal_mode, linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max,
-        wind_dispersal_params, multi_disperser_params, animal_dispersal_params
+        dynamics, dispersal_mode, multi_disperser_params
     ):
+    with open(multi_disperser_params, "r") as mdp_jsonfile:
+        multi_disperser_params = json.load(mdp_jsonfile)
     if (dispersal_mode == "linear_diffusion"):
-        dynamics.set_global_linear_kernel(linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max)
+        dynamics.set_global_linear_kernel(
+            multi_disperser_params["linear"]["q1"], multi_disperser_params["linear"]["q2"],
+            multi_disperser_params["linear"]["min"], multi_disperser_params["linear"]["max"]
+        )
     elif (dispersal_mode == "wind"):
-        dynamics.set_global_wind_kernel(*wind_dispersal_params);
+        dynamics.set_global_wind_kernel(
+            multi_disperser_params["wind"]["wspeed_gmean"], multi_disperser_params["wind"]["wspeed_stdev"],
+            multi_disperser_params["wind"]["wind_direction"], multi_disperser_params["wind"]["wind_direction_stdev"]
+        );
     elif (dispersal_mode == "animal"):
-        dynamics.set_global_animal_kernel(animal_dispersal_params)
+        dynamics.set_global_animal_kernel(multi_disperser_params["animal"])
     elif (dispersal_mode == "all"):
-        with open(multi_disperser_params, "r") as mdp_jsonfile:
-            multi_disperser_params = json.load(mdp_jsonfile)
         animal_dispersal_params = multi_disperser_params["animal"]
         multi_disperser_params.pop("animal")
         dynamics.set_global_kernels(multi_disperser_params, animal_dispersal_params)
@@ -72,10 +77,7 @@ def init(
     dynamics.init_state(grid_width, radius_q1, radius_q2, seed_mass)
     
     # Set dispersal kernel
-    dynamics = set_dispersal_kernel(
-        dynamics, dispersal_mode, linear_diffusion_q1, linear_diffusion_q2, dispersal_min, dispersal_max,
-        wind_dispersal_params, multi_disperser_params, animal_dispersal_params
-    )
+    dynamics = set_dispersal_kernel(dynamics, dispersal_mode, multi_disperser_params)
     
     # Set initial tree cover
     if initial_pattern_image == "none":

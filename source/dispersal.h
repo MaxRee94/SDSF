@@ -9,18 +9,19 @@ public:
 	virtual float get_dist(Kernel* kernel) {
 		return kernel->get_ld_dist();
 	}
-	virtual pair<float, float> get_direction(Kernel* kernel) {
-		return get_random_direction();
+	virtual void get_direction(Kernel* kernel, pair<float, float> &direction) {
+		return get_random_unit_vector(direction);
 	}
 	void compute_deposition_location(Crop* crop, State* state, pair<float, float> &deposition_location) {
 		// Compute seed deposition location
 		Kernel* kernel = state->population.get_kernel(crop->id);
-		pair<float, float> direction = get_direction(kernel);
+		pair<float, float> direction;
+		get_direction(kernel, direction);
 		float distance = get_dist(kernel);
 		deposition_location = crop->origin + distance * direction;
 	}
 	bool seed_can_germinate(Crop* crop) {
-		return help::get_rand_float(0, 1) < crop->strategy.germination_probability;
+		return true;
 	}
 	void germinate_seed(Crop* crop, State* state, pair<float, float>& deposition_location) {
 		// Create seed and germinate if location has suitable conditions (existing LAI not too high).
@@ -37,6 +38,7 @@ public:
 	void disperse_diaspore(Crop* crop, State* state) {
 		pair<float, float> deposition_location;
 		compute_deposition_location(crop, state, deposition_location);
+		//deposition_location = state->grid.get_random_real_position();
 		attempt_seed_germination(crop, state, deposition_location);
 	}
 	void disperse_crop(Crop* crop, State* state) {
@@ -50,9 +52,11 @@ public:
 class WindDispersal : public Disperser {
 public:
 	WindDispersal() : Disperser() {};
-	pair<float, float> get_direction(Kernel* kernel) {
-		if (kernel->wind_direction_stdev < 360) return get_normal_distributed_direction(kernel->wind_direction, kernel->wind_direction_stdev);
-		else return get_random_direction();
+	void get_direction(Kernel* kernel, pair<float, float>& direction) {
+		if (kernel->wind_direction_stdev < 360) get_normal_distributed_direction(direction, kernel->wind_direction, kernel->wind_direction_stdev);
+		else {
+			get_random_unit_vector(direction);
+		}
 	}
 	float get_dist(Kernel* kernel) {
 		return kernel->get_wind_dispersed_dist();
