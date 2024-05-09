@@ -9,11 +9,17 @@ public:
 	int state = 0;
 	int idx = 0;
 	float time_last_fire = 0;
-	map<int, int> trees;
+	vector<int> trees;
 	float LAI = 0; // Tree leaf area index
 	pair<int, int> pos;
+	void add_tree(Tree* tree) {
+		trees.push_back(tree->id);
+	}
+	void remove_tree(int id) {
+		help::remove_from_vec(&trees, id);
+	}
 	float get_grass_LAI() {
-		return 0.241f * (LAI * LAI) - 1.709f * LAI + 2.899f; // Relationship between grass and tree LAI from Hoffman et al. (2012), figure 2b.
+		return 0.241f * (LAI * LAI) - 1.709f * LAI + 2.899f; // Relationship between grass- and tree LAI from Hoffman et al. (2012), figure 2b.
 	}
 	float get_fuel_load() {
 		float grass_LAI = get_grass_LAI();
@@ -29,15 +35,16 @@ public:
 class Grid {
 public:
 	Grid() = default;
-	Grid(int _width, float _cellsize) {
+	Grid(int _width, float _cell_width) {
 		width = _width;
-		cellsize = _cellsize;
-		width_r = (float)width * cellsize;
+		cell_width = _cell_width;
+		width_r = (float)width * cell_width;
 		no_cells = width * width;
 		no_savanna_cells = no_cells;
 		init_grid_cells();
 		reset_state_distr();
-		area = no_cells * cellsize * cellsize;
+		area = no_cells * cell_width * cell_width;
+		cell_area = cell_width * cell_width;
 	}
 	void init_grid_cells() {
 		distribution = new Cell[no_cells];
@@ -49,7 +56,7 @@ public:
 		state_distribution = new int[no_cells];
 	}
 	int pos_2_idx(pair<float, float> pos) {
-		return width * (pos.second / cellsize) + (pos.first / cellsize);
+		return width * (pos.second / cell_width) + (pos.first / cell_width);
 	}
 	int pos_2_idx(pair<int, int> pos) {
 		return width * pos.second + pos.first;
@@ -77,9 +84,9 @@ public:
 		throw("Runtime error: Could not find forest cell after %i attempts.\n", fetch_attempt_limit);
 	}
 	pair<float, float> get_random_location_within_cell(pair<int, int> &gridbased_location) {
-		pair<float, float> real_position((float)gridbased_location.first * cellsize, (float)gridbased_location.second * cellsize);
-		float x = help::get_rand_float(real_position.first, real_position.first + cellsize);
-		float y = help::get_rand_float(real_position.second, real_position.second + cellsize);
+		pair<float, float> real_position((float)gridbased_location.first * cell_width, (float)gridbased_location.second * cell_width);
+		float x = help::get_rand_float(real_position.first, real_position.first + cell_width);
+		float y = help::get_rand_float(real_position.second, real_position.second + cell_width);
 		return pair<float, float>(x, y);
 	}
 	pair<float, float> get_random_location_within_cell(int idx) {
@@ -92,7 +99,7 @@ public:
 		return cell;
 	}
 	pair<float, float> get_real_cell_position(Cell* cell) {
-		return pair<float, float>(cell->pos.first * cellsize, cell->pos.second * cellsize);
+		return pair<float, float>(cell->pos.first * cell_width, cell->pos.second * cell_width);
 	}
 	Cell* get_random_savanna_cell() {
 		int i = 0;
@@ -145,7 +152,7 @@ public:
 	}
 	void get_cells_within_radius(Tree* tree, vector<Cell*>* cells, bool remove_cells = false) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
-		int radius_gb = tree->radius / cellsize;
+		int radius_gb = tree->radius / cell_width;
 		for (int x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x++) {
 			for (int y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y++) {
 				if (help::get_dist(pair<float, float>(x, y), tree_center_gb) < radius_gb) {
@@ -161,10 +168,10 @@ public:
 	}
 	void populate_tree_domain(Tree* tree) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
-		int radius_gb = tree->radius / cellsize;
+		int radius_gb = tree->radius / cell_width;
 		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x+=1) {
 			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y+=1) {
-				pair<float, float> position(x * cellsize, y * cellsize);
+				pair<float, float> position(x * cell_width, y * cell_width);
 				if (tree->is_within_radius(position)) {
 					set_to_forest(pair<float, float>(x, y), tree);
 				}
@@ -173,24 +180,22 @@ public:
 	}
 	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = true) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
-		int radius_gb = round((tree->radius * 1.5) / cellsize);
+		int radius_gb = round((tree->radius * 1.5) / cell_width);
 		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x += 1) {
 			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y += 1) {
-				pair<float, float> position(x * cellsize, y * cellsize);
+				pair<float, float> position(x * cell_width, y * cell_width);
 				if (tree->is_within_radius(position)) {
 					Cell* cell = get_cell_at_position(position);
 					if (distribution[cell->idx].state == 0) continue;
 					
 					// Remove tree id from cell->trees.
-					int map_size = cell->trees.size();
-					auto it = cell->trees.find(tree->id);
-					if (it != cell->trees.end()) cell->trees.erase(it);
+					cell->remove_tree(tree->id);
 
 					// Update LAI
-					cell->LAI -= tree->LAI;
+					cell->LAI -= tree->LAI * cell_area;
 
-					// Set cell to savanna if it is no longer occupied by trees larger than the cell itself.
-					if (cell->LAI < (cellsize * 0.2)) {
+					// Set cell to savanna if the cumulative leaf area is less than half of the area of the cell (LAI * cell_area < 0.5 * cell_area, i.e., LAI < 0.5)).
+					if (cell->LAI < 0.5) {
 						queue.push(cell);
 						set_to_savanna(cell->idx, time_last_fire);
 						if (store_tree_death_in_color_distribution) state_distribution[cell->idx] = -6;
@@ -229,10 +234,9 @@ public:
 			no_forest_cells++;
 		}
 		distribution[idx].state = 1;
-		distribution[idx].trees[tree->id] = tree->id;
+		distribution[idx].add_tree(tree);
+		distribution[idx].LAI += tree->LAI * cell_area;
 		if (tree->id == 0) cout << "pushing back tree id 0\n";
-		distribution[idx].LAI += tree->LAI;
-		distribution[idx].time_last_fire = 0;
 	}
 	void set_to_savanna(int idx, float _time_last_fire = -1) {
 		no_savanna_cells += (distribution[idx].state == 1);
@@ -269,23 +273,24 @@ public:
 		position_grid.second %= width;
 	}
 	pair<int, int> get_gridbased_position(pair<float, float> position) {
-		return pair<int, int>(position.first / cellsize, position.second / cellsize);
+		return pair<int, int>(position.first / cell_width, position.second / cell_width);
 	}
 	pair<float, float> get_real_position(pair<int, int> position) {
-		return pair<float, float>((float)position.first * cellsize, (float)position.second * cellsize);
+		return pair<float, float>((float)position.first * cell_width, (float)position.second * cell_width);
 	}
 	pair<float, float> get_real_position(int idx) {
 		pair<int, int> position = idx_2_pos(idx);
-		return pair<float, float>((float)position.first * cellsize, (float)position.second * cellsize);
+		return pair<float, float>((float)position.first * cell_width, (float)position.second * cell_width);
 	}
 	int width = 0;
 	int no_cells = 0;
 	float width_r = 0;
 	float tree_cover = 0;
-	float cellsize = 0;
+	float cell_width = 0;
 	Cell* distribution = 0;
 	int* state_distribution = 0;
 	int no_savanna_cells = 0;
 	int no_forest_cells = 0;
 	float area = 0;
+	float cell_area = 0;
 };

@@ -32,11 +32,11 @@ public:
 class ResourceGrid : public Grid {
 public:
 	ResourceGrid() = default;
-	ResourceGrid(State* _state, int _width, float _cellsize, vector<string>& species): Grid(_width, _cellsize) {
+	ResourceGrid(State* _state, int _width, float _cell_width, vector<string>& species): Grid(_width, _cell_width) {
 		width = _width;
 		state = _state;
 		grid = &state->grid;
-		width_r = (float)width * cellsize;
+		width_r = (float)width * cell_width;
 		size = width * width;
 		cells = new ResourceCell[size];
 		selection_probabilities = DiscreteProbabilityModel(size);
@@ -122,8 +122,8 @@ public:
 		return pair<int, int>(x, y);
 	}
 	void get_random_location_within_cell(ResourceCell* cell, pair<float, float>& deposition_location) {
-		deposition_location.first = help::get_rand_float((float)cell->pos.first * cellsize, (float)(cell->pos.first + 1) * cellsize);
-		deposition_location.second = help::get_rand_float((float)cell->pos.second * cellsize, (float)(cell->pos.second + 1) * cellsize);
+		deposition_location.first = help::get_rand_float((float)cell->pos.first * cell_width, (float)(cell->pos.first + 1) * cell_width);
+		deposition_location.second = help::get_rand_float((float)cell->pos.second * cell_width, (float)(cell->pos.second + 1) * cell_width);
 	}
 	void get_random_location_within_cell(pair<float, float>& deposition_location) {
 		ResourceCell* cell = get_resource_cell_at_position(deposition_location);
@@ -138,7 +138,7 @@ public:
 		return get_resource_cell_at_position(pos);
 	}
 	pair<float, float> get_real_cell_position(ResourceCell* cell) {
-		return pair<float, float>(cell->pos.first * cellsize, cell->pos.second * cellsize);
+		return pair<float, float>(cell->pos.first * cell_width, cell->pos.second * cell_width);
 	}
 	float get_resourcegrid_dist(pair<float, float> a, pair<float, float>* b, bool verbose = false) {
 		// This function yields the minimum distance, taking into account periodic boundary conditions.

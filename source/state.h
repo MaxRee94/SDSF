@@ -12,7 +12,7 @@ public:
 		init_neighbor_offsets();
 	}
 	State(
-		int gridsize, float cellsize, float max_radius, float radius_q1, float radius_q2,
+		int gridsize, float cell_width, float max_radius, float radius_q1, float radius_q2,
 		float seed_bearing_threshold, float _mass_budget_factor, float _seed_mass, float _saturation_threshold,
 		map<string, map<string, float>> &strategy_distribution_params, float mutation_rate
 	) {
@@ -20,10 +20,10 @@ public:
 		seed_mass = _seed_mass;
 		saturation_threshold = _saturation_threshold;
 		population = Population(
-			max_radius, cellsize, radius_q1, radius_q2, mass_budget_factor, strategy_distribution_params, mutation_rate,
+			max_radius, cell_width, radius_q1, radius_q2, mass_budget_factor, strategy_distribution_params, mutation_rate,
 			seed_bearing_threshold
 		);
-		grid = Grid(gridsize, cellsize);
+		grid = Grid(gridsize, cell_width);
 		init_neighbor_offsets();
 	}
 	void init_neighbor_offsets() {

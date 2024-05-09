@@ -31,7 +31,7 @@ private:
 	void germinate(Cell* cell, State* state) {
 		// TEMP: Arbitrary starting radius of 0.1. TODO: replace with 0 once proper growth curve is implemented.
 		Tree* tree = state->population.add(deposition_location, &strategy, 0.1);
-		cell->trees[tree->id] = tree->id;
+		cell->trees.push_back(tree->id);
 	}
 };
 
