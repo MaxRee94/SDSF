@@ -86,6 +86,13 @@ void help::get_random_unit_vector(pair<float, float>& vec) {
     normalize(vec, sqrtf(squared_length));
 }
 
+void help::remove_from_vec(vector<int>* vec, int item) {
+	auto position = find(vec->begin(), vec->end(), item);
+	if (position != vec->end()) {
+		vec->erase(position);
+	}
+}
+
 void help::print_map(std::map<int, int>* map) {
     int i = 0;
     for (auto const& [key, val] : (*map))

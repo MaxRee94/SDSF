@@ -85,6 +85,8 @@ namespace help {
 
 	void get_random_unit_vector(pair<float, float> &direction);
 
+	void remove_from_vec(vector<int>* vec, int item);
+
 	void get_normal_distributed_direction(pair<float, float>& direction, float mean_direction, float direction_stdev);
 
 	//Return whether the given vector <vec> contains the integer <item>
