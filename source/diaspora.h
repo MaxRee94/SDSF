@@ -80,6 +80,9 @@ public:
 		if (idx >= fruits.size()) return;
 		fruits.erase(fruits.begin() + idx);
 	}
+	int size() {
+		return fruits.size();
+	}
 	vector<Fruit> fruits;
 };
 

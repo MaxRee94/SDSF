@@ -68,7 +68,7 @@ public:
 	void add_crop(pair<float, float> position, Crop* crop) {
 		ResourceCell* cell = get_resource_cell_at_position(position);
 		cell->fruits.add_fruits(crop);
-		total_no_fruits += crop->no_diaspora;
+		total_no_fruits += cell->fruits.size();
 		has_fruits = true;
 	}
 	float get_tree_cover_within_resourcegrid_bb(pair<int, int> bb_min, pair<int, int> bb_max) {
@@ -113,7 +113,7 @@ public:
 	bool extract_fruit(pair<int, int> pos, Fruit &fruit) {
 		ResourceCell* cell = get_resource_cell_at_position(pos);
 		bool success = cell->extract_random_fruit(fruit);
-		total_no_fruits--;
+		total_no_fruits -= success;
 		return success;
 	}
 	pair<int, int> _idx_2_pos(int idx) {

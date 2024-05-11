@@ -136,7 +136,7 @@ public:
 		resource_grid->get_random_location_within_cell(seed_deposition_location);
 		seed.deposition_location = seed_deposition_location;
 		bool germination = seed.germinate_if_location_is_viable(resource_grid->state);
-		no_seeds_dispersed++;
+		no_seeds_dispersed += germination;
 	}
 	map<string, float> traits;
 	map<int, pair<Seed, pair<float, float>>> stomach_content;
