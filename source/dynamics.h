@@ -171,7 +171,7 @@ public:
 			crop->update(tree);
 			total_no_seeds += crop->no_seeds;
 
-			// Add crop or disperse seeds, depending on dispersal vector type
+			// Add fruit crop or disperse seeds, depending on dispersal vector type
 			if (pop->get_kernel(id)->type == "animal") {
 				resource_grid.add_crop(tree.position, crop);
 			}
@@ -199,20 +199,17 @@ public:
 		timer.stop(); printf("-- Dispersing %i animal seeds took %f seconds. \n", pop->size() - pre_dispersal_popsize, timer.elapsedSeconds());
 	}
 	void disperse() {
-		int no_seed_bearing_trees = 0;
-		int pre_dispersal_popsize = pop->size();
 		resource_grid.reset();
+		int pre_dispersal_popsize = pop->size();
 		int total_no_seeds = 0;
-		int wind_dispersed_trees = 0;
-		germinate_wind_dispersed_seeds_and_init_fruits(no_seed_bearing_trees, total_no_seeds, wind_dispersed_trees);
-		germinate_animal_dispersed_seeds();		
+		int no_seed_bearing_trees = 0;
+		int no_wind_dispersed_trees = 0;
+		germinate_wind_dispersed_seeds_and_init_fruits(no_seed_bearing_trees, total_no_seeds, no_wind_dispersed_trees);
+		germinate_animal_dispersed_seeds();
 
-		if (verbosity > 0) printf(
-			"-- Number of seed bearing trees: %i, #seeds (all): %i\n",
-			no_seed_bearing_trees, total_no_seeds, pop->size() - pre_dispersal_popsize
-		);
+		if (verbosity > 0) printf("-- Number of seed bearing trees: %i, #seeds (all): %i\n", no_seed_bearing_trees, total_no_seeds);
 		seeds_dispersed = (float)total_no_seeds / (float)no_seed_bearing_trees;
-		if (verbosity > 0) printf("-- Proportion wind dispersed trees: %f \n", wind_dispersed_trees / (float)no_seed_bearing_trees);
+		if (verbosity > 0) printf("-- Proportion wind dispersed trees: %f \n", no_wind_dispersed_trees / (float)no_seed_bearing_trees);
 	}
 	void induce_background_mortality() {
 		for (auto& [id, tree] : pop->members) {
@@ -242,8 +239,8 @@ public:
 		}
 		fire_spatial_extent /= fire_ignition_times.size();
 		if (verbosity > 0) {
-			printf("Cells burned: %i \n", no_burned_cells);
-			printf("Number of fires: %i \n", fire_ignition_times.size());
+			printf("-- Cells burned: %i \n", no_burned_cells);
+			printf("-- Number of fires: %i \n", fire_ignition_times.size());
 		}
 	}
 	float get_forest_flammability(Cell* cell, float fire_free_interval) {
