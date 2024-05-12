@@ -147,8 +147,9 @@ public:
 		}
 		return true;
 	}
-	void germinate_wind_dispersed_seeds_and_init_fruits(int &no_seed_bearing_trees, int &total_no_seeds, int &wind_dispersed_trees) {
+	void disperse_wind_dispersed_seeds_and_init_fruits(int &no_seed_bearing_trees, int &total_no_seeds, int &wind_dispersed_trees) {
 		int pre_dispersal_popsize = pop->size();
+		int no_wind_dispersed_seeds = 0;
 		Timer timer; timer.start();
 		for (auto& [id, tree] : pop->members) {
 			// Get crop and kernel
@@ -179,6 +180,7 @@ public:
 				pop->get_kernel(id)->update(tree.height);
 				wind_disperser.disperse_crop(crop, &state);
 				wind_dispersed_trees++;
+				no_wind_dispersed_seeds += crop->no_seeds;
 			}
 			else {
 				linear_disperser.disperse_crop(crop, &state);
@@ -186,11 +188,10 @@ public:
 		}
 		timer.stop(); printf(
 			"-- Dispersing %i wind-dispersed seeds and initializing %i fruits took %f seconds. \n",
-			resource_grid.total_no_fruits,
-			pop->size() - pre_dispersal_popsize, timer.elapsedSeconds()
+			no_wind_dispersed_seeds, resource_grid.total_no_fruits, timer.elapsedSeconds()
 		);
 	}
-	void germinate_animal_dispersed_seeds() {
+	void disperse_animal_dispersed_seeds() {
 		int pre_dispersal_popsize = pop->size();
 		Timer timer; timer.start();
 		if (resource_grid.has_fruits) {
@@ -204,8 +205,8 @@ public:
 		int total_no_seeds = 0;
 		int no_seed_bearing_trees = 0;
 		int no_wind_dispersed_trees = 0;
-		germinate_wind_dispersed_seeds_and_init_fruits(no_seed_bearing_trees, total_no_seeds, no_wind_dispersed_trees);
-		germinate_animal_dispersed_seeds();
+		disperse_wind_dispersed_seeds_and_init_fruits(no_seed_bearing_trees, total_no_seeds, no_wind_dispersed_trees);
+		disperse_animal_dispersed_seeds();
 
 		if (verbosity > 0) printf("-- Number of seed bearing trees: %i, #seeds (all): %i\n", no_seed_bearing_trees, total_no_seeds);
 		seeds_dispersed = (float)total_no_seeds / (float)no_seed_bearing_trees;
@@ -257,7 +258,7 @@ public:
 		else return get_savanna_flammability(fire_free_interval);
 	}
 	bool tree_dies(Tree* tree, float fire_free_interval) {
-		// if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", stem_dbh, bark_thickness, survival_probability);
+		// if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", dbh, bark_thickness, survival_probability);
 		// COMMENT: We currently assume topkill always implies death, but resprouting should also be possible. (TODO: make death dependent on fire-free interval)
 		return tree->survives_fire(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 	}
