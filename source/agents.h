@@ -47,7 +47,7 @@ public:
 				prob_model = ProbModel(value_range["q1"], value_range["q2"], value_range["min"], value_range["max"]);
 			}
 			else if (distribution_type == "normal") {
-				prob_model = ProbModel(value_range["mean"], value_range["stdev"], 0);
+				prob_model = ProbModel(value_range["mean"], value_range["stdev"], value_range["min"], value_range["max"], 0);
 			}
 			else if (distribution_type == "discrete") {
 				prob_model = ProbModel(value_range["probability0"], value_range["probability1"], value_range["probability2"]);
@@ -93,7 +93,9 @@ public:
 	}
 	float sample_seed_mass(string vector) {
 		float seed_mass = 1.0f;
-		if (vector == "wind") seed_mass = trait_distributions["seed_mass_wind"].sample();
+		if (vector == "wind") {
+			seed_mass = trait_distributions["seed_mass_wind"].sample();
+		}
 		if (vector == "animal") seed_mass = trait_distributions["seed_mass_animal"].sample();
 		return seed_mass;
 	}
@@ -101,7 +103,7 @@ public:
 		return trait_distributions["fruit_pulp_mass"].sample();
 	}
 	float calculate_recruitment_probability(float seed_mass) {
-		return 0.0385 * log(seed_mass) + 0.224; // Fitted to data from Barczyk et al (2024), see file 'seed weight vs seedling success.xlsx'
+		return max(0, 0.0385 * log(seed_mass) + 0.224); // Fitted to data from Barczyk et al (2024), see file 'seed weight vs seedling success.xlsx'
 	}
 	float calculate_growth_rate(float seed_mass) {
 		return 0.1f * sqrtf(seed_mass); // PLACEHOLDER. TODO: IMPLEMENT GROWTH RATE CALCULATION BASED ON DATA.

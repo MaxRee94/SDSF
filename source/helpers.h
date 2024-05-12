@@ -393,14 +393,21 @@ namespace help {
 		ProbModel() = default;
 		ProbModel(float _prob0, float _prob1, float _prob2) : SmallDiscreteProbabilityModel(_prob0, _prob1, _prob2) { type = "discrete"; };
 		ProbModel(float _min, float _max) : UniformProbModel(_min, _max) { type = "uniform"; };
-		ProbModel(float _mean, float _stdev, int dummy) : NormalProbModel(_mean, _stdev) { type = "normal"; };
+		ProbModel(float _mean, float _stdev, float _min, float _max, int dummy) : NormalProbModel(_mean, _stdev) {
+			type = "normal";
+			min_value = _min;
+			max_value = _max;
+		};
 		ProbModel(float _q1, float _q2, float _min, float _max) : LinearProbabilityModel(_q1, _q2, _min, _max) { type = "linear"; };
 		float sample() {
 			if (type == "uniform") {
 				return UniformProbModel::get_uniform_sample();
 			}
 			else if (type == "normal") {
-				return NormalProbModel::get_normal_distr_sample();
+				float _sample = NormalProbModel::get_normal_distr_sample();
+				_sample = min(_sample, max_value);
+				_sample = max(_sample, min_value);
+				return _sample;
 			}
 			else if (type == "linear") {
 				return LinearProbabilityModel::linear_sample();
@@ -413,5 +420,7 @@ namespace help {
 			}
 		}
 		string type = "none";
+		float min_value = 0;
+		float max_value = 0;
 	};
 };
