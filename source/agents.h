@@ -298,7 +298,10 @@ public:
 	Tree* add(pair<float, float> position, Strategy* _strategy = 0, float radius = -2) {
 		// Create tree
 		if (radius == -1) radius = max_radius;
-		else if (radius == -2) radius = radius_probability_model.linear_sample();
+		else if (radius == -2) {
+			while (radius <= 0)
+				radius = radius_probability_model.linear_sample();
+		}
 		float radius_tmin1 = radius * 0.9; // TEMP. TODO: Make dependent on growth curve.
 		Tree tree(no_created_trees + 1, position, radius, radius_tmin1, 1, seed_bearing_threshold);
 		members[tree.id] = tree;
