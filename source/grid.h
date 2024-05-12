@@ -10,14 +10,36 @@ public:
 	int idx = 0;
 	float time_last_fire = 0;
 	vector<int> trees;
-	float LAI = 0; // Tree leaf area index
+	float LAI = 0; // Cumulative Leaf Area Index (LAI) of all trees in the cell.
+	float grass_LAI = 0; // Cumulative Leaf Area Index (LAI) of all trees in the cell.
 	pair<int, int> pos;
-	pair<float, int> largest_stem;	// < float: Aboveground biomass of largest tree or seedling that has its stem in this cell,
-									//	 int:   Largest tree index, or index of parent tree if the largest stem belongs to a seedling >
-	bool attempt_to_outcompete_seedling(pair<float, int> seedling) {
-		if (seedling.second > largest_stem.second) {
-			largest_stem = seedling;
+	pair<float, int> largest_stem;	// < float: Radius of largest tree or seedling that has its stem in this cell,
+									//	 int:   Largest tree id, or id of parent tree if the largest stem belongs to a seedling >
+	bool cell_is_occupied_by_larger_stem(pair<float, int> &tree_proxy) {
+		if (tree_proxy.first < largest_stem.first) {
+			return true;
 		}
+		return false;
+	}
+	bool tree_is_shaded_out(Tree* tree = 0) {
+		if (help::get_rand_float(0, 1) < get_fuel_load()) { // We currently assume that forest trees are as shade-tolerant as savanna grasses, which
+															// in reality is not the case. TODO: Implement a more realistic shade-tolerance model.
+			return true;
+		}
+		return false;
+	}
+	void update_largest_stem(float dbh, int id) {
+		largest_stem = pair<float, int>(dbh, id);
+	}
+	void update_grass_LAI() {
+		grass_LAI = get_grass_LAI();
+	}
+	bool is_hospitable(pair<float, int> tree_proxy) {
+		// If tree_proxy is larger than the current largest stem in the cell, it is assumed to be able to outcompete the other tree.
+		// If not, tree_proxy is assumed to be shaded out or otherwise outcompeted by the existing larger tree.
+		bool hospitable = !cell_is_occupied_by_larger_stem(tree_proxy);
+		hospitable = hospitable && !tree_is_shaded_out();
+		return hospitable;
 	}
 	void add_tree(Tree* tree) {
 		trees.push_back(tree->id);
@@ -29,7 +51,6 @@ public:
 		return 0.241f * (LAI * LAI) - 1.709f * LAI + 2.899f; // Relationship between grass- and tree LAI from Hoffman et al. (2012), figure 2b.
 	}
 	float get_fuel_load() {
-		float grass_LAI = get_grass_LAI();
 		return 0.344946533f * grass_LAI; // Normalize to range [0, 1] by multiplying with inverse of max value (2.899).
 	}
 	bool operator==(const Cell& cell) const
@@ -118,11 +139,18 @@ public:
 		}
 		throw("Runtime error: Could not find savanna cell after %i attempts.\n", fetch_attempt_limit);
 	}
+	void update_grass_LAIs() {
+		for (int i = 0; i < no_cells; i++) {
+			distribution[i].update_grass_LAI();
+		}
+	}
 	virtual void reset() {
 		for (int i = 0; i < no_cells; i++) {
 			distribution[i].state = 0;
 			distribution[i].trees.clear();
 			distribution[i].LAI = 0;
+			distribution[i].grass_LAI = 0;
+			distribution[i].largest_stem = pair<float, int>(0, -1);
 		}
 		no_forest_cells = 0;
 		no_savanna_cells = no_cells;
@@ -174,16 +202,23 @@ public:
 		}
 	}
 	void populate_tree_domain(Tree* tree) {
-		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
+		pair<int, int> tree_center_gb = get_gridbased_position(tree->position);
 		int radius_gb = tree->radius / cell_width;
+		Timer t; t.start();
 		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x+=1) {
 			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y+=1) {
 				pair<float, float> position(x * cell_width, y * cell_width);
 				if (tree->is_within_radius(position)) {
 					set_to_forest(pair<float, float>(x, y), tree);
 				}
+				if (t.elapsedSeconds() > 1) printf(
+					"taking forever. dbh: %f, radius: %f, position: %f, %f, id: %i \n", 
+					tree->dbh, tree->radius, tree->position.first, tree->position.second, tree->id
+				);
 			}
 		}
+		cap(tree_center_gb);
+		distribution[pos_2_idx(tree_center_gb)].update_largest_stem(tree->dbh, tree->id);
 	}
 	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = true) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
@@ -217,10 +252,18 @@ public:
 		queue<Cell*> dummy;
 		burn_tree_domain(tree, dummy, -1, store_tree_death_in_color_distribution);
 	}
+	void update_grass_LAIs_for_individual_tree(Tree* tree) {
+		pair<int, int> tree_center_gb = get_gridbased_position(tree->position);
+		int radius_gb = tree->radius / cell_width;
+		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x += 1) {
+			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y += 1) {
+				distribution[pos_2_idx(pair<int, int>(x, y))].update_grass_LAI();
+			}
+		}
+	}
 	int* get_state_distribution(bool collect = true) {
 		if (collect) {
 			for (int i = 0; i < no_cells; i++) {
-				//if (distribution[i].state == 1) state_distribution[i] = distribution[i].trees.begin()->first % 100 + 1;
 				if (distribution[i].state == 1) state_distribution[i] = max(99.0f - (distribution[i].LAI * 19.0f), 1);
 			}
 		}
@@ -243,7 +286,6 @@ public:
 		distribution[idx].state = 1;
 		distribution[idx].add_tree(tree);
 		distribution[idx].LAI += tree->LAI * cell_area;
-		if (tree->id == 0) cout << "pushing back tree id 0\n";
 	}
 	void set_to_savanna(int idx, float _time_last_fire = -1) {
 		no_savanna_cells += (distribution[idx].state == 1);

@@ -10,10 +10,11 @@ class Strategy {
 public:
 	Strategy() = default;
 	Strategy(string _vector, float _seed_mass, float _diaspore_mass, int _no_seeds_per_diaspore, float _seed_tspeed,
-		float _pulp_to_seed_ratio, float _recruitment_probability
+		float _pulp_to_seed_ratio, float _recruitment_probability, float _growth_rate
 	) :
 		vector(_vector), seed_mass(_seed_mass), diaspore_mass(_diaspore_mass), no_seeds_per_diaspore(_no_seeds_per_diaspore),
-		seed_tspeed(_seed_tspeed), pulp_to_seed_ratio(_pulp_to_seed_ratio), recruitment_probability(_recruitment_probability)
+		seed_tspeed(_seed_tspeed), pulp_to_seed_ratio(_pulp_to_seed_ratio), recruitment_probability(_recruitment_probability),
+		growth_rate(_growth_rate)
 	{}
 	void print() {
 		printf("id: %d, seed_mass: %f, diaspore_mass: %f, no_seeds_per_diaspore: %d, vector: %s, pulp to seed ratio: %f, seed terminal speed: %f, germination prob: %f\n",
@@ -27,6 +28,7 @@ public:
 	float seed_tspeed = 0;
 	float pulp_to_seed_ratio = 0;
 	float recruitment_probability = 0;
+	float growth_rate = 0;
 	string vector = "none";
 };
 
@@ -101,6 +103,9 @@ public:
 	float calculate_recruitment_probability(float seed_mass) {
 		return 0.0385 * log(seed_mass) + 0.224; // Fitted to data from Barczyk et al (2024), see file 'seed weight vs seedling success.xlsx'
 	}
+	float calculate_growth_rate(float seed_mass) {
+		return 0.1f * sqrtf(seed_mass); // PLACEHOLDER. TODO: IMPLEMENT GROWTH RATE CALCULATION BASED ON DATA.
+	}
 	void generate(Strategy &strategy) {
 		int no_seeds_per_diaspore = sample_no_seeds_per_diaspore();
 		string vector = pick_vector();
@@ -110,7 +115,8 @@ public:
 		float diaspore_mass = compute_diaspore_mass(no_seeds_per_diaspore, seed_mass, vector, fruit_pulp_mass, pulp_to_seed_ratio);
 		float seed_tspeed = calculate_tspeed(diaspore_mass);
 		float recruitment_probability = calculate_recruitment_probability(seed_mass);
-		strategy = Strategy(vector, seed_mass, diaspore_mass, no_seeds_per_diaspore, seed_tspeed, pulp_to_seed_ratio, recruitment_probability);
+		float growth_rate = calculate_growth_rate(seed_mass);
+		strategy = Strategy(vector, seed_mass, diaspore_mass, no_seeds_per_diaspore, seed_tspeed, pulp_to_seed_ratio, recruitment_probability, growth_rate);
 	}
 	void mutate(Strategy& strategy, float mutation_rate) {
 		bool do_mutation = help::get_rand_float(0, 1) < mutation_rate;

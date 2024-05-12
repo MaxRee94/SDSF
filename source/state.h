@@ -40,19 +40,14 @@ public:
 	void repopulate_grid(int verbosity) {
 		if (verbosity == 2) cout << "Repopulating grid..." << endl;
 		grid.reset();
+		int i = 0;
 		for (auto& [id, tree] : population.members) {
 			if (id == -1 || tree.id == -1) population.remove(id); // HOTFIX: Sometimes trees are not initialized properly and need to be removed.
 			grid.populate_tree_domain(&tree);
+			i++;
 		}
+		grid.update_grass_LAIs();
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
-	}
-	bool is_outcompeted(Cell* cell) {
-		// Suppress germination of seeds in areas with increased competition
-		float outcompete_likelihood = ((float)cell->trees.size() * saturation_threshold);
-		if (help::get_rand_float(0, 1) < outcompete_likelihood) {
-			return true;
-		}
-		return false;
 	}
 	float get_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
 		vector<float> dists = {help::get_manhattan_dist(a, b)};
@@ -127,11 +122,13 @@ public:
 			int idx = probmodel.sample();
 			pair<float, float> position = grid.get_random_location_within_cell(idx);
 			Cell* cell = grid.get_cell_at_position(position);
-			if (is_outcompeted(cell)) {
+			Tree* tree = population.add(position);
+			if (!cell->is_hospitable(pair<float, int>(tree->radius, tree->id))) {
+				population.remove(tree->id);
 				continue;
 			}
-			Tree* tree = population.add(position);
 			grid.populate_tree_domain(tree);
+			grid.update_grass_LAIs_for_individual_tree(tree);
 			if (population.size() % 10000 == 0) printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
 		}
 		printf("Finished setting tree cover from image.\n");
@@ -144,7 +141,12 @@ public:
 		int animal_trees = 0;
 		while (grid.get_tree_cover() < _tree_cover) {
 			pair<float, float> position = grid.get_random_real_position();
+			Cell* cell = grid.get_cell_at_position(position);
 			Tree* tree = population.add(position);
+			if (!cell->is_hospitable(pair<float, int>(tree->radius, tree->id))) {
+				population.remove(tree->id);
+				continue;
+			}
 			if (tree->id == -1) population.remove(population.no_created_trees - 1); // HOTFIX: Sometimes trees are not initialized properly and need to be removed.
 			grid.populate_tree_domain(tree);
 			if (population.get_crop(tree->id)->strategy.vector == "wind") {
