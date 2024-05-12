@@ -301,8 +301,13 @@ public:
 		// Create tree
 		if (radius == -1) radius = max_radius;
 		else if (radius == -2) {
-			while (radius <= 0)
-				radius = radius_probability_model.linear_sample();
+			if (_strategy == nullptr) {
+				while (radius <= 0)
+					radius = radius_probability_model.linear_sample();
+			}
+			else {
+				radius = _strategy->growth_rate; // Growth rate determines 
+			}
 		}
 		float radius_tmin1 = radius * 0.9; // TEMP. TODO: Make dependent on growth curve.
 		Tree tree(no_created_trees + 1, position, radius, radius_tmin1, 1, seed_bearing_threshold);

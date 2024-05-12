@@ -13,6 +13,7 @@ public:
 	float LAI = 0; // Cumulative Leaf Area Index (LAI) of all trees in the cell.
 	float grass_LAI = 0; // Cumulative Leaf Area Index (LAI) of all trees in the cell.
 	pair<int, int> pos;
+	bool seedling_present = false;
 	pair<float, int> largest_stem;	// < float: Radius of largest tree or seedling that has its stem in this cell,
 									//	 int:   Largest tree id, or id of parent tree if the largest stem belongs to a seedling >
 	bool cell_is_occupied_by_larger_stem(pair<float, int> &tree_proxy) {
@@ -151,6 +152,7 @@ public:
 			distribution[i].LAI = 0;
 			distribution[i].grass_LAI = 0;
 			distribution[i].largest_stem = pair<float, int>(0, -1);
+			distribution[i].seedling_present = false;
 		}
 		no_forest_cells = 0;
 		no_savanna_cells = no_cells;

@@ -147,9 +147,9 @@ public:
 		}
 		return true;
 	}
-	void disperse_wind_dispersed_seeds_and_init_fruits(int &no_seed_bearing_trees, int &total_no_seeds, int &wind_dispersed_trees) {
+	void disperse_wind_seeds_and_init_fruits(int &no_seed_bearing_trees, int &total_no_seeds, int &wind_trees) {
 		int pre_dispersal_popsize = pop->size();
-		int no_wind_dispersed_seeds = 0;
+		int no_wind_seeds = 0;
 		Timer timer; timer.start();
 		for (auto& [id, tree] : pop->members) {
 			// Get crop and kernel
@@ -179,8 +179,8 @@ public:
 			else if (pop->get_kernel(id)->type == "wind") {
 				pop->get_kernel(id)->update(tree.height);
 				wind_disperser.disperse_crop(crop, &state);
-				wind_dispersed_trees++;
-				no_wind_dispersed_seeds += crop->no_seeds;
+				wind_trees++;
+				no_wind_seeds += crop->no_seeds;
 			}
 			else {
 				linear_disperser.disperse_crop(crop, &state);
@@ -188,29 +188,44 @@ public:
 		}
 		timer.stop(); printf(
 			"-- Dispersing %i wind-dispersed seeds and initializing %i fruits took %f seconds. \n",
-			no_wind_dispersed_seeds, resource_grid.total_no_fruits, timer.elapsedSeconds()
+			no_wind_seeds, resource_grid.total_no_fruits, timer.elapsedSeconds()
 		);
 	}
-	void disperse_animal_dispersed_seeds() {
-		int pre_dispersal_popsize = pop->size();
+	void disperse_animal_seeds() {
+		int no_animal_seeds = 0;
 		Timer timer; timer.start();
 		if (resource_grid.has_fruits) {
-			animal_dispersal.disperse(&state, &resource_grid, 1);
+			no_animal_seeds = animal_dispersal.disperse(&state, &resource_grid, 1);
 		}
-		timer.stop(); printf("-- Dispersing %i animal seeds took %f seconds. \n", pop->size() - pre_dispersal_popsize, timer.elapsedSeconds());
+		timer.stop(); printf("-- Dispersing %i animal seeds took %f seconds. \n", no_animal_seeds, timer.elapsedSeconds());
+	}
+	void recruit() {
+		Timer timer; timer.start();
+		int pre_recruitment_popsize = pop->size();
+		for (int i = 0; i < grid->no_cells; i++) {
+			Cell* cell = &grid->distribution[i];
+			if (cell->seedling_present) {
+				Tree* tree = pop->add(
+					grid->get_random_location_within_cell(cell->idx), &pop->get_crop(cell->largest_stem.second)->strategy
+				);
+			}
+		}
+		
+		timer.stop(); printf("-- Recruitment of %i trees took %f seconds. \n", pop->size() - pre_recruitment_popsize, timer.elapsedSeconds());
 	}
 	void disperse() {
 		resource_grid.reset();
 		int pre_dispersal_popsize = pop->size();
 		int total_no_seeds = 0;
 		int no_seed_bearing_trees = 0;
-		int no_wind_dispersed_trees = 0;
-		disperse_wind_dispersed_seeds_and_init_fruits(no_seed_bearing_trees, total_no_seeds, no_wind_dispersed_trees);
-		disperse_animal_dispersed_seeds();
+		int no_wind_trees = 0;
+		disperse_wind_seeds_and_init_fruits(no_seed_bearing_trees, total_no_seeds, no_wind_trees);
+		disperse_animal_seeds();
+		recruit();
 
 		if (verbosity > 0) printf("-- Number of seed bearing trees: %i, #seeds (all): %i\n", no_seed_bearing_trees, total_no_seeds);
 		seeds_dispersed = (float)total_no_seeds / (float)no_seed_bearing_trees;
-		if (verbosity > 0) printf("-- Proportion wind dispersed trees: %f \n", no_wind_dispersed_trees / (float)no_seed_bearing_trees);
+		if (verbosity > 0) printf("-- Proportion wind dispersed trees: %f \n", no_wind_trees / (float)no_seed_bearing_trees);
 	}
 	void induce_background_mortality() {
 		for (auto& [id, tree] : pop->members) {

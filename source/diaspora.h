@@ -31,6 +31,7 @@ public:
 private:
 	void germinate(Cell* cell, State* state) {
 		cell->update_largest_stem(strategy.growth_rate, strategy.id);
+		cell->seedling_present = true;
 	}
 };
 
