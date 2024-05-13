@@ -19,7 +19,7 @@ defaults = {
     "grid_width": 1000,
     "treecover": 0.5,
     "cellsize": 1,
-    "max_radius": 3.3245,
+    "max_dbh": 20.7499, # Derived from allometric relationships obtained from Hoffmann et al (2012) and Rossatto et al (2009). See 'Tree Allometric Relationships.xlsx' for derivation.
     "image_width": 1000,
     "timestep": 1,
     "timelimit": 1e32,
@@ -31,7 +31,6 @@ defaults = {
     "radius_q2": 0,
     "verbosity": 0,
     "seed_bearing_threshold": 0.5, # From Minor and Kobe (2018), Figure 5.
-    "mass_budget_factor": 0.1,
     "dispersal_mode": "all",
     "multi_disperser_params": f"{DATA_IN_DIR}/multi_disperser_params.json",
     "dispersal_min": 0,
@@ -109,16 +108,16 @@ _parameter_config = {
             ),
         },
     },
-    "max_radius": {
+    "max_dbh": {
         "keys": {
-            "cli": ["--max_radius", "-mr"]
+            "cli": ["--max_dbh", "-md"]
         },
         "settings": {
             "type": float,
             "help": (
-                "The mean radius (in meters) of each tree in the initial timestep."
+                "The maximum dbh (in cm) of each tree in the initial timestep."
             ),
-            "default": defaults["max_radius"],
+            "default": defaults["max_dbh"],
         },
     },
     "image_width": {
@@ -239,18 +238,6 @@ _parameter_config = {
                 "The fraction of the tree maximum radius above which a tree becomes seed-bearing."
             ),
             "default": defaults["seed_bearing_threshold"],
-        },
-    },
-    "mass_budget_factor": {
-        "keys": {
-            "cli": ["--mass_budget_factor", "-mbf"]
-        },
-        "settings": {
-            "type": float,
-            "help": (
-                "Factor determining (along with radius) the total annual tree seed biomass."
-            ),
-            "default": defaults["mass_budget_factor"],
         },
     },
     "dispersal_mode": {

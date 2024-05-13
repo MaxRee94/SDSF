@@ -97,7 +97,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
 
     py::class_<State>(module, "State")
         .def(py::init<>())
-        .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
+        .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&,
             const float&, const float&, map<string, map<string, float>>&, const float&>())
         .def("repopulate_grid", &State::repopulate_grid)
         .def("set_tree_cover", &State::set_tree_cover)
@@ -131,7 +131,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
 
     py::class_<Dynamics>(module, "Dynamics")
         .def(py::init<>())
-        .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
+        .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const map<string, map<string, float>>&, const float&, const float&, const int& >())
         .def_readwrite("time", &Dynamics::time)
@@ -180,7 +180,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
 
     py::class_<Population>(module, "Population")
         .def(py::init<>())
-        .def(py::init<const float&, const float&, const float&, const float&, const float&, const map<string, map<string, float>>&, const float&, const float& >())
+        .def(py::init<const float&, const float&, const float&, const float&, const map<string, map<string, float>>&, const float&, const float& >())
         .def("size", &Population::size);
     
     py::class_<Tests>(module, "Tests")

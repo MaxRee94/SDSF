@@ -22,9 +22,9 @@ public:
 		}
 		return false;
 	}
-	bool tree_is_shaded_out(Tree* tree = 0) {
-		if (help::get_rand_float(0, 1) < get_fuel_load()) { // We currently assume that forest trees are as shade-tolerant as savanna grasses, which
-															// in reality is not the case. TODO: Implement a more realistic shade-tolerance model.
+	bool seedling_is_shaded_out() {
+		float shade = get_tree_shading();
+		if (help::get_rand_float(0, 1) < shade) {
 			return true;
 		}
 		return false;
@@ -39,7 +39,7 @@ public:
 		// If tree_proxy is larger than the current largest stem in the cell, it is assumed to be able to outcompete the other tree.
 		// If not, tree_proxy is assumed to be shaded out or otherwise outcompeted by the existing larger tree.
 		bool hospitable = !cell_is_occupied_by_larger_stem(tree_proxy);
-		hospitable = hospitable && !tree_is_shaded_out();
+		hospitable = hospitable && !seedling_is_shaded_out();
 		return hospitable;
 	}
 	void add_tree(Tree* tree) {
@@ -48,11 +48,27 @@ public:
 	void remove_tree(int id) {
 		help::remove_from_vec(&trees, id);
 	}
+	float get_grass_LAI(float _LAI) {
+		return 0.241f * (_LAI * _LAI) - 1.709f * _LAI + 2.899f; // Relationship between grass- and tree LAI from Hoffman et al. (2012), figure 2b.
+	}
 	float get_grass_LAI() {
-		return 0.241f * (LAI * LAI) - 1.709f * LAI + 2.899f; // Relationship between grass- and tree LAI from Hoffman et al. (2012), figure 2b.
+		return get_grass_LAI(LAI);
+	}
+	float get_fuel_load(float _grass_LAI) {
+		return 0.344946533f * _grass_LAI; // Normalize to range [0, 1] by multiplying with inverse of max value (2.899).
 	}
 	float get_fuel_load() {
-		return 0.344946533f * grass_LAI; // Normalize to range [0, 1] by multiplying with inverse of max value (2.899).
+		return get_fuel_load(grass_LAI);
+	}
+	float get_tree_shading(Tree* tree) {
+		float PAR = -0.056299 * (LAI - tree->LAI) + 0.58102; // Percentage photosynthetically Active Radiation (PAR) in W/m^2 that reaches the given tree.
+															 // From Mukherjee (2016), figure 4.
+		PAR = max(0.0f, min(PAR, 1.0f)); // Cap PAR to range [0, 1].
+		return sqrtf((LAI - tree->LAI) / 5.0f); // Max LAI for forests is 5.0, so we normalize the shading to range [0, 1] by dividing by 5.
+	}
+	float get_tree_shading() {
+		Tree tree; tree.LAI = LAI;
+		return get_tree_shading(&tree);
 	}
 	bool operator==(const Cell& cell) const
 	{
@@ -222,6 +238,21 @@ public:
 		cap(tree_center_gb);
 		distribution[pos_2_idx(tree_center_gb)].update_largest_stem(tree->dbh, tree->id);
 	}
+	float compute_shade_on_individual_tree(Tree* tree) {
+		float shade = 0;
+		pair<int, int> tree_center_gb = get_gridbased_position(tree->position);
+		int radius_gb = tree->radius / cell_width;
+		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x += 1) {
+			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y += 1) {
+				pair<float, float> position(x * cell_width, y * cell_width);
+				if (tree->is_within_radius(position)) {
+					Cell* cell = get_cell_at_position(pair<int, int>(x, y));
+					shade += cell->get_tree_shading(tree);
+				}
+			}
+		}
+		return shade / tree->get_crown_area();
+	}
 	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = true) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
 		int radius_gb = round((tree->radius * 1.5) / cell_width);
@@ -296,6 +327,17 @@ public:
 		distribution[idx].state = 0;
 		distribution[idx].LAI = 0;
 		if (_time_last_fire != -1) distribution[idx].time_last_fire = _time_last_fire;
+	}
+	float get_LAI_within_bb(pair<int, int> bb_min, pair<int, int> bb_max, float bb_area) {
+		float cumulative_LAI = 0;
+		for (int x = bb_min.first; x < bb_max.first; x++) {
+			for (int y = bb_min.second; y < bb_max.second; y++) {
+				Cell* cell = get_cell_at_position(pair<int, int>(x, y));
+				cumulative_LAI += cell->LAI;
+			}
+		}
+		float crown_area = get_tree_cover_within_bb(bb_min, bb_max) * bb_area;
+		return cumulative_LAI / crown_area;
 	}
 	float get_tree_cover_within_bb(pair<int, int> bb_min, pair<int, int> bb_max) {
 		int no_forest_cells = 0;

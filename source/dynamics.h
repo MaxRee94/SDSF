@@ -6,20 +6,19 @@ class Dynamics {
 public:
 	Dynamics() = default;
 	Dynamics(
-		int _timestep, float _cell_width, float _self_ignition_factor, float _rainfall, float _seed_bearing_threshold, float _mass_budget_factor,
+		int _timestep, float _cell_width, float _self_ignition_factor, float _rainfall, float _seed_bearing_threshold,
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
-		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_radius, float _saturation_threshold, float _fire_resistance_argmin,
+		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_dbh, float _saturation_threshold, float _fire_resistance_argmin,
 		float _fire_resistance_argmax, float _fire_resistance_stretch, float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
 		float _resource_grid_relative_size, float _mutation_rate, int _verbosity
 	) :
 		timestep(_timestep), cell_width(_cell_width), unsuppressed_flammability(_unsuppressed_flammability),
-		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_max_radius * _seed_bearing_threshold),
-		mass_budget_factor(_mass_budget_factor), growth_rate_multiplier(_growth_rate_multiplier),
-		radius_suppr_flamm_min(_max_radius * _radius_suppr_flamm_min),
-		flamm_delta_radius((_cell_width * _min_suppressed_flammability - _cell_width * _max_suppressed_flammability) / (_max_radius * radius_range_suppr_flamm)),
-		max_suppressed_flammability(_cell_width * _max_suppressed_flammability),
-		min_suppressed_flammability(_cell_width * _min_suppressed_flammability),
-		max_radius(_max_radius), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold), fire_resistance_argmin(_fire_resistance_argmin),
+		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_max_dbh* _seed_bearing_threshold),
+		growth_rate_multiplier(_growth_rate_multiplier), radius_suppr_flamm_min(_max_dbh* _radius_suppr_flamm_min),
+		flamm_delta_radius((_cell_width* _min_suppressed_flammability - _cell_width * _max_suppressed_flammability) / (_max_dbh * radius_range_suppr_flamm)),
+		max_suppressed_flammability(_cell_width* _max_suppressed_flammability),
+		min_suppressed_flammability(_cell_width* _min_suppressed_flammability),
+		max_dbh(_max_dbh), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold), fire_resistance_argmin(_fire_resistance_argmin),
 		fire_resistance_argmax(_fire_resistance_argmax), fire_resistance_stretch(_fire_resistance_stretch), background_mortality(_background_mortality),
 		strategy_distribution_params(_strategy_distribution_params), resource_grid_relative_size(_resource_grid_relative_size), mutation_rate(_mutation_rate)
 	{
@@ -30,8 +29,8 @@ public:
 	};
 	void init_state(int gridsize, float radius_q1, float radius_q2, float _seed_mass) {
 		state = State(
-			gridsize, cell_width, max_radius, radius_q1, radius_q2, seed_bearing_threshold, mass_budget_factor,
-			_seed_mass, saturation_threshold, strategy_distribution_params, mutation_rate
+			gridsize, cell_width, max_dbh, radius_q1, radius_q2, seed_bearing_threshold, _seed_mass, saturation_threshold, strategy_distribution_params,
+			mutation_rate
 		);
 		linear_disperser = Disperser();
 		wind_disperser = WindDispersal();
@@ -56,8 +55,15 @@ public:
 		timer.stop();
 		if (verbosity > 0) printf("Percolation took %f seconds. Beginning growth... \n", timer.elapsedSeconds());
 		grow();
-		if (verbosity > 0) printf("Inducing background mortality... \n");
+		timer.start();
 		induce_background_mortality();
+		timer.stop();
+		if (verbosity > 0) printf("Inducing background mortality took %f seconds. \n", timer.elapsedSeconds());
+		timer.start();
+		int pre_thinning_popsize = pop->size();
+		thin_crowds();
+		timer.stop();
+		if (verbosity > 0) printf("Thinning crowds by removing %i trees took %f seconds.\n", pre_thinning_popsize - pop->size(), timer.elapsedSeconds());
 
 		// Do post-simulation cleanup and data reporting
 		printf("Repopulating grid... \n");
@@ -98,6 +104,14 @@ public:
 			tree.grow(seed_bearing_threshold);
 		}
 	}
+	void thin_crowds() {
+		for (auto& [id, tree] : pop->members) {
+			float shade = grid->compute_shade_on_individual_tree(&tree);
+			if (shade > 0.5f) {
+				pop->remove(id);
+			}
+		}
+	}
 	void set_global_linear_kernel(float lin_diffuse_q1, float lin_diffuse_q2, float min, float max) {
 		global_kernels["linear"] = Kernel(1, lin_diffuse_q1, lin_diffuse_q2, min, max);
 		pop->add_kernel("linear", global_kernels["linear"]);
@@ -108,7 +122,7 @@ public:
 		pop->add_kernel("wind", global_kernels["wind"]);
 		cout << "Global kernel created (Wind dispersal). " << endl;
 	}
-	void set_global_animal_kernel(map<string, map<string, float>> &animal_kernel_params) {
+	void set_global_animal_kernel(map<string, map<string, float>>& animal_kernel_params) {
 		global_kernels["animal"] = Kernel(1, "animal");
 		init_resource_grid(animal_kernel_params);
 		animal_dispersal.animals = Animals(&state, animal_kernel_params);
@@ -124,7 +138,7 @@ public:
 		set_global_wind_kernel(params["wspeed_gmean"], params["wspeed_stdev"], params["wind_direction"], params["wind_direction_stdev"]);
 		set_global_animal_kernel(animal_kernel_params);
 	}
-	void init_resource_grid(map<string, map<string, float>> &animal_kernel_params) {
+	void init_resource_grid(map<string, map<string, float>>& animal_kernel_params) {
 		int resource_grid_no_cells_x = round((float)grid->width * resource_grid_relative_size);
 		float resource_grid_cell_width = grid->width_r / (float)resource_grid_no_cells_x;
 		vector<string> species = {};
@@ -147,7 +161,7 @@ public:
 		}
 		return true;
 	}
-	void disperse_wind_seeds_and_init_fruits(int &no_seed_bearing_trees, int &total_no_seeds, int &wind_trees) {
+	void disperse_wind_seeds_and_init_fruits(int& no_seed_bearing_trees, int& total_no_seeds, int& wind_trees) {
 		int pre_dispersal_popsize = pop->size();
 		int no_wind_seeds = 0;
 		Timer timer; timer.start();
@@ -210,21 +224,20 @@ public:
 				);
 			}
 		}
-		
+
 		timer.stop(); printf("-- Recruitment of %i trees took %f seconds. \n", pop->size() - pre_recruitment_popsize, timer.elapsedSeconds());
 	}
 	void disperse() {
 		resource_grid.reset();
 		int pre_dispersal_popsize = pop->size();
-		int total_no_seeds = 0;
+		seeds_dispersed = 0;
 		int no_seed_bearing_trees = 0;
 		int no_wind_trees = 0;
-		disperse_wind_seeds_and_init_fruits(no_seed_bearing_trees, total_no_seeds, no_wind_trees);
-		disperse_animal_seeds();
+		disperse_wind_seeds_and_init_fruits(no_seed_bearing_trees, seeds_dispersed, no_wind_trees);
+		//disperse_animal_seeds();
 		recruit();
 
-		if (verbosity > 0) printf("-- Number of seed bearing trees: %i, #seeds (all): %i\n", no_seed_bearing_trees, total_no_seeds);
-		seeds_dispersed = (float)total_no_seeds / (float)no_seed_bearing_trees;
+		if (verbosity > 0) printf("-- Fraction of trees that are seed-bearing: %f, #seeds (all): %i\n", (float)no_seed_bearing_trees / (float)pop->size(), seeds_dispersed);
 		if (verbosity > 0) printf("-- Proportion wind dispersed trees: %f \n", no_wind_trees / (float)no_seed_bearing_trees);
 	}
 	void induce_background_mortality() {
@@ -261,10 +274,10 @@ public:
 	}
 	float get_forest_flammability(Cell* cell, float fire_free_interval) {
 		float fuel_load = cell->get_fuel_load();
-		return fire_free_interval * unsuppressed_flammability * fuel_load; // We assume flammability is directly proportional to fuel load and fire-free interval.
+		return unsuppressed_flammability * fuel_load; // We assume flammability is directly proportional to fuel load and fire-free interval.
 	}
 	float get_savanna_flammability(float fire_free_interval) {
-		return fire_free_interval * unsuppressed_flammability; // We assume grass flammability is directly proportional to fire-free interval.
+		return unsuppressed_flammability; // We assume grass flammability is directly proportional to fire-free interval.
 	}
 	float get_cell_flammability(Cell* cell, float fire_free_interval) {
 		if (cell->state == 1) {
@@ -309,7 +322,7 @@ public:
 		}
 		return help::get_rand_float(0.0, 1.0) < get_cell_flammability(cell, min(t_start - cell->time_last_fire, 1));
 	}
-	inline void burn_cell(Cell* cell, float t_start, queue<Cell*> &queue) {
+	inline void burn_cell(Cell* cell, float t_start, queue<Cell*>& queue) {
 		cell->time_last_fire = t_start;
 		grid->state_distribution[grid->pos_2_idx(cell->pos)] = -5;
 		if (cell->state == 1) {
@@ -353,14 +366,13 @@ public:
 	float unsuppressed_flammability = 0;
 	float min_suppressed_flammability = 0;
 	float max_suppressed_flammability = 0;
-	float mass_budget_factor = 0;
 	float self_ignition_factor = 0;
 	float rainfall = 0;
 	float seed_bearing_threshold = 0;
 	float growth_rate_multiplier = 0;
 	float radius_suppr_flamm_min = 0;
 	float flamm_delta_radius = 0;
-	float max_radius = 0;
+	float max_dbh = 0;
 	float cell_width = 0;
 	float fire_spatial_extent = 0;
 	float saturation_threshold = 0;

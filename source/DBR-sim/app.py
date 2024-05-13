@@ -48,11 +48,11 @@ def set_dispersal_kernel(
 
 
 def init(
-    timestep=None, grid_width=None, cellsize=None, max_radius=None, image_width=None,
+    timestep=None, grid_width=None, cellsize=None, max_dbh=None, image_width=None,
     treecover=None, self_ignition_factor=None, flammability=None,
     rainfall=None, unsuppressed_flammability=None, 
     verbosity=None, radius_q1=None, radius_q2=None, seed_bearing_threshold=None,
-    mass_budget_factor=None, dispersal_mode=None, linear_diffusion_q1=None, linear_diffusion_q2=None,
+    dispersal_mode=None, linear_diffusion_q1=None, linear_diffusion_q2=None,
     dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, seed_mass=None,
     flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
@@ -68,9 +68,9 @@ def init(
     # Initialize dynamics object and state
     dynamics = cpp.Dynamics(
         timestep, cellsize, self_ignition_factor, rainfall, seed_bearing_threshold,
-        mass_budget_factor, growth_rate_multiplier, unsuppressed_flammability, flammability_coefficients_and_constants[0],
+        growth_rate_multiplier, unsuppressed_flammability, flammability_coefficients_and_constants[0],
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
-        flammability_coefficients_and_constants[3], max_radius, saturation_threshold, fire_resistance_params[0],
+        flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
         resource_grid_relative_size, mutation_rate, verbosity
     )

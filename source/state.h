@@ -12,15 +12,14 @@ public:
 		init_neighbor_offsets();
 	}
 	State(
-		int gridsize, float cell_width, float max_radius, float radius_q1, float radius_q2,
-		float seed_bearing_threshold, float _mass_budget_factor, float _seed_mass, float _saturation_threshold,
-		map<string, map<string, float>> &strategy_distribution_params, float mutation_rate
+		int gridsize, float cell_width, float max_dbh, float radius_q1, float radius_q2,
+		float seed_bearing_threshold, float _seed_mass, float _saturation_threshold,
+		map<string, map<string, float>>& strategy_distribution_params, float mutation_rate
 	) {
-		mass_budget_factor = _mass_budget_factor / help::cubed(max_radius); // Normalize by maximum radius
 		seed_mass = _seed_mass;
 		saturation_threshold = _saturation_threshold;
 		population = Population(
-			max_radius, cell_width, radius_q1, radius_q2, mass_budget_factor, strategy_distribution_params, mutation_rate,
+			max_dbh, cell_width, radius_q1, radius_q2, strategy_distribution_params, mutation_rate,
 			seed_bearing_threshold
 		);
 		grid = Grid(gridsize, cell_width);
@@ -50,7 +49,7 @@ public:
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
 	float get_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
-		vector<float> dists = {help::get_manhattan_dist(a, b)};
+		vector<float> dists = { help::get_manhattan_dist(a, b) };
 		float min_dist = dists[0];
 		int min_idx = 0;
 		for (int i = 0; i < 8; i++) {
@@ -93,7 +92,7 @@ public:
 	}
 	vector<Tree*> get_tree_neighbors(Tree* base) {
 		vector<Tree*> neighbors;
-		float search_radius = (round(base->radius * 1.1) + population.max_radius);
+		float search_radius = (round(base->radius * 1.1) + population.max_dbh);
 		int dummy;
 		return get_tree_neighbors(base->position, search_radius, dummy, base->id);
 	}
@@ -169,7 +168,7 @@ public:
 		// Count no small trees
 		int no_small = 0;
 		for (auto& [id, tree] : population.members) {
-			if (tree.radius < population.max_radius / 2.0) {
+			if (tree.dbh < population.max_dbh / 2.0) {
 				no_small++;
 			}
 		}
@@ -191,7 +190,6 @@ public:
 	Population population;
 	pair<int, int>* neighbor_offsets = 0;
 	float initial_tree_cover = 0;
-	float mass_budget_factor = 0;
 	float seed_mass = 0;
 	float saturation_threshold = 0;
 };

@@ -103,12 +103,14 @@ public:
 		return trait_distributions["fruit_pulp_mass"].sample();
 	}
 	float calculate_recruitment_probability(float seed_mass) {
-		float successful_dispersal_probability = 0.1f; // Approximate value estimated (by eye) from Wang and Ives (2017), figure 5c.
+		float successful_dispersal_probability = 0.1f; // Approximate value estimated (by eye) from Wang and Ives (2017), figure 5c. TODO: Find exact value
 		float seedling_establishment_probability = max(0, 0.0385 * log(seed_mass) + 0.224); // Fitted to data from Barczyk et al (2024), see file 'seed weight vs seedling success.xlsx'
 		return successful_dispersal_probability * seedling_establishment_probability;
 	}
 	float calculate_growth_rate(float seed_mass) {
-		return 0.1f * sqrtf(seed_mass); // PLACEHOLDER. TODO: IMPLEMENT GROWTH RATE CALCULATION BASED ON DATA.
+		float seed_reserve_mass_milligrams = 0.08f * seed_mass; // TEMP. TODO: FIT Boot (1994) data.
+		return 0.0023 * pow(10.0f, 0.67 + 0.27 * log10(seed_reserve_mass_milligrams));	// Fitted to figure 2.11 from Boot (1994). Takes seed reserve mass in mg and returns dbh  
+																						// in mm, hence we divide the result by 10 to convert to cm (0.023 becomes 0.0023).									
 	}
 	void generate(Strategy &strategy) {
 		int no_seeds_per_diaspore = sample_no_seeds_per_diaspore();
@@ -153,14 +155,14 @@ public:
 class Tree {
 public:
 	Tree() = default;
-	Tree(int _id, pair<float, float> _position, float _radius, float _radius_tmin1, float& seed_bearing_threshold) : 
-		position(_position), radius(_radius), radius_tmin1(_radius_tmin1) 
+	Tree(int _id, pair<float, float> _position, float _dbh, float& seed_bearing_threshold) : 
+		position(_position), dbh(_dbh)
 	{
 		id = _id;
 		init();
 	};
-	Tree(int _id, pair<float, float> _position, float _radius, float _radius_tmin1, int _life_phase, float &seed_bearing_threshold) :
-		position(_position), radius(_radius), radius_tmin1(_radius_tmin1), life_phase(_life_phase)
+	Tree(int _id, pair<float, float> _position, float _dbh, int _life_phase, float &seed_bearing_threshold) :
+		position(_position), dbh(_dbh), life_phase(_life_phase)
 	{
 		id = _id;
 		init();
@@ -171,7 +173,7 @@ public:
 		return id == tree.id;
 	}
 	void init() {
-		dbh = get_dbh_from_radius();
+		radius = get_radius_from_dbh();
 		bark_thickness = get_bark_thickness();
 		LAI = get_LAI();
 		//printf("LAI: %f, stem dbh: %f, radius: %f, radius_tmin1: %f \n", LAI, dbh, radius, radius_tmin1);
@@ -181,14 +183,16 @@ public:
 		return dist < radius;
 	}
 	int get_life_phase(float& seed_bearing_threshold) {
-		if (radius > seed_bearing_threshold) return 2;
+		if (dbh > seed_bearing_threshold) return 2;
 		else return 0;
 	}
 	float get_bark_thickness() {
 		return 0.31 * pow(dbh, 1.276); // From Hoffmann et al (2012), figure 5a. Bark thickness in mm.
 	}
 	float get_dbh_from_radius() {
-		return pow(10.0f, (log10(radius + radius) + 0.12) / 0.63); // From Antin et al (2013), figure 1, topright panel (reordered equation). Stem dbh in cm.
+		float crown_area = get_crown_area(); // Crown area in m^2.
+		float basal_area = pow(10.0f, (log10(crown_area) + 0.32f) / 0.59f); // From Rossatto et al (2009), figure 6. Reordered equation.
+		return sqrtf(basal_area / M_PI); // Convert basal area (cm^2) to dbh (cm).
 	}
 	float get_dbh_increment() {
 		// TODO: Ensure increment is influenced by seed size.
@@ -206,21 +210,24 @@ public:
 	float get_leaf_area() {
 		return 0.147 * pow(dbh, 2.053); // From Hoffman et al (2012), figure 5b. Leaf area in m^2
 	}
-	float get_ground_area() {
+	float get_crown_area() {
 		return M_PI * (radius * radius);
 	}
 	float get_LAI() {
-		float ground_area = get_ground_area();
+		float crown_area = get_crown_area();
 		float leaf_area = get_leaf_area();
-		return leaf_area / ground_area;
+		return leaf_area / crown_area;
 	}
 	bool survives_fire(float &fire_resistance_argmin, float &fire_resistance_argmax, float &fire_resistance_stretch) {
 		float survival_probability = get_survival_probability(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 		return help::get_rand_float(0.0f, 1.0f) > survival_probability;
 	}
-	float get_crown_radius_from_dbh() {
-		float diameter = pow(10.0f, -0.12 + 0.63 * log10(dbh)); // From Antin et al (2013), figure 1, topright panel. Stem dbh in cm.
-		return diameter * 0.5f;
+	float get_radius_from_dbh() {
+		float radius_breast_height = dbh * 0.5f; // Convert dbh (cm) to radius at breast height (cm^2).
+		float basal_area = M_PI * radius_breast_height * radius_breast_height;
+		float crown_area = pow(10.0f, 0.59 * log10(basal_area) - 0.32); // From Rossatto et al (2009), figure 6.
+		float crown_radius = sqrt(crown_area / M_PI);
+		return crown_radius;
 	}
 	float get_height() {
 		float ln_dbh = log(dbh);
@@ -229,18 +236,17 @@ public:
 	}
 	void grow(float &seed_bearing_threshold) {
 		age++;
-		radius_tmin1 = radius;
 		dbh += get_dbh_increment();
-		radius = get_crown_radius_from_dbh();
+		radius = get_radius_from_dbh();
 		life_phase = get_life_phase(seed_bearing_threshold);
 		bark_thickness = get_bark_thickness();
 		LAI = get_LAI();
 		height = get_height();
 	}
 	float radius = -1;
-	float radius_tmin1 = -1;
 	float dbh = 0.1;
 	float bark_thickness = 0;
+	float shade = 0;
 	float LAI = 0;
 	float height = 0;
 	pair<float, float> position = pair(0, 0);
@@ -254,20 +260,18 @@ public:
 class Crop {
 public:
 	Crop() = default;
-	Crop(Strategy &_strategy, Tree& tree, float _mass_budget_factor) {
+	Crop(Strategy &_strategy, Tree& tree) {
 		strategy = _strategy;
 		seed_mass = _strategy.seed_mass;
-		mass_budget_factor = _mass_budget_factor;
 		origin = tree.position;
 		id = tree.id;
 	}
 	void compute_no_seeds(Tree &tree) {
-		no_seeds = 49324 * exp(0.0491 * tree.dbh);	// Fitted to averages generated by model: #seedlings = STR' * (dbh / 30)^alpha, modified from Uriarte et al(2005),
+		no_seeds = 49324 * exp(0.0491 * tree.dbh);		// Fitted to averages generated by model: #seedlings = STR' * (dbh / 30)^alpha, modified from Uriarte et al(2005),
 														// where STR' = STR / (influence of seed mass on STR (fitted to normalized STR and seed mass values)), so that
 														// the model is seed mass-normalized).
-		no_seeds *= 0.0771 * exp(-4.956 * (strategy.seed_mass / 3.56)); // Re-introduce (normalized) seed mass influence.
+		no_seeds *= 0.0771 * exp(-4.956 * (strategy.seed_mass / 3.56));		// Re-introduce (normalized) seed mass influence.
 		no_seeds *= strategy.recruitment_probability;
-		no_seeds *= 0.01f;
 	}
 	void compute_no_diaspora() {
 		no_diaspora = no_seeds / strategy.no_seeds_per_diaspore;
@@ -280,7 +284,6 @@ public:
 	int no_seeds = 0;
 	int no_diaspora = 0;
 	float seed_mass = 0;
-	float mass_budget_factor = 0;
 	Strategy strategy;
 	pair<float, float> origin = pair<float, float>(0, 0);
 	int id = -1;
@@ -290,29 +293,27 @@ public:
 class Population {
 public:
 	Population() = default;
-	Population(float _max_radius, float _cellsize, float _radius_q1, float _radius_q2, float _mass_budget_factor, 
+	Population(float _max_dbh, float _cellsize, float dbh_q1, float dbh_q2,
 		map<string, map<string, float>> strategy_parameters, float _mutation_rate, float _seed_bearing_threshold
-	) : max_radius(_max_radius), cellsize(_cellsize), radius_q1(_radius_q1), radius_q2(_radius_q2),
-		mass_budget_factor(_mass_budget_factor), seed_bearing_threshold(_seed_bearing_threshold)
+	) : max_dbh(_max_dbh), cellsize(_cellsize), seed_bearing_threshold(_seed_bearing_threshold)
 	{
 		strategy_generator = StrategyGenerator(strategy_parameters);
-		radius_probability_model = help::LinearProbabilityModel(radius_q1, radius_q2, 0, max_radius);
+		dbh_probability_model = help::LinearProbabilityModel(dbh_q1, dbh_q2, 0, max_dbh);
 		mutation_rate = _mutation_rate;
 	}
-	Tree* add(pair<float, float> position, Strategy* _strategy = 0, float radius = -2) {
+	Tree* add(pair<float, float> position, Strategy* _strategy = 0, float dbh = -2) {
 		// Create tree
-		if (radius == -1) radius = max_radius;
-		else if (radius == -2) {
+		if (dbh == -1) dbh = max_dbh;
+		else if (dbh == -2) {
 			if (_strategy == nullptr) {
-				while (radius <= 0)
-					radius = radius_probability_model.linear_sample();
+				while (dbh <= 0)
+					dbh = dbh_probability_model.linear_sample();
 			}
 			else {
-				radius = _strategy->growth_rate; // Growth rate determines 
+				dbh = _strategy->growth_rate; // Growth rate determines initial dbh.
 			}
 		}
-		float radius_tmin1 = radius * 0.9; // TEMP. TODO: Make dependent on growth curve.
-		Tree tree(no_created_trees + 1, position, radius, radius_tmin1, 1, seed_bearing_threshold);
+		Tree tree(no_created_trees + 1, position, dbh, 1, seed_bearing_threshold);
 		members[tree.id] = tree;
 		no_created_trees++;
 
@@ -328,7 +329,7 @@ public:
 		strategy.id = tree.id;
 
 		// Create crop
-		Crop crop(strategy, tree, mass_budget_factor);
+		Crop crop(strategy, tree);
 		crops[tree.id] = crop;
 
 		// Create custom kernel
@@ -384,16 +385,13 @@ public:
 	unordered_map<int, Crop> crops;
 	unordered_map<string, Kernel> kernels;
 	unordered_map<int, Kernel> kernels_individual;
-	help::LinearProbabilityModel radius_probability_model;
+	help::LinearProbabilityModel dbh_probability_model;
 	StrategyGenerator strategy_generator;
-	float max_radius = 0;
+	float max_dbh = 0;
 	float cellsize = 0;
-	float radius_q1 = 0;
-	float radius_q2 = 0;
 	float seed_mass = 0;
 	float mutation_rate = 0;
 	Tree removed_tree;
 	int no_created_trees = 0;
-	float mass_budget_factor = 0;
 	float seed_bearing_threshold = 0;
 };
