@@ -103,7 +103,9 @@ public:
 		return trait_distributions["fruit_pulp_mass"].sample();
 	}
 	float calculate_recruitment_probability(float seed_mass) {
-		return max(0, 0.0385 * log(seed_mass) + 0.224); // Fitted to data from Barczyk et al (2024), see file 'seed weight vs seedling success.xlsx'
+		float successful_dispersal_probability = 0.1f; // Approximate value estimated (by eye) from Wang and Ives (2017), figure 5c.
+		float seedling_establishment_probability = max(0, 0.0385 * log(seed_mass) + 0.224); // Fitted to data from Barczyk et al (2024), see file 'seed weight vs seedling success.xlsx'
+		return successful_dispersal_probability * seedling_establishment_probability;
 	}
 	float calculate_growth_rate(float seed_mass) {
 		return 0.1f * sqrtf(seed_mass); // PLACEHOLDER. TODO: IMPLEMENT GROWTH RATE CALCULATION BASED ON DATA.
