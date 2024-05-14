@@ -51,7 +51,7 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
     i = 0
     time_budget_per_run = 60 * 60
     while control_value < control_range[1]:
-        print(f"\nBeginning simulation with {control_variable}={str(control_value)} (process idx {str(process_index)})...")
+        print(f"\n ------- Beginning simulation with {control_variable}={str(control_value)} (process idx {str(process_index)}) ------- \n")
         singlerun_csv_path = csv_parent_dir + f"/{control_variable}={str(control_value)}_process_{str(process_index)}.csv"
         singlerun_image_path = singlerun_csv_path.replace(".csv", ".png")
         params["csv_path"] = singlerun_csv_path
@@ -60,18 +60,7 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
         print("image path: ", singlerun_image_path)
         
         run_starttime = time.time()
-        q = 0
-        while True:
-            try:
-                if q > 0:
-                    print(f"\n\n -------- Error in app.main(). Restarting (attempt {q})...")
-                dynamics = app.main(**params)
-            except:
-                curtime = time.time()
-                if (curtime - run_starttime) > time_budget_per_run:
-                    print(f"\n\n -------- Error in app.main(). Time budget exceeded after {q} attempts. Skipping to next run.")
-                    break
-                q += 1
+        dynamics = app.main(**params)
             
         try:
             _io.export_state(dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value)
@@ -83,8 +72,12 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
         i+=1
         
         # Get a color image representation of the final state
-        img = vis.get_image(dynamics.state.grid, True, color_dict)
+        img = vis.get_image_from_grid(dynamics.state.grid, True, color_dict)
         vis.save_image(img, singlerun_image_path, get_max(dynamics.state.grid.width, 1000))
+        
+        # Free memory
+        dynamics.free()
+        print(f"\n ------- Simulation with {control_variable}={str(control_value)} (process idx {str(process_index)}) complete. -------- \n")
         
 
 if __name__ == "__main__":

@@ -145,7 +145,8 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def("get_firefree_intervals", [](Dynamics& dynamics) {
             float* intervals = dynamics.get_firefree_intervals();
             return as_1d_numpy_array(intervals, dynamics.grid->no_cells);
-        })
+            })
+        .def("free", &Dynamics::free)
         .def("set_global_linear_kernel", &Dynamics::set_global_linear_kernel)
         .def("set_global_wind_kernel", &Dynamics::set_global_wind_kernel)
         .def("set_global_animal_kernel", [](Dynamics& dynamics, const py::dict& _animal_dispersal_map) {

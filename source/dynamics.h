@@ -61,7 +61,7 @@ public:
 		if (verbosity > 0) printf("Inducing background mortality took %f seconds. \n", timer.elapsedSeconds());
 		timer.start();
 		int pre_thinning_popsize = pop->size();
-		thin_crowds();
+		//thin_crowds();
 		timer.stop();
 		if (verbosity > 0) printf("Thinning crowds by removing %i trees took %f seconds.\n", pre_thinning_popsize - pop->size(), timer.elapsedSeconds());
 
@@ -70,7 +70,7 @@ public:
 		state.repopulate_grid(verbosity);
 		if (verbosity > 0) printf("Redoing grid count... \n");
 		grid->redo_count();
-		if (verbosity > 0) report_state();
+		report_state();
 	}
 	void report_state() {
 		int grid_memory_size = 0;
@@ -87,6 +87,12 @@ public:
 		printf("------ END REPORT ------\n");*/
 		if (verbosity == 2) for (auto& [id, tree] : pop->members) if (id % 500 == 0) printf("Radius of tree %i : %f \n", id, tree.radius);
 	}
+	void free() {
+		delete[] neighbor_offsets;
+		grid->free();
+		pop->free();
+		resource_grid.free();
+	}
 	vector<float> get_ordered_fire_ignition_times() {
 		int i = 0;
 		int fire_count = round(self_ignition_factor * rainfall * (float)grid->no_savanna_cells / (float)1e6);
@@ -101,17 +107,23 @@ public:
 	}
 	void grow() {
 		for (auto& [id, tree] : pop->members) {
-			tree.grow(seed_bearing_threshold);
-		}
-	}
-	void thin_crowds() {
-		for (auto& [id, tree] : pop->members) {
-			float shade = grid->compute_shade_on_individual_tree(&tree);
-			if (shade > 0.5f) {
-				pop->remove(id);
+			bool became_reproductive = tree.grow(seed_bearing_threshold);
+			if (became_reproductive) {
+				pop->add_reproduction_system(tree);
 			}
 		}
 	}
+	/*void thin_crowds() {
+		PairSet population_sorted_by_height;
+		pop->sort_by_trait("height", population_sorted_by_height);
+		for (auto& [id, _] : population_sorted_by_height) {
+			Tree* tree = pop->get(id);
+			float shade = grid->compute_shade_on_individual_tree(tree);
+			if (shade > 1.0f) {
+				kill_tree(tree);
+			}
+		}
+	}*/
 	void set_global_linear_kernel(float lin_diffuse_q1, float lin_diffuse_q2, float min, float max) {
 		global_kernels["linear"] = Kernel(1, lin_diffuse_q1, lin_diffuse_q2, min, max);
 		pop->add_kernel("linear", global_kernels["linear"]);
@@ -293,14 +305,14 @@ public:
 		return !tree->survives_fire(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 	}
 	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue) {
-		if (verbosity == 2) printf("Killing tree %i ... \n", tree->id);
+		if (verbosity == 2) printf("Burning tree %i ... \n", tree->id);
 		grid->burn_tree_domain(tree, queue, time_last_fire);
-		state.population.remove(tree);
+		pop->remove(tree);
 	}
 	void kill_tree(Tree* tree) {
 		if (verbosity == 2) printf("Killing tree %i ... \n", tree->id);
-		grid->kill_tree_domain(tree);
-		state.population.remove(tree);
+		grid->kill_tree_domain(tree, false);
+		pop->remove(tree);
 	}
 	void induce_tree_mortality(Cell* cell, float fire_free_interval, queue<Cell*>& queue) {
 		for (auto tree_id : cell->trees) {

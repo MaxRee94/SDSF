@@ -105,6 +105,7 @@ class Grid {
 public:
 	Grid() = default;
 	Grid(int _width, float _cell_width) {
+		printf("\nInitializing grid with width %i and cell width %f.\n", _width, _cell_width);
 		width = _width;
 		cell_width = _cell_width;
 		width_r = (float)width * cell_width;
@@ -123,6 +124,10 @@ public:
 			distribution[i].idx = i;
 		}
 		state_distribution = new int[no_cells];
+	}
+	void free() {
+		delete[] distribution;
+		delete[] state_distribution;
 	}
 	int pos_2_idx(pair<float, float> pos) {
 		return width * (pos.second / cell_width) + (pos.first / cell_width);
@@ -276,7 +281,7 @@ public:
 		return shade / no_cells;
 	}
 	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = true) {
-		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
+		pair<int, int> tree_center_gb = get_gridbased_position(tree->position);
 		int radius_gb = round((tree->radius * 1.5) / cell_width);
 		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x += 1) {
 			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y += 1) {
@@ -292,7 +297,7 @@ public:
 					cell->LAI -= tree->LAI * cell_area;
 
 					// Set cell to savanna if the cumulative leaf area is less than half of the area of the cell (LAI * cell_area < 0.5 * cell_area, i.e., LAI < 0.5)).
-					if (cell->LAI < 0.5) {
+					if (tree->LAI < 0.5) {
 						queue.push(cell);
 						set_to_savanna(cell->idx, time_last_fire);
 						if (store_tree_death_in_color_distribution) state_distribution[cell->idx] = -6;

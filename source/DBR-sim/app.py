@@ -197,6 +197,7 @@ def updateloop(dynamics, color_dict, **user_args):
 
     if not user_args["headless"]:
         cv2.destroyAllWindows()
+        dynamics.free()
     
     return dynamics
 

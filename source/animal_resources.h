@@ -44,6 +44,29 @@ public:
 		init_cells();
 		init_neighbor_offsets();
 	}
+	void free() {
+		delete[] cells;
+		delete_c();
+		delete_f();
+		delete[] d;
+		delete[] cover;
+		delete[] fruit_abundance;
+		delete[] dist_aggregate;
+		delete[] color_distribution;
+		delete[] visits;
+		delete[] neighbor_offsets;
+		Grid::free();
+	}
+	void delete_c() {
+		for (auto it = c.begin(); it != c.end(); it++) {
+			delete[] it->second;
+		}
+	}
+	void delete_f() {
+		for (auto it = f.begin(); it != f.end(); it++) {
+			delete[] it->second;
+		}
+	}
 	void init_property_distributions(vector<string> &species) {
 		d = new float[size];
 		cover = new float[size];
