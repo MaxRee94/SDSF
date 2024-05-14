@@ -393,6 +393,15 @@ bool help::ends_with(string full_string, string ending) {
     }
 }
 
+string help::readable_number(int number) {
+    string billions = number >= (int)1e9 ? to_string(number / (int)1e9) + " " : "";
+    string millions = number >= (int)1e6 > 0 ? to_string((number % (int)1e9) / (int)1e6) + " " : "";
+    string thousands = number >= (int)1e3 > 0 ? to_string((number % (int)1e6) / (int)1e3) + " " : "";
+    string rest = to_string(number % (int)1e3);
+    string reformatted_num = billions + millions + thousands + rest;
+    return reformatted_num;
+}
+
 float help::get_sigmoid(float x, float x_min, float x_max, float x_stretch) {
     float x2 = 2.0f * log10(x * 1e6f) - 5 - x_min;
     return 1.0 / (1 + exp(- x2 * x_stretch));

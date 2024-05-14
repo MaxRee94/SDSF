@@ -47,7 +47,7 @@ public:
 		// Do simulation
 		Timer timer; timer.start();
 		if (verbosity > 0) printf("Beginning dispersal... \n");
-		if (time > 1) disperse();
+		if (time > 0) disperse();
 		timer.stop();
 		if (verbosity > 0) printf("Dispersal took %f seconds. Beginning burn... \n", timer.elapsedSeconds());
 		timer.start();
@@ -79,12 +79,12 @@ public:
 			grid_memory_size += element_size;
 		}
 
-		printf("- Tree cover: %f, #trees: %i \n", grid->get_tree_cover(), pop->size());
-		printf("----- MEMORY REPORT: ------\n- Trees memory size: %i \n", (pop->members.size() * sizeof(Tree)) >> 10);
-		printf("- Kernels memory size: %i \n", (pop->kernels_individual.size() * sizeof(pair<int, Kernel>)) >> 10);
+		printf("// STATE at t=%i: Tree cover: %f, #trees: %s \n", time, grid->get_tree_cover(), help::readable_number(pop->size()).c_str());
+		/*printf("----- MEMORY REPORT: ------\n- Trees memory size: %i \n", (int)((pop->members.size() * sizeof(Tree)) >> 10));
+		printf("- Kernels memory size: %i \n", (int)(pop->kernels_individual.size() * sizeof(pair<int, Kernel>)) >> 10);
 		printf("- Crops memory size: %i \n", (pop->crops.size() * sizeof(pair<int, Crop>)) >> 10);
 		printf("- Grid memory size: %i \n", (grid_memory_size >> 10));
-		printf("------ END REPORT ------\n");
+		printf("------ END REPORT ------\n");*/
 		if (verbosity == 2) for (auto& [id, tree] : pop->members) if (id % 500 == 0) printf("Radius of tree %i : %f \n", id, tree.radius);
 	}
 	vector<float> get_ordered_fire_ignition_times() {
@@ -201,8 +201,8 @@ public:
 			}
 		}
 		timer.stop(); printf(
-			"-- Dispersing %i wind-dispersed seeds and initializing %i fruits took %f seconds. \n",
-			no_wind_seeds, resource_grid.total_no_fruits, timer.elapsedSeconds()
+			"-- Dispersing %s wind-dispersed seeds and initializing %s fruits took %f seconds. \n",
+			help::readable_number(no_wind_seeds).c_str(), help::readable_number(resource_grid.total_no_fruits).c_str(), timer.elapsedSeconds()
 		);
 	}
 	void disperse_animal_seeds() {
@@ -211,7 +211,7 @@ public:
 		if (resource_grid.has_fruits) {
 			no_animal_seeds = animal_dispersal.disperse(&state, &resource_grid, 1);
 		}
-		timer.stop(); printf("-- Dispersing %i animal seeds took %f seconds. \n", no_animal_seeds, timer.elapsedSeconds());
+		timer.stop(); printf("-- Dispersing %s animal seeds took %f seconds. \n", help::readable_number(no_animal_seeds).c_str(), timer.elapsedSeconds());
 	}
 	void recruit() {
 		Timer timer; timer.start();
@@ -222,10 +222,12 @@ public:
 				Tree* tree = pop->add(
 					grid->get_random_location_within_cell(cell->idx), &pop->get_crop(cell->largest_stem.second)->strategy
 				);
+				cell->add_tree(tree);
 			}
 		}
 
-		timer.stop(); printf("-- Recruitment of %i trees took %f seconds. \n", pop->size() - pre_recruitment_popsize, timer.elapsedSeconds());
+		int no_recruits = pop->size() - pre_recruitment_popsize;
+		timer.stop(); printf("-- Recruitment of %s trees took %f seconds. \n", help::readable_number(no_recruits).c_str(), timer.elapsedSeconds());
 	}
 	void disperse() {
 		resource_grid.reset();
@@ -310,7 +312,7 @@ public:
 			tree->last_mortality_check = time;
 		}
 	}
-	void kill_seedlings(Cell* cell) {
+	void kill_saplings(Cell* cell) {
 		for (auto tree_id : cell->trees) {
 			pop->remove(tree_id);
 			cell->remove_tree(tree_id);
@@ -329,7 +331,7 @@ public:
 			induce_tree_mortality(cell, t_start - cell->time_last_fire, queue);
 		}
 		else {
-			kill_seedlings(cell);
+			kill_saplings(cell);
 		}
 	}
 	int percolate(Cell* cell, float t_start) {

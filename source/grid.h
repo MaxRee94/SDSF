@@ -46,7 +46,10 @@ public:
 		trees.push_back(tree->id);
 	}
 	void remove_tree(int id) {
+		//printf("\nRemoving tree %i from cell %i.\n", id, idx);
+		//help::print_vector(&trees);
 		help::remove_from_vec(&trees, id);
+		//help::print_vector(&trees);
 	}
 	float get_grass_LAI(float _LAI) {
 		return 0.241f * (_LAI * _LAI) - 1.709f * _LAI + 2.899f; // Relationship between grass- and tree LAI from Hoffman et al. (2012), figure 2b.
@@ -222,17 +225,12 @@ public:
 	void populate_tree_domain(Tree* tree) {
 		pair<int, int> tree_center_gb = get_gridbased_position(tree->position);
 		int radius_gb = tree->radius / cell_width;
-		Timer t; t.start();
 		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x+=1) {
 			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y+=1) {
 				pair<float, float> position(x * cell_width, y * cell_width);
 				if (tree->is_within_radius(position)) {
 					set_to_forest(pair<float, float>(x, y), tree);
 				}
-				if (t.elapsedSeconds() > 1) printf(
-					"taking forever. dbh: %f, radius: %f, position: %f, %f, id: %i \n", 
-					tree->dbh, tree->radius, tree->position.first, tree->position.second, tree->id
-				);
 			}
 		}
 		cap(tree_center_gb);

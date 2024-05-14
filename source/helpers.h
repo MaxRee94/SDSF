@@ -87,6 +87,8 @@ namespace help {
 
 	void remove_from_vec(vector<int>* vec, int item);
 
+	string readable_number(int number);
+
 	void get_normal_distributed_direction(pair<float, float>& direction, float mean_direction, float direction_stdev);
 
 	//Return whether the given vector <vec> contains the integer <item>
