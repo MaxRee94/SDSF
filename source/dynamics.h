@@ -276,10 +276,10 @@ public:
 	}
 	float get_forest_flammability(Cell* cell, float fire_free_interval) {
 		float fuel_load = cell->get_fuel_load();
-		return unsuppressed_flammability * fuel_load; // We assume flammability is directly proportional to fuel load and fire-free interval.
+		return fire_free_interval * unsuppressed_flammability * fuel_load; // We assume flammability is directly proportional to fuel load and fire-free interval.
 	}
 	float get_savanna_flammability(float fire_free_interval) {
-		return unsuppressed_flammability; // We assume grass flammability is directly proportional to fire-free interval.
+		return fire_free_interval * unsuppressed_flammability; // We assume grass flammability is directly proportional to fire-free interval.
 	}
 	float get_cell_flammability(Cell* cell, float fire_free_interval) {
 		if (cell->state == 1) {
