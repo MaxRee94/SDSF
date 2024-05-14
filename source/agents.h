@@ -160,27 +160,22 @@ public:
 class Tree {
 public:
 	Tree() = default;
-	Tree(int _id, pair<float, float> _position, float _dbh, float& seed_bearing_threshold) : 
+	Tree(int _id, pair<float, float> _position, float _dbh, float seed_bearing_threshold) :
 		position(_position), dbh(_dbh)
 	{
 		id = _id;
-		init();
-	};
-	Tree(int _id, pair<float, float> _position, float _dbh, int _life_phase, float &seed_bearing_threshold) :
-		position(_position), dbh(_dbh), life_phase(_life_phase)
-	{
-		id = _id;
-		init();
+		init(seed_bearing_threshold);
 		//printf("Tree created with id: %i, radius: %f, radius_tmin1: %f, stem dbh: %f, bark thickness: %f, LAI: %f \n", id, radius, radius_tmin1, dbh, bark_thickness, LAI);
 	};
 	bool operator==(const Tree& tree) const
 	{
 		return id == tree.id;
 	}
-	void init() {
+	void init(float seed_bearing_threshold) {
 		radius = get_radius_from_dbh();
 		bark_thickness = get_bark_thickness();
 		LAI = get_LAI();
+		life_phase = get_life_phase(seed_bearing_threshold);
 		//printf("LAI: %f, stem dbh: %f, radius: %f, radius_tmin1: %f \n", LAI, dbh, radius, radius_tmin1);
 	}
 	bool is_within_radius(pair<float, float> pos2) {
@@ -318,7 +313,7 @@ public:
 				dbh = _strategy->seedling_dbh; // Growth rate determines initial dbh.
 			}
 		}
-		Tree tree(no_created_trees + 1, position, dbh, 1, seed_bearing_threshold);
+		Tree tree(no_created_trees + 1, position, dbh, seed_bearing_threshold);
 		members[tree.id] = tree;
 		no_created_trees++;
 
