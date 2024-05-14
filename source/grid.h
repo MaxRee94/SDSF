@@ -29,8 +29,11 @@ public:
 		}
 		return false;
 	}
-	void update_largest_stem(float dbh, int id) {
+	void set_largest_stem(float dbh, int id) {
 		largest_stem = pair<float, int>(dbh, id);
+	}
+	void reset_largest_stem() {
+		largest_stem = pair<float, int>(0, 0);
 	}
 	void update_grass_LAI() {
 		grass_LAI = get_grass_LAI();
@@ -239,7 +242,7 @@ public:
 			}
 		}
 		cap(tree_center_gb);
-		distribution[pos_2_idx(tree_center_gb)].update_largest_stem(tree->dbh, tree->id);
+		distribution[pos_2_idx(tree_center_gb)].set_largest_stem(tree->dbh, tree->id);
 		distribution[pos_2_idx(tree_center_gb)].add_tree_if_not_exists(tree);
 	}
 	float compute_shade_on_individual_tree(Tree* tree) {
@@ -284,6 +287,8 @@ public:
 				}
 			}
 		}
+		cap(tree_center_gb);
+		distribution[pos_2_idx(tree_center_gb)].reset_largest_stem();
 	}
 	void kill_tree_domain(Tree* tree, bool store_tree_death_in_color_distribution = true) {
 		queue<Cell*> dummy;
