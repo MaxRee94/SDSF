@@ -10,11 +10,11 @@ class Strategy {
 public:
 	Strategy() = default;
 	Strategy(string _vector, float _seed_mass, float _diaspore_mass, int _no_seeds_per_diaspore, float _seed_tspeed,
-		float _pulp_to_seed_ratio, float _recruitment_probability, float _growth_rate
+		float _pulp_to_seed_ratio, float _recruitment_probability, float _seedling_dbh
 	) :
 		vector(_vector), seed_mass(_seed_mass), diaspore_mass(_diaspore_mass), no_seeds_per_diaspore(_no_seeds_per_diaspore),
 		seed_tspeed(_seed_tspeed), pulp_to_seed_ratio(_pulp_to_seed_ratio), recruitment_probability(_recruitment_probability),
-		growth_rate(_growth_rate)
+		seedling_dbh(_seedling_dbh)
 	{}
 	void print() {
 		printf("id: %d, seed_mass: %f, diaspore_mass: %f, no_seeds_per_diaspore: %d, vector: %s, pulp to seed ratio: %f, seed terminal speed: %f, germination prob: %f\n",
@@ -28,7 +28,7 @@ public:
 	float seed_tspeed = 0;
 	float pulp_to_seed_ratio = 0;
 	float recruitment_probability = 0;
-	float growth_rate = 0;
+	float seedling_dbh = 0;
 	string vector = "none";
 };
 
@@ -107,10 +107,12 @@ public:
 		float seedling_establishment_probability = max(0, 0.0385 * log(seed_mass) + 0.224); // Fitted to data from Barczyk et al (2024), see file 'seed weight vs seedling success.xlsx'
 		return successful_dispersal_probability * seedling_establishment_probability;
 	}
-	float calculate_growth_rate(float seed_mass) {
-		float seed_reserve_mass_milligrams = 0.08f * seed_mass; // TEMP. TODO: FIT Boot (1994) data.
-		return 0.0023 * pow(10.0f, 0.67 + 0.27 * log10(seed_reserve_mass_milligrams));	// Fitted to figure 2.11 from Boot (1994). Takes seed reserve mass in mg and returns dbh  
-																						// in mm, hence we divide the result by 10 to convert to cm (0.023 becomes 0.0023).									
+	float calculate_seedling_dbh(float seed_mass) {
+		float seed_reserve_mass_milligrams = 731.3 * pow(seed_mass, 1.0633f);	// Fitted to Boot (1994) data, table 2a (see file 'Relationship seed mass to sedling diameter.xlsx').
+		float seedling_dbh = 0.0023 * pow(10.0f, 0.67 + 0.27 * log10(seed_reserve_mass_milligrams));	// Fitted to figure 2.11 from Boot (1994). Takes seed reserve mass in mg and returns dbh  
+																										// in mm, hence we divide the result by 10 to convert to cm (0.023 becomes 0.0023).									
+		// printf("seed mass: %f mg, seed reserve mass: %f mg, growth rate: %f \n", seed_mass * 1000.0f, seed_reserve_mass_milligrams, seedling_dbh);
+		return seedling_dbh;
 	}
 	void generate(Strategy &strategy) {
 		int no_seeds_per_diaspore = sample_no_seeds_per_diaspore();
@@ -121,8 +123,11 @@ public:
 		float diaspore_mass = compute_diaspore_mass(no_seeds_per_diaspore, seed_mass, vector, fruit_pulp_mass, pulp_to_seed_ratio);
 		float seed_tspeed = calculate_tspeed(diaspore_mass);
 		float recruitment_probability = calculate_recruitment_probability(seed_mass);
-		float growth_rate = calculate_growth_rate(seed_mass);
-		strategy = Strategy(vector, seed_mass, diaspore_mass, no_seeds_per_diaspore, seed_tspeed, pulp_to_seed_ratio, recruitment_probability, growth_rate);
+		float seedling_dbh = calculate_seedling_dbh(seed_mass);
+		strategy = Strategy(
+			vector, seed_mass, diaspore_mass, no_seeds_per_diaspore, seed_tspeed, pulp_to_seed_ratio, recruitment_probability,
+			seedling_dbh
+		);
 	}
 	void mutate(Strategy& strategy, float mutation_rate) {
 		bool do_mutation = help::get_rand_float(0, 1) < mutation_rate;
@@ -310,7 +315,7 @@ public:
 					dbh = dbh_probability_model.linear_sample();
 			}
 			else {
-				dbh = _strategy->growth_rate; // Growth rate determines initial dbh.
+				dbh = _strategy->seedling_dbh; // Growth rate determines initial dbh.
 			}
 		}
 		Tree tree(no_created_trees + 1, position, dbh, 1, seed_bearing_threshold);

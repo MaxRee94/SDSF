@@ -16,7 +16,7 @@ public:
 	{};
 	bool germinate_if_location_is_viable(State* state) {
 		Cell* cell = state->grid.get_cell_at_position(deposition_location);
-		if (cell->is_hospitable(pair<float, int>(strategy.growth_rate, strategy.id))) {
+		if (cell->is_hospitable(pair<float, int>(strategy.seedling_dbh, strategy.id))) {
 			//printf("Germinating seed at location (%f, %f)\n", deposition_location.first, deposition_location.second);
 			germinate(cell, state);
 			return true;
@@ -30,7 +30,7 @@ public:
 	pair<float, float> deposition_location;
 private:
 	void germinate(Cell* cell, State* state) {
-		cell->update_largest_stem(strategy.growth_rate, strategy.id);
+		cell->update_largest_stem(strategy.seedling_dbh, strategy.id);
 		cell->seedling_present = true;
 	}
 };
