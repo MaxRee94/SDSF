@@ -259,7 +259,8 @@ namespace help {
 		virtual void build();
 		float xmax = 0;
 		float resolution = 1000.0f;
-		ProbModelPiece* cdf_pieces = 0;
+		float piece_width = 0.0f;
+		float* cdf = 0;
 		bool built = false;
 	};
 

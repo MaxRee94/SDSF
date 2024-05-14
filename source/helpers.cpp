@@ -620,13 +620,13 @@ template int help::do_linear_search<float>(float* arr, int size, float target);
 help::PieceWiseLinearProbModel::PieceWiseLinearProbModel() = default;
 help::PieceWiseLinearProbModel::PieceWiseLinearProbModel(float _xmax) {
     xmax = _xmax;
-    cdf_pieces = new ProbModelPiece[resolution];
+    cdf = new float[resolution];
 }
 float help::PieceWiseLinearProbModel::pdf(float x) {
     return 0.01 * x * x; // Dummy return value; OVERRIDE THIS FUNCTION TO USE YOUR CUSTOM PDF.
 }
 void help::PieceWiseLinearProbModel::build() {
-    float piece_width = xmax / (float)resolution;
+    piece_width = xmax / (float)resolution;
     float _xmin = 0.0f;
     float _xmax = piece_width;
     float cdf_maximum = 0.0f;
@@ -637,7 +637,7 @@ void help::PieceWiseLinearProbModel::build() {
         float piece_area = min(pdf_begin, pdf_end) * piece_width + 0.5f * abs(pdf_begin - pdf_end) * piece_width;
         float _cdf_min = cdf_maximum;
         cdf_maximum += piece_area;
-        cdf_pieces[i] = ProbModelPiece(_xmin, _xmax, _cdf_min, cdf_maximum);
+        cdf[i] = _cdf_min;
         i++;
         if (i >= resolution) break;
         _xmin += piece_width;
@@ -649,22 +649,17 @@ void help::PieceWiseLinearProbModel::build() {
     // Rescale CDF pieces to ensure CDF maximum is exactly 1
     float scale_factor = 1.0f / cdf_maximum;
     for (int i = 0; i < resolution; i++) {
-        cdf_pieces[i].rescale(scale_factor);
+        cdf[i] *= scale_factor;
     }
 
     built = 1;
 }
 float help::PieceWiseLinearProbModel::sample() {
-    float cdf_y = help::get_rand_float(0.0f, 1.0f);
-    for (int i = 0; i < resolution; i++) {
-        float x = cdf_pieces[i].intersect(cdf_y);
-        if (x != -1) {
-            return x;
-        }
-    }
-    return xmax;
+    float cdf_sample = help::get_rand_float(0.0f, 1.0f);
+    float x = binary_search(cdf, resolution, cdf_sample);
+    x *= piece_width;
+    return x;
 }
-
 
 void help::get_normal_distributed_direction(pair<float, float>& direction, float mean_direction, float direction_stdev) {
     NormalProbModel prob_model(mean_direction, direction_stdev);
