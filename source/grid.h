@@ -23,7 +23,7 @@ public:
 		return false;
 	}
 	bool seedling_is_shaded_out() {
-		float shade = get_tree_shading();
+		float shade = get_shading();
 		if (help::get_rand_float(0, 1) < shade) {
 			return true;
 		}
@@ -71,13 +71,26 @@ public:
 	float get_fuel_load() {
 		return get_fuel_load(grass_LAI);
 	}
-	float get_tree_shading(Tree* tree) {
-		float PAR = -0.056299 * (LAI - tree->LAI) + 0.58102; // Percentage photosynthetically Active Radiation (PAR) in W/m^2 that reaches the given tree.
-															 // From Mukherjee (2016), figure 4.
-		PAR = max(0.0f, min(PAR, 1.0f)); // Cap PAR to range [0, 1].
-		return sqrtf((LAI - tree->LAI) / 5.0f); // Max LAI for forests is 5.0, so we normalize the shading to range [0, 1] by dividing by 5.
+	float get_LAI_above_tree(Tree* tree, Population* population = 0) {
+		if (population == nullptr) return LAI;
+		float LAI_above_tree = 0;
+		float given_tree_height = tree->height;
+		for (int tree_id : trees) {
+			if (tree_id == tree->id) continue;
+			Tree* _tree = population->get(tree_id);
+			float height = _tree->height;
+			if (height < given_tree_height) LAI_above_tree += _tree->LAI;
+		}
+		return LAI_above_tree;
 	}
-	float get_tree_shading() {
+	float get_tree_shading(Tree* tree, Population* population = 0) {
+		float LAI_above_tree = get_LAI_above_tree(tree, population);
+		//float PAR = -0.056299 * LAI_above_tree + 0.58102; // Percentage Photosynthetically Active Radiation (PAR) in W/m^2 that reaches the given tree.
+															 // From Mukherjee (2016), figure 4.
+		//PAR = max(0.0f, min(PAR, 1.0f)); // Cap PAR to range [0, 1].
+		return LAI_above_tree / 5.0f; // Max LAI for forests is 5.0, so we normalize the shading to range [0, 1] by dividing by 5.
+	}
+	float get_shading() {
 		Tree tree; tree.LAI = LAI;
 		return get_tree_shading(&tree);
 	}
@@ -247,6 +260,7 @@ public:
 	}
 	float compute_shade_on_individual_tree(Tree* tree) {
 		float shade = 0;
+		float no_cells = 0;
 		pair<int, int> tree_center_gb = get_gridbased_position(tree->position);
 		int radius_gb = tree->radius / cell_width;
 		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x += 1) {
@@ -255,10 +269,11 @@ public:
 				if (tree->is_within_radius(position)) {
 					Cell* cell = get_cell_at_position(pair<int, int>(x, y));
 					shade += cell->get_tree_shading(tree);
+					no_cells += 1;
 				}
 			}
 		}
-		return shade / tree->get_crown_area();
+		return shade / no_cells;
 	}
 	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = true) {
 		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);

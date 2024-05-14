@@ -397,6 +397,7 @@ public:
 	bool is_population_member(int tree_id) {
 		return members.find(tree_id) != members.end();
 	}
+	
 	unordered_map<int, Tree> members;
 	unordered_map<int, Crop> crops;
 	unordered_map<string, Kernel> kernels;
