@@ -214,6 +214,7 @@ def test_kernel():
     seed_terminal_speed = 0.65
     abscission_height = 30
     wind_kernel = cpp.Kernel(1, dist_max, windspeed_gmean, windspeed_stdev, 0, 3600, seed_terminal_speed, abscission_height)
+    wind_kernel.build()
     vis.visualize_kernel(wind_kernel, "Wind kernel. d_max = {}, w_gmean = {}, \n w_stdev = {}, v_t = {}, h = {}".format(
         dist_max, windspeed_gmean, windspeed_stdev, seed_terminal_speed, abscission_height)
     )
