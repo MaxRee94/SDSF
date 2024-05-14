@@ -42,6 +42,11 @@ public:
 		hospitable = hospitable && !seedling_is_shaded_out();
 		return hospitable;
 	}
+	void add_tree_if_not_exists(Tree* tree) {
+		if (find(trees.begin(), trees.end(), tree->id) == trees.end()) {
+			add_tree(tree);
+		}
+	}
 	void add_tree(Tree* tree) {
 		trees.push_back(tree->id);
 	}
@@ -235,6 +240,7 @@ public:
 		}
 		cap(tree_center_gb);
 		distribution[pos_2_idx(tree_center_gb)].update_largest_stem(tree->dbh, tree->id);
+		distribution[pos_2_idx(tree_center_gb)].add_tree_if_not_exists(tree);
 	}
 	float compute_shade_on_individual_tree(Tree* tree) {
 		float shade = 0;
