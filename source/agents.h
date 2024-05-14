@@ -175,16 +175,23 @@ public:
 		radius = get_radius_from_dbh();
 		bark_thickness = get_bark_thickness();
 		LAI = get_LAI();
-		life_phase = get_life_phase(seed_bearing_threshold);
+		auto [_life_phase, _] = get_life_phase(seed_bearing_threshold);
+		life_phase = _life_phase;
 		//printf("LAI: %f, stem dbh: %f, radius: %f, radius_tmin1: %f \n", LAI, dbh, radius, radius_tmin1);
 	}
 	bool is_within_radius(pair<float, float> pos2) {
 		float dist = help::get_dist(position, pos2);
 		return dist < radius;
 	}
-	int get_life_phase(float& seed_bearing_threshold) {
-		if (dbh > seed_bearing_threshold) return 2;
-		else return 0;
+	pair<int, bool> get_life_phase(float& seed_bearing_threshold) {
+		int new_life_phase;
+		bool life_phase_changed = false;
+		if (dbh > seed_bearing_threshold) new_life_phase = 2;
+		else new_life_phase = 0;
+		if (new_life_phase != life_phase) {
+			life_phase_changed = true;
+		}
+		return pair<int, bool>(new_life_phase, life_phase_changed);
 	}
 	float get_bark_thickness() {
 		return 0.31 * pow(dbh, 1.276); // From Hoffmann et al (2012), figure 5a. Bark thickness in mm.
@@ -234,14 +241,16 @@ public:
 		return exp(0.865 + 0.760 * ln_dbh - 0.0340 * (ln_dbh * ln_dbh)); // From Chave et al (2014), equation 6a. Value of E obtained by calculating mean of E
 																		 // values for bistable study sites.
 	}
-	void grow(float &seed_bearing_threshold) {
+	bool grow(float &seed_bearing_threshold) {
 		age++;
 		dbh += get_dbh_increment();
 		radius = get_radius_from_dbh();
-		life_phase = get_life_phase(seed_bearing_threshold);
+		auto [_life_phase, became_reproductive] = get_life_phase(seed_bearing_threshold);
+		life_phase = _life_phase;
 		bark_thickness = get_bark_thickness();
 		LAI = get_LAI();
 		height = get_height();
+		return became_reproductive;
 	}
 	float radius = -1;
 	float dbh = 0.1;
@@ -343,6 +352,9 @@ public:
 		kernels_individual[tree.id] = kernel;
 
 		return &members[tree.id];
+	}
+	void add_reproduction_system(Tree &tree) {
+
 	}
 	Kernel* add_kernel(string tree_dispersal_vector, Kernel &kernel) {
 		kernels[tree_dispersal_vector] = kernel;
