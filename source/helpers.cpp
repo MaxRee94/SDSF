@@ -620,13 +620,13 @@ template int help::do_linear_search<float>(float* arr, int size, float target);
 help::PieceWiseLinearProbModel::PieceWiseLinearProbModel() = default;
 help::PieceWiseLinearProbModel::PieceWiseLinearProbModel(float _xmax) {
     xmax = _xmax;
-    cdf = new float[resolution];
+    piece_width = xmax / (float)resolution;
 }
 float help::PieceWiseLinearProbModel::pdf(float x) {
     return 0.01 * x * x; // Dummy return value; OVERRIDE THIS FUNCTION TO USE YOUR CUSTOM PDF.
 }
 void help::PieceWiseLinearProbModel::build() {
-    piece_width = xmax / (float)resolution;
+    if (cdf == nullptr) cdf = new float[resolution];
     float _xmin = 0.0f;
     float _xmax = piece_width;
     float cdf_maximum = 0.0f;

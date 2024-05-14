@@ -54,7 +54,7 @@ public:
 	float wind_direction_stdev = 0;
 	float seed_tspeed = 0;
 	float abs_height = 0;
-	float prev_build_height = 1;
+	float prev_build_height = -100;
 	float domain_size = 0;
 	float dist_max = 0;
 };

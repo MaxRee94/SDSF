@@ -384,6 +384,10 @@ public:
 	void remove(int id) {
 		members.erase(id);
 		crops.erase(id);
+		delete_kernel(id);
+	}
+	void delete_kernel(int id) {
+		if (get_kernel(id)->type == "wind") delete[] kernels_individual[id].cdf;
 		kernels_individual.erase(id);
 	}
 	bool is_population_member(Tree* tree) {

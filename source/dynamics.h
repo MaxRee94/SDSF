@@ -309,7 +309,7 @@ public:
 			if (tree_dies(tree, fire_free_interval)) {
 				kill_tree(tree, cell->time_last_fire, queue);
 			}
-			tree->last_mortality_check = time;
+			else tree->last_mortality_check = time;
 		}
 	}
 	void kill_saplings(Cell* cell) {
