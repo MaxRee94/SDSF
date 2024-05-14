@@ -227,7 +227,7 @@ public:
 	}
 	bool survives_fire(float &fire_resistance_argmin, float &fire_resistance_argmax, float &fire_resistance_stretch) {
 		float survival_probability = get_survival_probability(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
-		return help::get_rand_float(0.0f, 1.0f) > survival_probability;
+		return help::get_rand_float(0.0f, 1.0f) < survival_probability;
 	}
 	float get_radius_from_dbh() {
 		float radius_breast_height = dbh * 0.5f; // Convert dbh (cm) to radius at breast height (cm^2).

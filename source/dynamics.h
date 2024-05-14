@@ -290,7 +290,7 @@ public:
 	bool tree_dies(Tree* tree, float fire_free_interval) {
 		// if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", dbh, bark_thickness, survival_probability);
 		// COMMENT: We currently assume topkill always implies death, but resprouting should also be possible. (TODO: make death dependent on fire-free interval)
-		return tree->survives_fire(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
+		return !tree->survives_fire(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 	}
 	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue) {
 		if (verbosity == 2) printf("Killing tree %i ... \n", tree->id);
