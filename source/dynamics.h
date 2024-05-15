@@ -252,7 +252,10 @@ public:
 		//disperse_animal_seeds();
 		recruit();
 
-		if (verbosity > 0) printf("-- Fraction of trees that are seed-bearing: %f, #seeds (all): %i\n", (float)no_seed_bearing_trees / (float)pop->size(), seeds_dispersed);
+		if (verbosity > 0) printf(
+			"-- Fraction of trees that are seed-bearing: %f, #seeds (all): %s\n",
+			(float)no_seed_bearing_trees / (float)pop->size(), help::readable_number(seeds_dispersed).c_str()
+		);
 		if (verbosity > 0) printf("-- Proportion wind dispersed trees: %f \n", no_wind_trees / (float)no_seed_bearing_trees);
 	}
 	void induce_background_mortality() {
