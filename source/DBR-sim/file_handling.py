@@ -11,8 +11,17 @@ import numpy as np
 EXPORT_LOCATION = r"F:/Development/DBR-sim/data_out/state data"
 
 
+def get_tree_sizes(dynamics):
+    _tree_sizes = dynamics.state.get_tree_sizes()
+    counts, bins = np.histogram(_tree_sizes, bins=5)
+    return counts
+
+
 def export_state(dynamics, path="", init_csv=True, control_variable=None, control_value=None):
-    fieldnames = ["initial tree cover", "time", "tree cover", "population size", "#seeds spread", "fire mean spatial extent"]
+    fieldnames = [
+        "time", "tree cover", "population size", "#seeds spread", "fire mean spatial extent",
+        "#trees[dbh 0-20%]", "#trees[dbh 20-40%]", "#trees[dbh 40-60%]", "#trees[dbh 60-80%]", "#trees[dbh 80-100%]"
+    ]
     if control_variable:
         fieldnames.insert(0, control_variable)
     if init_csv and not os.path.exists(path):
@@ -24,13 +33,18 @@ def export_state(dynamics, path="", init_csv=True, control_variable=None, contro
 
     with open(path, 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        tree_sizes = get_tree_sizes(dynamics)
         result = {
-                "initial tree cover": str(dynamics.state.initial_tree_cover),
                 "time": str(dynamics.time),
                 "tree cover": str(dynamics.state.grid.get_tree_cover()), 
                 "population size": str(dynamics.state.population.size()),
                 "#seeds spread": str(dynamics.seeds_dispersed),
-                "fire mean spatial extent": str(dynamics.fire_spatial_extent)
+                "fire mean spatial extent": str(dynamics.fire_spatial_extent),
+                "#trees[dbh 0-20%]": tree_sizes[0],
+                "#trees[dbh 20-40%]": tree_sizes[1],
+                "#trees[dbh 40-60%]": tree_sizes[2],
+                "#trees[dbh 60-80%]": tree_sizes[3],
+                "#trees[dbh 80-100%]": tree_sizes[4]
             }
         if control_variable:
             result[control_variable] = control_value

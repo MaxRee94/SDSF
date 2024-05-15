@@ -117,6 +117,13 @@ PYBIND11_MODULE(dbr_cpp, module) {
             delete[] tree_positions_y;
             return np_arr;
 		})
+        .def("get_tree_sizes", [](State& state) {
+            float* tree_sizes = new float[state.population.size()];
+            state.get_tree_sizes(tree_sizes);
+            py::array_t<float> np_arr = as_1d_numpy_array(tree_sizes, state.population.size());
+            delete[] tree_sizes;
+            return np_arr;
+		})
         .def_readwrite("grid", &State::grid)
         .def_readwrite("population", &State::population)
         .def_readwrite("initial_tree_cover", &State::initial_tree_cover);
@@ -143,6 +150,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def_readwrite("timestep", &Dynamics::timestep)
         .def_readwrite("seeds_dispersed", &Dynamics::seeds_dispersed)
         .def_readwrite("fire_spatial_extent", &Dynamics::fire_spatial_extent)
+        .def_readwrite("max_dbh", &Dynamics::max_dbh)
         .def("init_state", &Dynamics::init_state)
         .def("update", &Dynamics::update)
         .def("simulate_fires", &Dynamics::burn)

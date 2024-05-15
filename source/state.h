@@ -187,6 +187,13 @@ public:
 			i++;
 		}
 	}
+	void get_tree_sizes(float* tree_sizes) {
+		int i = 0;
+		for (auto& [id, tree] : population.members) {
+			tree_sizes[i] = tree.dbh;
+			i++;
+		}
+	}
 	Grid grid;
 	Population population;
 	pair<int, int>* neighbor_offsets = 0;
