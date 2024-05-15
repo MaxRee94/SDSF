@@ -130,6 +130,7 @@ public:
 			grid.update_grass_LAIs_for_individual_tree(tree);
 			if (population.size() % 10000 == 0) printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
 		}
+		probmodel.free();
 		printf("Finished setting tree cover from image.\n");
 	}
 	void set_tree_cover(float _tree_cover) {

@@ -55,6 +55,7 @@ public:
 		delete[] color_distribution;
 		delete[] visits;
 		delete[] neighbor_offsets;
+		selection_probabilities.free();
 		Grid::free();
 	}
 	void delete_c() {

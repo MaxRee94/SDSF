@@ -106,12 +106,16 @@ PYBIND11_MODULE(dbr_cpp, module) {
             int width, height;
             convert_from_numpy_array(img, cover_image, width, height);
             state.set_cover_from_image(cover_image, width, height);
+            delete[] cover_image;
         })
         .def("get_tree_positions", [](State& state) {
             float* tree_positions_x = new float[state.population.size()];
             float* tree_positions_y = new float[state.population.size()];
             state.get_tree_positions(tree_positions_x, tree_positions_y);
-			return as_2d_pairwise_numpy_array(tree_positions_x, tree_positions_y, state.population.size());
+            py::array_t<float> np_arr = as_2d_pairwise_numpy_array(tree_positions_x, tree_positions_y, state.population.size());
+            delete[] tree_positions_x;
+            delete[] tree_positions_y;
+            return np_arr;
 		})
         .def_readwrite("grid", &State::grid)
         .def_readwrite("population", &State::population)
@@ -144,8 +148,10 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def("simulate_fires", &Dynamics::burn)
         .def("get_firefree_intervals", [](Dynamics& dynamics) {
             float* intervals = dynamics.get_firefree_intervals();
-            return as_1d_numpy_array(intervals, dynamics.grid->no_cells);
-            })
+            py::array_t<float> np_arr = as_1d_numpy_array(intervals, dynamics.grid->no_cells);
+            delete[] intervals;
+            return np_arr;
+        })
         .def("free", &Dynamics::free)
         .def("set_global_linear_kernel", &Dynamics::set_global_linear_kernel)
         .def("set_global_wind_kernel", &Dynamics::set_global_wind_kernel)

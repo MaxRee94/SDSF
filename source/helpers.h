@@ -311,6 +311,10 @@ namespace help {
 			probabilities = new double[size];
 			cdf = new double[size];
 		};
+		void free() {
+			delete[] probabilities;
+			delete[] cdf;
+		}
 		void build_cdf() {
 			double height = 0.0f;
 			for (int i = 0; i < size; i++) {
