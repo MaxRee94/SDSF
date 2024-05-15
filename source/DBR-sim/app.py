@@ -168,8 +168,8 @@ def updateloop(dynamics, color_dict, **user_args):
     csv_path = user_args["csv_path"]
     init_csv = True
     collect_states = True
-    # if not user_args["headless"]:
-    #     graphs = vis.Graphs(dynamics)
+    if not user_args["headless"]:
+        graphs = vis.Graphs(dynamics)
     while not termination_condition_satisfied(dynamics, start, user_args):
         print("-- Starting update (calling from python)")
         dynamics.update()
@@ -204,9 +204,9 @@ def updateloop(dynamics, color_dict, **user_args):
         print("-- Saving tree positions...")
         io.save_tree_positions(dynamics)
 
-        # print("-- Showing graphs...")
-        # if not user_args["headless"]:
-        #     graphs.update()
+        print("-- Showing graphs...")
+        if not user_args["headless"]:
+            graphs.update()
 
         if user_args["dispersal_mode"] == "all" or user_args["dispersal_mode"] == "animal":
             # Get color image representations of the resource grid from the last iteration
