@@ -23,9 +23,7 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
         csv_parent_dir = csv_parent_dir.split("batch_")[0] + "batch_" + str(batch_no - 1).zfill(6)
     
     no_colors = 100
-    color_dict = vis.get_color_dict(no_colors, begin=0.3, end=0.6)
-    color_dict[-5] = np.array((0,0,0), np.uint8)
-    color_dict[-6] = np.array((0,0,0), np.uint8)
+    color_dict = vis.get_color_dict(no_colors, begin=0.2, end=0.5)
     params = config.defaults
     params["headless"] = True
     params["max_timesteps"] = 1000
