@@ -54,13 +54,12 @@ public:
 		trees.push_back(tree->id);
 	}
 	void remove_tree(int id) {
-		//printf("\nRemoving tree %i from cell %i.\n", id, idx);
-		//help::print_vector(&trees);
 		help::remove_from_vec(&trees, id);
-		//help::print_vector(&trees);
 	}
 	float get_grass_LAI(float _LAI) {
-		return 0.241f * (_LAI * _LAI) - 1.709f * _LAI + 2.899f; // Relationship between grass- and tree LAI from Hoffman et al. (2012), figure 2b.
+		_LAI -= int(_LAI / 3.0f) * 3.0f; // Effectively _LAI modulo 3; Done to avoid re-intersecting the y=0 line at about LAI=4.3 (grass LAI would then (incorrectly) start rising again).
+		float _grass_LAI = max(0, 0.241f * (_LAI * _LAI) - 1.709f * _LAI + 2.899f); // Relationship between grass- and tree LAI from Hoffman et al. (2012), figure 2b.
+		return _grass_LAI;
 	}
 	float get_grass_LAI() {
 		return get_grass_LAI(LAI);
