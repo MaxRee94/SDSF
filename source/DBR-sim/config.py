@@ -27,8 +27,8 @@ defaults = {
     "unsuppressed_flammability": 0.4,
     "rainfall": 0.1,
     "test": "none",
-    "radius_q1": 1,
-    "radius_q2": 0,
+    "dbh_q1": 1,
+    "dbh_q2": 0,
     "verbosity": 0,
     "seed_bearing_threshold": 0.5, # From Minor and Kobe (2018), Figure 5.
     "dispersal_mode": "all",
@@ -36,7 +36,6 @@ defaults = {
     "dispersal_min": 0,
     "dispersal_max": 300,
     "growth_rate_multiplier": 0.1,
-    "seed_mass": 0.01,
     "flammability_coefficients_and_constants": [0.1, 0.35, 0, 1],
     "saturation_threshold": 3,
     "fire_resistance_params": [8.5, 50, 2.857], # See 'notes/fire_resistance_threshold_curve.xlsx' for details
@@ -204,28 +203,28 @@ _parameter_config = {
             "default": defaults["test"],
         },
     },
-    "radius_q1": {
+    "dbh_q1": {
         "keys": {
-            "cli": ["--radius_q1", "-rq1"]
+            "cli": ["--dbh_q1", "-rq1"]
         },
         "settings": {
             "type": float,
             "help": (
                 "The relative probability of occurrence in the initial state of the smallest tree radius."
             ),
-            "default": defaults["radius_q1"],
+            "default": defaults["dbh_q1"],
         },
     },
-    "radius_q2": {
+    "dbh_q2": {
         "keys": {
-            "cli": ["--radius_q2", "-rq2"]
+            "cli": ["--dbh_q2", "-rq2"]
         },
         "settings": {
             "type": float,
             "help": (
                 "The relative probability of occurrence in the initial state of the largest tree radius."
             ),
-            "default": defaults["radius_q2"],
+            "default": defaults["dbh_q2"],
         },
     },
     "seed_bearing_threshold": {
@@ -272,7 +271,7 @@ _parameter_config = {
             "nargs": "*",
             "type": float,
             "help": (
-                ("Coefficients and constants [minimum_flammability, maximum_flammability, minimum_radius, radius_range] which determine the flammability" +
+                ("Coefficients and constants [minimum_flammability, maximum_flammability, minimum_radius, dbh_range] which determine the flammability" +
                  " function's output given the tree radius.")
             ),
             "default": defaults["flammability_coefficients_and_constants"],

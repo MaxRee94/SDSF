@@ -185,9 +185,6 @@ def updateloop(dynamics, color_dict, **user_args):
                 dynamics.state.grid, user_args["image_width"], collect_states=collect_states,
                 color_dict=color_dict
             )
-        
-        # if dynamics.time <= 1:
-        #     continue
 
         print("-- Saving image...")
         imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
@@ -196,10 +193,6 @@ def updateloop(dynamics, color_dict, **user_args):
         print("-- Exporting state data...")
         csv_path = io.export_state(dynamics, csv_path, init_csv)
         init_csv = False
-        
-        #print("-- Computing radial distribution function...")
-        #g_r, radii = compute_radial_distribution_function(dynamics)
-        #vis.visualize_radial_distribution_function(g_r, radii, dynamics.time)
         
         print("-- Saving tree positions...")
         io.save_tree_positions(dynamics)
