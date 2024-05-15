@@ -264,18 +264,6 @@ _parameter_config = {
             "default": defaults["growth_rate_multiplier"],
         },
     },
-    "seed_mass": {
-        "keys": {
-            "cli": ["--seed_mass", "-sm"]
-        },
-        "settings": {
-            "type": float,
-            "help": (
-                "Seed mass."
-            ),
-            "default": defaults["seed_mass"],
-        },
-    },
     "flammability_coefficients_and_constants": {
         "keys": {
             "cli": ["--flammability_coefficients_and_constants", "-fcac"]
