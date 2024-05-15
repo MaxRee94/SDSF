@@ -45,9 +45,22 @@ public:
 		hospitable = hospitable && !seedling_is_shaded_out();
 		return hospitable;
 	}
-	void add_tree_if_not_exists(Tree* tree) {
-		if (find(trees.begin(), trees.end(), tree->id) == trees.end()) {
+	bool tree_exists(Tree* tree) {
+		return find(trees.begin(), trees.end(), tree->id) != trees.end();
+	}
+	bool is_smaller_than_cell(Tree* tree, float cell_width) {
+		return tree->radius < (cell_width * 0.5);
+	}
+	void add_tree_if_not_exists(Tree* tree, float cell_area) {
+		if (!tree_exists(tree)) {
 			add_tree(tree);
+			add_LAI_of_tree_smaller_than_cell(tree, cell_area);
+		}
+	}
+	void remove_tree_if_smaller_than_cell(Tree* tree, float cell_width) {
+		if (is_smaller_than_cell(tree, cell_width)) {
+			remove_tree(tree->id);
+			remove_LAI_of_tree_smaller_than_cell(tree, cell_width);
 		}
 	}
 	void add_tree(Tree* tree) {
@@ -85,7 +98,7 @@ public:
 	float get_tree_shading(Tree* tree, Population* population = 0) {
 		float LAI_above_tree = get_LAI_above_tree(tree, population);
 		//float PAR = -0.056299 * LAI_above_tree + 0.58102; // Percentage Photosynthetically Active Radiation (PAR) in W/m^2 that reaches the given tree.
-															 // From Mukherjee (2016), figure 4.
+															// From Mukherjee (2016), figure 4.
 		//PAR = max(0.0f, min(PAR, 1.0f)); // Cap PAR to range [0, 1].
 		return LAI_above_tree / 5.0f; // Max LAI for forests is 5.0, so we normalize the shading to range [0, 1] by dividing by 5.
 	}
@@ -96,6 +109,14 @@ public:
 	bool operator==(const Cell& cell) const
 	{
 		return pos == cell.pos;
+	}
+private:
+	void add_LAI_of_tree_smaller_than_cell(Tree* tree, float cell_area) {
+		LAI += (tree->LAI * tree->crown_area) / cell_area; // Obtain the leaf area of the tree and divide by the area of the cell to get the tree's
+														   // contribution to the cell's LAI.
+	}
+	void remove_LAI_of_tree_smaller_than_cell(Tree* tree, float cell_area) {
+		LAI -= (tree->LAI * tree->crown_area) / cell_area; // Same as above but now we subtract the tree's contribution to the cell's LAI.
 	}
 };
 
@@ -250,17 +271,21 @@ public:
 	void populate_tree_domain(Tree* tree) {
 		pair<int, int> tree_center_gb = get_gridbased_position(tree->position);
 		int radius_gb = tree->radius / cell_width;
+		//Timer t; t.start();
 		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x+=1) {
 			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y+=1) {
 				pair<float, float> position(x * cell_width, y * cell_width);
 				if (tree->is_within_radius(position)) {
 					set_to_forest(pair<float, float>(x, y), tree);
 				}
+				/*if (t.elapsedSeconds() > 1) {
+					printf("Taking forever. tree center gb: %i, %i, radius: %f \n", tree_center_gb.first, tree_center_gb.second, tree->radius);
+				}*/
 			}
 		}
 		cap(tree_center_gb);
 		distribution[pos_2_idx(tree_center_gb)].set_largest_stem(tree->dbh, tree->id);
-		distribution[pos_2_idx(tree_center_gb)].add_tree_if_not_exists(tree);
+		distribution[pos_2_idx(tree_center_gb)].add_tree_if_not_exists(tree, cell_area);
 	}
 	float compute_shade_on_individual_tree(Tree* tree) {
 		float shade = 0;
@@ -308,6 +333,7 @@ public:
 		}
 		cap(tree_center_gb);
 		distribution[pos_2_idx(tree_center_gb)].reset_largest_stem();
+		distribution[pos_2_idx(tree_center_gb)].remove_tree_if_smaller_than_cell(tree, cell_width);
 	}
 	void kill_tree_domain(Tree* tree, bool store_tree_death_in_color_distribution = true) {
 		queue<Cell*> dummy;

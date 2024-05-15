@@ -197,7 +197,6 @@ public:
 		return 0.31 * pow(dbh, 1.276); // From Hoffmann et al (2012), figure 5a. Bark thickness in mm.
 	}
 	float get_dbh_from_radius() {
-		float crown_area = get_crown_area(); // Crown area in m^2.
 		float basal_area = pow(10.0f, (log10(crown_area) + 0.32f) / 0.59f); // From Rossatto et al (2009), figure 6. Reordered equation.
 		return sqrtf(basal_area / M_PI); // Convert basal area (cm^2) to dbh (cm).
 	}
@@ -218,10 +217,9 @@ public:
 		return 0.147 * pow(dbh, 2.053); // From Hoffman et al (2012), figure 5b. Leaf area in m^2
 	}
 	float get_crown_area() {
-		return M_PI * (radius * radius);
+		return M_PI * (radius * radius); // Crown area in m^2.
 	}
 	float get_LAI() {
-		float crown_area = get_crown_area();
 		float leaf_area = get_leaf_area();
 		return leaf_area / crown_area;
 	}
@@ -230,10 +228,11 @@ public:
 		return help::get_rand_float(0.0f, 1.0f) < survival_probability;
 	}
 	float get_radius_from_dbh() {
-		float radius_breast_height = dbh * 0.5f; // Convert dbh (cm) to radius at breast height (cm^2).
+		float radius_breast_height = dbh * 0.5f; // Convert dbh (cm) to radius at breast height (cm).
 		float basal_area = M_PI * radius_breast_height * radius_breast_height;
-		float crown_area = pow(10.0f, 0.59 * log10(basal_area) - 0.32); // From Rossatto et al (2009), figure 6.
+		crown_area = pow(10.0f, 0.59 * log10(basal_area) - 0.32); // From Rossatto et al (2009), figure 6.
 		float crown_radius = sqrt(crown_area / M_PI);
+		//if (crown_radius > 1e6) printf("------------------ basal area: %f, crown area: %f, crown radius: %f \n", basal_area, crown_area, crown_radius);
 		return crown_radius;
 	}
 	float get_height() {
@@ -244,6 +243,7 @@ public:
 	bool grow(float &seed_bearing_threshold) {
 		age++;
 		dbh += get_dbh_increment();
+		//if (dbh > 1e6) printf("Tree %i grew to dbh: %f \n", id, dbh);
 		radius = get_radius_from_dbh();
 		auto [_life_phase, became_reproductive] = get_life_phase(seed_bearing_threshold);
 		life_phase = _life_phase;
@@ -258,6 +258,7 @@ public:
 	float shade = 0;
 	float LAI = 0;
 	float height = 0;
+	float crown_area = 0;
 	pair<float, float> position = pair(0, 0);
 	int id = -1;
 	int age = -1;

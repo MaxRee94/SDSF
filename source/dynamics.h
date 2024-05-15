@@ -18,9 +18,10 @@ public:
 		flamm_delta_radius((_cell_width* _min_suppressed_flammability - _cell_width * _max_suppressed_flammability) / (_max_dbh * radius_range_suppr_flamm)),
 		max_suppressed_flammability(_cell_width* _max_suppressed_flammability),
 		min_suppressed_flammability(_cell_width* _min_suppressed_flammability),
-		max_dbh(_max_dbh), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold), fire_resistance_argmin(_fire_resistance_argmin),
-		fire_resistance_argmax(_fire_resistance_argmax), fire_resistance_stretch(_fire_resistance_stretch), background_mortality(_background_mortality),
-		strategy_distribution_params(_strategy_distribution_params), resource_grid_relative_size(_resource_grid_relative_size), mutation_rate(_mutation_rate)
+		max_dbh(_max_dbh), seedling_discard_dbh(0.05 * _max_dbh), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold),
+		fire_resistance_argmin(_fire_resistance_argmin), fire_resistance_argmax(_fire_resistance_argmax), fire_resistance_stretch(_fire_resistance_stretch),
+		background_mortality(_background_mortality), strategy_distribution_params(_strategy_distribution_params),
+		resource_grid_relative_size(_resource_grid_relative_size), mutation_rate(_mutation_rate)
 	{
 		time = 0;
 		help::init_RNG();
@@ -305,6 +306,8 @@ public:
 	bool tree_dies(Tree* tree, float fire_free_interval) {
 		// if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", dbh, bark_thickness, survival_probability);
 		// COMMENT: We currently assume topkill always implies death, but resprouting should also be possible. (TODO: make death dependent on fire-free interval)
+		
+		if (tree->dbh < seedling_discard_dbh) return true; // We assume that seedlings with a dbh below this 'discard'-value are always killed by fire.
 		return !tree->survives_fire(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 	}
 	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue) {
@@ -313,7 +316,7 @@ public:
 		pop->remove(tree);
 	}
 	void kill_tree(Tree* tree) {
-		if (verbosity == 2) printf("Killing tree %i ... \n", tree->id);
+		if (verbosity == 2) printf("Removing tree %i ... \n", tree->id);
 		grid->kill_tree_domain(tree, false);
 		pop->remove(tree);
 	}
@@ -327,12 +330,12 @@ public:
 			else tree->last_mortality_check = time;
 		}
 	}
-	void kill_saplings(Cell* cell) {
+	/*void kill_saplings(Cell* cell) {
 		for (auto tree_id : cell->trees) {
 			pop->remove(tree_id);
-			cell->remove_tree(tree_id);
 		}
-	}
+		cell->remove_trees_smaller_than_cell();
+	}*/
 	inline bool cell_will_ignite(Cell* cell, float t_start) {
 		if (t_start - cell->time_last_fire < 10e-4) {
 			return false; // Do not ignite cells which have already been burned by the current fire.
@@ -342,12 +345,13 @@ public:
 	inline void burn_cell(Cell* cell, float t_start, queue<Cell*>& queue) {
 		cell->time_last_fire = t_start;
 		grid->state_distribution[grid->pos_2_idx(cell->pos)] = -5;
-		if (cell->state == 1) {
+		induce_tree_mortality(cell, t_start - cell->time_last_fire, queue);
+		/*if (cell->state == 1) {
 			induce_tree_mortality(cell, t_start - cell->time_last_fire, queue);
 		}
 		else {
 			kill_saplings(cell);
-		}
+		}*/
 	}
 	int percolate(Cell* cell, float t_start) {
 		std::queue<Cell*> queue;
@@ -390,6 +394,7 @@ public:
 	float radius_suppr_flamm_min = 0;
 	float flamm_delta_radius = 0;
 	float max_dbh = 0;
+	float seedling_discard_dbh = 0;
 	float cell_width = 0;
 	float fire_spatial_extent = 0;
 	float saturation_threshold = 0;

@@ -40,6 +40,7 @@ public:
 		grid.reset();
 		int i = 0;
 		for (auto& [id, tree] : population.members) {
+			//if (i % (population.size()/10) == 0) printf("i: %i / %i \n", tree.id, population.size());
 			if (id == -1 || tree.id == -1) population.remove(id); // HOTFIX: Sometimes trees are not initialized properly and need to be removed.
 			grid.populate_tree_domain(&tree);
 			i++;
