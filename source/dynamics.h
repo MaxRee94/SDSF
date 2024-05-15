@@ -278,12 +278,11 @@ public:
 				re_ignitions++;
 				i--; continue;
 			}
-			fire_spatial_extent += no_burned_cells * (grid->cell_width * grid->cell_width);
 		}
-		fire_spatial_extent /= fire_ignition_times.size();
+		fire_spatial_extent = ((float)no_burned_cells * grid->cell_area) / (float)fire_ignition_times.size();
 		if (verbosity > 0) {
 			printf("-- Cells burned: %i \n", no_burned_cells);
-			printf("-- Number of fires: %i \n", fire_ignition_times.size());
+			printf("-- Number of fires: %i \n", (int)fire_ignition_times.size());
 		}
 	}
 	float get_forest_flammability(Cell* cell, float fire_free_interval) {
