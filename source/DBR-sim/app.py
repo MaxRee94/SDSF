@@ -47,13 +47,39 @@ def set_dispersal_kernel(
     return dynamics
 
 
+def init_tests(
+    timestep=None, grid_width=None, cellsize=None, max_dbh=None, image_width=None,
+    treecover=None, self_ignition_factor=None, flammability=None,
+    rainfall=None, unsuppressed_flammability=None, 
+    verbosity=None, dbh_q1=None, dbh_q2=None, seed_bearing_threshold=None,
+    dispersal_mode=None, linear_diffusion_q1=None, linear_diffusion_q2=None,
+    dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, 
+    flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
+    constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
+    multi_disperser_params=None, strategy_distribution_params=None, resource_grid_relative_size=None,
+    initial_pattern_image=None, mutation_rate=None, **user_args
+):
+    # Obtain strategy distribution parameters
+    with open(strategy_distribution_params, "r") as sdp_jsonfile:
+        strategy_distribution_params = json.load(sdp_jsonfile)    
+
+    tests = cpp.Tests(timestep, cellsize, self_ignition_factor, rainfall, seed_bearing_threshold,
+        growth_rate_multiplier, unsuppressed_flammability, flammability_coefficients_and_constants[0],
+        flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
+        flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
+        fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
+        resource_grid_relative_size, mutation_rate, verbosity, grid_width, dbh_q1, dbh_q2)
+    
+    return tests
+
+
 def init(
     timestep=None, grid_width=None, cellsize=None, max_dbh=None, image_width=None,
     treecover=None, self_ignition_factor=None, flammability=None,
     rainfall=None, unsuppressed_flammability=None, 
-    verbosity=None, radius_q1=None, radius_q2=None, seed_bearing_threshold=None,
+    verbosity=None, dbh_q1=None, dbh_q2=None, seed_bearing_threshold=None,
     dispersal_mode=None, linear_diffusion_q1=None, linear_diffusion_q2=None,
-    dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, seed_mass=None,
+    dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, 
     flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_relative_size=None,
@@ -74,7 +100,7 @@ def init(
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
         resource_grid_relative_size, mutation_rate, verbosity
     )
-    dynamics.init_state(grid_width, radius_q1, radius_q2, seed_mass)
+    dynamics.init_state(grid_width, dbh_q1, dbh_q2)
     
     # Set dispersal kernel
     dynamics = set_dispersal_kernel(dynamics, dispersal_mode, multi_disperser_params)
@@ -202,11 +228,6 @@ def updateloop(dynamics, color_dict, **user_args):
     return dynamics
 
 
-def do_tests(**user_args):
-    tests = cpp.Tests()
-    tests.run_all(True)
-
-
 def test_kernel():
     cpp.init_RNG()
     dist_max = 5000
@@ -246,11 +267,11 @@ def main(**user_args):
     #return
 
     if user_args["test"] == "all":
-        do_tests(**user_args)
-        return
-        
-    dynamics, color_dict = init(**user_args)
-    return updateloop(dynamics, color_dict, **user_args)
+        tests = init_tests(**user_args)
+        tests.run_all()
+    else:
+        dynamics, color_dict = init(**user_args)
+        return updateloop(dynamics, color_dict, **user_args)
  
 
 
