@@ -294,7 +294,7 @@ public:
 					cell->remove_tree(tree->id);
 
 					// Update LAI
-					cell->LAI -= tree->LAI * cell_area;
+					cell->LAI -= tree->LAI;
 
 					// Set cell to savanna if the cumulative leaf area is less than half of the area of the cell (LAI * cell_area < 0.5 * cell_area, i.e., LAI < 0.5)).
 					if (tree->LAI < 0.5) {
@@ -347,7 +347,7 @@ public:
 		}
 		distribution[idx].state = 1;
 		distribution[idx].add_tree(tree);
-		distribution[idx].LAI += tree->LAI * cell_area;
+		distribution[idx].LAI += tree->LAI;
 	}
 	void set_to_savanna(int idx, float _time_last_fire = -1) {
 		no_savanna_cells += (distribution[idx].state == 1);
