@@ -95,7 +95,8 @@ public:
 	}
 	vector<float> get_ordered_fire_ignition_times() {
 		int i = 0;
-		int fire_count = round(self_ignition_factor * rainfall * (float)grid->no_savanna_cells / (float)1e6);
+		int fire_count = round((self_ignition_factor * rainfall * (float)grid->no_savanna_cells * grid->cell_area) / (float)1e6 );
+		printf("fire_count: %i \n", fire_count);
 		vector<float> fire_ignition_times = {};
 		while (i < fire_count) {
 			float t_start = help::get_rand_float(0.0, 1.0) + time;
