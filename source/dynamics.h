@@ -27,9 +27,9 @@ public:
 		pop = &state.population;
 		grid = &state.grid;
 	};
-	void init_state(int gridsize, float radius_q1, float radius_q2, float _seed_mass) {
+	void init_state(int gridsize, float dbh_q1, float dbh_q2) {
 		state = State(
-			gridsize, cell_width, max_dbh, radius_q1, radius_q2, seed_bearing_threshold, _seed_mass, saturation_threshold, strategy_distribution_params,
+			gridsize, cell_width, max_dbh, dbh_q1, dbh_q2, seed_bearing_threshold, saturation_threshold, strategy_distribution_params,
 			mutation_rate
 		);
 		linear_disperser = Disperser();

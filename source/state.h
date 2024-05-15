@@ -12,14 +12,13 @@ public:
 		init_neighbor_offsets();
 	}
 	State(
-		int gridsize, float cell_width, float max_dbh, float radius_q1, float radius_q2,
-		float seed_bearing_threshold, float _seed_mass, float _saturation_threshold,
+		int gridsize, float cell_width, float max_dbh, float dbh_q1, float dbh_q2,
+		float seed_bearing_threshold, float _saturation_threshold,
 		map<string, map<string, float>>& strategy_distribution_params, float mutation_rate
 	) {
-		seed_mass = _seed_mass;
 		saturation_threshold = _saturation_threshold;
 		population = Population(
-			max_dbh, cell_width, radius_q1, radius_q2, strategy_distribution_params, mutation_rate,
+			max_dbh, cell_width, dbh_q1, dbh_q2, strategy_distribution_params, mutation_rate,
 			seed_bearing_threshold
 		);
 		grid = Grid(gridsize, cell_width);
@@ -198,7 +197,6 @@ public:
 	Population population;
 	pair<int, int>* neighbor_offsets = 0;
 	float initial_tree_cover = 0;
-	float seed_mass = 0;
 	float saturation_threshold = 0;
 };
 
