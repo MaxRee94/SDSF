@@ -80,7 +80,7 @@ public:
 			grid_memory_size += element_size;
 		}
 
-		printf("// STATE at t=%i: Tree cover: %f, #trees: %s \n", time, grid->get_tree_cover(), help::readable_number(pop->size()).c_str());
+		printf("Tree cover: %f, Number of trees: %s \n\n", grid->get_tree_cover(), help::readable_number(pop->size()).c_str());
 		/*printf("----- MEMORY REPORT: ------\n- Trees memory size: %i \n", (int)((pop->members.size() * sizeof(Tree)) >> 10));
 		printf("- Kernels memory size: %i \n", (int)(pop->kernels_individual.size() * sizeof(pair<int, Kernel>)) >> 10);
 		printf("- Crops memory size: %i \n", (pop->crops.size() * sizeof(pair<int, Crop>)) >> 10);
@@ -286,7 +286,11 @@ public:
 		}
 		fire_spatial_extent = ((float)no_burned_cells * grid->cell_area) / (float)fire_ignition_times.size();
 		if (verbosity > 0) {
-			printf("-- Cells burned: %i \n", no_burned_cells);
+			cout.precision(2);
+			cout <<
+				"-- Fraction of domain burned: " << (float)no_burned_cells / (float)grid->no_cells << ", Area burned: " <<
+				scientific << (float)no_burned_cells * grid->cell_area << " / " << grid->area << " m^2 \n";
+			cout << fixed;
 			printf("-- Number of fires: %i \n", (int)fire_ignition_times.size());
 		}
 	}

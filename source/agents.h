@@ -228,7 +228,7 @@ public:
 		return help::get_rand_float(0.0f, 1.0f) < survival_probability;
 	}
 	float get_radius_from_dbh() {
-		float radius_breast_height = dbh * 0.5f; // Convert dbh (cm) to radius at breast height (cm).
+		float radius_breast_height = dbh * 0.5f; // Convert dbh (cm) to stem radius at breast height (cm).
 		float basal_area = M_PI * radius_breast_height * radius_breast_height;
 		crown_area = pow(10.0f, 0.59 * log10(basal_area) - 0.32); // From Rossatto et al (2009), figure 6.
 		float crown_radius = sqrt(crown_area / M_PI);
