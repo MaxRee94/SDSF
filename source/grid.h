@@ -45,14 +45,14 @@ public:
 		hospitable = hospitable && !seedling_is_shaded_out();
 		return hospitable;
 	}
-	bool tree_exists(Tree* tree) {
+	bool tree_is_present(Tree* tree) {
 		return find(trees.begin(), trees.end(), tree->id) != trees.end();
 	}
 	bool is_smaller_than_cell(Tree* tree, float cell_width) {
 		return tree->radius < (cell_width * 0.5);
 	}
-	void add_tree_if_not_exists(Tree* tree, float cell_area) {
-		if (!tree_exists(tree)) {
+	void add_tree_if_not_present(Tree* tree, float cell_area) {
+		if (!tree_is_present(tree)) {
 			add_tree(tree);
 			add_LAI_of_tree_smaller_than_cell(tree, cell_area);
 		}
@@ -111,12 +111,15 @@ public:
 		return pos == cell.pos;
 	}
 private:
+	float get_leaf_area_over_cell_area(Tree* tree, float cell_area) {
+		return (tree->LAI * tree->crown_area) / cell_area;
+	}
 	void add_LAI_of_tree_smaller_than_cell(Tree* tree, float cell_area) {
-		LAI += (tree->LAI * tree->crown_area) / cell_area; // Obtain the leaf area of the tree and divide by the area of the cell to get the tree's
-														   // contribution to the cell's LAI.
+		LAI += get_leaf_area_over_cell_area(tree, cell_area);	// Obtain the leaf area of the tree and divide by the area of the cell to get the tree's
+																// contribution to the cell's LAI.
 	}
 	void remove_LAI_of_tree_smaller_than_cell(Tree* tree, float cell_area) {
-		LAI -= (tree->LAI * tree->crown_area) / cell_area; // Same as above but now we subtract the tree's contribution to the cell's LAI.
+		LAI -= get_leaf_area_over_cell_area(tree, cell_area);	// Same as above but now we subtract the tree's contribution to the cell's LAI.
 	}
 };
 
@@ -285,7 +288,7 @@ public:
 		}
 		cap(tree_center_gb);
 		distribution[pos_2_idx(tree_center_gb)].set_largest_stem(tree->dbh, tree->id);
-		distribution[pos_2_idx(tree_center_gb)].add_tree_if_not_exists(tree, cell_area);
+		distribution[pos_2_idx(tree_center_gb)].add_tree_if_not_present(tree, cell_area);
 	}
 	float compute_shade_on_individual_tree(Tree* tree) {
 		float shade = 0;

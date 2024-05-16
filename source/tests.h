@@ -61,7 +61,7 @@ public:
 		}
 		if (verbosity > 0) printf("Created tree with dbh %f and radius %f (cell width = %f) \n", dbh, tree.radius, cell_width);
 	}
-	bool test_add_tree_if_not_exists(vector<string>& failed_tests) {
+	bool test_add_tree_if_not_present(vector<string>& failed_tests) {
 		bool success = true;
 
 		// Setup
@@ -69,24 +69,54 @@ public:
 		create_tree_smaller_than_cell(tree);
 		pair<int, int> tree_center_gb = dynamics.grid->get_gridbased_position(tree.position);
 		Cell cell = dynamics.grid->distribution[dynamics.grid->pos_2_idx(tree_center_gb)];
-		cell.LAI = get_rand_float(0, 5);
+		cell.LAI = 3;
 		float prev_LAI = cell.LAI;
 
 		// Test
-		cell.add_tree_if_not_exists(&tree, dynamics.grid->cell_area);
+		cell.add_tree_if_not_present(&tree, dynamics.grid->cell_area);
 
 		// Check
 		if (cell.trees.size() == 0) {
 			if (verbosity > 0) printf("Tree not added to grid cell. \n");
 			success = false;
 		}
-		float LAI_averaged_over_cell = (tree.LAI * tree.crown_area) / dynamics.grid->cell_area;
-		if (!is_float_equal((cell.LAI - prev_LAI), LAI_averaged_over_cell)) {
-			if (verbosity > 0) printf("LAI not updated correctly (expected %f, got %f). \n", LAI_averaged_over_cell, cell.LAI - prev_LAI);
+		float true_LAI_averaged_over_cell = (tree.LAI * tree.crown_area) / dynamics.grid->cell_area;
+		float LAI_diff = cell.LAI - prev_LAI;
+		if (!approx(LAI_diff, true_LAI_averaged_over_cell, 0.001f)) {
+			if (verbosity > 0) printf("LAI not updated correctly (expected %f, got %f). \n", true_LAI_averaged_over_cell, LAI_diff);
 			success = false;
 		}
 
-		if (!success) failed_tests.push_back("add_tree_if_not_exists");
+		if (!success) failed_tests.push_back("add_tree_if_not_present");
+		return success;
+	}
+	bool test_remove_tree_if_smaller_than_cell(vector<string>& failed_tests) {
+		bool success = true;
+
+		// Setup
+		Tree tree;
+		create_tree_smaller_than_cell(tree);
+		pair<int, int> tree_center_gb = dynamics.grid->get_gridbased_position(tree.position);
+		Cell cell = dynamics.grid->distribution[dynamics.grid->pos_2_idx(tree_center_gb)];
+		cell.LAI = 3;
+		float prev_LAI = cell.LAI;
+
+		// Test
+		cell.remove_tree_if_smaller_than_cell(&tree, dynamics.grid->cell_width);
+
+		// Check
+		if (cell.tree_is_present(&tree)) {
+			if (verbosity > 0) printf("Tree not removed from cell. \n");
+			success = false;
+		}
+		float true_LAI_averaged_over_cell = (tree.LAI * tree.crown_area) / dynamics.grid->cell_area;
+		float LAI_diff = prev_LAI - cell.LAI;
+		if (!approx(LAI_diff, true_LAI_averaged_over_cell, 0.001f)) {
+			if (verbosity > 0) printf("LAI not updated correctly (expected %f, got %f). \n", true_LAI_averaged_over_cell, LAI_diff);
+			success = false;
+		}
+
+		if (!success) failed_tests.push_back("remove_tree_if_smaller_than_cell");
 		return success;
 	}
 	bool test_is_float_equal(vector<string>& failed_tests) {
@@ -110,6 +140,27 @@ public:
 		if (!success) failed_tests.push_back("is_float_equal");
 		return success;
 	}
+	bool test_approx(vector<string>& failed_tests) {
+		bool success = true;
+
+		// Cases
+		vector<float> c1 = { -4.5551, -4.5551, -4.565, 0, 0, 0, 1, 1, 1 };
+		vector<float> c2 = { -4.5550, -4.5551, -4.55, -0.0001, 0, 0.02, 0.9999, 1, 1.02 };
+		vector<bool> answers = { true, true, false, true, true, false, true, true, false };
+
+		// Test and check
+		for (int i = 0; i < c1.size(); i++) {
+			if (approx(c1[i], c2[i], 0.01f) != answers[i]) {
+				if (verbosity > 0) printf(
+					"Case %f, %f failed (Gave answer (%i) that should be (%i)) \n", c1[i], c2[i], approx(c1[i], c2[i], 0.01f), (int)answers[i]
+				);
+				success = false;
+			}
+		}
+
+		if (!success) failed_tests.push_back("approx");
+		return success;
+	}
 	void run_all() {
 		printf("Beginning tests...\n");
 		vector<string> failed_tests = {};
@@ -117,8 +168,10 @@ public:
 
 		// Run tests
 		successes += test_flammability(failed_tests);
-		successes += test_add_tree_if_not_exists(failed_tests);
+		successes += test_add_tree_if_not_present(failed_tests);
+		successes += test_remove_tree_if_smaller_than_cell(failed_tests);
 		successes += test_is_float_equal(failed_tests);
+		successes += test_approx(failed_tests);
 
 		printf("Completed all tests. ");
 		if (failed_tests.size() > 0) {

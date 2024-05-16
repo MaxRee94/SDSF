@@ -77,6 +77,14 @@ constexpr bool is_float_equal(value_t l, value_t r)
 	return (min <= r && r <= max);
 }
 
+template<std::floating_point value_t> [[nodiscard]]
+	constexpr bool approx(value_t l, value_t r, value_t precision)
+	{
+		auto const min = l - precision;
+		auto const max = l + precision;
+		return (min <= r && r <= max);
+	}
+
 namespace help {
 
 
