@@ -70,8 +70,10 @@ public:
 		help::remove_from_vec(&trees, id);
 	}
 	float get_grass_LAI(float _LAI) {
-		_LAI -= int(_LAI / 3.0f) * 3.0f; // Effectively _LAI modulo 3; Done to avoid re-intersecting the y=0 line at about LAI=4.3 (grass LAI would then (incorrectly) start rising again).
-		float _grass_LAI = max(0, 0.241f * (_LAI * _LAI) - 1.709f * _LAI + 2.899f); // Relationship between grass- and tree LAI from Hoffman et al. (2012), figure 2b.
+		_LAI -= int(_LAI / 3.0f) * 3.0f;	// Effectively _LAI modulo 3; Done to avoid re-intersecting the y=0 line at about LAI=4.3 
+											// (grass LAI would then (incorrectly) start rising again).
+		float _grass_LAI = max(0, 0.241f * (_LAI * _LAI) - 1.709f * _LAI + 2.899f); // Relationship between grass- and tree LAI from 
+																					// Hoffman et al. (2012), figure 2b.									
 		return _grass_LAI;
 	}
 	float get_grass_LAI() {
@@ -323,7 +325,8 @@ public:
 					// Update LAI
 					cell->LAI -= tree->LAI;
 
-					// Set cell to savanna if the cumulative leaf area is less than half of the area of the cell (LAI * cell_area < 0.5 * cell_area, i.e., LAI < 0.5)).
+					// Set cell to savanna if the cumulative leaf area is less than half of the area of the cell
+					// (LAI * cell_area < 0.5 * cell_area, i.e., LAI < 0.5)).
 					if (tree->LAI < 0.5) {
 						queue.push(cell);
 						set_to_savanna(cell->idx, time_last_fire);
