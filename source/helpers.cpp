@@ -68,6 +68,13 @@ std::string help::add_padding(std::string basestring, int version) {
     return basestring + pad;
 }
 
+std::string help::zfill(std::string digits, int no_digits) {
+	while (digits.size() < no_digits) {
+        digits = "0" + digits;
+	}
+    return digits;
+}
+
 float help::dot(pair<float, float> &p1, pair<float, float> &p2) {
 	return p1.first * p2.first + p1.second * p2.second;
 }
@@ -395,9 +402,19 @@ bool help::ends_with(string full_string, string ending) {
 
 string help::readable_number(int number) {
     string billions = number >= (int)1e9 ? to_string(number / (int)1e9) + " " : "";
-    string millions = number >= (int)1e6 > 0 ? to_string((number % (int)1e9) / (int)1e6) + " " : "";
-    string thousands = number >= (int)1e3 > 0 ? to_string((number % (int)1e6) / (int)1e3) + " " : "";
+
+    string millions = number >= (int)1e6 > 0 ? to_string((number % (int)1e9) / (int)1e6) : "";
+    if (billions != "") millions = zfill(millions, 3) + " ";
+    else if (millions != "") millions += " ";
+
+    string thousands = number >= (int)1e3 > 0 ? to_string((number % (int)1e6) / (int)1e3) : "";
+    if (millions != "") thousands = zfill(thousands, 3) + " ";
+    else if (thousands != "") thousands += " ";
+
     string rest = to_string(number % (int)1e3);
+    if (thousands != "") rest = zfill(rest, 3);
+    else rest;
+
     string reformatted_num = billions + millions + thousands + rest;
     return reformatted_num;
 }

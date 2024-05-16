@@ -161,6 +161,26 @@ public:
 		if (!success) failed_tests.push_back("approx");
 		return success;
 	}
+	bool test_readable_number(vector<string>& failed_tests) {
+		bool success = true;
+
+		// Cases
+		vector<int> nums = { 5005030, 1031066456 };
+		vector<string> answers = { "5 005 030", "1 031 066 456"};
+
+		// Test and check
+		for (int i = 0; i < nums.size(); i++) {
+			if (readable_number(nums[i]) != answers[i]) {
+				if (verbosity > 0) printf(
+					"Case %i failed (Gave answer %s that should be %s) \n", nums[i], readable_number(nums[i]).c_str(), answers[i].c_str()
+				);
+				success = false;
+			}
+		}
+
+		if (!success) failed_tests.push_back("readable_number");
+		return success;
+	}
 	void run_all() {
 		printf("Beginning tests...\n");
 		vector<string> failed_tests = {};
@@ -172,13 +192,14 @@ public:
 		successes += test_remove_tree_if_smaller_than_cell(failed_tests);
 		successes += test_is_float_equal(failed_tests);
 		successes += test_approx(failed_tests);
+		successes += test_readable_number(failed_tests);
 
 		printf("Completed all tests. ");
 		if (failed_tests.size() > 0) {
-			printf("Tests failed(%i / %i) :\n - %s \n", failed_tests.size(), successes + failed_tests.size(),
+			printf("\nTests failed(%i / %i) :\n - %s \n", failed_tests.size(), successes + failed_tests.size(),
 				help::join(&failed_tests, "\n - ").c_str());
 		}
-		else printf("All tests (%i) successful.", successes);
+		else printf("\nAll tests (%i) successful.", successes);
 	}
 	Dynamics dynamics;
 	int verbosity = 0;

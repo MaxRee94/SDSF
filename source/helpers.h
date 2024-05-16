@@ -170,6 +170,8 @@ namespace help {
 	float get_manhattan_dist(pair<float, float> p1, pair<float, float> p2);
 
 	std::string add_padding(std::string basestring, int version);
+	
+	std::string zfill(std::string basestring, int no_digits);
 
 	std::string join_as_string(vector<int> numbers, std::string separator);
 
