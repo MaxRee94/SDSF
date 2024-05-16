@@ -25,8 +25,6 @@ public:
 	{
 		time = 0;
 		help::init_RNG();
-		pop = &state.population;
-		grid = &state.grid;
 	};
 	void init_state(int gridsize, float dbh_q1, float dbh_q2) {
 		state = State(
@@ -37,6 +35,8 @@ public:
 		wind_disperser = WindDispersal();
 		animal_dispersal = AnimalDispersal();
 		neighbor_offsets = state.neighbor_offsets;
+		pop = &state.population;
+		grid = &state.grid;
 	}
 	void update() {
 		// Prepare next iteration

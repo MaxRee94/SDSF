@@ -13,6 +13,8 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <math.h>
+#include <limits>
+#include <concepts>
 
 #include "timer.h"
 
@@ -65,7 +67,18 @@ std::pair<T, U> operator*(const std::pair<T, U>& p, const float& s) {
 	return s * p;
 } 
 
+template<std::floating_point value_t> [[nodiscard]]
+constexpr bool is_float_equal(value_t l, value_t r)
+{
+	constexpr auto infinity = std::numeric_limits<value_t>::infinity();
+
+	auto const min = std::nextafter(l, -infinity);
+	auto const max = std::nextafter(l, infinity);
+	return (min <= r && r <= max);
+}
+
 namespace help {
+
 
 	void init_RNG();
 

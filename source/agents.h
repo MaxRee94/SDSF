@@ -232,7 +232,6 @@ public:
 		float basal_area = M_PI * radius_breast_height * radius_breast_height;
 		crown_area = pow(10.0f, 0.59 * log10(basal_area) - 0.32); // From Rossatto et al (2009), figure 6.
 		float crown_radius = sqrt(crown_area / M_PI);
-		//if (crown_radius > 1e6) printf("------------------ basal area: %f, crown area: %f, crown radius: %f \n", basal_area, crown_area, crown_radius);
 		return crown_radius;
 	}
 	float get_height() {
@@ -243,7 +242,6 @@ public:
 	bool grow(float &seed_bearing_threshold) {
 		age++;
 		dbh += get_dbh_increment();
-		//if (dbh > 1e6) printf("Tree %i grew to dbh: %f \n", id, dbh);
 		radius = get_radius_from_dbh();
 		auto [_life_phase, became_reproductive] = get_life_phase(seed_bearing_threshold);
 		life_phase = _life_phase;
