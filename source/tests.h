@@ -17,7 +17,6 @@ public:
 			_resource_grid_relative_size, _mutation_rate, _verbosity
 		);
 		dynamics.init_state(grid_size, dbh_q1, dbh_q2);
-		printf("cell width: %f\n", dynamics.grid->cell_width);
 		verbosity = _verbosity;
 	}
 	bool test_flammability(vector<string>& failed_tests) {
@@ -51,13 +50,15 @@ public:
 		float cell_width = dynamics.grid->cell_width;
 		float max_radius = 0.95f * (cell_width / 2.0);
 		float dbh = 5;
+		Timer t; t.start();
 		while (true) {
 			tree = Tree(1, position, dbh, dynamics.seed_bearing_threshold);
-			printf("max radius: %f, tree radius: %f, dbh: %f \n", max_radius, tree.radius, dbh);
 			if (tree.radius < max_radius || tree.dbh < 0) break;
 			else dbh *= 0.9f;
+			if (t.elapsedSeconds() > 1) {
+				printf("Error: Tree creation taking too long. Terminating program. \n"); throw;
+			}
 		}
-		if (tree.dbh < 0) { printf("Error: could not create tree smaller than cell. \n"); throw; }
 		if (verbosity > 0) printf("Created tree with dbh %f and radius %f (cell width = %f) \n", dbh, tree.radius, cell_width);
 	}
 	bool test_add_tree_if_not_exists(vector<string>& failed_tests) {
@@ -88,6 +89,27 @@ public:
 		if (!success) failed_tests.push_back("add_tree_if_not_exists");
 		return success;
 	}
+	bool test_is_float_equal(vector<string>& failed_tests) {
+		bool success = true;
+
+		// Cases
+		vector<float> c1 = { -4.5551, -4.5551, -4.5551, 0, 0, 0, 1, 1, 1 };
+		vector<float> c2 = { -4.5550, -4.5551, -4.5552, -0.0001, 0, 0.0001, 0.9999, 1, 1.0001 };
+		vector<bool> answers = { false, true, false, false, true, false, false, true, false };
+
+		// Test and check
+		for (int i = 0; i < c1.size(); i++) {
+			if (is_float_equal(c1[i], c2[i]) != answers[i]) {
+				if (verbosity > 0) printf(
+					"Case %f, %f failed (Gave answer (%i) that should be (%i)) \n", c1[i], c2[i], is_float_equal(c1[i], c2[i]), (int)answers[i]
+				);
+				success = false;
+			}
+		}
+
+		if (!success) failed_tests.push_back("is_float_equal");
+		return success;
+	}
 	void run_all() {
 		printf("Beginning tests...\n");
 		vector<string> failed_tests = {};
@@ -96,6 +118,7 @@ public:
 		// Run tests
 		successes += test_flammability(failed_tests);
 		successes += test_add_tree_if_not_exists(failed_tests);
+		successes += test_is_float_equal(failed_tests);
 
 		printf("Completed all tests. ");
 		if (failed_tests.size() > 0) {
