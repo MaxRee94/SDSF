@@ -38,6 +38,15 @@ public:
 		pop = &state.population;
 		grid = &state.grid;
 	}
+	bool invalid_tree_ids() {
+		for (auto& [id, tree] : pop->members) {
+			if (id == -1 || tree.id == -1) {
+				printf("Key: %i, Tree id: %i \n", id, tree.id);
+				return true;
+			}
+		}
+		return false;
+	}
 	void update() {
 		// Prepare next iteration
 		time++;
@@ -48,18 +57,19 @@ public:
 		// Do simulation
 		Timer timer; timer.start();
 		if (verbosity > 0) printf("Beginning dispersal... \n");
+		no_created_trees_before_dispersal = pop->no_created_trees;
 		if (time > 0) disperse();
+
 		timer.stop();
 		if (verbosity > 0) printf("Dispersal took %f seconds. Beginning burn... \n", timer.elapsedSeconds());
 		timer.start();
 		burn();
+
 		timer.stop();
 		if (verbosity > 0) printf("Percolation took %f seconds. Beginning growth... \n", timer.elapsedSeconds());
 		grow();
-		timer.start();
 		induce_background_mortality();
-		timer.stop();
-		if (verbosity > 0) printf("Inducing background mortality took %f seconds. \n", timer.elapsedSeconds());
+
 		timer.start();
 		int pre_thinning_popsize = pop->size();
 		//thin_crowds();
@@ -109,7 +119,8 @@ public:
 	}
 	void grow() {
 		for (auto& [id, tree] : pop->members) {
-			bool became_reproductive = tree.grow(seed_bearing_threshold);
+			float shade = grid->compute_shade_on_individual_tree(&tree);
+			bool became_reproductive = tree.grow(seed_bearing_threshold, shade);
 			if (became_reproductive) {
 				pop->add_reproduction_system(tree);
 			}
@@ -234,9 +245,11 @@ public:
 			Cell* cell = &grid->distribution[i];
 			if (cell->seedling_present) {
 				Tree* tree = pop->add(
-					grid->get_random_location_within_cell(cell->idx), &pop->get_crop(cell->largest_stem.second)->strategy
+					grid->get_real_cell_position(cell),
+					&pop->get_crop(cell->largest_stem.second)->strategy
 				);
-				cell->add_tree(tree);
+				if (tree->id == -1) printf("\n------- Tree recruitment resulted in invalid tree id. \n");
+				cell->add_tree(tree, true, grid->cell_area, grid->cell_halfdiagonal_sqrt);
 			}
 		}
 
@@ -262,7 +275,7 @@ public:
 	void induce_background_mortality() {
 		for (auto& [id, tree] : pop->members) {
 			if (help::get_rand_float(0, 1) < background_mortality) {
-				state.population.remove(&tree);
+				pop->remove(id);
 			}
 		}
 	}
@@ -315,9 +328,19 @@ public:
 		return !tree->survives_fire(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 	}
 	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue) {
-		if (verbosity == 2) printf("Burning tree %i ... \n", tree->id);
+		if (verbosity > 1) printf("Burning tree %i ... \n", tree->id);
+		bool removed = pop->remove(tree->id);
+		if (!removed) {
+			printf("Tree %i could not be removed from the population. \n", tree->id);
+		}
 		grid->burn_tree_domain(tree, queue, time_last_fire);
-		pop->remove(tree);
+
+		// Check if all cells have lost their reference to the tree
+		/*bool present = state.check_grid_for_tree_presence(tree->id, 1);
+		if (present) {
+			printf("\nTree %i is still present in the grid after burning. \n", tree->id);
+			grid->burn_tree_domain(tree, queue, time_last_fire, 1);
+		}*/
 	}
 	void kill_tree(Tree* tree) {
 		if (verbosity == 2) printf("Removing tree %i ... \n", tree->id);
@@ -325,8 +348,22 @@ public:
 		pop->remove(tree);
 	}
 	void induce_tree_mortality(Cell* cell, float fire_free_interval, queue<Cell*>& queue) {
-		for (auto tree_id : cell->trees) {
+		vector<int> trees = cell->trees;
+		for (int tree_id : trees) {
+			int _tree_id = tree_id;
 			Tree* tree = pop->get(tree_id);
+			if (tree->id == -1) {
+				if (tree_id > no_created_trees_before_dispersal) printf("tree %i was created during dispersal but has been removed. \n", tree_id);
+				else printf("tree %i was created in a previous timestep or during initialization but has been removed. \n", tree_id);
+				printf("Cell: %i, %i\n", cell->pos.first, cell->pos.second);
+				printf("Trees in cell before starting this mortality loop: ");
+				help::print_vector(&trees);
+				printf("Trees in cell in current iteration of mortality loop: ");
+				help::print_vector(&cell->trees);
+				bool present = state.check_grid_for_tree_presence(tree_id, 0);
+				if (!present) printf("\n\n\n -------------------------------------------------------------- Tree %i is not present in the grid. \n", tree_id);
+				continue;
+			}
 			if (tree->last_mortality_check == time) continue; // Skip mortality evaluation if this was already done in the current timestep.
 			if (tree_dies(tree, fire_free_interval)) {
 				kill_tree(tree, cell->time_last_fire, queue);
@@ -413,6 +450,7 @@ public:
 	int pop_size = 0;
 	int verbosity = 0;
 	int seeds_dispersed = 0;
+	int no_created_trees_before_dispersal = 0;
 	State state;
 	Population* pop = 0;
 	Grid* grid = 0;

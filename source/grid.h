@@ -10,8 +10,7 @@ public:
 	int idx = 0;
 	float time_last_fire = 0;
 	vector<int> trees;
-	float LAI = 0; // Cumulative Leaf Area Index (LAI) of all trees in the cell.
-	float grass_LAI = 0; // Cumulative Leaf Area Index (LAI) of all trees in the cell.
+	float grass_LAI = 0;
 	pair<int, int> pos;
 	bool seedling_present = false;
 	pair<float, int> largest_stem;	// < float: dbh of largest tree or seedling that has its stem in this cell,
@@ -23,7 +22,7 @@ public:
 		return false;
 	}
 	bool seedling_is_shaded_out() {
-		float shade = get_shading();
+		float shade = LAI / 5.0f; // Normalize to range [0, 1] by dividing by 5.0 (max LAI is 5.0).
 		if (help::get_rand_float(0, 1) < shade) {
 			return true;
 		}
@@ -48,26 +47,34 @@ public:
 	bool tree_is_present(Tree* tree) {
 		return find(trees.begin(), trees.end(), tree->id) != trees.end();
 	}
-	bool is_smaller_than_cell(Tree* tree, float cell_width) {
-		return tree->radius < (cell_width * 0.5);
+	bool tree_is_present(int id) {
+		Tree dummy; dummy.id = id;
+		return tree_is_present(&dummy);
 	}
-	void add_tree_if_not_present(Tree* tree, float cell_area) {
+	bool is_smaller_than_cell(Tree* tree, float cell_halfdiagonal_sqrt) {
+		return tree->radius < cell_halfdiagonal_sqrt;
+	}
+	void add_tree_if_not_present(Tree* tree, float cell_area, bool smaller_than_cell = true) {
 		if (!tree_is_present(tree)) {
-			add_tree(tree);
-			add_LAI_of_tree_smaller_than_cell(tree, cell_area);
+			add_tree(tree, smaller_than_cell, cell_area);
 		}
 	}
-	void remove_tree_if_smaller_than_cell(Tree* tree, float cell_width) {
-		if (is_smaller_than_cell(tree, cell_width)) {
-			remove_tree(tree->id);
-			remove_LAI_of_tree_smaller_than_cell(tree, cell_width);
+	bool remove_tree_if_smaller_than_cell(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt, bool smaller_than_cell = true) {
+		if (is_smaller_than_cell(tree, cell_halfdiagonal_sqrt)) {
+			remove_tree(tree);
 		}
+		return true;
 	}
-	void add_tree(Tree* tree) {
+	void add_tree(Tree* tree, bool sapling = false, float cell_area = 0, float cell_halfdiagonal_sqrt = 0) {
 		trees.push_back(tree->id);
+		if (sapling || is_smaller_than_cell(tree, cell_halfdiagonal_sqrt))
+			add_LAI_of_tree_smaller_than_cell(tree, cell_area);
+		else LAI += tree->LAI;
 	}
-	void remove_tree(int id) {
-		help::remove_from_vec(&trees, id);
+	void remove_tree(Tree* tree, bool sapling = false, float cell_area = 0) {
+		help::remove_from_vec(&trees, tree->id);
+		if (sapling) remove_LAI_of_tree_smaller_than_cell(tree, cell_area);
+		else LAI -= tree->LAI;
 	}
 	float get_grass_LAI(float _LAI) {
 		_LAI -= int(_LAI / 3.0f) * 3.0f;	// Effectively _LAI modulo 3; Done to avoid re-intersecting the y=0 line at about LAI=4.3 
@@ -85,28 +92,50 @@ public:
 	float get_fuel_load() {
 		return get_fuel_load(grass_LAI);
 	}
-	float get_LAI_above_tree(Tree* tree, Population* population = 0) {
+	float get_LAI_of_crown_intersection_and_above(Tree* tree, Population* population = 0) {
 		if (population == nullptr) return LAI;
-		float LAI_above_tree = 0;
-		float given_tree_height = tree->height;
+		float shade = 0;
+		float crown_reach = tree->height - tree->lowest_branch;
 		for (int tree_id : trees) {
 			if (tree_id == tree->id) continue;
-			Tree* _tree = population->get(tree_id);
-			float height = _tree->height;
-			if (height < given_tree_height) LAI_above_tree += _tree->LAI;
+			Tree* neighbor = population->get(tree_id);
+			if (neighbor->height > tree->height) shade += neighbor->LAI;
+			else if (neighbor->height > tree->lowest_branch) { // Implies crown intersection; a portion of the neighbor's crown will cast shade on our tree.
+				float neighbor_crown_reach = neighbor->height - neighbor->lowest_branch;
+				float crown_intersection = neighbor->height - tree->lowest_branch;
+				float LAI_intersection = neighbor->LAI * (crown_intersection / neighbor_crown_reach); // Fraction of the smaller tree's LAI that is above
+																									  // the height of the lowest branch.															
+				float crown_reach_above_neighbor = (tree->height - neighbor->height);
+				float shade_contribution = LAI_intersection * (crown_reach_above_neighbor / crown_reach);
+				shade += shade_contribution;
+			}
 		}
-		return LAI_above_tree;
+		return shade;
 	}
-	float get_tree_shading(Tree* tree, Population* population = 0) {
-		float LAI_above_tree = get_LAI_above_tree(tree, population);
-		//float PAR = -0.056299 * LAI_above_tree + 0.58102; // Percentage Photosynthetically Active Radiation (PAR) in W/m^2 that reaches the given tree.
-															// From Mukherjee (2016), figure 4.
-		//PAR = max(0.0f, min(PAR, 1.0f)); // Cap PAR to range [0, 1].
-		return LAI_above_tree / 5.0f; // Max LAI for forests is 5.0, so we normalize the shading to range [0, 1] by dividing by 5.
+	float get_shading_on_tree(Tree* tree, Population* population = 0) {
+		return get_LAI_of_crown_intersection_and_above(tree, population);
 	}
-	float get_shading() {
-		Tree tree; tree.LAI = LAI;
-		return get_tree_shading(&tree);
+	float get_LAI() {
+		return LAI;
+	}
+	void set_LAI(float _LAI) {
+		LAI = _LAI;
+	}
+	void insert_stem(Tree* tree, float cell_area) {
+		set_largest_stem(tree->dbh, tree->id);
+		add_tree_if_not_present(tree, cell_area);
+	}
+	void remove_stem(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt) {
+		reset_largest_stem();
+		remove_tree_if_smaller_than_cell(tree, cell_area, cell_halfdiagonal_sqrt);
+	}
+	void reset() {
+		state = 0;
+		trees.clear();
+		LAI = 0;
+		grass_LAI = 0;
+		largest_stem = pair<float, int>(0, -1);
+		seedling_present = false;
 	}
 	bool operator==(const Cell& cell) const
 	{
@@ -123,6 +152,60 @@ private:
 	void remove_LAI_of_tree_smaller_than_cell(Tree* tree, float cell_area) {
 		LAI -= get_leaf_area_over_cell_area(tree, cell_area);	// Same as above but now we subtract the tree's contribution to the cell's LAI.
 	}
+	float LAI = 0; // Cumulative Leaf Area Index (LAI) of all trees in the cell.
+};
+
+
+class TreeDomainIterator {
+public:
+	TreeDomainIterator() = default;
+	TreeDomainIterator(float _cell_width, Tree* _tree) {
+		tree = _tree;
+		cell_width = _cell_width;
+		tree_center_gb = pair<float, float>(round(tree->position.first / cell_width), round(tree->position.second / cell_width));
+		radius_gb = round(tree->radius / cell_width);
+		x = tree_center_gb.first - radius_gb;
+		y = tree_center_gb.second - radius_gb;
+	}
+	bool can_increment_x() {
+		x++;
+		if (x > tree_center_gb.first + radius_gb) {
+			return false;
+		}
+		return true;
+	}
+	bool can_increment_y() {
+		y++;
+		if (y > tree_center_gb.second + radius_gb) {
+			y = tree_center_gb.second - radius_gb; // Reset to lower bound.
+			return false;
+		}
+		return true;
+	}
+	bool next() {
+		if (begin) {
+			begin = false; // If this is the first time 'next' is called, we leave the initialized x, y coordinates unchanged.
+		}
+		else if (!can_increment_y()) {
+			if (!can_increment_x()) {
+				return false;
+			}
+		}
+		real_cell_position.first = (float)x * cell_width;
+		real_cell_position.second = (float)y * cell_width;
+		gb_cell_position.first = x;
+		gb_cell_position.second = y;
+		return true;
+	}
+	int x = 0;
+	int y = 0;
+	bool begin = true;
+	Tree* tree;
+	pair<float, float> tree_center_gb;
+	pair<float, float> real_cell_position;
+	pair<int, int> gb_cell_position;
+	float radius_gb;
+	float cell_width;
 };
 
 
@@ -140,6 +223,8 @@ public:
 		reset_state_distr();
 		area = no_cells * cell_width * cell_width;
 		cell_area = cell_width * cell_width;
+		cell_halfdiagonal_sqrt = help::get_dist(pair<float, float>(0, 0), pair<float, float>(0.5f * cell_width, 0.5f * cell_width));
+		cell_area_half = cell_area * 0.5f;
 	}
 	void init_grid_cells() {
 		distribution = new Cell[no_cells];
@@ -217,12 +302,7 @@ public:
 	}
 	virtual void reset() {
 		for (int i = 0; i < no_cells; i++) {
-			distribution[i].state = 0;
-			distribution[i].trees.clear();
-			distribution[i].LAI = 0;
-			distribution[i].grass_LAI = 0;
-			distribution[i].largest_stem = pair<float, int>(0, -1);
-			distribution[i].seedling_present = false;
+			distribution[i].reset();
 		}
 		no_forest_cells = 0;
 		no_savanna_cells = no_cells;
@@ -273,24 +353,10 @@ public:
 			}
 		}
 	}
-	void populate_tree_domain(Tree* tree) {
-		pair<int, int> tree_center_gb = get_gridbased_position(tree->position);
-		int radius_gb = tree->radius / cell_width;
-		//Timer t; t.start();
-		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x+=1) {
-			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y+=1) {
-				pair<float, float> position(x * cell_width, y * cell_width);
-				if (tree->is_within_radius(position)) {
-					set_to_forest(pair<float, float>(x, y), tree);
-				}
-				/*if (t.elapsedSeconds() > 1) {
-					printf("Taking forever. tree center gb: %i, %i, radius: %f \n", tree_center_gb.first, tree_center_gb.second, tree->radius);
-				}*/
-			}
-		}
-		cap(tree_center_gb);
-		distribution[pos_2_idx(tree_center_gb)].set_largest_stem(tree->dbh, tree->id);
-		distribution[pos_2_idx(tree_center_gb)].add_tree_if_not_present(tree, cell_area);
+	int get_capped_center_idx(pair<float, float> &tree_center_gridbased) {
+		pair<int, int> center = tree_center_gridbased;
+		cap(center);
+		return pos_2_idx(center);
 	}
 	float compute_shade_on_individual_tree(Tree* tree) {
 		float shade = 0;
@@ -299,47 +365,86 @@ public:
 		int radius_gb = tree->radius / cell_width;
 		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x += 1) {
 			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y += 1) {
-				pair<float, float> position(x * cell_width, y * cell_width);
-				if (tree->is_within_radius(position)) {
+				pair<float, float> cell_position(x * cell_width, y * cell_width);
+				if (tree->radius_spans(cell_position)) {
 					Cell* cell = get_cell_at_position(pair<int, int>(x, y));
-					shade += cell->get_tree_shading(tree);
+					shade += cell->get_shading_on_tree(tree);
 					no_cells += 1;
 				}
 			}
 		}
-		return shade / no_cells;
+		if (isnan(shade / tree->crown_area)) {
+			printf("Shade is nan. Shade: %f, tree->crown_area: %f\n", shade, tree->crown_area);
+			tree->print();
+		}
+		return shade / tree->crown_area;	// We obtain mean LAI at- or above the height of the lowest branch by dividing by the tree's crown area.
+		// We use this as a measure of shading on the tree.
 	}
-	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = true) {
-		pair<int, int> tree_center_gb = get_gridbased_position(tree->position);
-		int radius_gb = round((tree->radius * 1.5) / cell_width);
-		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x += 1) {
-			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y += 1) {
-				pair<float, float> position(x * cell_width, y * cell_width);
-				if (tree->is_within_radius(position)) {
-					Cell* cell = get_cell_at_position(position);
-					if (distribution[cell->idx].state == 0) continue;
+	bool populate_tree_domain(Tree* tree, int verbosity = 0) {
+		TreeDomainIterator it(cell_width, tree);
+		Timer t; t.start();
+		pair<int, int> prev_pos = pair<int, int>(-1, -1);
+		//cout << endl;
+		while (it.next()) {
+			//printf("it .gb_cell_position: %i, %i\n", it.gb_cell_position.first, it.gb_cell_position.second);
+			if (tree->crown_area < cell_area_half) break; // Do not populate cells with trees that are smaller than half the cell area.
+			if (tree->radius_spans(it.real_cell_position)) {
+				if (prev_pos == it.gb_cell_position) printf("Already set %i, %i to forest\n", it.gb_cell_position.first, it.gb_cell_position.second);
+				set_to_forest(it.gb_cell_position, tree);
+				prev_pos = it.gb_cell_position;
+				if (verbosity > 0) printf("setting (%f, %f) to forest \n", it.x, it.y);
+			}
+			if (t.elapsedSeconds() > 1) {
+				printf("Taking forever. tree center gb: %i, %i, radius: %f. \nAborting tree domain population..\n", it.tree_center_gb.first, it.tree_center_gb.second, tree->radius);
+				return false;
+			}
+		}
+		int center_idx = get_capped_center_idx(it.tree_center_gb);
+		distribution[center_idx].insert_stem(tree, cell_area);
+
+		if (verbosity > 0) {
+			printf("Verbose domain population report: tree center gb: %i, %i, radius: %f.\n", it.tree_center_gb.first, it.tree_center_gb.second, tree->radius);
+		}
+		return true;
+	}
+	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = true, bool debug = false) {
+		TreeDomainIterator it(cell_width, tree);
+		Timer t; t.start();
+		if (debug) {
+			cout << "recursing tree burn\n";
+			printf("tree center gb: %i, %i, radius gb: %i\n", it.tree_center_gb.first, it.tree_center_gb.second, it.radius_gb);
+			printf("tree center real: %f, %f, radius real: %f\n", tree->position.first, tree->position.second, tree->radius);
+		}
+		while (it.next()) {
+			if (debug) {
+				printf("checking cell position: %f, %f\n", it.real_cell_position.first, it.real_cell_position.second);
+			}
+			if (tree->radius_spans(it.real_cell_position, debug)) {
+				Cell* cell = get_cell_at_position(it.gb_cell_position);
+				//if (distribution[cell->idx].state == 0) continue;
 					
-					// Remove tree id from cell->trees.
-					cell->remove_tree(tree->id);
+				// Remove tree id from cell->trees.
+				cell->remove_tree(tree);
 
-					// Update LAI
-					cell->LAI -= tree->LAI;
+				if (debug) printf("-- Removed tree %i from cell %i\n", tree->id, cell->idx);
 
-					// Set cell to savanna if the cumulative leaf area is less than half of the area of the cell
-					// (LAI * cell_area < 0.5 * cell_area, i.e., LAI < 0.5)).
-					if (tree->LAI < 0.5) {
-						queue.push(cell);
-						set_to_savanna(cell->idx, time_last_fire);
-						if (store_tree_death_in_color_distribution) state_distribution[cell->idx] = -6;
-						continue;
-					}
-					state_distribution[cell->idx] = -5;
+				// Set cell to savanna if the cumulative leaf area is less than half of the area of the cell
+				// (leaf area < 0.5 * cell_area   <==>   (LAI * cell_area) < 0.5 * cell_area   <==>   LAI < 0.5)).
+				if (cell->get_LAI() < 0.5f) { 
+					queue.push(cell);
+					set_to_savanna(cell->idx, time_last_fire);
+					if (store_tree_death_in_color_distribution) state_distribution[cell->idx] = -6;
+					continue;
+				}
+				state_distribution[cell->idx] = -5;
+
+				if (t.elapsedSeconds() > 1) {
+					printf("Taking forever. tree center gb: %i, %i, radius: %f...\n", it.tree_center_gb.first, it.tree_center_gb.second, tree->radius);
 				}
 			}
 		}
-		cap(tree_center_gb);
-		distribution[pos_2_idx(tree_center_gb)].reset_largest_stem();
-		distribution[pos_2_idx(tree_center_gb)].remove_tree_if_smaller_than_cell(tree, cell_width);
+		int center_idx = get_capped_center_idx(it.tree_center_gb);
+		distribution[center_idx].remove_stem(tree, cell_area, cell_halfdiagonal_sqrt);
 	}
 	void kill_tree_domain(Tree* tree, bool store_tree_death_in_color_distribution = true) {
 		queue<Cell*> dummy;
@@ -357,7 +462,7 @@ public:
 	int* get_state_distribution(bool collect = true) {
 		if (collect) {
 			for (int i = 0; i < no_cells; i++) {
-				if (distribution[i].state == 1) state_distribution[i] = max(99.0f - (distribution[i].LAI * 19.0f), 1);
+				if (distribution[i].state == 1) state_distribution[i] = max(99.0f - (distribution[i].get_LAI() * 19.0f), 1);
 			}
 		}
 		return state_distribution;
@@ -378,14 +483,13 @@ public:
 		}
 		distribution[idx].state = 1;
 		distribution[idx].add_tree(tree);
-		distribution[idx].LAI += tree->LAI;
 	}
 	void set_to_savanna(int idx, float _time_last_fire = -1) {
 		no_savanna_cells += (distribution[idx].state == 1);
 		no_forest_cells -= (distribution[idx].state == 1);
 
 		distribution[idx].state = 0;
-		distribution[idx].LAI = 0;
+		//distribution[idx].LAI = 0;
 		if (_time_last_fire != -1) distribution[idx].time_last_fire = _time_last_fire;
 	}
 	float get_LAI_within_bb(pair<int, int> bb_min, pair<int, int> bb_max, float bb_area) {
@@ -393,7 +497,7 @@ public:
 		for (int x = bb_min.first; x < bb_max.first; x++) {
 			for (int y = bb_min.second; y < bb_max.second; y++) {
 				Cell* cell = get_cell_at_position(pair<int, int>(x, y));
-				cumulative_LAI += cell->LAI;
+				cumulative_LAI += cell->get_LAI();
 			}
 		}
 		float crown_area = get_tree_cover_within_bb(bb_min, bb_max) * bb_area;
@@ -426,7 +530,7 @@ public:
 		position_grid.second %= width;
 	}
 	pair<int, int> get_gridbased_position(pair<float, float> position) {
-		return pair<int, int>(position.first / cell_width, position.second / cell_width);
+		return pair<int, int>(round(position.first / cell_width), round(position.second / cell_width));
 	}
 	pair<float, float> get_real_position(pair<int, int> position) {
 		return pair<float, float>((float)position.first * cell_width, (float)position.second * cell_width);
@@ -446,4 +550,6 @@ public:
 	int no_forest_cells = 0;
 	float area = 0;
 	float cell_area = 0;
+	float cell_area_half = 0;
+	float cell_halfdiagonal_sqrt = 0;
 };

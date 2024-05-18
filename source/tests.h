@@ -69,8 +69,8 @@ public:
 		create_tree_smaller_than_cell(tree);
 		pair<int, int> tree_center_gb = dynamics.grid->get_gridbased_position(tree.position);
 		Cell cell = dynamics.grid->distribution[dynamics.grid->pos_2_idx(tree_center_gb)];
-		cell.LAI = 3;
-		float prev_LAI = cell.LAI;
+		cell.set_LAI(3);
+		float prev_LAI = cell.get_LAI();
 
 		// Test
 		cell.add_tree_if_not_present(&tree, dynamics.grid->cell_area);
@@ -81,7 +81,7 @@ public:
 			success = false;
 		}
 		float true_LAI_averaged_over_cell = (tree.LAI * tree.crown_area) / dynamics.grid->cell_area;
-		float LAI_diff = cell.LAI - prev_LAI;
+		float LAI_diff = cell.get_LAI() - prev_LAI;
 		if (!approx(LAI_diff, true_LAI_averaged_over_cell, 0.001f)) {
 			if (verbosity > 0) printf("LAI not updated correctly (expected %f, got %f). \n", true_LAI_averaged_over_cell, LAI_diff);
 			success = false;
@@ -98,11 +98,11 @@ public:
 		create_tree_smaller_than_cell(tree);
 		pair<int, int> tree_center_gb = dynamics.grid->get_gridbased_position(tree.position);
 		Cell cell = dynamics.grid->distribution[dynamics.grid->pos_2_idx(tree_center_gb)];
-		cell.LAI = 3;
-		float prev_LAI = cell.LAI;
+		cell.set_LAI(3);
+		float prev_LAI = cell.get_LAI();
 
 		// Test
-		cell.remove_tree_if_smaller_than_cell(&tree, dynamics.grid->cell_width);
+		cell.remove_tree_if_smaller_than_cell(&tree, dynamics.grid->cell_area, dynamics.grid->cell_halfdiagonal_sqrt);
 
 		// Check
 		if (cell.tree_is_present(&tree)) {
@@ -110,7 +110,7 @@ public:
 			success = false;
 		}
 		float true_LAI_averaged_over_cell = (tree.LAI * tree.crown_area) / dynamics.grid->cell_area;
-		float LAI_diff = prev_LAI - cell.LAI;
+		float LAI_diff = prev_LAI - cell.get_LAI();
 		if (!approx(LAI_diff, true_LAI_averaged_over_cell, 0.001f)) {
 			if (verbosity > 0) printf("LAI not updated correctly (expected %f, got %f). \n", true_LAI_averaged_over_cell, LAI_diff);
 			success = false;

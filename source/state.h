@@ -35,14 +35,41 @@ public:
 			}
 		}
 	}
+	bool check_grid_for_tree_presence(int tree_id, int verbose = 0) {
+		bool presence = false;
+		for (int i = 0; i < grid.no_cells; i++) {
+			Cell cell = grid.distribution[i];
+			if (verbose > 1 && i % 100000 == 0) printf("Checking cell %i for tree presence... \n", i);
+			if (cell.tree_is_present(tree_id)) {
+				if (verbose > 0) printf("pos: (%i, %i)\n", cell.pos.first, cell.pos.second);
+				presence = true;
+			}
+		}
+		return presence;
+	}
 	void repopulate_grid(int verbosity) {
 		if (verbosity == 2) cout << "Repopulating grid..." << endl;
 		grid.reset();
 		int i = 0;
+		bool success;
 		for (auto& [id, tree] : population.members) {
-			//if (i % (population.size()/10) == 0) printf("i: %i / %i \n", tree.id, population.size());
-			if (id == -1 || tree.id == -1) population.remove(id); // HOTFIX: Sometimes trees are not initialized properly and need to be removed.
-			grid.populate_tree_domain(&tree);
+			//if (verbosity == 1) printf("Tree id (beginning): %i \n", tree.id);
+			//if (i % (population.size()/1000) == 0) printf("i: %i / %i \n", i, population.size());
+			if (id == -1 || tree.id == -1) {
+				printf("Removing tree %i\n", tree.id);
+				population.remove(id); // HOTFIX: Sometimes trees are not initialized properly and need to be removed.
+				continue;
+			}
+			success = grid.populate_tree_domain(&tree);
+			if (!success) {
+				population.remove(tree.id);
+				printf("\n------------- Restarting grid repopulation because tree %i failed to have its domain populated. --------\n", tree.id);
+				repopulate_grid(verbosity);
+			}
+			/*if (verbosity > 0 && !check_grid_for_tree_presence(tree.id)) {
+				printf("Repopulation failure: Tree %i with radius %f and position (%f, %f) is not present in the grid. \n", tree.id, tree.radius, tree.position.first, tree.position.second);
+				grid.populate_tree_domain(&tree, 1);
+			}*/
 			i++;
 		}
 		grid.update_grass_LAIs();
@@ -119,10 +146,10 @@ public:
 		// Set tree cover
 		while (grid.get_tree_cover() < integral_image_cover) {
 			int idx = probmodel.sample();
-			pair<float, float> position = grid.get_random_location_within_cell(idx);
-			Cell* cell = grid.get_cell_at_position(position);
+			Cell &cell = grid.distribution[idx];
+			pair<float, float> position = grid.get_real_cell_position(&cell);
 			Tree* tree = population.add(position);
-			if (!cell->is_hospitable(pair<float, int>(tree->radius, tree->id))) {
+			if (!cell.is_hospitable(pair<float, int>(tree->radius, tree->id))) {
 				population.remove(tree->id);
 				continue;
 			}
@@ -131,6 +158,7 @@ public:
 			if (population.size() % 10000 == 0) printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
 		}
 		probmodel.free();
+		repopulate_grid(0);
 		printf("Finished setting tree cover from image.\n");
 	}
 	void set_tree_cover(float _tree_cover) {

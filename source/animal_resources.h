@@ -126,6 +126,11 @@ public:
 			}
 		}
 	}
+	void get_random_stategrid_location(pair<float, float>& location) {
+		get_random_location_within_cell(location);
+		location = state->grid.get_gridbased_position(location);
+		location = state->grid.cell_width * location; // Convert to real position, at the origin of a stategrid-cell.
+	}
 	void update_fruit_abundance(ResourceCell* cell, string species, map<string, float> &species_params) {
 		fruit_abundance[cell->idx] = cell->get_fruit_abundance_index();
 		f[species][cell->idx] = tanh(pow((fruit_abundance[cell->idx] / species_params["a_f"]), species_params["b_f"]));
@@ -297,15 +302,15 @@ public:
 	float* cover = 0;
 	float* fruit_abundance = 0;
 	float* d = 0;
-	int* visits = 0;
 	float visits_sum = 0;
+	int* visits = 0;
+	int* color_distribution = 0;
 	int iteration = -1;
+	int total_no_fruits = 0;
+	int size = 0;
 	DiscreteProbabilityModel selection_probabilities;
 	pair<float, float>* neighbor_offsets = 0;
-	int size = 0;
-	int* color_distribution = 0;
 	bool has_fruits = false;
-	int total_no_fruits = 0;
 
 private:
 	void init_cells() {

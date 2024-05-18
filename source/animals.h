@@ -133,7 +133,7 @@ public:
 		else {
 			seed_deposition_location = position;
 		}
-		resource_grid->get_random_location_within_cell(seed_deposition_location);
+		resource_grid->get_random_stategrid_location(seed_deposition_location);
 		seed.deposition_location = seed_deposition_location;
 		bool germination = seed.germinate_if_location_is_viable(resource_grid->state);
 		no_seeds_dispersed += germination;

@@ -164,23 +164,26 @@ public:
 		position(_position), dbh(_dbh)
 	{
 		id = _id;
-		init(seed_bearing_threshold);
+		derive_allometries(seed_bearing_threshold);
 		//printf("Tree created with id: %i, radius: %f, radius_tmin1: %f, stem dbh: %f, bark thickness: %f, LAI: %f \n", id, radius, radius_tmin1, dbh, bark_thickness, LAI);
 	};
 	bool operator==(const Tree& tree) const
 	{
 		return id == tree.id;
 	}
-	void init(float seed_bearing_threshold) {
+	bool derive_allometries(float seed_bearing_threshold) {
 		radius = get_radius_from_dbh();
+		auto [_life_phase, became_reproductive] = get_life_phase(seed_bearing_threshold);
+		life_phase = _life_phase;
 		bark_thickness = get_bark_thickness();
 		LAI = get_LAI();
-		auto [_life_phase, _] = get_life_phase(seed_bearing_threshold);
-		life_phase = _life_phase;
-		//printf("LAI: %f, stem dbh: %f, radius: %f, radius_tmin1: %f \n", LAI, dbh, radius, radius_tmin1);
+		height = get_height();
+		lowest_branch = get_lowest_branch_height();
+		return became_reproductive;
 	}
-	bool is_within_radius(pair<float, float> pos2) {
+	bool radius_spans(pair<float, float> pos2, bool verbose = false) {
 		float dist = help::get_dist(position, pos2);
+		if (verbose) printf("	Distance between trees: %f \n", dist);
 		return dist < radius;
 	}
 	pair<int, bool> get_life_phase(float& seed_bearing_threshold) {
@@ -200,13 +203,13 @@ public:
 		float basal_area = pow(10.0f, (log10(crown_area) + 0.32f) / 0.59f); // From Rossatto et al (2009), figure 6. Reordered equation.
 		return sqrtf(basal_area / M_PI); // Convert basal area (cm^2) to dbh (cm).
 	}
-	float get_dbh_increment() {
+	float get_dbh_increment(float LAI_shade) {
 		// TODO: Ensure increment is influenced by seed size.
 		float stem_increment = 3.0f * (1.0f - exp(-0.118 * dbh));	// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
-																	// Current stem dbh and increment in cm.
+		// Current stem dbh and increment in cm.
 
-		stem_increment *= (5.0f - LAI) * 0.2f;	// LAI-dependent growth reduction to introduce density dependence. Multiplication factor: ((LAI_max - LAI) / LAI_max) 
-												// From Hoffman et al (2012), Appendix 2.
+		stem_increment *= (5.0f - LAI_shade) / 5.0f;	// LAI-dependent growth reduction to introduce density dependence. Multiplication factor: ((LAI_max - LAI) / LAI_max) 
+														// From Hoffman et al (2012), Appendix 2.
 
 		return stem_increment;
 	}
@@ -239,16 +242,20 @@ public:
 		return exp(0.865 + 0.760 * ln_dbh - 0.0340 * (ln_dbh * ln_dbh)); // From Chave et al (2014), equation 6a. Value of E obtained by calculating mean of E
 																		 // values for bistable study sites.
 	}
-	bool grow(float &seed_bearing_threshold) {
+	float get_lowest_branch_height() {
+		return height * 0.4f; // We assume the tree's crown begins at 40% its height.
+							  // TODO: Perhaps make this fraction a function of dbh for added realism.
+	}
+	bool grow(float &seed_bearing_threshold, float LAI_shade) {
 		age++;
-		dbh += get_dbh_increment();
-		radius = get_radius_from_dbh();
-		auto [_life_phase, became_reproductive] = get_life_phase(seed_bearing_threshold);
-		life_phase = _life_phase;
-		bark_thickness = get_bark_thickness();
-		LAI = get_LAI();
-		height = get_height();
+		dbh += get_dbh_increment(LAI_shade);
+		bool became_reproductive = derive_allometries(seed_bearing_threshold);
 		return became_reproductive;
+	}
+	void print() {
+		printf("id: %d, dbh: %f, radius: %f, bark thickness: %f, LAI: %f, height: %f, lowest branch: %f, crown area: %f, position: %f, %f \n",
+			id, dbh, radius, bark_thickness, LAI, height, lowest_branch, crown_area, position.first, position.second
+		);
 	}
 	float radius = -1;
 	float dbh = 0.1;
@@ -256,6 +263,7 @@ public:
 	float shade = 0;
 	float LAI = 0;
 	float height = 0;
+	float lowest_branch = 0;
 	float crown_area = 0;
 	pair<float, float> position = pair(0, 0);
 	int id = -1;
@@ -377,17 +385,18 @@ public:
 	int size() {
 		return members.size();
 	}
-	void remove(Tree* tree) {
-		remove(tree->id);
+	bool remove(Tree* tree) {
+		return remove(tree->id);
 	}
-	void remove(int id) {
-		members.erase(id);
-		crops.erase(id);
-		delete_kernel(id);
+	bool remove(int id) {
+		bool removed = members.erase(id);
+		removed = removed && crops.erase(id);
+		removed = removed && delete_kernel(id);
+		return removed;
 	}
-	void delete_kernel(int id) {
+	bool delete_kernel(int id) {
 		if (get_kernel(id)->type == "wind") delete[] kernels_individual[id].cdf;
-		kernels_individual.erase(id);
+		return kernels_individual.erase(id);
 	}
 	bool is_population_member(Tree* tree) {
 		auto it = members.find(tree->id);
