@@ -75,7 +75,7 @@ public:
 
 		timer.start();
 		int pre_thinning_popsize = pop->size();
-		//thin_crowds();
+		state.thin_crowds();
 		timer.stop();
 		if (verbosity > 0) printf("Thinning crowds by removing %i trees took %f seconds.\n", pre_thinning_popsize - pop->size(), timer.elapsedSeconds());
 
@@ -118,23 +118,13 @@ public:
 	void grow() {
 		for (auto& [id, tree] : pop->members) {
 			float shade = state.compute_shade_on_individual_tree(&tree);
+			tree.shade = shade;
 			bool became_reproductive = tree.grow(seed_bearing_threshold, shade);
 			if (became_reproductive) {
 				pop->add_reproduction_system(tree);
 			}
 		}
 	}
-	/*void thin_crowds() {
-		PairSet population_sorted_by_height;
-		pop->sort_by_trait("height", population_sorted_by_height);
-		for (auto& [id, _] : population_sorted_by_height) {
-			Tree* tree = pop->get(id);
-			float shade = state.compute_shade_on_individual_tree(tree);
-			if (shade > 1.0f) {
-				kill_tree(tree);
-			}
-		}
-	}*/
 	void set_global_linear_kernel(float lin_diffuse_q1, float lin_diffuse_q2, float min, float max) {
 		global_kernels["linear"] = Kernel(1, lin_diffuse_q1, lin_diffuse_q2, min, max);
 		pop->add_kernel("linear", global_kernels["linear"]);

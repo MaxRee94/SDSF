@@ -412,6 +412,18 @@ public:
 			delete_kernel(id);
 		}
 	}
+	void get_ids_and_trait_values(string trait, map<int, double> &ids_and_trait_values) {
+		if (trait == "height") {
+			for (auto& [id, tree] : members) {
+				ids_and_trait_values[id] = tree.height;
+			}
+		}
+	}
+	void sort_by_trait(string trait, PairSet &sorted_population) {
+		map<int, double> ids_and_trait_values;
+		get_ids_and_trait_values(trait, ids_and_trait_values);
+		help::sort(ids_and_trait_values, sorted_population);
+	}
 	
 	unordered_map<int, Tree> members;
 	unordered_map<int, Crop> crops;

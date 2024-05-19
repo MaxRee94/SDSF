@@ -147,6 +147,25 @@ public:
 		int dummy;
 		return get_tree_neighbors(baseposition, search_radius, dummy);
 	}
+	void thin_crowds(bool recompute_shade = false) {
+		PairSet population_sorted_by_height;
+		population.sort_by_trait("height", population_sorted_by_height);
+		for (auto& [id, height] : population_sorted_by_height) {
+			Tree* tree = population.get(id);
+			float shade;
+			if (recompute_shade) shade = compute_shade_on_individual_tree(tree);
+			else shade = tree->shade;
+			float death_probability = max(0, (shade - 5.0f)); // We assume that trees always survive if shade <= 5.0, and always die if shade > 6.0.
+			death_probability *= death_probability;
+			if (help::get_rand_float(0, 1) < death_probability) {
+				remove_tree(tree);
+			}
+		}
+	}
+	void remove_tree(Tree* tree) {
+		grid.kill_tree_domain(tree, false);
+		population.remove(tree);
+	}
 	void set_cover_from_image(float* image, int img_width, int img_height) {
 		float pixel_size = grid.width_r / (float)img_width;
 		int no_gridcells_along_x_per_pixel = round(grid.width_r / img_width);
@@ -164,6 +183,8 @@ public:
 		printf("Image cover: %f\n", integral_image_cover);
 
 		// Set tree cover
+		int no_crowd_thinning_runs = 0;
+		int max_no_crowd_thinning_runs = 10;
 		while (grid.get_tree_cover() < integral_image_cover) {
 			int idx = probmodel.sample();
 			Cell &cell = grid.distribution[idx];
@@ -175,6 +196,13 @@ public:
 			}
 			grid.populate_tree_domain(tree);
 			grid.update_grass_LAIs_for_individual_tree(tree);
+
+			// Thin crowds when close to target tree cover
+			if (grid.tree_cover > 0.95f * integral_image_cover && no_crowd_thinning_runs < max_no_crowd_thinning_runs) {
+				no_crowd_thinning_runs++;
+				thin_crowds(true);
+			}
+
 			if (population.size() % 10000 == 0) printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
 		}
 		probmodel.free();
@@ -187,6 +215,8 @@ public:
 
 		int wind_trees = 0;
 		int animal_trees = 0;
+		int no_crowd_thinning_runs = 0;
+		int max_no_crowd_thinning_runs = 10;
 		while (grid.get_tree_cover() < _tree_cover) {
 			pair<float, float> position = grid.get_random_real_position();
 			Cell* cell = grid.get_cell_at_position(position);
@@ -202,6 +232,12 @@ public:
 			}
 			else if (population.get_crop(tree->id)->strategy.vector == "animal") {
 				animal_trees++;
+			}
+
+			// Thin crowds when close to target tree cover
+			if (grid.tree_cover > 0.95f * _tree_cover && no_crowd_thinning_runs < max_no_crowd_thinning_runs) {
+				no_crowd_thinning_runs++;
+				thin_crowds(true);
 			}
 
 			if (population.size() % 1000 == 0) {
