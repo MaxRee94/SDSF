@@ -118,9 +118,6 @@ public:
 				}
 			}
 		}
-		if (isnan(shade)) {
-			printf(" -- (in cell) Cumulative shade_contribution is nan.\n");
-		}
 		return shade;
 	}
 	float get_shading_on_tree(Tree* tree, Population* population = 0) {
