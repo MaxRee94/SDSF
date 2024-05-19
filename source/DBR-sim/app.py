@@ -170,19 +170,20 @@ def updateloop(dynamics, color_dict, color_dict_recruitment, **user_args):
     csv_path = user_args["csv_path"]
     init_csv = True
     collect_states = True
+    verbose = user_args["verbosity"] > 1
     if not user_args["headless"]:
         graphs = vis.Graphs(dynamics)
     while not termination_condition_satisfied(dynamics, start, user_args):
-        print("-- Starting update (calling from python)")
+        print("-- Starting update (calling from python)") if verbose else None
         dynamics.update()
-        print("-- Finished update")
+        print("-- Finished update") if verbose else None
         
-        print("Saving recruitment img...")
+        print("Saving recruitment img...") if verbose else None
         recruitment_img = vis.get_image_from_grid(dynamics.state.grid, False, color_dict_recruitment)
         imagepath_recruitment = os.path.join(DATA_OUT_DIR, "image_timeseries/recruitment/" + str(dynamics.time) + ".png")
         vis.save_image(recruitment_img, imagepath_recruitment, get_max(1000, recruitment_img.shape[0]))
 
-        print("-- Visualizing image...")
+        print("-- Visualizing image...") if verbose else None
         if user_args["headless"]:
             # Get a color image representation of the initial state
             img = vis.get_image_from_grid(dynamics.state.grid, collect_states, color_dict)
@@ -193,18 +194,18 @@ def updateloop(dynamics, color_dict, color_dict_recruitment, **user_args):
                 color_dict=color_dict
             )
 
-        print("-- Saving image...")
+        print("-- Saving image...") if verbose else None
         imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
         vis.save_image(img, imagepath, get_max(1000, img.shape[0]))
         
-        print("-- Exporting state data...")
+        print("-- Exporting state data...") if verbose else None
         csv_path = io.export_state(dynamics, csv_path, init_csv)
         init_csv = False
         
-        print("-- Saving tree positions...")
+        print("-- Saving tree positions...") if verbose else None
         io.save_tree_positions(dynamics)
 
-        print("-- Showing graphs...")
+        print("-- Showing graphs...") if verbose else None
         if not user_args["headless"]:
             graphs.update()
 
