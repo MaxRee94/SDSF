@@ -36,6 +36,7 @@ def set_dispersal_kernel(
         dynamics.set_global_wind_kernel(
             multi_disperser_params["wind"]["wspeed_gmean"], multi_disperser_params["wind"]["wspeed_stdev"],
             multi_disperser_params["wind"]["wind_direction"], multi_disperser_params["wind"]["wind_direction_stdev"]
+            
         );
     elif (dispersal_mode == "animal"):
         dynamics.set_global_animal_kernel(multi_disperser_params["animal"])

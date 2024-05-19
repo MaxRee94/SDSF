@@ -361,16 +361,12 @@ public:
 	float compute_shade_on_individual_tree(Tree* tree) {
 		float shade = 0;
 		float no_cells = 0;
-		pair<int, int> tree_center_gb = get_gridbased_position(tree->position);
-		int radius_gb = tree->radius / cell_width;
-		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x += 1) {
-			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y += 1) {
-				pair<float, float> cell_position(x * cell_width, y * cell_width);
-				if (tree->radius_spans(cell_position)) {
-					Cell* cell = get_cell_at_position(pair<int, int>(x, y));
-					shade += cell->get_shading_on_tree(tree);
-					no_cells += 1;
-				}
+		TreeDomainIterator it(cell_width, tree);
+		while (it.next()) {
+			if (tree->radius_spans(it.real_cell_position)) {
+				Cell* cell = get_cell_at_position(it.gb_cell_position);
+				shade += cell->get_shading_on_tree(tree);
+				no_cells += 1;
 			}
 		}
 		if (isnan(shade / tree->crown_area)) {
@@ -383,15 +379,15 @@ public:
 	bool populate_tree_domain(Tree* tree, int verbosity = 0) {
 		TreeDomainIterator it(cell_width, tree);
 		Timer t; t.start();
-		pair<int, int> prev_pos = pair<int, int>(-1, -1);
+		//pair<int, int> prev_pos = pair<int, int>(-1, -1);
 		//cout << endl;
 		while (it.next()) {
 			//printf("it .gb_cell_position: %i, %i\n", it.gb_cell_position.first, it.gb_cell_position.second);
 			if (tree->crown_area < cell_area_half) break; // Do not populate cells with trees that are smaller than half the cell area.
 			if (tree->radius_spans(it.real_cell_position)) {
-				if (prev_pos == it.gb_cell_position) printf("Already set %i, %i to forest\n", it.gb_cell_position.first, it.gb_cell_position.second);
+				//if (prev_pos == it.gb_cell_position) printf("Already set %i, %i to forest\n", it.gb_cell_position.first, it.gb_cell_position.second);
 				set_to_forest(it.gb_cell_position, tree);
-				prev_pos = it.gb_cell_position;
+				//prev_pos = it.gb_cell_position;
 				if (verbosity > 0) printf("setting (%f, %f) to forest \n", it.x, it.y);
 			}
 			if (t.elapsedSeconds() > 1) {
@@ -451,12 +447,9 @@ public:
 		burn_tree_domain(tree, dummy, -1, store_tree_death_in_color_distribution);
 	}
 	void update_grass_LAIs_for_individual_tree(Tree* tree) {
-		pair<int, int> tree_center_gb = get_gridbased_position(tree->position);
-		int radius_gb = tree->radius / cell_width;
-		for (float x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x += 1) {
-			for (float y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y += 1) {
-				distribution[pos_2_idx(pair<int, int>(x, y))].update_grass_LAI();
-			}
+		TreeDomainIterator it(cell_width, tree);
+		while (it.next()) {
+			distribution[pos_2_idx(it.gb_cell_position)].update_grass_LAI();
 		}
 	}
 	int* get_state_distribution(bool collect = true) {
