@@ -247,6 +247,7 @@ public:
 					&pop->get_crop(cell->largest_stem.second)->strategy
 				);
 				cell->insert_sapling(tree, grid->cell_area, grid->cell_halfdiagonal_sqrt);
+				grid->state_distribution[i] = -7;
 			}
 		}
 

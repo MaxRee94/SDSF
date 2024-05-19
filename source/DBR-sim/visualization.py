@@ -7,22 +7,33 @@ from helpers import *
 from config import *
 
 
-def get_color_dict(no_values, begin=0.0, end=1.0):
-    x_step = (end * no_values - begin * no_values) / no_values
-    x_range = [ no_values * begin + x_step * x for x in range(no_values) ]
-    color_dict = {v : 
-        np.array((
-            get_max((255 - (x * (2 * 255/no_values))), 0),
-            get_max(255 - get_max(255 - (x * (2 * 255/no_values)), 0) - get_max((-765/3 + (x * (2 * 255/no_values))), 0), 0),
-            get_max((-765/3 + (x * (2 * 255/no_values))), 0)
-        ), np.uint8) for v, x in zip(range(1, no_values + 1), x_range)
-    }
-    savanna_color = (170, 255, 255)
-    color_dict[0] = np.array(savanna_color, np.uint8)
-    color_dict[-5] = np.array(savanna_color, np.uint8)
-    color_dict[-6] = np.array(savanna_color, np.uint8)
-    #color_dict[-5] = np.array((0, 130, 140), np.uint8)
-    #color_dict[-5] = np.array((0, 0, 0), np.uint8)
+def get_color_dict(no_values, begin=0.0, end=1.0, show_recruitment=False):
+    color_dict = {}
+    if not show_recruitment:
+        x_step = (end * no_values - begin * no_values) / no_values
+        x_range = [ no_values * begin + x_step * x for x in range(no_values) ]
+        
+        color_dict = {v : 
+            np.array((
+                get_max((255 - (x * (2 * 255/no_values))), 0),
+                get_max(255 - get_max(255 - (x * (2 * 255/no_values)), 0) - get_max((-765/3 + (x * (2 * 255/no_values))), 0), 0),
+                get_max((-765/3 + (x * (2 * 255/no_values))), 0)
+            ), np.uint8) for v, x in zip(range(1, no_values + 1), x_range)
+        }
+
+    if show_recruitment:
+        black = (0, 0, 0)
+        color_dict[0] = np.array(black, np.uint8)
+        color_dict[-5] = np.array(black, np.uint8)
+        color_dict[-6] = np.array(black, np.uint8)
+        color_dict[-7] = np.array((150, 255, 255), np.uint8) # Recruitment
+    else:
+        savanna_color = (170, 255, 255)
+        color_dict[0] = np.array(savanna_color, np.uint8)
+        color_dict[-5] = np.array(savanna_color, np.uint8)
+        color_dict[-6] = np.array(savanna_color, np.uint8)
+        color_dict[-7] = np.array(savanna_color, np.uint8)
+        
     return color_dict
 
 
