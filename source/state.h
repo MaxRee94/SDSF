@@ -75,6 +75,33 @@ public:
 		grid.update_grass_LAIs();
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
+	float compute_shade_on_individual_tree(Tree* tree, bool debug = false) {
+		float shade = 0;
+		float no_cells = 0;
+		TreeDomainIterator it(grid.cell_width, tree);
+		while (it.next()) {
+			if (tree->radius_spans(it.real_cell_position)) {
+				Cell* cell = grid.get_cell_at_position(it.gb_cell_position);
+				float _shade = cell->get_shading_on_tree(tree, &population);
+				shade += _shade;
+				if (debug) {
+					printf("Shade in curcell: %f\n", _shade);
+					if (isnan(_shade)) {
+						printf("Shade is nan. _shade: %f, tree->crown_area: %f\n", _shade, tree->crown_area);
+
+					}
+				}
+				no_cells += 1;
+			}
+		}
+		if (isnan(shade / tree->crown_area)) {
+			printf("Shade is nan. Shade: %f, tree->crown_area: %f\n", shade, tree->crown_area);
+			tree->print();
+			compute_shade_on_individual_tree(tree, true);
+		}
+		return shade / tree->crown_area;	// We obtain mean LAI at- or above the height of the lowest branch by dividing by the tree's crown area.
+		// We use this as a measure of shading on the tree.
+	}
 	float get_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
 		vector<float> dists = { help::get_manhattan_dist(a, b) };
 		float min_dist = dists[0];

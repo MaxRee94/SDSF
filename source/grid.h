@@ -93,13 +93,18 @@ public:
 		return get_fuel_load(grass_LAI);
 	}
 	float get_LAI_of_crown_intersection_and_above(Tree* tree, Population* population = 0) {
-		if (population == nullptr) return LAI;
+		if (population == nullptr) {
+			return LAI;
+		}
 		float shade = 0;
 		float crown_reach = tree->height - tree->lowest_branch;
 		for (int tree_id : trees) {
-			if (tree_id == tree->id) continue;
+			if (tree_id == tree->id) {
+				shade += LAI; // Add the tree's own LAI to the shade (since it will cast shade on itself).
+				continue;
+			}
 			Tree* neighbor = population->get(tree_id);
-			if (neighbor->height > tree->height) shade += neighbor->LAI;
+			if (neighbor->height >= tree->height) shade += neighbor->LAI;
 			else if (neighbor->height > tree->lowest_branch) { // Implies crown intersection; a portion of the neighbor's crown will cast shade on our tree.
 				float neighbor_crown_reach = neighbor->height - neighbor->lowest_branch;
 				float crown_intersection = neighbor->height - tree->lowest_branch;
@@ -108,7 +113,13 @@ public:
 				float crown_reach_above_neighbor = (tree->height - neighbor->height);
 				float shade_contribution = LAI_intersection * (crown_reach_above_neighbor / crown_reach);
 				shade += shade_contribution;
+				if (isnan(shade_contribution)) {
+					printf(" -- (in cell) shade_contribution is nan. LAI_intersection: %f, crown_reach_above_neighbor: %f, crown_reach: %f\n", LAI_intersection, crown_reach_above_neighbor, crown_reach);
+				}
 			}
+		}
+		if (isnan(shade)) {
+			printf(" -- (in cell) Cumulative shade_contribution is nan.\n");
 		}
 		return shade;
 	}
@@ -341,24 +352,6 @@ public:
 		pair<int, int> center = tree_center_gridbased;
 		cap(center);
 		return pos_2_idx(center);
-	}
-	float compute_shade_on_individual_tree(Tree* tree) {
-		float shade = 0;
-		float no_cells = 0;
-		TreeDomainIterator it(cell_width, tree);
-		while (it.next()) {
-			if (tree->radius_spans(it.real_cell_position)) {
-				Cell* cell = get_cell_at_position(it.gb_cell_position);
-				shade += cell->get_shading_on_tree(tree);
-				no_cells += 1;
-			}
-		}
-		if (isnan(shade / tree->crown_area)) {
-			printf("Shade is nan. Shade: %f, tree->crown_area: %f\n", shade, tree->crown_area);
-			tree->print();
-		}
-		return shade / tree->crown_area;	// We obtain mean LAI at- or above the height of the lowest branch by dividing by the tree's crown area.
-											// We use this as a measure of shading on the tree.
 	}
 	bool populate_tree_domain(Tree* tree) {
 		TreeDomainIterator it(cell_width, tree);

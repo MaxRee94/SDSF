@@ -114,7 +114,7 @@ public:
 	}
 	void grow() {
 		for (auto& [id, tree] : pop->members) {
-			float shade = grid->compute_shade_on_individual_tree(&tree);
+			float shade = state.compute_shade_on_individual_tree(&tree);
 			bool became_reproductive = tree.grow(seed_bearing_threshold, shade);
 			if (became_reproductive) {
 				pop->add_reproduction_system(tree);
@@ -126,7 +126,7 @@ public:
 		pop->sort_by_trait("height", population_sorted_by_height);
 		for (auto& [id, _] : population_sorted_by_height) {
 			Tree* tree = pop->get(id);
-			float shade = grid->compute_shade_on_individual_tree(tree);
+			float shade = state.compute_shade_on_individual_tree(tree);
 			if (shade > 1.0f) {
 				kill_tree(tree);
 			}
@@ -323,11 +323,11 @@ public:
 	}
 	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue) {
 		if (verbosity > 1) printf("Burning tree %i ... \n", tree->id);
+		grid->burn_tree_domain(tree, queue, time_last_fire);
 		bool removed = pop->remove(tree->id);
 		if (!removed) {
 			printf("Tree %i could not be removed from the population. \n", tree->id);
 		}
-		grid->burn_tree_domain(tree, queue, time_last_fire);
 
 		// Check if all cells have lost their reference to the tree
 		/*bool present = state.check_grid_for_tree_presence(tree->id, 1);
