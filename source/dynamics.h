@@ -91,11 +91,6 @@ public:
 		}
 
 		printf("Tree cover: %f, Number of trees: %s \n\n", grid->get_tree_cover(), help::readable_number(pop->size()).c_str());
-		/*printf("----- MEMORY REPORT: ------\n- Trees memory size: %i \n", (int)((pop->members.size() * sizeof(Tree)) >> 10));
-		printf("- Kernels memory size: %i \n", (int)(pop->kernels_individual.size() * sizeof(pair<int, Kernel>)) >> 10);
-		printf("- Crops memory size: %i \n", (pop->crops.size() * sizeof(pair<int, Crop>)) >> 10);
-		printf("- Grid memory size: %i \n", (grid_memory_size >> 10));
-		printf("------ END REPORT ------\n");*/
 		if (verbosity == 2) for (auto& [id, tree] : pop->members) if (id % 500 == 0) printf("Radius of tree %i : %f \n", id, tree.radius);
 	}
 	void free() {
@@ -248,7 +243,6 @@ public:
 					grid->get_real_cell_position(cell),
 					&pop->get_crop(cell->largest_stem.second)->strategy
 				);
-				if (tree->id == -1) printf("\n------- Tree recruitment resulted in invalid tree id. \n");
 				cell->add_tree(tree, true, grid->cell_area, grid->cell_halfdiagonal_sqrt);
 			}
 		}
@@ -353,13 +347,11 @@ public:
 			int _tree_id = tree_id;
 			Tree* tree = pop->get(tree_id);
 			if (tree->id == -1) {
-				if (tree_id > no_created_trees_before_dispersal) printf("tree %i was created during dispersal but has been removed. \n", tree_id);
-				else printf("tree %i was created in a previous timestep or during initialization but has been removed. \n", tree_id);
+				if (tree_id > no_created_trees_before_dispersal) printf("\n\n ------- ERROR: Tree %i was created during dispersal but has been removed. \n", tree_id);
+				else printf("\n\n ------- ERROR: Tree %i was created in a previous timestep or during initialization but has been removed. \n", tree_id);
 				printf("Cell: %i, %i\n", cell->pos.first, cell->pos.second);
 				printf("Trees in cell before starting this mortality loop: ");
 				help::print_vector(&trees);
-				printf("Trees in cell in current iteration of mortality loop: ");
-				help::print_vector(&cell->trees);
 				bool present = state.check_grid_for_tree_presence(tree_id, 0);
 				if (!present) printf("\n\n\n -------------------------------------------------------------- Tree %i is not present in the grid. \n", tree_id);
 				continue;
