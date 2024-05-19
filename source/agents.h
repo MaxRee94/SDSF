@@ -203,7 +203,7 @@ public:
 		float basal_area = pow(10.0f, (log10(crown_area) + 0.32f) / 0.59f); // From Rossatto et al (2009), figure 6. Reordered equation.
 		return sqrtf(basal_area / M_PI); // Convert basal area (cm^2) to dbh (cm).
 	}
-	float get_dbh_increment(float LAI_shade, bool debug = false) {
+	float get_dbh_increment(float LAI_shade) {
 		if (LAI_shade > 5.0f) return 0.0f; // If the LAI of shading leaf cover is larger than 5, the tree is too shaded to grow.
 
 		float stem_increment = 3.0f * (1.0f - exp(-0.118 * dbh));	// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
@@ -251,8 +251,6 @@ public:
 		age++;
 		float _dbh = dbh;
 		dbh += get_dbh_increment(LAI_shade);
-		if (dbh > 21) printf("Very high dbh? %f \n", dbh);
-		if (dbh < 0 && _dbh > 0) get_dbh_increment(LAI_shade, true);
 		bool became_reproductive = derive_allometries(seed_bearing_threshold);
 		return became_reproductive;
 	}
