@@ -76,20 +76,24 @@ public:
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
 	float compute_shade_on_individual_tree(Tree* tree) {
-		float shade = 0;
+		float LAI_shade = 0;
 		float no_cells = 0;
 		TreeDomainIterator it(grid.cell_width, tree);
 		while (it.next()) {
 			if (tree->radius_spans(it.real_cell_position)) {
 				Cell* cell = grid.get_cell_at_position(it.gb_cell_position);
-				if (!cell->tree_is_present(tree->id)) printf("\nERROR: Tree not present in cell.\n");
-				float _shade = cell->get_shading_on_tree(tree, &population);
-				shade += _shade;
+				float _LAI_shade = cell->get_shading_on_tree(tree, &population);
+				LAI_shade += _LAI_shade;
+				if (_LAI_shade < tree->LAI) printf(" -- Shade is less than tree LAI. Shade: %f, tree LAI: %f\n", _LAI_shade, tree->LAI);
 				no_cells += 1;
 			}
 		}
-		return shade / tree->crown_area;	// We obtain mean LAI at- or above the height of the lowest branch by dividing by the tree's crown area.
-											// We use this as a measure of shading on the tree.
+		if (no_cells == 0) {
+			int center_idx = grid.get_capped_center_idx(it.tree_center_gb);
+			return grid.distribution[center_idx].get_shading_on_tree(tree, &population);
+		}
+		return LAI_shade / no_cells;	// We obtain mean LAI at- or above the height of the lowest branch by dividing by the tree's crown area.
+										// We use this as a measure of shading on the tree.
 	}
 	float get_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
 		vector<float> dists = { help::get_manhattan_dist(a, b) };
