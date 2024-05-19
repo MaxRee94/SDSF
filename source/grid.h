@@ -365,7 +365,7 @@ public:
 		distribution[center_idx].insert_stem(tree, cell_area, cell_halfdiagonal_sqrt);
 		return true;
 	}
-	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = true) {
+	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = false, bool store_burn_events = true) {
 		TreeDomainIterator it(cell_width, tree);
 		while (it.next()) {
 			if (tree->radius_spans(it.real_cell_position)) {
@@ -382,7 +382,7 @@ public:
 					if (store_tree_death_in_color_distribution) state_distribution[cell->idx] = -6;
 					continue;
 				}
-				state_distribution[cell->idx] = -5;
+				if (store_burn_events) state_distribution[cell->idx] = -5;
 			}
 		}
 		int center_idx = get_capped_center_idx(it.tree_center_gb);
@@ -390,7 +390,7 @@ public:
 	}
 	void kill_tree_domain(Tree* tree, bool store_tree_death_in_color_distribution = true) {
 		queue<Cell*> dummy;
-		burn_tree_domain(tree, dummy, -1, store_tree_death_in_color_distribution);
+		burn_tree_domain(tree, dummy, -1, store_tree_death_in_color_distribution, false);
 	}
 	void update_grass_LAIs_for_individual_tree(Tree* tree) {
 		TreeDomainIterator it(cell_width, tree);

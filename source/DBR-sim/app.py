@@ -122,6 +122,7 @@ def init(
     no_colors = 100
     color_dict = vis.get_color_dict(no_colors, begin=0.2, end=0.5)
     color_dict_recruitment = vis.get_color_dict(no_colors, begin=0.2, end=0.5, show_recruitment=True)
+    color_dict_fire_freq = vis.get_color_dict(no_colors, begin=0.2, end=0.5, show_fire_freq=True)
     
     # Visualize the initial state
     collect_states = True
@@ -140,7 +141,7 @@ def init(
     imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
     vis.save_image(img, imagepath)
 
-    return dynamics, color_dict, color_dict_recruitment
+    return dynamics, color_dict, color_dict_recruitment, color_dict_fire_freq
 
 
 def termination_condition_satisfied(dynamics, start_time, user_args):
@@ -164,13 +165,14 @@ def termination_condition_satisfied(dynamics, start_time, user_args):
     return satisfied
 
 
-def updateloop(dynamics, color_dict, color_dict_recruitment, **user_args):
+def updateloop(dynamics, color_dict, color_dict_recruitment, color_dict_fire_freq, **user_args):
     start = time.time()
     print("Beginning simulation...")
     csv_path = user_args["csv_path"]
     init_csv = True
     collect_states = True
     verbose = user_args["verbosity"] > 1
+    fire_freq_arrays = []
     if not user_args["headless"]:
         graphs = vis.Graphs(dynamics)
     while not termination_condition_satisfied(dynamics, start, user_args):
@@ -182,6 +184,13 @@ def updateloop(dynamics, color_dict, color_dict_recruitment, **user_args):
         recruitment_img = vis.get_image_from_grid(dynamics.state.grid, False, color_dict_recruitment)
         imagepath_recruitment = os.path.join(DATA_OUT_DIR, "image_timeseries/recruitment/" + str(dynamics.time) + ".png")
         vis.save_image(recruitment_img, imagepath_recruitment, get_max(1000, recruitment_img.shape[0]))
+        
+        fire_freq_arrays.append(dynamics.state.grid.get_distribution(False) == -5)
+        if dynamics.time > 10:
+            print("Saving fire frequency img...") if verbose else None
+            fire_freq_img = vis.get_fire_freq_image(fire_freq_arrays[-10:], color_dict_fire_freq, dynamics.state.grid.width)
+            imagepath_fire_freq = os.path.join(DATA_OUT_DIR, "image_timeseries/fire_frequencies/" + str(dynamics.time) + ".png")
+            vis.save_image(fire_freq_img, imagepath_fire_freq, get_max(1000, fire_freq_img.shape[0]))
 
         print("-- Visualizing image...") if verbose else None
         if user_args["headless"]:
@@ -271,8 +280,8 @@ def main(**user_args):
         tests = init_tests(**user_args)
         tests.run_all()
     else:
-        dynamics, color_dict, color_dict_recruitment = init(**user_args)
-        return updateloop(dynamics, color_dict, color_dict_recruitment, **user_args)
+        dynamics, color_dict, color_dict_recruitment, color_dict_fire_freq = init(**user_args)
+        return updateloop(dynamics, color_dict, color_dict_recruitment, color_dict_fire_freq, **user_args)
  
 
 

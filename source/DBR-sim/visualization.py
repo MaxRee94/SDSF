@@ -7,7 +7,7 @@ from helpers import *
 from config import *
 
 
-def get_color_dict(no_values, begin=0.0, end=1.0, show_recruitment=False):
+def get_color_dict(no_values, begin=0.0, end=1.0, show_recruitment=False, show_fire_freq=False):
     color_dict = {}
     if not show_recruitment:
         x_step = (end * no_values - begin * no_values) / no_values
@@ -21,18 +21,22 @@ def get_color_dict(no_values, begin=0.0, end=1.0, show_recruitment=False):
             ), np.uint8) for v, x in zip(range(1, no_values + 1), x_range)
         }
 
+    black = np.array((0, 0, 0), np.uint8)
+    red = np.array((0, 0, 255), np.uint8)
+    savanna_color = np.array((170, 255, 255), np.uint8)
     if show_recruitment:
-        black = (0, 0, 0)
-        color_dict[0] = np.array(black, np.uint8)
-        color_dict[-5] = np.array(black, np.uint8)
-        color_dict[-6] = np.array(black, np.uint8)
+        color_dict[0] = black
+        color_dict[-5] = black
+        color_dict[-6] = black
         color_dict[-7] = np.array((150, 255, 255), np.uint8) # Recruitment
+    elif show_fire_freq:
+        for i in range(10):
+            color_dict[i] = np.array((0, 0, i * 25), np.uint8)
     else:
-        savanna_color = (170, 255, 255)
-        color_dict[0] = np.array(savanna_color, np.uint8)
-        color_dict[-5] = np.array(savanna_color, np.uint8)
-        color_dict[-6] = np.array(savanna_color, np.uint8)
-        color_dict[-7] = np.array(savanna_color, np.uint8)
+        color_dict[0] = savanna_color
+        color_dict[-5] = savanna_color
+        color_dict[-6] = savanna_color
+        color_dict[-7] = savanna_color
         
     return color_dict
 
@@ -65,6 +69,12 @@ def get_image(img, color_dict, width):
 def get_image_from_grid(grid, collect_states, color_dict):
     img = grid.get_distribution(collect_states)
     return get_image(img, color_dict, grid.width)
+
+def get_fire_freq_image(fire_freq_arrays, color_dict_fire_freq, grid_width):
+    img = np.zeros((grid_width, grid_width), np.uint8)
+    for fire_freq_arr in fire_freq_arrays:
+        img += fire_freq_arr
+    return get_image(img, color_dict_fire_freq, grid_width)
 
 def visualize(grid, image_width=1000, collect_states=True, color_dict={0:0, 1:255}):
     img = get_image_from_grid(grid, collect_states, color_dict)    
