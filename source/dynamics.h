@@ -118,14 +118,6 @@ public:
 	void grow() {
 		for (auto& [id, tree] : pop->members) {
 			float shade = state.compute_shade_on_individual_tree(&tree);
-			if (shade > 5.0f) {
-				float death_probability = shade - 5.0f; // We assume that trees with a shade value of 6 or higher will always die.
-				death_probability *= death_probability;
-				if (help::get_rand_float(0, 1) < death_probability) {
-					kill_tree(&tree);
-					continue;
-				}
-			}
 			bool became_reproductive = tree.grow(seed_bearing_threshold, shade);
 			if (became_reproductive) {
 				pop->add_reproduction_system(tree);
