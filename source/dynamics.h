@@ -332,13 +332,6 @@ public:
 		if (!removed) {
 			printf("Tree %i could not be removed from the population. \n", tree->id);
 		}
-
-		// Check if all cells have lost their reference to the tree
-		/*bool present = state.check_grid_for_tree_presence(tree->id, 1);
-		if (present) {
-			printf("\nTree %i is still present in the grid after burning. \n", tree->id);
-			grid->burn_tree_domain(tree, queue, time_last_fire, 1);
-		}*/
 	}
 	void kill_tree(Tree* tree) {
 		if (verbosity == 2) printf("Removing tree %i ... \n", tree->id);
@@ -367,12 +360,6 @@ public:
 			else tree->last_mortality_check = time;
 		}
 	}
-	/*void kill_saplings(Cell* cell) {
-		for (auto tree_id : cell->trees) {
-			pop->remove(tree_id);
-		}
-		cell->remove_trees_sapling();
-	}*/
 	inline bool cell_will_ignite(Cell* cell, float t_start) {
 		if (t_start - cell->time_last_fire < 10e-4) {
 			return false; // Do not ignite cells which have already been burned by the current fire.
@@ -383,12 +370,6 @@ public:
 		cell->time_last_fire = t_start;
 		grid->state_distribution[grid->pos_2_idx(cell->pos)] = -5;
 		induce_tree_mortality(cell, t_start - cell->time_last_fire, queue);
-		/*if (cell->state == 1) {
-			induce_tree_mortality(cell, t_start - cell->time_last_fire, queue);
-		}
-		else {
-			kill_saplings(cell);
-		}*/
 	}
 	int percolate(Cell* cell, float t_start) {
 		std::queue<Cell*> queue;
