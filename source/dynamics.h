@@ -50,7 +50,7 @@ public:
 	void update() {
 		// Prepare next iteration
 		time++;
-		printf("Time: %i\n", time);
+		printf("\nTime: %i\n", time);
 		if (verbosity > 0) printf("Resetting state distr... \n");
 		grid->reset_state_distr();
 
@@ -67,7 +67,10 @@ public:
 
 		timer.stop();
 		if (verbosity > 0) printf("Percolation took %f seconds. Beginning growth... \n", timer.elapsedSeconds());
+		timer.start();
 		grow();
+		timer.stop();
+		if (verbosity > 0) printf("Growth took %f seconds.\n", timer.elapsedSeconds());
 		induce_background_mortality();
 
 		timer.start();
@@ -90,7 +93,7 @@ public:
 			grid_memory_size += element_size;
 		}
 
-		printf("Tree cover: %f, Number of trees: %s \n\n", grid->get_tree_cover(), help::readable_number(pop->size()).c_str());
+		printf("Tree cover: %f, Number of trees: %s \n", grid->get_tree_cover(), help::readable_number(pop->size()).c_str());
 		if (verbosity == 2) for (auto& [id, tree] : pop->members) if (id % 500 == 0) printf("Radius of tree %i : %f \n", id, tree.radius);
 	}
 	void free() {
@@ -243,7 +246,7 @@ public:
 					grid->get_real_cell_position(cell),
 					&pop->get_crop(cell->largest_stem.second)->strategy
 				);
-				cell->add_tree(tree, true, grid->cell_area, grid->cell_halfdiagonal_sqrt);
+				cell->insert_sapling(tree, grid->cell_area, grid->cell_halfdiagonal_sqrt);
 			}
 		}
 
@@ -367,7 +370,7 @@ public:
 		for (auto tree_id : cell->trees) {
 			pop->remove(tree_id);
 		}
-		cell->remove_trees_smaller_than_cell();
+		cell->remove_trees_sapling();
 	}*/
 	inline bool cell_will_ignite(Cell* cell, float t_start) {
 		if (t_start - cell->time_last_fire < 10e-4) {

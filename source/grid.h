@@ -51,29 +51,29 @@ public:
 		Tree dummy; dummy.id = id;
 		return tree_is_present(&dummy);
 	}
-	bool is_smaller_than_cell(Tree* tree, float cell_halfdiagonal_sqrt) {
+	bool is_sapling(Tree* tree, float cell_halfdiagonal_sqrt) {
 		return tree->radius < cell_halfdiagonal_sqrt;
 	}
-	void add_tree_if_not_present(Tree* tree, float cell_area, bool smaller_than_cell = true) {
+	void add_tree_if_not_present(Tree* tree, float cell_area, bool _is_sapling = true, float cell_halfdiagonal_sqrt = 0) {
 		if (!tree_is_present(tree)) {
-			add_tree(tree, smaller_than_cell, cell_area);
+			add_tree(tree, _is_sapling, cell_area);
 		}
 	}
-	bool remove_tree_if_smaller_than_cell(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt, bool smaller_than_cell = true) {
-		if (is_smaller_than_cell(tree, cell_halfdiagonal_sqrt)) {
+	bool remove_tree_if_sapling(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt, bool sapling = true) {
+		if (is_sapling(tree, cell_halfdiagonal_sqrt)) {
 			remove_tree(tree);
 		}
 		return true;
 	}
-	void add_tree(Tree* tree, bool sapling = false, float cell_area = 0, float cell_halfdiagonal_sqrt = 0) {
+	void add_tree(Tree* tree, bool _is_sapling = false, float cell_area = 0, float cell_halfdiagonal_sqrt = 0) {
 		trees.push_back(tree->id);
-		if (sapling || is_smaller_than_cell(tree, cell_halfdiagonal_sqrt))
-			add_LAI_of_tree_smaller_than_cell(tree, cell_area);
+		if (_is_sapling || is_sapling(tree, cell_halfdiagonal_sqrt))
+			add_LAI_of_tree_sapling(tree, cell_area);
 		else LAI += tree->LAI;
 	}
 	void remove_tree(Tree* tree, bool sapling = false, float cell_area = 0) {
 		help::remove_from_vec(&trees, tree->id);
-		if (sapling) remove_LAI_of_tree_smaller_than_cell(tree, cell_area);
+		if (sapling) remove_LAI_of_tree_sapling(tree, cell_area);
 		else LAI -= tree->LAI;
 	}
 	float get_grass_LAI(float _LAI) {
@@ -100,7 +100,7 @@ public:
 		float crown_reach = tree->height - tree->lowest_branch;
 		for (int tree_id : trees) {
 			if (tree_id == tree->id) {
-				shade += LAI; // Add the tree's own LAI to the shade (since it will cast shade on itself).
+				shade += tree->LAI; // Add the tree's own LAI to the shade (since it will cast shade on itself).
 				continue;
 			}
 			Tree* neighbor = population->get(tree_id);
@@ -110,12 +110,10 @@ public:
 				float crown_intersection = neighbor->height - tree->lowest_branch;
 				float LAI_intersection = neighbor->LAI * (crown_intersection / neighbor_crown_reach); // Fraction of the smaller tree's LAI that is above
 																									  // the height of the lowest branch.															
-				float crown_reach_above_neighbor = (tree->height - neighbor->height);
-				float shade_contribution = LAI_intersection * (crown_reach_above_neighbor / crown_reach);
+				float crown_reach_overlap = crown_reach - (tree->height - neighbor->height);
+				float shade_contribution = LAI_intersection * (crown_reach_overlap / crown_reach); // Fraction of our tree's crown that is affected by the shade cast by the smaller neighbor.
 				shade += shade_contribution;
-				if (isnan(shade_contribution)) {
-					printf(" -- (in cell) shade_contribution is nan. LAI_intersection: %f, crown_reach_above_neighbor: %f, crown_reach: %f\n", LAI_intersection, crown_reach_above_neighbor, crown_reach);
-				}
+				if (shade_contribution < 0) printf("---------------------- ERROR: shade contribution negative. Shade contribution: %f\n", shade_contribution);
 			}
 		}
 		return shade;
@@ -126,16 +124,20 @@ public:
 	float get_LAI() {
 		return LAI;
 	}
+	void insert_sapling(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt) {
+		insert_stem(tree, cell_area, cell_halfdiagonal_sqrt, true);
+	}
 	void set_LAI(float _LAI) {
+		printf(" --------- WARNING: Setting cell LAI manually. This should only be done for testing purposes.\n");
 		LAI = _LAI;
 	}
-	void insert_stem(Tree* tree, float cell_area) {
+	void insert_stem(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt, bool is_sapling = false) {
 		set_largest_stem(tree->dbh, tree->id);
-		add_tree_if_not_present(tree, cell_area);
+		add_tree_if_not_present(tree, cell_area, is_sapling, cell_halfdiagonal_sqrt);
 	}
-	void remove_stem(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt) {
+	void remove_stem(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt, bool is_sapling = false) {
 		reset_largest_stem();
-		remove_tree_if_smaller_than_cell(tree, cell_area, cell_halfdiagonal_sqrt);
+		remove_tree(tree, is_sapling, cell_area);
 	}
 	void reset() {
 		state = 0;
@@ -153,11 +155,12 @@ private:
 	float get_leaf_area_over_cell_area(Tree* tree, float cell_area) {
 		return (tree->LAI * tree->crown_area) / cell_area;
 	}
-	void add_LAI_of_tree_smaller_than_cell(Tree* tree, float cell_area) {
+	void add_LAI_of_tree_sapling(Tree* tree, float cell_area) {
+		if (tree->LAI > 0.5f) printf("ERROR: Tree's LAI is larger than that of a sapling. Tree LAI: %f\n", tree->LAI);
 		LAI += get_leaf_area_over_cell_area(tree, cell_area);	// Obtain the leaf area of the tree and divide by the area of the cell to get the tree's
 																// contribution to the cell's LAI.
 	}
-	void remove_LAI_of_tree_smaller_than_cell(Tree* tree, float cell_area) {
+	void remove_LAI_of_tree_sapling(Tree* tree, float cell_area) {
 		LAI -= get_leaf_area_over_cell_area(tree, cell_area);	// Same as above but now we subtract the tree's contribution to the cell's LAI.
 	}
 	float LAI = 0; // Cumulative Leaf Area Index (LAI) of all trees in the cell.
@@ -359,7 +362,7 @@ public:
 			}
 		}
 		int center_idx = get_capped_center_idx(it.tree_center_gb);
-		distribution[center_idx].insert_stem(tree, cell_area);
+		distribution[center_idx].insert_stem(tree, cell_area, cell_halfdiagonal_sqrt);
 		return true;
 	}
 	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = true) {

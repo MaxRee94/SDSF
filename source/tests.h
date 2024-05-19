@@ -45,7 +45,7 @@ public:
 		if (!success) failed_tests.push_back("Linear PDF sampler");
 		return success;
 	}
-	void create_tree_smaller_than_cell(Tree& tree) {
+	void create_tree_sapling(Tree& tree) {
 		pair<float, float> position(help::get_rand_float(0, dynamics.grid->width_r), help::get_rand_float(0, dynamics.grid->width_r));
 		float cell_width = dynamics.grid->cell_width;
 		float max_radius = 0.95f * (cell_width / 2.0);
@@ -66,7 +66,7 @@ public:
 
 		// Setup
 		Tree tree;
-		create_tree_smaller_than_cell(tree);
+		create_tree_sapling(tree);
 		pair<int, int> tree_center_gb = dynamics.grid->get_gridbased_position(tree.position);
 		Cell cell = dynamics.grid->distribution[dynamics.grid->pos_2_idx(tree_center_gb)];
 		cell.set_LAI(3);
@@ -90,19 +90,19 @@ public:
 		if (!success) failed_tests.push_back("add_tree_if_not_present");
 		return success;
 	}
-	bool test_remove_tree_if_smaller_than_cell(vector<string>& failed_tests) {
+	bool test_remove_tree_if_sapling(vector<string>& failed_tests) {
 		bool success = true;
 
 		// Setup
 		Tree tree;
-		create_tree_smaller_than_cell(tree);
+		create_tree_sapling(tree);
 		pair<int, int> tree_center_gb = dynamics.grid->get_gridbased_position(tree.position);
 		Cell cell = dynamics.grid->distribution[dynamics.grid->pos_2_idx(tree_center_gb)];
 		cell.set_LAI(3);
 		float prev_LAI = cell.get_LAI();
 
 		// Test
-		cell.remove_tree_if_smaller_than_cell(&tree, dynamics.grid->cell_area, dynamics.grid->cell_halfdiagonal_sqrt);
+		cell.remove_tree_if_sapling(&tree, dynamics.grid->cell_area, dynamics.grid->cell_halfdiagonal_sqrt);
 
 		// Check
 		if (cell.tree_is_present(&tree)) {
@@ -116,7 +116,7 @@ public:
 			success = false;
 		}
 
-		if (!success) failed_tests.push_back("remove_tree_if_smaller_than_cell");
+		if (!success) failed_tests.push_back("remove_tree_if_sapling");
 		return success;
 	}
 	bool test_is_float_equal(vector<string>& failed_tests) {
@@ -189,7 +189,7 @@ public:
 		// Run tests
 		successes += test_flammability(failed_tests);
 		successes += test_add_tree_if_not_present(failed_tests);
-		successes += test_remove_tree_if_smaller_than_cell(failed_tests);
+		successes += test_remove_tree_if_sapling(failed_tests);
 		successes += test_is_float_equal(failed_tests);
 		successes += test_approx(failed_tests);
 		successes += test_readable_number(failed_tests);
