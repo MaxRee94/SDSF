@@ -337,22 +337,6 @@ public:
 		pair<int, int> pos = get_gridbased_position(_pos);
 		return get_cell_at_position(pos);
 	}
-	void get_cells_within_radius(Tree* tree, vector<Cell*>* cells, bool remove_cells = false) {
-		pair<float, float> tree_center_gb = get_gridbased_position(tree->position);
-		int radius_gb = tree->radius / cell_width;
-		for (int x = tree_center_gb.first - radius_gb; x <= tree_center_gb.first + radius_gb; x++) {
-			for (int y = tree_center_gb.second - radius_gb; y <= tree_center_gb.second + radius_gb; y++) {
-				if (help::get_dist(pair<float, float>(x, y), tree_center_gb) < radius_gb) {
-					Cell* cell = get_cell_at_position(pair<int, int>(x, y));
-					if (remove_cells) {
-						auto it = find(cells->begin(), cells->end(), cell);
-						if (it != cells->end()) cells->erase(it);
-					}
-					else cells->push_back(cell);
-				}
-			}
-		}
-	}
 	int get_capped_center_idx(pair<float, float> &tree_center_gridbased) {
 		pair<int, int> center = tree_center_gridbased;
 		cap(center);
@@ -374,55 +358,28 @@ public:
 			tree->print();
 		}
 		return shade / tree->crown_area;	// We obtain mean LAI at- or above the height of the lowest branch by dividing by the tree's crown area.
-		// We use this as a measure of shading on the tree.
+											// We use this as a measure of shading on the tree.
 	}
-	bool populate_tree_domain(Tree* tree, int verbosity = 0) {
+	bool populate_tree_domain(Tree* tree) {
 		TreeDomainIterator it(cell_width, tree);
-		Timer t; t.start();
-		//pair<int, int> prev_pos = pair<int, int>(-1, -1);
-		//cout << endl;
 		while (it.next()) {
-			//printf("it .gb_cell_position: %i, %i\n", it.gb_cell_position.first, it.gb_cell_position.second);
 			if (tree->crown_area < cell_area_half) break; // Do not populate cells with trees that are smaller than half the cell area.
 			if (tree->radius_spans(it.real_cell_position)) {
-				//if (prev_pos == it.gb_cell_position) printf("Already set %i, %i to forest\n", it.gb_cell_position.first, it.gb_cell_position.second);
 				set_to_forest(it.gb_cell_position, tree);
-				//prev_pos = it.gb_cell_position;
-				if (verbosity > 0) printf("setting (%f, %f) to forest \n", it.x, it.y);
-			}
-			if (t.elapsedSeconds() > 1) {
-				printf("Taking forever. tree center gb: %i, %i, radius: %f. \nAborting tree domain population..\n", it.tree_center_gb.first, it.tree_center_gb.second, tree->radius);
-				return false;
 			}
 		}
 		int center_idx = get_capped_center_idx(it.tree_center_gb);
 		distribution[center_idx].insert_stem(tree, cell_area);
-
-		if (verbosity > 0) {
-			printf("Verbose domain population report: tree center gb: %i, %i, radius: %f.\n", it.tree_center_gb.first, it.tree_center_gb.second, tree->radius);
-		}
 		return true;
 	}
-	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = true, bool debug = false) {
+	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = true) {
 		TreeDomainIterator it(cell_width, tree);
-		Timer t; t.start();
-		if (debug) {
-			cout << "recursing tree burn\n";
-			printf("tree center gb: %i, %i, radius gb: %i\n", it.tree_center_gb.first, it.tree_center_gb.second, it.radius_gb);
-			printf("tree center real: %f, %f, radius real: %f\n", tree->position.first, tree->position.second, tree->radius);
-		}
 		while (it.next()) {
-			if (debug) {
-				printf("checking cell position: %f, %f\n", it.real_cell_position.first, it.real_cell_position.second);
-			}
-			if (tree->radius_spans(it.real_cell_position, debug)) {
+			if (tree->radius_spans(it.real_cell_position)) {
 				Cell* cell = get_cell_at_position(it.gb_cell_position);
-				//if (distribution[cell->idx].state == 0) continue;
 					
 				// Remove tree id from cell->trees.
 				cell->remove_tree(tree);
-
-				if (debug) printf("-- Removed tree %i from cell %i\n", tree->id, cell->idx);
 
 				// Set cell to savanna if the cumulative leaf area is less than half of the area of the cell
 				// (leaf area < 0.5 * cell_area   <==>   (LAI * cell_area) < 0.5 * cell_area   <==>   LAI < 0.5)).
@@ -433,10 +390,6 @@ public:
 					continue;
 				}
 				state_distribution[cell->idx] = -5;
-
-				if (t.elapsedSeconds() > 1) {
-					printf("Taking forever. tree center gb: %i, %i, radius: %f...\n", it.tree_center_gb.first, it.tree_center_gb.second, tree->radius);
-				}
 			}
 		}
 		int center_idx = get_capped_center_idx(it.tree_center_gb);
@@ -482,7 +435,6 @@ public:
 		no_forest_cells -= (distribution[idx].state == 1);
 
 		distribution[idx].state = 0;
-		//distribution[idx].LAI = 0;
 		if (_time_last_fire != -1) distribution[idx].time_last_fire = _time_last_fire;
 	}
 	float get_LAI_within_bb(pair<int, int> bb_min, pair<int, int> bb_max, float bb_area) {
