@@ -44,6 +44,9 @@ public:
 		hospitable = hospitable && !seedling_is_shaded_out();
 		return hospitable;
 	}
+	float query_grass_LAI() {
+		return grass_LAI;
+	}
 	bool tree_is_present(Tree* tree) {
 		return find(trees.begin(), trees.end(), tree->id) != trees.end();
 	}
