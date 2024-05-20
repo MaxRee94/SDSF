@@ -405,7 +405,7 @@ public:
 		if (collect > 0) {
 			for (int i = 0; i < no_cells; i++) {
 				if (collect == 1) {
-					if (distribution[i].state == 1 && state_distribution[i] == 0) state_distribution[i] = max(99.0f - (distribution[i].get_LAI() * 19.0f), 1);
+					if (distribution[i].state == 1) state_distribution[i] = max(99.0f - (distribution[i].get_LAI() * 19.0f), 1);
 				}
 				else if (collect == 2) {
 					state_distribution[i] = distribution[i].query_grass_LAI() * 33;

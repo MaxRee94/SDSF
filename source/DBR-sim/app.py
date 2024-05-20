@@ -122,7 +122,7 @@ def init(
     no_colors = 100
     color_dict = vis.get_color_dict(no_colors, begin=0.2, end=0.5)
     color_dict_recruitment = vis.get_color_dict(no_colors, begin=0.2, end=0.5, distr_type="recruitment")
-    color_dict_fire_freq = vis.get_color_dict(no_colors, begin=0.2, end=0.5, distr_type="fire_freq")
+    color_dict_fire_freq = vis.get_color_dict(10, begin=0.2, end=0.5, distr_type="fire_freq")
     color_dict_blackwhite = vis.get_color_dict(no_colors, distr_type="blackwhite")
     
     # Visualize the initial state

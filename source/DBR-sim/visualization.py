@@ -35,8 +35,8 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
         color_dict[-6] = black
         color_dict[-7] = np.array((150, 255, 255), np.uint8) # Recruitment
     elif distr_type == "fire_freq":
-        color_step = 255 / no_values
-        for i in range(10):
+        color_step = 255 / (no_values + 1)
+        for i in range(no_values + 1):
             color_dict[i] = np.array((0, 0, i * color_step), np.uint8)
     elif distr_type == "normal":
         color_dict[0] = savanna_color
