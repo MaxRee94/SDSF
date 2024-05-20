@@ -57,7 +57,6 @@ public:
 		// Do simulation
 		Timer timer; timer.start();
 		if (verbosity > 0) printf("Beginning dispersal... \n");
-		no_created_trees_before_dispersal = pop->no_created_trees;
 		if (time > 0) disperse();
 
 		timer.stop();
@@ -334,13 +333,10 @@ public:
 			int _tree_id = tree_id;
 			Tree* tree = pop->get(tree_id);
 			if (tree->id == -1) {
-				if (tree_id > no_created_trees_before_dispersal) printf("\n\n ------- ERROR: Tree %i was created during dispersal but has been removed. \n", tree_id);
-				else printf("\n\n ------- ERROR: Tree %i was created in a previous timestep or during initialization but has been removed. \n", tree_id);
-				printf("Cell: %i, %i\n", cell->pos.first, cell->pos.second);
+				printf("\n\n ------- ERROR: Tree %i was created has been removed but is still present in cell %i, %i. \n", tree_id, cell->pos.first, cell->pos.second);
 				printf("Trees in cell before starting this mortality loop: ");
 				help::print_vector(&trees);
 				bool present = state.check_grid_for_tree_presence(tree_id, 0);
-				if (!present) printf("\n\n\n -------------------------------------------------------------- Tree %i is not present in the grid. \n", tree_id);
 				continue;
 			}
 			if (tree->last_mortality_check == time) continue; // Skip mortality evaluation if this was already done in the current timestep.
@@ -417,7 +413,6 @@ public:
 	int pop_size = 0;
 	int verbosity = 0;
 	int seeds_dispersed = 0;
-	int no_created_trees_before_dispersal = 0;
 	State state;
 	Population* pop = 0;
 	Grid* grid = 0;
