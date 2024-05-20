@@ -213,6 +213,11 @@ def updateloop(dynamics, color_dict, color_dict_recruitment, color_dict_fire_fre
         imagepath_fuel = os.path.join(DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
         vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
         
+        print("-- Saving tree LAI image...") if verbose else None
+        tree_LAI_img = vis.get_image_from_grid(dynamics.state.grid, 1, color_dict_blackwhite)
+        imagepath_fuel = os.path.join(DATA_OUT_DIR, "image_timeseries/tree_LAI/" + str(dynamics.time) + ".png")
+        vis.save_image(tree_LAI_img, imagepath_fuel, get_max(1000, tree_LAI_img.shape[0]))
+        
         print("-- Exporting state data...") if verbose else None
         csv_path = io.export_state(dynamics, csv_path, init_csv)
         init_csv = False

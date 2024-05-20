@@ -9,7 +9,6 @@ public:
 	State() {
 		grid = Grid();
 		population = Population();
-		init_neighbor_offsets();
 	}
 	State(
 		int gridsize, float cell_width, float max_dbh, float dbh_q1, float dbh_q2,
@@ -22,18 +21,6 @@ public:
 			seed_bearing_threshold
 		);
 		grid = Grid(gridsize, cell_width);
-		init_neighbor_offsets();
-	}
-	void init_neighbor_offsets() {
-		neighbor_offsets = new pair<int, int>[8];
-		int q = 0;
-		for (int i = -1; i < 2; i++) {
-			for (int j = -1; j < 2; j++) {
-				if (i == 0 && j == 0) continue;
-				neighbor_offsets[q] = pair<int, int>(i, j);
-				q++;
-			}
-		}
 	}
 	bool check_grid_for_tree_presence(int tree_id, int verbose = 0) {
 		bool presence = false;
@@ -101,7 +88,7 @@ public:
 		int min_idx = 0;
 		for (int i = 0; i < 8; i++) {
 			float dist = help::get_dist(
-				neighbor_offsets[i] * grid.width_r + b, a
+				grid.neighbor_offsets[i] * grid.width_r + b, a
 			);
 			if (dist < min_dist && dist > 0) {
 				min_dist = dist;
@@ -111,7 +98,7 @@ public:
 		}
 		float dist;
 		if (min_idx != 0) {
-			dist = help::get_dist(neighbor_offsets[min_idx - 1] * grid.width_r + b, a);
+			dist = help::get_dist(grid.neighbor_offsets[min_idx - 1] * grid.width_r + b, a);
 		}
 		else dist = help::get_dist(a, b);
 		return dist;
@@ -280,7 +267,6 @@ public:
 	}
 	Grid grid;
 	Population population;
-	pair<int, int>* neighbor_offsets = 0;
 	float initial_tree_cover = 0;
 	float saturation_threshold = 0;
 };

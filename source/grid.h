@@ -10,7 +10,6 @@ public:
 	int idx = 0;
 	float time_last_fire = 0;
 	vector<int> trees;
-	float grass_LAI = 0;
 	pair<int, int> pos;
 	bool seedling_present = false;
 	pair<float, int> largest_stem;	// < float: dbh of largest tree or seedling that has its stem in this cell,
@@ -34,8 +33,8 @@ public:
 	void reset_largest_stem() {
 		largest_stem = pair<float, int>(0, 0);
 	}
-	void update_grass_LAI() {
-		grass_LAI = get_grass_LAI();
+	void update_grass_LAI(float tree_LAI_local_neighborhood) {
+		grass_LAI = compute_grass_LAI(tree_LAI_local_neighborhood);
 	}
 	bool is_hospitable(pair<float, int> tree_proxy) {
 		// If tree_proxy is larger than the current largest stem in the cell, it is assumed to be able to outcompete the other tree.
@@ -79,21 +78,15 @@ public:
 		if (sapling) remove_LAI_of_tree_sapling(tree, cell_area);
 		else LAI -= tree->LAI;
 	}
-	float get_grass_LAI(float _LAI) {
-		_LAI -= int(_LAI / 3.0f) * 3.0f;	// Effectively _LAI modulo 3; Done to avoid re-intersecting the y=0 line at about LAI=4.3 
-											// (grass LAI would then (incorrectly) start rising again).
-		float _grass_LAI = max(0, 0.241f * (_LAI * _LAI) - 1.709f * _LAI + 2.899f); // Relationship between grass- and tree LAI from 
-																					// Hoffman et al. (2012), figure 2b.									
+	float compute_grass_LAI(float tree_LAI) {
+		tree_LAI -= int(tree_LAI / 3.0f) * 3.0f;	// Effectively tree_LAI modulo 3; Done to avoid re-intersecting the y=0 line at about LAI=4.3 
+													// (grass LAI would then (incorrectly) start rising again).
+		float _grass_LAI = max(0, 0.241f * (tree_LAI * tree_LAI) - 1.709f * tree_LAI + 2.899f);		// Relationship between grass- and tree LAI from 
+																									// Hoffman et al. (2012), figure 2b.									
 		return _grass_LAI;
 	}
-	float get_grass_LAI() {
-		return get_grass_LAI(LAI);
-	}
-	float get_fuel_load(float _grass_LAI) {
-		return 0.344946533f * _grass_LAI; // Normalize to range [0, 1] by multiplying with inverse of max value (2.899).
-	}
 	float get_fuel_load() {
-		return get_fuel_load(grass_LAI);
+		return 0.344946533f * grass_LAI; // Normalize to range [0, 1] by multiplying with inverse of max value (2.899).
 	}
 	float get_LAI_of_crown_intersection_and_above(Tree* tree, Population* population = 0) {
 		if (population == nullptr) {
@@ -167,6 +160,7 @@ private:
 		LAI -= get_leaf_area_over_cell_area(tree, cell_area);	// Same as above but now we subtract the tree's contribution to the cell's LAI.
 	}
 	float LAI = 0; // Cumulative Leaf Area Index (LAI) of all trees in the cell.
+	float grass_LAI = 0;
 };
 
 
@@ -234,6 +228,7 @@ public:
 		no_cells = width * width;
 		no_savanna_cells = no_cells;
 		init_grid_cells();
+		init_neighbor_offsets();
 		reset_state_distr();
 		area = no_cells * cell_width * cell_width;
 		cell_area = cell_width * cell_width;
@@ -252,6 +247,17 @@ public:
 	void free() {
 		delete[] distribution;
 		delete[] state_distribution;
+	}
+	void init_neighbor_offsets() {
+		neighbor_offsets = new pair<int, int>[8];
+		int q = 0;
+		for (int i = -1; i < 2; i++) {
+			for (int j = -1; j < 2; j++) {
+				if (i == 0 && j == 0) continue;
+				neighbor_offsets[q] = pair<int, int>(i, j);
+				q++;
+			}
+		}
 	}
 	int pos_2_idx(pair<float, float> pos) {
 		return width * (pos.second / cell_width) + (pos.first / cell_width);
@@ -308,11 +314,6 @@ public:
 			if (cell->state == 0) return cell;
 		}
 		throw("Runtime error: Could not find savanna cell after %i attempts.\n", fetch_attempt_limit);
-	}
-	void update_grass_LAIs() {
-		for (int i = 0; i < no_cells; i++) {
-			distribution[i].update_grass_LAI();
-		}
 	}
 	virtual void reset() {
 		for (int i = 0; i < no_cells; i++) {
@@ -378,7 +379,7 @@ public:
 				cell->remove_tree(tree);
 
 				// Set cell to savanna if the cumulative leaf area is less than half of the area of the cell
-				// (leaf area < 0.5 * cell_area   <==>   (LAI * cell_area) < 0.5 * cell_area   <==>   LAI < 0.5)).
+				// (leaf area < 0.5 * cell_area   <==>   (LAI * cell_area) < 0.5 * cell_area   <==>   LAI < 0.5).
 				if (cell->get_LAI() < 0.5f) { 
 					queue.push(cell);
 					set_to_savanna(cell->idx, time_last_fire);
@@ -395,10 +396,49 @@ public:
 		queue<Cell*> dummy;
 		burn_tree_domain(tree, dummy, -1, store_tree_death_in_color_distribution, false);
 	}
+	float get_cumulative_onering_LAI_for_cell(Cell* cell) {
+		float LAI_sum = 0;
+		for (int i = 0; i < 8; i++) {
+			pair<int, int> pos = cell->pos + neighbor_offsets[i];
+			Cell* neighbor = get_cell_at_position(pos);
+			LAI_sum += neighbor->get_LAI();
+		}
+		return LAI_sum;
+	}
+	float get_tree_LAI_of_local_neighborhood(Cell* cell, bool debug=false) {
+		float LAI = get_cumulative_onering_LAI_for_cell(cell);
+		LAI += cell->get_LAI();
+		LAI /= 9.0f; // Get the average LAI of the cell and its neighbors.
+		
+		if (debug) {
+			float neighbor_LAI_sum = 0;
+			for (int i = 0; i < 8; i++) {
+				neighbor_LAI_sum += get_tree_LAI_of_local_neighborhood(get_cell_at_position(cell->pos + neighbor_offsets[i]), false);
+			}
+			float mean_neighbor_LAI = neighbor_LAI_sum / 8.0f;
+			if (mean_neighbor_LAI > 1.0f && LAI < 0.5f) {
+				printf("Average smoothed neighbor LAI: %f, smoothed cell LAI: %f, unsmoothed cell LAI: %f, average unsmoothed neighbor LAI: %f\n",
+					mean_neighbor_LAI, LAI, cell->get_LAI(), get_cumulative_onering_LAI_for_cell(cell) / 8.0f);
+			}
+		}
+		
+		//return LAI;
+		return cell->get_LAI();
+	}
+	void update_grass_LAI(Cell* cell) {
+		float tree_LAI_local_neighborhood = get_tree_LAI_of_local_neighborhood(cell);
+		cell->update_grass_LAI(tree_LAI_local_neighborhood);
+	}
+	void update_grass_LAIs() {
+		for (int i = 0; i < no_cells; i++) {
+			update_grass_LAI(&distribution[i]);
+		}
+	}
 	void update_grass_LAIs_for_individual_tree(Tree* tree) {
 		TreeDomainIterator it(cell_width, tree);
 		while (it.next()) {
-			distribution[pos_2_idx(it.gb_cell_position)].update_grass_LAI();
+			Cell* cell = get_cell_at_position(it.gb_cell_position);
+			update_grass_LAI(cell);
 		}
 	}
 	int* get_state_distribution(int collect = 0) {
@@ -498,4 +538,5 @@ public:
 	float cell_area = 0;
 	float cell_area_half = 0;
 	float cell_halfdiagonal_sqrt = 0;
+	pair<int, int>* neighbor_offsets = 0;
 };
