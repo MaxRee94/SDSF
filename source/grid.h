@@ -422,8 +422,8 @@ public:
 			}
 		}
 		
-		//return LAI;
-		return cell->get_LAI();
+		return LAI;
+		//return cell->get_LAI();
 	}
 	void update_grass_LAI(Cell* cell) {
 		float tree_LAI_local_neighborhood = get_tree_LAI_of_local_neighborhood(cell);
