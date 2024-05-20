@@ -7,9 +7,9 @@ from helpers import *
 from config import *
 
 
-def get_color_dict(no_values, begin=0.0, end=1.0, show_recruitment=False, show_fire_freq=False):
+def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
     color_dict = {}
-    if not show_recruitment:
+    if distr_type == "normal":
         x_step = (end * no_values - begin * no_values) / no_values
         x_range = [ no_values * begin + x_step * x for x in range(no_values) ]
         
@@ -20,19 +20,25 @@ def get_color_dict(no_values, begin=0.0, end=1.0, show_recruitment=False, show_f
                 get_max((-765/3 + (x * (2 * 255/no_values))), 0)
             ), np.uint8) for v, x in zip(range(1, no_values + 1), x_range)
         }
+    elif distr_type == "blackwhite":
+        x_step = (end * no_values - begin * no_values) / no_values
+        x_range = [ no_values * begin + x_step * x for x in range(no_values) ]
+        
+        color_dict = {i : np.array((round(i * 2.55), round(i * 2.55), round(i * 2.55)), np.uint8) for i in range(100)}
 
     black = np.array((0, 0, 0), np.uint8)
     red = np.array((0, 0, 255), np.uint8)
     savanna_color = np.array((170, 255, 255), np.uint8)
-    if show_recruitment:
+    if distr_type == "recruitment":
         color_dict[0] = black
         color_dict[-5] = black
         color_dict[-6] = black
         color_dict[-7] = np.array((150, 255, 255), np.uint8) # Recruitment
-    elif show_fire_freq:
+    elif distr_type == "fire_freq":
+        color_step = 255 / no_values
         for i in range(10):
-            color_dict[i] = np.array((0, 0, i * 25), np.uint8)
-    else:
+            color_dict[i] = np.array((0, 0, i * color_step), np.uint8)
+    elif distr_type == "normal":
         color_dict[0] = savanna_color
         color_dict[-5] = savanna_color
         color_dict[-6] = savanna_color

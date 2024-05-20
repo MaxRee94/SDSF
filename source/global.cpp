@@ -135,7 +135,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def_readwrite("width", &Grid::width)
         .def_readwrite("width_r", &Grid::width_r)
         .def_readwrite("tree_cover", &Grid::tree_cover)
-        .def("get_distribution", [](Grid &grid, bool &collect_states) {
+        .def("get_distribution", [](Grid &grid, int &collect_states) {
             int* state_distribution = grid.get_state_distribution(collect_states);
             return as_2d_numpy_array(state_distribution, grid.width);
         });
