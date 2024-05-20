@@ -34,7 +34,7 @@ public:
 		linear_disperser = Disperser();
 		wind_disperser = WindDispersal();
 		animal_dispersal = AnimalDispersal();
-		neighbor_offsets = state.neighbor_offsets;
+		neighbor_offsets = state.grid.neighbor_offsets;
 		pop = &state.population;
 		grid = &state.grid;
 	}
@@ -63,9 +63,9 @@ public:
 		if (verbosity > 0) printf("Dispersal took %f seconds. Beginning burn... \n", timer.elapsedSeconds());
 		timer.start();
 		burn();
-
 		timer.stop();
-		if (verbosity > 0) printf("Percolation took %f seconds. Beginning growth... \n", timer.elapsedSeconds());
+
+		if (verbosity > 0) printf("Burns took %f seconds. Beginning growth... \n", timer.elapsedSeconds());
 		timer.start();
 		grow();
 		timer.stop();
@@ -81,7 +81,7 @@ public:
 		// Do post-simulation cleanup and data reporting
 		printf("Repopulating grid... \n");
 		state.repopulate_grid(verbosity);
-		if (verbosity > 0) printf("Redoing grid count... \n");
+		if (verbosity > 1) printf("Redoing grid count... \n");
 		grid->redo_count();
 		report_state();
 	}
@@ -103,7 +103,7 @@ public:
 	}
 	vector<float> get_ordered_fire_ignition_times() {
 		int i = 0;
-		float fire_count = round((self_ignition_factor * rainfall * (float)grid->no_savanna_cells * grid->cell_area) / (float)1e6 );
+		float fire_count = (self_ignition_factor * rainfall * (float)grid->no_savanna_cells * grid->cell_area) / (float)1e6;
 		if (fire_count < 1) fire_count = help::get_rand_float(0, 1) < fire_count; // If fire_count is less than 1, we stochastically decide whether to ignite a fire or not.
 		vector<float> fire_ignition_times = {};
 		while (i < fire_count) {
@@ -273,6 +273,7 @@ public:
 		if (verbosity == 2) printf("Updated tree flammabilities.\n");
 		vector<float> fire_ignition_times = get_ordered_fire_ignition_times();
 		int no_burned_cells = 0;
+		int popsize_before_burns = pop->size();
 		int re_ignitions = 0;
 		fire_spatial_extent = 0;
 		for (int i = 0; i < fire_ignition_times.size(); i++) {
@@ -285,13 +286,14 @@ public:
 			}
 		}
 		fire_spatial_extent = ((float)no_burned_cells * grid->cell_area) / (float)fire_ignition_times.size();
+		int no_trees_killed = popsize_before_burns - pop->size();
 		if (verbosity > 0) {
 			cout.precision(2);
 			cout <<
 				"-- Fraction of domain burned: " << (float)no_burned_cells / (float)grid->no_cells << ", Area burned: " <<
 				scientific << (float)no_burned_cells * grid->cell_area << " / " << grid->area << " m^2 \n";
 			cout << fixed;
-			printf("-- Number of fires: %i \n", (int)fire_ignition_times.size());
+			printf("-- Number of fires: %i, number of trees killed: %s \n", (int)fire_ignition_times.size(), help::readable_number(no_trees_killed).c_str());
 		}
 	}
 	float get_forest_flammability(Cell* cell, float fire_free_interval) {
