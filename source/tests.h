@@ -73,7 +73,7 @@ public:
 		float prev_LAI = cell.get_LAI();
 
 		// Test
-		cell.add_tree_if_not_present(&tree, dynamics.grid->cell_area);
+		cell.add_tree_if_not_present(&tree, dynamics.grid->cell_area, dynamics.grid->cell_halfdiagonal_sqrt);
 
 		// Check
 		if (cell.trees.size() == 0) {

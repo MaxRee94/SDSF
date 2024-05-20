@@ -67,20 +67,20 @@ public:
 		}
 		return true;
 	}
-	void add_tree(Tree* tree, bool _is_sapling = false, float cell_area = 0, float cell_halfdiagonal_sqrt = 0) {
+	void add_tree(Tree* tree, float cell_area = 0, float cell_halfdiagonal_sqrt = 0) {
 		trees.push_back(tree->id);
-		if (_is_sapling || is_sapling(tree, cell_halfdiagonal_sqrt))
+		if (is_sapling(tree, cell_halfdiagonal_sqrt))
 			add_LAI_of_tree_sapling(tree, cell_area);
 		else LAI += tree->LAI;
 	}
-	void remove_tree(Tree* tree, bool sapling = false, float cell_area = 0) {
+	void remove_tree(Tree* tree, float cell_area = 0, float cell_halfdiagonal_sqrt = 0) {
 		help::remove_from_vec(&trees, tree->id);
-		if (sapling) remove_LAI_of_tree_sapling(tree, cell_area);
+		if (is_sapling(tree, cell_halfdiagonal_sqrt)) remove_LAI_of_tree_sapling(tree, cell_area);
 		else LAI -= tree->LAI;
 	}
 	float compute_grass_LAI(float tree_LAI) {
-		tree_LAI -= int(tree_LAI / 3.0f) * 3.0f;	// Effectively tree_LAI modulo 3; Done to avoid re-intersecting the y=0 line at about LAI=4.3 
-													// (grass LAI would then (incorrectly) start rising again).
+		tree_LAI = min(3.0f, tree_LAI);			// Done to avoid re-intersecting the y=0 line at about LAI=4.3 
+												// (grass LAI would then (incorrectly) start rising again).
 		float _grass_LAI = max(0, 0.241f * (tree_LAI * tree_LAI) - 1.709f * tree_LAI + 2.899f);		// Relationship between grass- and tree LAI from 
 																									// Hoffman et al. (2012), figure 2b.									
 		return _grass_LAI;
@@ -90,7 +90,7 @@ public:
 	}
 	float get_LAI_of_crown_intersection_and_above(Tree* tree, Population* population = 0) {
 		if (population == nullptr) {
-			return LAI;
+			return get_LAI();
 		}
 		float shade = 0;
 		float crown_reach = tree->height - tree->lowest_branch;
@@ -121,19 +121,19 @@ public:
 		return LAI;
 	}
 	void insert_sapling(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt) {
-		insert_stem(tree, cell_area, cell_halfdiagonal_sqrt, true);
+		insert_stem(tree, cell_area, cell_halfdiagonal_sqrt);
 	}
 	void set_LAI(float _LAI) {
 		printf(" --------- WARNING: Setting cell LAI manually. This should only be done for testing purposes.\n");
 		LAI = _LAI;
 	}
-	void insert_stem(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt, bool is_sapling = false) {
+	void insert_stem(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt) {
 		set_largest_stem(tree->dbh, tree->id);
-		add_tree_if_not_present(tree, cell_area, is_sapling, cell_halfdiagonal_sqrt);
+		add_tree_if_not_present(tree, cell_area, cell_halfdiagonal_sqrt);
 	}
-	void remove_stem(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt, bool is_sapling = false) {
+	void remove_stem(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt) {
 		reset_largest_stem();
-		remove_tree(tree, is_sapling, cell_area);
+		remove_tree(tree, cell_area);
 	}
 	void reset() {
 		state = 0;
@@ -152,7 +152,7 @@ private:
 		return (tree->LAI * tree->crown_area) / cell_area;
 	}
 	void add_LAI_of_tree_sapling(Tree* tree, float cell_area) {
-		if (tree->LAI > 0.5f) printf("ERROR: Tree's LAI is larger than that of a sapling. Tree LAI: %f\n", tree->LAI);
+		float _LAI = LAI;
 		LAI += get_leaf_area_over_cell_area(tree, cell_area);	// Obtain the leaf area of the tree and divide by the area of the cell to get the tree's
 																// contribution to the cell's LAI.
 	}
