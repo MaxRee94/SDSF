@@ -139,6 +139,7 @@ public:
 		population.sort_by_trait("height", population_sorted_by_height);
 		for (auto& [id, height] : population_sorted_by_height) {
 			Tree* tree = population.get(id);
+			if (tree->life_phase == 2) continue; // We assume that mature trees are no longer vulnerable to death by shading.
 			float shade;
 			if (recompute_shade) shade = compute_shade_on_individual_tree(tree);
 			else shade = tree->shade;
