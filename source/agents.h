@@ -172,7 +172,8 @@ public:
 		return id == tree.id;
 	}
 	bool derive_allometries(float seed_bearing_threshold) {
-		radius = get_radius_from_dbh();
+		crown_area = compute_crown_area();
+		radius = compute_radius();
 		auto [_life_phase, became_reproductive] = get_life_phase(seed_bearing_threshold);
 		life_phase = _life_phase;
 		bark_thickness = get_bark_thickness();
@@ -220,8 +221,9 @@ public:
 	float get_leaf_area() {
 		return 0.147 * pow(dbh, 2.053); // From Hoffman et al (2012), figure 5b. Leaf area in m^2
 	}
-	float get_crown_area() {
-		return M_PI * (radius * radius); // Crown area in m^2.
+	float compute_crown_area() {
+		return 0.551f * pow(dbh, 1.28f);	// Crown area in m^2. y = b x^a. Parameters of a and b are averages of fits for 5 trees presented in Blanchard et al (2015),
+											// page 1957 (explains the model in "Fitting tree allometries"), and table 4 (shows regression results).
 	}
 	float get_LAI() {
 		float leaf_area = get_leaf_area();
@@ -231,7 +233,7 @@ public:
 		float survival_probability = get_survival_probability(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 		return help::get_rand_float(0.0f, 1.0f) < survival_probability;
 	}
-	float get_radius_from_dbh() {
+	float compute_radius() {
 		float radius_breast_height = dbh * 0.5f; // Convert dbh (cm) to stem radius at breast height (cm).
 		float basal_area = M_PI * radius_breast_height * radius_breast_height;
 		crown_area = pow(10.0f, 0.59 * log10(basal_area) - 0.32); // From Rossatto et al (2009), figure 6.
