@@ -124,6 +124,11 @@ def init(
     color_dict_recruitment = vis.get_color_dict(no_colors, begin=0.2, end=0.5, distr_type="recruitment")
     color_dict_fire_freq = vis.get_color_dict(10, begin=0.2, end=0.5, distr_type="fire_freq")
     color_dict_blackwhite = vis.get_color_dict(no_colors, distr_type="blackwhite")
+    color_dicts = {}
+    color_dicts["normal"] = color_dict
+    color_dicts["recruitment"] = color_dict_recruitment
+    color_dicts["fire_freq"] = color_dict_fire_freq
+    color_dicts["blackwhite"] = color_dict_blackwhite
     
     # Visualize the initial state
     collect_states = True
@@ -142,7 +147,7 @@ def init(
     imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
     vis.save_image(img, imagepath)
 
-    return dynamics, color_dict, color_dict_recruitment, color_dict_fire_freq, color_dict_blackwhite
+    return dynamics, color_dicts
 
 
 def termination_condition_satisfied(dynamics, start_time, user_args):
@@ -166,10 +171,54 @@ def termination_condition_satisfied(dynamics, start_time, user_args):
     return satisfied
 
 
-def updateloop(dynamics, color_dict, color_dict_recruitment, color_dict_fire_freq, color_dict_blackwhite, **user_args):
+def do_visualizations(dynamics, fire_freq_arrays, verbose, color_dicts, collect_states, visualization_types, user_args):
+    if ("recruitment" in visualization_types):
+        print("Saving recruitment img...") if verbose else None
+        recruitment_img = vis.get_image_from_grid(dynamics.state.grid, 0, color_dicts["recruitment"])
+        imagepath_recruitment = os.path.join(DATA_OUT_DIR, "image_timeseries/recruitment/" + str(dynamics.time) + ".png")
+        vis.save_image(recruitment_img, imagepath_recruitment, get_max(1000, recruitment_img.shape[0]))
+    
+    if ("fire_freq" in visualization_types):
+        fire_freq_arrays.append(dynamics.state.grid.get_distribution(0) == -5)
+        if dynamics.time > 10:
+            print("Saving fire frequency img...") if verbose else None
+            fire_freq_img = vis.get_fire_freq_image(fire_freq_arrays[-10:], color_dicts["fire_freq"], dynamics.state.grid.width)
+            imagepath_fire_freq = os.path.join(DATA_OUT_DIR, "image_timeseries/fire_frequencies/" + str(dynamics.time) + ".png")
+            vis.save_image(fire_freq_img, imagepath_fire_freq, get_max(1000, fire_freq_img.shape[0]))
+
+    print("-- Visualizing image...") if verbose else None
+    if user_args["headless"]:
+        # Get a color image representation of the initial state
+        img = vis.get_image_from_grid(dynamics.state.grid, collect_states, color_dicts["normal"])
+    else:
+        # Get a color image representation of the initial state and show it.
+        img = vis.visualize(
+            dynamics.state.grid, user_args["image_width"], collect_states=collect_states,
+            color_dict=color_dicts["normal"]
+        )
+
+    print("-- Saving image...") if verbose else None
+    imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
+    vis.save_image(img, imagepath, get_max(1000, img.shape[0]))
+    
+    if ("fuel" in visualization_types):
+        print("-- Saving fuel image...") if verbose else None
+        fuel_img = vis.get_image_from_grid(dynamics.state.grid, 2, color_dicts["blackwhite"])
+        imagepath_fuel = os.path.join(DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
+        vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
+
+    if ("tree_LAI" in visualization_types):
+        print("-- Saving tree LAI image...") if verbose else None
+        tree_LAI_img = vis.get_image_from_grid(dynamics.state.grid, 1, color_dicts["blackwhite"])
+        imagepath_fuel = os.path.join(DATA_OUT_DIR, "image_timeseries/tree_LAI/" + str(dynamics.time) + ".png")
+        vis.save_image(tree_LAI_img, imagepath_fuel, get_max(1000, tree_LAI_img.shape[0]))
+
+
+def updateloop(dynamics, color_dicts, **user_args):
     start = time.time()
     print("Beginning simulation...")
     csv_path = user_args["csv_path"]
+    visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     init_csv = True
     collect_states = 1
     verbose = user_args["verbosity"] > 1
@@ -181,42 +230,8 @@ def updateloop(dynamics, color_dict, color_dict_recruitment, color_dict_fire_fre
         dynamics.update()
         print("-- Finished update") if verbose else None
         
-        print("Saving recruitment img...") if verbose else None
-        recruitment_img = vis.get_image_from_grid(dynamics.state.grid, 0, color_dict_recruitment)
-        imagepath_recruitment = os.path.join(DATA_OUT_DIR, "image_timeseries/recruitment/" + str(dynamics.time) + ".png")
-        vis.save_image(recruitment_img, imagepath_recruitment, get_max(1000, recruitment_img.shape[0]))
-        
-        fire_freq_arrays.append(dynamics.state.grid.get_distribution(0) == -5)
-        if dynamics.time > 10:
-            print("Saving fire frequency img...") if verbose else None
-            fire_freq_img = vis.get_fire_freq_image(fire_freq_arrays[-10:], color_dict_fire_freq, dynamics.state.grid.width)
-            imagepath_fire_freq = os.path.join(DATA_OUT_DIR, "image_timeseries/fire_frequencies/" + str(dynamics.time) + ".png")
-            vis.save_image(fire_freq_img, imagepath_fire_freq, get_max(1000, fire_freq_img.shape[0]))
-
-        print("-- Visualizing image...") if verbose else None
-        if user_args["headless"]:
-            # Get a color image representation of the initial state
-            img = vis.get_image_from_grid(dynamics.state.grid, collect_states, color_dict)
-        else:
-            # Get a color image representation of the initial state and show it.
-            img = vis.visualize(
-                dynamics.state.grid, user_args["image_width"], collect_states=collect_states,
-                color_dict=color_dict
-            )
-
-        print("-- Saving image...") if verbose else None
-        imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
-        vis.save_image(img, imagepath, get_max(1000, img.shape[0]))
-        
-        print("-- Saving fuel image...") if verbose else None
-        fuel_img = vis.get_image_from_grid(dynamics.state.grid, 2, color_dict_blackwhite)
-        imagepath_fuel = os.path.join(DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
-        vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
-        
-        print("-- Saving tree LAI image...") if verbose else None
-        tree_LAI_img = vis.get_image_from_grid(dynamics.state.grid, 1, color_dict_blackwhite)
-        imagepath_fuel = os.path.join(DATA_OUT_DIR, "image_timeseries/tree_LAI/" + str(dynamics.time) + ".png")
-        vis.save_image(tree_LAI_img, imagepath_fuel, get_max(1000, tree_LAI_img.shape[0]))
+        # Do visualizations
+        do_visualizations(dynamics, fire_freq_arrays, verbose, color_dicts, collect_states, visualization_types, user_args)
         
         print("-- Exporting state data...") if verbose else None
         csv_path = io.export_state(dynamics, csv_path, init_csv)
@@ -291,8 +306,8 @@ def main(**user_args):
         tests = init_tests(**user_args)
         tests.run_all()
     else:
-        dynamics, color_dict, color_dict_recruitment, color_dict_fire_freq, color_dict_blackwhite = init(**user_args)
-        return updateloop(dynamics, color_dict, color_dict_recruitment, color_dict_fire_freq, color_dict_blackwhite, **user_args)
+        dynamics, color_dicts = init(**user_args)
+        return updateloop(dynamics, color_dicts, **user_args)
  
 
 
