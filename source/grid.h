@@ -12,10 +12,10 @@ public:
 	vector<int> trees;
 	pair<int, int> pos;
 	bool seedling_present = false;
-	pair<float, int> largest_stem;	// < float: dbh of largest tree or seedling that has its stem in this cell,
-									//	 int:   Largest tree id, or id of parent tree if the largest stem belongs to a seedling >
+	pair<float, int> stem = pair<float, int>(0, 0);	// < float: dbh of largest tree or seedling that has its stem in this cell,
+													//	 int:   Largest tree id, or id of parent tree if the largest stem belongs to a seedling >
 	bool cell_is_occupied_by_larger_stem(pair<float, int> &tree_proxy) {
-		if (tree_proxy.first < largest_stem.first) {
+		if (tree_proxy.first < stem.first) {
 			return true;
 		}
 		return false;
@@ -27,11 +27,11 @@ public:
 		}
 		return false;
 	}
-	void set_largest_stem(float dbh, int id) {
-		largest_stem = pair<float, int>(dbh, id);
+	void set_stem(float dbh, int id) {
+		stem = pair<float, int>(dbh, id);
 	}
-	void reset_largest_stem() {
-		largest_stem = pair<float, int>(0, 0);
+	void reset_stem() {
+		stem = pair<float, int>(0, 0);
 	}
 	void update_grass_LAI(float tree_LAI_local_neighborhood) {
 		grass_LAI = compute_grass_LAI(tree_LAI_local_neighborhood);
@@ -128,11 +128,11 @@ public:
 		LAI = _LAI;
 	}
 	void insert_stem(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt) {
-		set_largest_stem(tree->dbh, tree->id);
+		set_stem(tree->dbh, tree->id);
 		add_tree_if_not_present(tree, cell_area, cell_halfdiagonal_sqrt);
 	}
 	void remove_stem(Tree* tree, float cell_area, float cell_halfdiagonal_sqrt) {
-		reset_largest_stem();
+		reset_stem();
 		remove_tree(tree, cell_area);
 	}
 	void reset() {
@@ -140,7 +140,7 @@ public:
 		trees.clear();
 		LAI = 0;
 		grass_LAI = 0;
-		largest_stem = pair<float, int>(0, -1);
+		stem = pair<float, int>(0, 0);
 		seedling_present = false;
 	}
 	bool operator==(const Cell& cell) const

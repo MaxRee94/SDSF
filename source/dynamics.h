@@ -13,7 +13,7 @@ public:
 		float _resource_grid_relative_size, float _mutation_rate, int _verbosity
 	) :
 		timestep(_timestep), cell_width(_cell_width), unsuppressed_flammability(_unsuppressed_flammability),
-		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_max_dbh* _seed_bearing_threshold),
+		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_max_dbh * _seed_bearing_threshold),
 		growth_rate_multiplier(_growth_rate_multiplier), radius_suppr_flamm_min(_max_dbh* _radius_suppr_flamm_min),
 		flamm_delta_radius((_cell_width* _min_suppressed_flammability - _cell_width * _max_suppressed_flammability) / (_max_dbh * radius_range_suppr_flamm)),
 		max_suppressed_flammability(_cell_width* _max_suppressed_flammability),
@@ -233,7 +233,7 @@ public:
 			if (cell->seedling_present) {
 				Tree* tree = pop->add(
 					grid->get_real_cell_position(cell),
-					&pop->get_crop(cell->largest_stem.second)->strategy
+					&pop->get_crop(cell->stem.second)->strategy
 				);
 				cell->insert_sapling(tree, grid->cell_area, grid->cell_halfdiagonal_sqrt);
 				grid->state_distribution[i] = -7;
@@ -330,23 +330,23 @@ public:
 		pop->remove(tree);
 	}
 	void induce_tree_mortality(Cell* cell, float fire_free_interval, queue<Cell*>& queue) {
+		int tree_id = cell->stem.second;
+		if (tree_id == 0) return; // If no tree stem is present in this cell, skip mortality evaluation.
+
+		Tree* tree = pop->get(tree_id);
 		vector<int> trees = cell->trees;
-		for (int tree_id : trees) {
-			int _tree_id = tree_id;
-			Tree* tree = pop->get(tree_id);
-			if (tree->id == -1) {
-				printf("\n\n ------- ERROR: Tree %i was created has been removed but is still present in cell %i, %i. \n", tree_id, cell->pos.first, cell->pos.second);
-				printf("Trees in cell before starting this mortality loop: ");
-				help::print_vector(&trees);
-				bool present = state.check_grid_for_tree_presence(tree_id, 0);
-				continue;
-			}
-			if (tree->last_mortality_check == time) continue; // Skip mortality evaluation if this was already done in the current timestep.
-			if (tree_dies(tree, fire_free_interval)) {
-				kill_tree(tree, cell->time_last_fire, queue);
-			}
-			else tree->last_mortality_check = time;
+		if (tree->id == -1) {
+			printf("\n\n ------- ERROR: Tree %i has been removed from the population but is still present in cell %i, %i. \n", tree_id, cell->pos.first, cell->pos.second);
+			printf("Trees in cell before starting this mortality loop: ");
+			help::print_vector(&trees);
+			bool present = state.check_grid_for_tree_presence(tree_id, 0);
+			return;
 		}
+		if (tree->last_mortality_check == time) return; // Skip mortality evaluation if this was already done in the current timestep.
+		if (tree_dies(tree, fire_free_interval)) {
+			kill_tree(tree, cell->time_last_fire, queue);
+		}
+		else tree->last_mortality_check = time;
 	}
 	inline bool cell_will_ignite(Cell* cell, float t_start) {
 		if (t_start - cell->time_last_fire < 10e-4) {

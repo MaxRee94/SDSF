@@ -29,7 +29,7 @@ public:
 	pair<float, float> deposition_location;
 private:
 	void germinate(Cell* cell, State* state) {
-		cell->set_largest_stem(strategy.seedling_dbh, strategy.id);
+		cell->set_stem(strategy.seedling_dbh, strategy.id);
 		cell->seedling_present = true;
 	}
 };
