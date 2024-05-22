@@ -19,7 +19,7 @@ defaults = {
     "grid_width": 1000,
     "treecover": 0.5,
     "cellsize": 1,
-    "max_dbh": 20.7499, # Derived from allometric relationships obtained from Hoffmann et al (2012) and Rossatto et al (2009). See 'Tree Allometric Relationships.xlsx' for derivation.
+    "max_dbh": 44.3, # (Close to) Theoretical maximum due to density-dependent constraint on LAI (see 'Tree Allometric Relationships v03.xlsx' for details)
     "image_width": 1000,
     "timestep": 1,
     "timelimit": 1e32,
