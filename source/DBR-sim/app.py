@@ -171,7 +171,7 @@ def termination_condition_satisfied(dynamics, start_time, user_args):
     return satisfied
 
 
-def do_visualizations(dynamics, fire_freq_arrays, verbose, color_dicts, collect_states, visualization_types, user_args):
+def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, user_args):
     if ("recruitment" in visualization_types):
         print("Saving recruitment img...") if verbose else None
         recruitment_img = vis.get_image_from_grid(dynamics.state.grid, 0, color_dicts["recruitment"])
@@ -180,9 +180,9 @@ def do_visualizations(dynamics, fire_freq_arrays, verbose, color_dicts, collect_
     
     if ("fire_freq" in visualization_types):
         fire_freq_arrays.append(dynamics.state.grid.get_distribution(0) == -5)
-        if dynamics.time > 10:
+        if dynamics.time > fire_no_timesteps:
             print("Saving fire frequency img...") if verbose else None
-            fire_freq_img = vis.get_fire_freq_image(fire_freq_arrays[-10:], color_dicts["fire_freq"], dynamics.state.grid.width)
+            fire_freq_img = vis.get_fire_freq_image(fire_freq_arrays[-fire_no_timesteps:], color_dicts["fire_freq"], dynamics.state.grid.width, fire_no_timesteps)
             imagepath_fire_freq = os.path.join(DATA_OUT_DIR, "image_timeseries/fire_frequencies/" + str(dynamics.time) + ".png")
             vis.save_image(fire_freq_img, imagepath_fire_freq, get_max(1000, fire_freq_img.shape[0]))
 
@@ -218,9 +218,11 @@ def updateloop(dynamics, color_dicts, **user_args):
     start = time.time()
     print("Beginning simulation...")
     csv_path = user_args["csv_path"]
+    #visualization_types = [] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     init_csv = True
     collect_states = 1
+    fire_no_timesteps = 1
     verbose = user_args["verbosity"] > 1
     fire_freq_arrays = []
     if not user_args["headless"]:
@@ -231,7 +233,7 @@ def updateloop(dynamics, color_dicts, **user_args):
         print("-- Finished update") if verbose else None
         
         # Do visualizations
-        do_visualizations(dynamics, fire_freq_arrays, verbose, color_dicts, collect_states, visualization_types, user_args)
+        do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, user_args)
         
         print("-- Exporting state data...") if verbose else None
         csv_path = io.export_state(dynamics, csv_path, init_csv)

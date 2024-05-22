@@ -79,11 +79,11 @@ def get_image_from_grid(grid, collect_states, color_dict, invert=False):
         img = ~img
     return img
 
-def get_fire_freq_image(fire_freq_arrays, color_dict_fire_freq, grid_width):
+def get_fire_freq_image(fire_freq_arrays, color_dict_fire_freq, grid_width, fire_no_timesteps):
     img = np.zeros((grid_width, grid_width), np.uint8)
     for fire_freq_arr in fire_freq_arrays:
         img += fire_freq_arr
-    return get_image(img, color_dict_fire_freq, grid_width)
+    return get_image(img, color_dict_fire_freq, grid_width) * (10.0 / fire_no_timesteps)
 
 def visualize(grid, image_width=1000, collect_states=True, color_dict={0:0, 1:255}):
     img = get_image_from_grid(grid, collect_states, color_dict)    
