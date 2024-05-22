@@ -186,7 +186,7 @@ public:
 	}
 	bool radius_spans(pair<float, float> pos2, bool verbose = false) {
 		float dist = help::get_dist(position, pos2);
-		if (verbose) printf("	Distance between trees: %f \n", dist);
+		if (verbose) printf("	Distance between tree %i and given position %f, %f: %f \n", id, pos2.first, pos2.second, dist);
 		return dist < radius;
 	}
 	pair<int, bool> get_life_phase(float& seed_bearing_threshold) {
