@@ -209,7 +209,7 @@ def do_visualizations(dynamics, fire_freq_arrays, verbose, color_dicts, collect_
 
     if ("tree_LAI" in visualization_types):
         print("-- Saving tree LAI image...") if verbose else None
-        tree_LAI_img = vis.get_image_from_grid(dynamics.state.grid, 1, color_dicts["blackwhite"])
+        tree_LAI_img = vis.get_image_from_grid(dynamics.state.grid, 1, color_dicts["blackwhite"], invert=True)
         imagepath_fuel = os.path.join(DATA_OUT_DIR, "image_timeseries/tree_LAI/" + str(dynamics.time) + ".png")
         vis.save_image(tree_LAI_img, imagepath_fuel, get_max(1000, tree_LAI_img.shape[0]))
 

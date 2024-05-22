@@ -72,9 +72,12 @@ def get_image(img, color_dict, width):
     
     return img
 
-def get_image_from_grid(grid, collect_states, color_dict):
+def get_image_from_grid(grid, collect_states, color_dict, invert=False):
     img = grid.get_distribution(collect_states)
-    return get_image(img, color_dict, grid.width)
+    img = get_image(img, color_dict, grid.width)
+    if invert:
+        img = ~img
+    return img
 
 def get_fire_freq_image(fire_freq_arrays, color_dict_fire_freq, grid_width):
     img = np.zeros((grid_width, grid_width), np.uint8)
