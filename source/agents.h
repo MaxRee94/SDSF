@@ -160,8 +160,10 @@ public:
 class Tree {
 public:
 	Tree() = default;
-	Tree(int _id, pair<float, float> _position, float _dbh, float seed_bearing_threshold) :
-		position(_position), dbh(_dbh)
+	Tree(int _id, pair<float, float> _position, float _dbh, float seed_bearing_threshold,
+		map<int, float>* _resprout_growthcurve
+	) :
+		position(_position), dbh(_dbh), resprout_growthcurve(_resprout_growthcurve)
 	{
 		id = _id;
 		derive_allometries(seed_bearing_threshold);
@@ -208,7 +210,7 @@ public:
 		if (LAI_shade > 5.0f) return 0.0f; // If the LAI of shading leaf cover is larger than 5, the tree is too shaded to grow.
 
 		float stem_increment = 3.0f * (1.0f - exp(-0.118 * dbh));	// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
-																			// Current stem dbh and increment in cm.
+																	// Current stem dbh and increment in cm.
 
 		stem_increment *= (5.0f - LAI_shade) / 5.0f;	// LAI-dependent growth reduction to introduce density dependence. Multiplication factor: ((LAI_max - LAI) / LAI_max) 
 														// From Hoffman et al (2012), Appendix 2.
@@ -249,10 +251,18 @@ public:
 		return height * 0.4f; // We assume the tree's crown begins at 40% its height.
 							  // TODO: Perhaps make this fraction a function of dbh for added realism.
 	}
+	float compute_new_dbh(float LAI_shade) {
+		if (life_phase == 1 && age < 5) {
+			return resprout_growthcurve->at(age); // Resprouts younger than 5 years are assumed to grow according to a predefined growth curve.
+			
+		}
+		else {
+			return dbh + get_dbh_increment(LAI_shade);
+		}
+	}
 	bool grow(float &seed_bearing_threshold, float LAI_shade) {
 		age++;
-		float _dbh = dbh;
-		dbh += get_dbh_increment(LAI_shade);
+		dbh = compute_new_dbh(LAI_shade);
 		bool became_reproductive = derive_allometries(seed_bearing_threshold);
 		return became_reproductive;
 	}
@@ -274,6 +284,7 @@ public:
 	int age = -1;
 	int life_phase = 0;
 	int last_mortality_check = 0;
+	map<int, float>* resprout_growthcurve;
 };
 
 
@@ -320,6 +331,12 @@ public:
 		strategy_generator = StrategyGenerator(strategy_parameters);
 		dbh_probability_model = help::LinearProbabilityModel(dbh_q1, dbh_q2, 0, max_dbh);
 		mutation_rate = _mutation_rate;
+		init_growth_curves();
+	}
+	void init_growth_curves() {
+		resprout_growthcurve = {
+			{1, 1.3f}, {2, 1.8f}, {3, 2.1f}, {4, 2.5f}, // From Hoffmann et al (2012), estimated from supplementary figure S1.
+		};
 	}
 	Tree* add(pair<float, float> position, Strategy* _strategy = 0, float dbh = -2) {
 		// Create tree
@@ -333,7 +350,7 @@ public:
 				dbh = _strategy->seedling_dbh; // Growth rate determines initial dbh.
 			}
 		}
-		Tree tree(no_created_trees + 1, position, dbh, seed_bearing_threshold);
+		Tree tree(no_created_trees + 1, position, dbh, seed_bearing_threshold, &resprout_growthcurve);
 		members[tree.id] = tree;
 		no_created_trees++;
 
@@ -440,4 +457,5 @@ public:
 	Tree removed_tree;
 	int no_created_trees = 0;
 	float seed_bearing_threshold = 0;
+	map<int, float> resprout_growthcurve;
 };
