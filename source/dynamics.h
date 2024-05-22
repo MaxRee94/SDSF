@@ -71,15 +71,9 @@ public:
 		timer.stop();
 		if (verbosity > 0) printf("Growth took %f seconds.\n", timer.elapsedSeconds());
 		induce_background_mortality();
-
-		timer.start();
-		int pre_thinning_popsize = pop->size();
-		state.thin_crowds();
-		timer.stop();
-		if (verbosity > 0) printf("Thinning crowds by removing %i trees took %f seconds.\n", pre_thinning_popsize - pop->size(), timer.elapsedSeconds());
+		if (verbosity > 0) printf("Induced background mortality. Repopulating grid...\n");
 
 		// Do post-simulation cleanup and data reporting
-		printf("Repopulating grid... \n");
 		state.repopulate_grid(verbosity);
 		if (verbosity > 1) printf("Redoing grid count... \n");
 		grid->redo_count();
@@ -115,14 +109,21 @@ public:
 		return fire_ignition_times;
 	}
 	void grow() {
+		int pre_growth_popsize = pop->size();
 		for (auto& [id, tree] : pop->members) {
 			float shade = state.compute_shade_on_individual_tree(&tree);
 			tree.shade = shade;
-			bool became_reproductive = tree.grow(seed_bearing_threshold, shade);
-			if (became_reproductive) {
+			auto [became_reproductive, dies_due_to_light_limitation] = tree.grow(seed_bearing_threshold, shade);
+			if (dies_due_to_light_limitation) {
+				grid->kill_tree_domain(&tree);
+				pop->remove(id);
+			}
+			else if (became_reproductive) {
 				pop->add_reproduction_system(tree);
 			}
 		}
+		int no_trees_dead_due_to_light_limitation = pre_growth_popsize - pop->size();
+		printf(" -- No trees dead due to light limitation: %i \n", no_trees_dead_due_to_light_limitation);
 	}
 	void set_global_linear_kernel(float lin_diffuse_q1, float lin_diffuse_q2, float min, float max) {
 		global_kernels["linear"] = Kernel(1, lin_diffuse_q1, lin_diffuse_q2, min, max);

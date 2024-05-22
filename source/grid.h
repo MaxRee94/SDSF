@@ -21,7 +21,7 @@ public:
 		return false;
 	}
 	bool seedling_is_shaded_out() {
-		float shade = LAI / 5.0f; // Normalize to range [0, 1] by dividing by 5.0 (max LAI is 5.0).
+		float shade = LAI * 0.18f; // Normalize to range [0, 1] by dividing by 5.0 (max LAI is 5.0).
 		if (help::get_rand_float(0, 1) < shade) {
 			return true;
 		}
@@ -114,8 +114,21 @@ public:
 		}
 		return shade;
 	}
+	float get_LAI_of_taller_trees(Tree* tree, Population* population) {
+		if (population == nullptr) {
+			return get_LAI();
+		}
+		float LAI_taller_trees = 0;
+		float crown_reach = tree->height - tree->lowest_branch;
+		for (int tree_id : trees) {
+			Tree* neighbor = population->get(tree_id);
+			if (neighbor->height > tree->height) LAI_taller_trees += neighbor->LAI;
+		}
+		return LAI_taller_trees;
+	}
 	float get_shading_on_tree(Tree* tree, Population* population = 0) {
-		return get_LAI_of_crown_intersection_and_above(tree, population);
+		return get_LAI_of_taller_trees(tree, population) + tree->LAI;
+		//return get_LAI_of_crown_intersection_and_above(tree, population);
 	}
 	float get_LAI() {
 		return LAI;

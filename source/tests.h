@@ -52,7 +52,7 @@ public:
 		float dbh = 5;
 		Timer t; t.start();
 		while (true) {
-			tree = Tree(1, position, dbh, dynamics.seed_bearing_threshold, &dynamics.pop->resprout_growthcurve);
+			tree = Tree(1, position, dbh, dynamics.seed_bearing_threshold, dynamics.pop->resprout_growthcurve);
 			if (tree.radius < max_radius || tree.dbh < 0) break;
 			else dbh *= 0.9f;
 			if (t.elapsedSeconds() > 1) {

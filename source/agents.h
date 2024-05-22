@@ -161,7 +161,7 @@ class Tree {
 public:
 	Tree() = default;
 	Tree(int _id, pair<float, float> _position, float _dbh, float seed_bearing_threshold,
-		map<int, float>* _resprout_growthcurve
+		map<int, float> _resprout_growthcurve
 	) :
 		position(_position), dbh(_dbh), resprout_growthcurve(_resprout_growthcurve)
 	{
@@ -252,19 +252,23 @@ public:
 							  // TODO: Perhaps make this fraction a function of dbh for added realism.
 	}
 	float compute_new_dbh(float LAI_shade) {
+		float _dbh;
 		if (life_phase == 1 && age < 5) {
-			return resprout_growthcurve->at(age); // Resprouts younger than 5 years are assumed to grow according to a predefined growth curve.
+			_dbh = resprout_growthcurve.at(age); // Resprouts younger than 5 years are assumed to grow according to a predefined growth curve.
 			
 		}
 		else {
-			return dbh + get_dbh_increment(LAI_shade);
+			_dbh = dbh + get_dbh_increment(LAI_shade);
 		}
+		return _dbh;
 	}
-	bool grow(float &seed_bearing_threshold, float LAI_shade) {
+	pair<bool, bool> grow(float &seed_bearing_threshold, float LAI_shade) {
 		age++;
-		dbh = compute_new_dbh(LAI_shade);
+		float _dbh = compute_new_dbh(LAI_shade);
+		bool dies_due_to_light_limitation = is_float_equal(_dbh, dbh) && (life_phase == 0); // If the tree is not reproductive yet and is unable to grow, we assume it dies.
+		dbh = _dbh;
 		bool became_reproductive = derive_allometries(seed_bearing_threshold);
-		return became_reproductive;
+		return pair<bool, bool>(became_reproductive, dies_due_to_light_limitation);
 	}
 	void print() {
 		printf("id: %d, dbh: %f, radius: %f, bark thickness: %f, LAI: %f, height: %f, lowest branch: %f, crown area: %f, position: %f, %f \n",
@@ -284,7 +288,7 @@ public:
 	int age = -1;
 	int life_phase = 0;
 	int last_mortality_check = 0;
-	map<int, float>* resprout_growthcurve;
+	map<int, float> resprout_growthcurve;
 };
 
 
@@ -350,7 +354,7 @@ public:
 				dbh = _strategy->seedling_dbh; // Growth rate determines initial dbh.
 			}
 		}
-		Tree tree(no_created_trees + 1, position, dbh, seed_bearing_threshold, &resprout_growthcurve);
+		Tree tree(no_created_trees + 1, position, dbh, seed_bearing_threshold, resprout_growthcurve);
 		members[tree.id] = tree;
 		no_created_trees++;
 

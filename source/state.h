@@ -79,7 +79,7 @@ public:
 			int center_idx = grid.get_capped_center_idx(it.tree_center_gb);
 			return grid.distribution[center_idx].get_shading_on_tree(tree, &population);
 		}
-		return LAI_shade / no_cells;	// We obtain mean LAI at- or above the height of the lowest branch by dividing by the tree's crown area.
+		return LAI_shade / no_cells;	// We obtain mean LAI of trees above the given tree by dividing by the tree's crown area.
 										// We use this as a measure of shading on the tree.
 	}
 	float get_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
