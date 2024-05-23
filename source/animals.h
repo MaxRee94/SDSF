@@ -105,8 +105,7 @@ public:
 	}
 	pair<float, float> select_destination(ResourceGrid* resource_grid) {
 		resource_grid->update_coarse_probability_distribution(species, traits, position);
-		resource_grid->update_probability_distribution(species, traits, position); // TODO: Turn this off once coarse probabilities are working.
-		ResourceCell* cell = resource_grid->select_cell();
+		ResourceCell* cell = resource_grid->select_cell(species, traits, position);
 		pair<float, float> destination;
 		resource_grid->get_random_location_within_cell(cell, destination);
 		return destination;
