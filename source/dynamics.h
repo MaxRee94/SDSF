@@ -251,7 +251,7 @@ public:
 		int no_seed_bearing_trees = 0;
 		int no_wind_trees = 0;
 		disperse_wind_seeds_and_init_fruits(no_seed_bearing_trees, seeds_dispersed, no_wind_trees);
-		//disperse_animal_seeds();
+		disperse_animal_seeds();
 		recruit();
 
 		if (verbosity > 0) printf(
