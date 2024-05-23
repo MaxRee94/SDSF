@@ -90,10 +90,9 @@ public:
 		if (verbosity == 2) for (auto& [id, tree] : pop->members) if (id % 500 == 0) printf("Radius of tree %i : %f \n", id, tree.radius);
 	}
 	void free() {
-		delete[] neighbor_offsets;
+		resource_grid.free();
 		grid->free();
 		pop->free();
-		resource_grid.free();
 	}
 	vector<float> get_ordered_fire_ignition_times() {
 		int i = 0;

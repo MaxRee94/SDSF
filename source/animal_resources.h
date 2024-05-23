@@ -66,6 +66,8 @@ public:
 		delete[] coarse_cells;
 		delete_c();
 		delete_f();
+		delete_c_coarse();
+		delete_f_coarse();
 		delete[] d;
 		delete[] cover;
 		delete[] fruit_abundance;
@@ -73,7 +75,6 @@ public:
 		delete[] coarse_dist_aggregate;
 		delete[] color_distribution;
 		delete[] visits;
-		delete[] neighbor_offsets;
 		selection_probabilities.free();
 		coarse_selection_probabilities.free();
 		Grid::free();
@@ -85,6 +86,16 @@ public:
 	}
 	void delete_f() {
 		for (auto it = f.begin(); it != f.end(); it++) {
+			delete[] it->second;
+		}
+	}
+	void delete_c_coarse() {
+		for (auto it = c_coarse.begin(); it != c_coarse.end(); it++) {
+			delete[] it->second;
+		}
+	}
+	void delete_f_coarse() {
+		for (auto it = f_coarse.begin(); it != f_coarse.end(); it++) {
 			delete[] it->second;
 		}
 	}
@@ -369,7 +380,9 @@ public:
 		update_coarse_distribution(species, species_params["a_f"], species_params["b_f"], "f");
 	}
 	void update_coarse_probability_distribution(string species, map<string, float> &species_params, pair<float, float> &cur_position) {
-		visits[pos_2_idx(get_gridbased_position(cur_position))] += 1;
+		pair<int, int> gb_pos = get_gridbased_position(cur_position);
+		cap(gb_pos);
+		visits[pos_2_idx(gb_pos)] += 1;
 		visits_sum += 1;
 		compute_coarse_d(cur_position, species_params["a_d"], species_params["b_d"]);
 		compute_coarse_k(species);
