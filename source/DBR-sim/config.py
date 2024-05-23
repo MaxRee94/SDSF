@@ -46,7 +46,7 @@ defaults = {
     "strategy_distribution_params": f"{DATA_IN_DIR}/strategy_distribution_params.json",
     "resource_grid_relative_size": 0.1,
     "initial_pattern_image": "none",
-    "mutation_rate": 0.0001
+    "mutation_rate": 0 # We do not incorporate mutation in this study.
 }
 
 gui_defaults = {
