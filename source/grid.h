@@ -128,7 +128,6 @@ public:
 	}
 	float get_shading_on_tree(Tree* tree, Population* population = 0) {
 		return get_LAI_of_taller_trees(tree, population) + tree->LAI;
-		//return get_LAI_of_crown_intersection_and_above(tree, population);
 	}
 	float get_LAI() {
 		return LAI;
