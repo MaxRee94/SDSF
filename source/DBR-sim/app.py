@@ -157,8 +157,8 @@ def termination_condition_satisfied(dynamics, start_time, user_args):
         condition = f"Exceeded timelimit ({user_args['timelimit']} seconds)."
     if (dynamics.state.population.size() == 0):
         condition = "Population collapse."
-    if (dynamics.state.grid.tree_cover >= 0.95):
-        condition = "Tree cover converged to >95%."
+    if (dynamics.state.grid.tree_cover >= 0.9):
+        condition = "Tree cover converged to >90%."
     if (dynamics.state.grid.tree_cover <= 0.05):
         condition = "Tree cover converged to <5%."
     if (dynamics.time >= user_args["max_timesteps"]):
@@ -218,12 +218,13 @@ def updateloop(dynamics, color_dicts, **user_args):
     start = time.time()
     print("Beginning simulation...")
     csv_path = user_args["csv_path"]
-    #visualization_types = [] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
-    visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
+    visualization_types = [] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
+    #visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     init_csv = True
+    export_animal_resources = True
     collect_states = 1
     fire_no_timesteps = 1
-    verbose = user_args["verbosity"] > 1
+    verbose = user_args["verbosity"]
     fire_freq_arrays = []
     if not user_args["headless"]:
         graphs = vis.Graphs(dynamics)
@@ -245,8 +246,10 @@ def updateloop(dynamics, color_dicts, **user_args):
         print("-- Showing graphs...") if verbose else None
         if not user_args["headless"]:
             graphs.update()
+        
+        break
 
-        if user_args["dispersal_mode"] == "all" or user_args["dispersal_mode"] == "animal":
+        if export_animal_resources and (user_args["dispersal_mode"] == "all" or user_args["dispersal_mode"] == "animal"):
             # Get color image representations of the resource grid from the last iteration
             cover_path = os.path.join(DATA_OUT_DIR, "image_timeseries/cover/" + str(dynamics.time) + ".png")
             fruits_path = os.path.join(DATA_OUT_DIR, "image_timeseries/fruits/" + str(dynamics.time) + ".png")
