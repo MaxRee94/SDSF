@@ -29,6 +29,18 @@ public:
 };
 
 
+class CoarseCell {
+public:
+	CoarseCell() = default;
+	CoarseCell(pair<int, int> _position, int _idx): pos(_position), idx(_idx) {}
+	pair<int, int> pos;
+	pair<int, int> grid_bb_min;
+	pair<int, int> grid_bb_max;
+	int idx = 0;
+	Fruits fruits;
+};
+
+
 class ResourceGrid : public Grid {
 public:
 	ResourceGrid() = default;
@@ -37,15 +49,21 @@ public:
 		state = _state;
 		grid = &state->grid;
 		width_r = (float)width * cell_width;
+		no_coarse_cells_along_x = sqrtf(width);
+		no_coarse_cells = no_coarse_cells_along_x * no_coarse_cells_along_x;
 		size = width * width;
+		coarse_cells = new CoarseCell[no_coarse_cells];
 		cells = new ResourceCell[size];
 		selection_probabilities = DiscreteProbabilityModel(size);
+		coarse_selection_probabilities = DiscreteProbabilityModel(no_coarse_cells);
 		init_property_distributions(species);
 		init_cells();
+		init_coarse_cells();
 		init_neighbor_offsets();
 	}
 	void free() {
 		delete[] cells;
+		delete[] coarse_cells;
 		delete_c();
 		delete_f();
 		delete[] d;
@@ -56,6 +74,7 @@ public:
 		delete[] visits;
 		delete[] neighbor_offsets;
 		selection_probabilities.free();
+		coarse_selection_probabilities.free();
 		Grid::free();
 	}
 	void delete_c() {
@@ -70,6 +89,7 @@ public:
 	}
 	void init_property_distributions(vector<string> &species) {
 		d = new float[size];
+		d_coarse = new float[no_coarse_cells];
 		cover = new float[size];
 		fruit_abundance = new float[size];
 		dist_aggregate = new float[size];
@@ -80,6 +100,8 @@ public:
 		for (int i = 0; i < species.size(); i++) {
 			c[species[i]] = new float[size];
 			f[species[i]] = new float[size];
+			c_coarse[species[i]] = new float[no_coarse_cells];
+			f_coarse[species[i]] = new float[no_coarse_cells];
 		}
 	}
 	void reset() {
@@ -289,6 +311,11 @@ public:
 		for (int i = 0; i < size; i++) dist_aggregate[i] = 0;
 		visits_sum = 0;
 	}
+	pair<int, int> idx_2_coarse_pos(int idx) {
+		int x = idx % no_coarse_cells_along_x;
+		int y = idx / no_coarse_cells_along_x;
+		return pair<int, int>(x, y);
+	}
 	ResourceCell* select_cell() {
 		int idx = selection_probabilities.sample();
 		return &cells[idx];
@@ -296,19 +323,27 @@ public:
 	State* state = 0;
 	Grid* grid = 0;
 	ResourceCell* cells = 0;
+	CoarseCell* coarse_cells = 0;
 	map<string, float*> c;
+	map<string, float*> c_coarse;
 	map<string, float*> f;
+	map<string, float*> f_coarse;
 	float* dist_aggregate = 0;
 	float* cover = 0;
 	float* fruit_abundance = 0;
 	float* d = 0;
+	float* d_coarse = 0;
 	float visits_sum = 0;
 	int* visits = 0;
 	int* color_distribution = 0;
 	int iteration = -1;
 	int total_no_fruits = 0;
 	int size = 0;
+	int no_coarse_cells = 0;
+	int no_coarse_cells_along_x = 0;
+	int coarse_cell_width = 0;
 	DiscreteProbabilityModel selection_probabilities;
+	DiscreteProbabilityModel coarse_selection_probabilities;
 	pair<float, float>* neighbor_offsets = 0;
 	bool has_fruits = false;
 
@@ -319,6 +354,14 @@ private:
 			cells[i] = ResourceCell(idx_2_pos(i), i);
 			cells[i].grid_bb_min = no_gridcells_along_x_per_resource_cell * cells[i].pos;
 			cells[i].grid_bb_max = cells[i].grid_bb_min + pair<int, int>(no_gridcells_along_x_per_resource_cell, no_gridcells_along_x_per_resource_cell);
+		}
+	}
+	void init_coarse_cells() {
+		coarse_cell_width = (float)width / (float)no_coarse_cells_along_x;
+		for (int i = 0; i < no_coarse_cells; i++) {
+			coarse_cells[i] = CoarseCell(idx_2_coarse_pos(i), i);
+			coarse_cells[i].grid_bb_min = coarse_cell_width * coarse_cells[i].pos;
+			coarse_cells[i].grid_bb_max = coarse_cells[i].grid_bb_min + pair<int, int>(coarse_cell_width, coarse_cell_width);
 		}
 	}
 	void compute_k(string species) {
