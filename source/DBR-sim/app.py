@@ -252,11 +252,13 @@ def updateloop(dynamics, color_dicts, **user_args):
             fruits_path = os.path.join(DATA_OUT_DIR, "image_timeseries/fruits/" + str(dynamics.time) + ".png")
             visits_path = os.path.join(DATA_OUT_DIR, "image_timeseries/visits/" + str(dynamics.time) + ".png")
             distance_path = os.path.join(DATA_OUT_DIR, "image_timeseries/distance/" + str(dynamics.time) + ".png")
+            distance_coarse_path = os.path.join(DATA_OUT_DIR, "image_timeseries/distance_coarse/" + str(dynamics.time) + ".png")
             k_path = os.path.join(DATA_OUT_DIR, "image_timeseries/k/" + str(dynamics.time) + ".png")
             vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "cover", cover_path, user_args["resource_grid_relative_size"])
             vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "fruits", fruits_path, user_args["resource_grid_relative_size"])
             vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "visits", visits_path, user_args["resource_grid_relative_size"])
             vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "distance_single", distance_path, user_args["resource_grid_relative_size"])
+            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "distance_single_coarse", distance_coarse_path, user_args["resource_grid_relative_size"])
             vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "k", k_path, user_args["resource_grid_relative_size"])
 
     if not user_args["headless"]:
