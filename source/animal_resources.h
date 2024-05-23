@@ -273,6 +273,21 @@ public:
 		int idx = help::get_rand_int(0, size - 1);
 		return &cells[idx];
 	}
+	float compute_mean_across_coarse_cell(CoarseCell& coarse_cell, string species, string type) {
+		float* source_distribution = 0;
+		if (type == "c") source_distribution = c[species];
+		else if (type == "f") source_distribution = f[species];
+		float sum = 0.0f;
+		for (int _x = 0; _x < no_coarse_cells_along_x; _x++) {
+			for (int _y = 0; _y < no_coarse_cells_along_x; _y++) {
+				int x = coarse_cell.grid_bb_min.first + _x;
+				int y = coarse_cell.grid_bb_min.second + _y;
+				int idx = _x * no_coarse_cells_along_x + _y;
+				sum += source_distribution[idx];
+			}
+		}
+		return sum / (float)(no_coarse_cells_along_x * no_coarse_cells_along_x);
+	}
 	void compute_d(pair<float, float>& cur_position, float a_d, float b_d) {
 		float a_d_recipr = 1.0f / a_d;
 		for (int i = 0; i < size; i++) {
@@ -289,6 +304,15 @@ public:
 			_c[i] = tanh(pow((cover[i] * a_c_recipr), b_c));
 		}
 	}
+	void compute_coarse_distribution(string species, float a_c, float b_c, string type) {
+		float* coarse_distr = 0;
+		if (type == "c") coarse_distr = c_coarse[species];
+		else if (type == "f") coarse_distr = f_coarse[species];
+		for (int i = 0; i < no_coarse_cells; i++) {
+			CoarseCell &coarse_cell = coarse_cells[i];
+			coarse_distr[i] = compute_mean_across_coarse_cell(coarse_cell, species, type);
+		}
+	}
 	void compute_f(string species, float a_f, float b_f) {
 		float* _f = f[species];
 		float a_f_recipr = 1.0f / a_f;
@@ -299,6 +323,8 @@ public:
 	void update_cover_and_fruit_probabilities(string species, map<string, float>& species_params) {
 		compute_c(species, species_params["a_c"], species_params["b_c"]);
 		compute_f(species, species_params["a_f"], species_params["b_f"]);
+		compute_coarse_distribution(species, species_params["a_f"], species_params["b_f"], "c");
+		compute_coarse_distribution(species, species_params["a_f"], species_params["b_f"], "f");
 	}
 	void update_probability_distribution(string species, map<string, float> &species_params, pair<float, float> &cur_position) {
 		visits[pos_2_idx(get_gridbased_position(cur_position))] += 1;
@@ -306,6 +332,10 @@ public:
 		compute_d(cur_position, species_params["a_d"], species_params["b_d"]);
 		compute_k(species);
 	}
+	/*void update_coarse_probability_distribution(string species, map<string, float> &species_params, pair<float, float> &cur_position) {
+		compute_coarse_d(cur_position, species_params["a_d"], species_params["b_d"]);
+		compute_coarse_k(species);
+	}*/
 	void reset_color_arrays() {
 		for (int i = 0; i < size; i++) visits[i] = 0;
 		for (int i = 0; i < size; i++) dist_aggregate[i] = 0;
@@ -317,6 +347,7 @@ public:
 		return pair<int, int>(x, y);
 	}
 	ResourceCell* select_cell() {
+		int coarse_idx = coarse_selection_probabilities.sample();
 		int idx = selection_probabilities.sample();
 		return &cells[idx];
 	}
