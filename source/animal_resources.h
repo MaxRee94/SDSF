@@ -292,7 +292,7 @@ public:
 		float a_d_recipr = 1.0f / a_d;
 		for (int i = 0; i < size; i++) {
 			pair<float, float> cell_pos = get_real_position(cells[i].pos);
-			float dist = get_resourcegrid_dist(cur_position, cell_pos) * 0.05f;
+			float dist = get_resourcegrid_dist(cur_position, cell_pos);
 			d[i] = tanh(pow((-dist * a_d_recipr), b_d));
 			dist_aggregate[i] += d[i];
 		}
