@@ -10,7 +10,7 @@ public:
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
 		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_dbh, float _saturation_threshold, float _fire_resistance_argmin,
 		float _fire_resistance_argmax, float _fire_resistance_stretch, float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
-		float _resource_grid_relative_size, float _mutation_rate, int _verbosity
+		int _resource_grid_width, float _mutation_rate, int _verbosity
 	) :
 		timestep(_timestep), cell_width(_cell_width), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_max_dbh * _seed_bearing_threshold),
@@ -21,7 +21,7 @@ public:
 		max_dbh(_max_dbh), seedling_discard_dbh(0.05 * _max_dbh), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold),
 		fire_resistance_argmin(_fire_resistance_argmin), fire_resistance_argmax(_fire_resistance_argmax), fire_resistance_stretch(_fire_resistance_stretch),
 		background_mortality(_background_mortality), strategy_distribution_params(_strategy_distribution_params),
-		resource_grid_relative_size(_resource_grid_relative_size), mutation_rate(_mutation_rate)
+		resource_grid_width(_resource_grid_width), mutation_rate(_mutation_rate)
 	{
 		time = 0;
 		help::init_RNG();
@@ -151,11 +151,10 @@ public:
 		set_global_animal_kernel(animal_kernel_params);
 	}
 	void init_resource_grid(map<string, map<string, float>>& animal_kernel_params) {
-		int resource_grid_no_cells_x = round((float)grid->width * resource_grid_relative_size);
-		float resource_grid_cell_width = grid->width_r / (float)resource_grid_no_cells_x;
+		float resource_grid_cell_width = grid->width_r / (float)resource_grid_width;
 		vector<string> species = {};
 		for (auto& [_species, _] : animal_kernel_params) species.push_back(_species);
-		resource_grid = ResourceGrid(&state, resource_grid_no_cells_x, resource_grid_cell_width, species);
+		resource_grid = ResourceGrid(&state, resource_grid_width, resource_grid_cell_width, species);
 	}
 	bool global_kernel_exists(string type) {
 		return global_kernels.find(type) != global_kernels.end();
@@ -408,13 +407,13 @@ public:
 	float fire_resistance_argmax = 0;
 	float fire_resistance_stretch = 0;
 	float background_mortality = 0;
-	float resource_grid_relative_size = 0;
 	float mutation_rate = 0;
 	int timestep = 0;
 	int time = 0;
 	int pop_size = 0;
 	int verbosity = 0;
 	int seeds_dispersed = 0;
+	int resource_grid_width = 0;
 	State state;
 	Population* pop = 0;
 	Grid* grid = 0;

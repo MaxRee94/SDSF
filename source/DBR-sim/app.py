@@ -57,7 +57,7 @@ def init_tests(
     dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, 
     flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
-    multi_disperser_params=None, strategy_distribution_params=None, resource_grid_relative_size=None,
+    multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
     initial_pattern_image=None, mutation_rate=None, **user_args
 ):
     # Obtain strategy distribution parameters
@@ -69,7 +69,7 @@ def init_tests(
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
         flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
-        resource_grid_relative_size, mutation_rate, verbosity, grid_width, dbh_q1, dbh_q2)
+        resource_grid_width, mutation_rate, verbosity, grid_width, dbh_q1, dbh_q2)
     
     return tests
 
@@ -83,7 +83,7 @@ def init(
     dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, 
     flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
-    multi_disperser_params=None, strategy_distribution_params=None, resource_grid_relative_size=None,
+    multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
     initial_pattern_image=None, mutation_rate=None,
     **user_args
     ):
@@ -99,7 +99,7 @@ def init(
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
         flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
-        resource_grid_relative_size, mutation_rate, verbosity
+        resource_grid_width, mutation_rate, verbosity
     )
     dynamics.init_state(grid_width, dbh_q1, dbh_q2)
     
@@ -246,8 +246,6 @@ def updateloop(dynamics, color_dicts, **user_args):
         print("-- Showing graphs...") if verbose else None
         if not user_args["headless"]:
             graphs.update()
-        
-        break
 
         if export_animal_resources and (user_args["dispersal_mode"] == "all" or user_args["dispersal_mode"] == "animal"):
             # Get color image representations of the resource grid from the last iteration
@@ -258,13 +256,13 @@ def updateloop(dynamics, color_dicts, **user_args):
             distance_coarse_path = os.path.join(DATA_OUT_DIR, "image_timeseries/distance_coarse/" + str(dynamics.time) + ".png")
             k_coarse_path = os.path.join(DATA_OUT_DIR, "image_timeseries/k_coarse/" + str(dynamics.time) + ".png")
             k_path = os.path.join(DATA_OUT_DIR, "image_timeseries/k/" + str(dynamics.time) + ".png")
-            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "cover", cover_path, user_args["resource_grid_relative_size"])
-            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "fruits", fruits_path, user_args["resource_grid_relative_size"])
-            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "visits", visits_path, user_args["resource_grid_relative_size"])
-            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "distance_single", distance_path, user_args["resource_grid_relative_size"])
-            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "distance_single_coarse", distance_coarse_path, user_args["resource_grid_relative_size"])
-            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "k", k_path, user_args["resource_grid_relative_size"])
-            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "k_coarse", k_coarse_path, user_args["resource_grid_relative_size"])
+            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "cover", cover_path)
+            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "fruits", fruits_path)
+            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "visits", visits_path)
+            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "distance_single", distance_path)
+            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "distance_single_coarse", distance_coarse_path)
+            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "k", k_path)
+            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "k_coarse", k_coarse_path)
 
     if not user_args["headless"]:
         cv2.destroyAllWindows()

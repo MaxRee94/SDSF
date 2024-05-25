@@ -16,7 +16,7 @@ BUILD_DIR = REPOSITORY_BASEDIR + "/build"
 
 
 defaults = {
-    "grid_width": 1000,
+    "grid_width": 1024,
     "treecover": 0.5,
     "cellsize": 1,
     "max_dbh": 44.3, # (Close to) Theoretical maximum due to density-dependent constraint on LAI (see 'Tree Allometric Relationships v03.xlsx' for details)
@@ -44,7 +44,7 @@ defaults = {
     "headless": False,
     "max_timesteps": 1e9,
     "strategy_distribution_params": f"{DATA_IN_DIR}/strategy_distribution_params.json",
-    "resource_grid_relative_size": 0.1,
+    "resource_grid_width": 64,
     "initial_pattern_image": "none",
     "mutation_rate": 0 # We do not incorporate mutation in this study.
 }
@@ -373,16 +373,16 @@ _parameter_config = {
             "default": defaults["strategy_distribution_params"],
         },
     },
-    "resource_grid_relative_size": {
+    "resource_grid_width": {
         "keys": {
-            "cli": ["--resource_grid_relative_size", "-rgrs"]
+            "cli": ["--resource_grid_width", "-rgw"]
         },
         "settings": {
-            "type": float,
+            "type": int,
             "help": (
                 "The relative size (in number of cells along the vertical- or horizontal axis) of the resource grid versus the regular grid."
             ),
-            "default": defaults["resource_grid_relative_size"],
+            "default": defaults["resource_grid_width"],
         },
     },
     "initial_pattern_image": {

@@ -95,7 +95,7 @@ def save_image(img, path, image_width = 1000):
     img_resized = cv2.resize(img, (image_width, image_width), interpolation = cv2.INTER_LINEAR)
     cv2.imwrite(path, img_resized)
 
-def save_resource_grid_colors(dynamics, species, resource, path, resource_grid_relative_size, image_width=1000):
+def save_resource_grid_colors(dynamics, species, resource, path, image_width=1000):
     arr = dynamics.get_resource_grid_colors(species, resource, 0)
     arr -= arr.min()
     img = (arr / arr.max() * 255).astype(np.uint8)
@@ -136,7 +136,7 @@ def visualize_radial_distribution_function(g_r, radii, iteration):
 class Graphs:
     def __init__(self, dynamics, width=6, height=4):
         self.dynamics = dynamics
-        self.types = {"histogram": ["Firefree Interval"], "timeseries": ["Tree cover"]}
+        self.types = {"timeseries": ["Tree cover"]}
         self.graphs = []
         for graph_type, datatypes in self.types.items():
             for datatype in datatypes:
