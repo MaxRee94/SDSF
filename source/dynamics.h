@@ -108,21 +108,23 @@ public:
 		return fire_ignition_times;
 	}
 	void grow() {
-		int pre_growth_popsize = pop->size();
+		vector<int> tree_deletion_schedule = {};
 		for (auto& [id, tree] : pop->members) {
 			float shade = state.compute_shade_on_individual_tree(&tree);
 			tree.shade = shade;
 			auto [became_reproductive, dies_due_to_light_limitation] = tree.grow(seed_bearing_threshold, shade);
 			if (dies_due_to_light_limitation) {
-				grid->kill_tree_domain(&tree);
-				pop->remove(id);
+				//grid->kill_tree_domain(&tree); // We don't need to update the grid, as we will call 'repopulate_grid' after this function.
+				tree_deletion_schedule.push_back(id);
 			}
-			else if (became_reproductive) {
+			/*else if (became_reproductive) {
 				pop->add_reproduction_system(tree);
-			}
+			}*/
 		}
-		int no_trees_dead_due_to_light_limitation = pre_growth_popsize - pop->size();
-		printf(" -- No trees dead due to light limitation: %i \n", no_trees_dead_due_to_light_limitation);
+		for (int id : tree_deletion_schedule) {
+			pop->remove(id);
+		}
+		printf("-- No trees dead due to light limitation: %i \n", tree_deletion_schedule.size());
 	}
 	void set_global_linear_kernel(float lin_diffuse_q1, float lin_diffuse_q2, float min, float max) {
 		global_kernels["linear"] = Kernel(1, lin_diffuse_q1, lin_diffuse_q2, min, max);
@@ -259,11 +261,16 @@ public:
 		if (verbosity > 0) printf("-- Proportion wind dispersed trees: %f \n", no_wind_trees / (float)no_seed_bearing_trees);
 	}
 	void induce_background_mortality() {
+		vector<int> tree_deletion_schedule = {};
 		for (auto& [id, tree] : pop->members) {
 			if (help::get_rand_float(0, 1) < background_mortality) {
-				pop->remove(id);
+				tree_deletion_schedule.push_back(id);
 			}
 		}
+		for (int id : tree_deletion_schedule) {
+			pop->remove(id);
+		}
+		printf("-- Number of trees dead due to background mortality: %i \n", tree_deletion_schedule.size());
 	}
 	int* get_resource_grid_colors(string species, string type) {
 		return resource_grid.get_color_distribution(species, type);
