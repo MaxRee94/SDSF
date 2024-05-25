@@ -9,6 +9,7 @@ import visualization as vis
 from helpers import *
 import numpy as np
 import time
+import json
 
 
 def main(process_index=None, control_variable=None, control_range=None, extra_parameters=None):
@@ -28,20 +29,11 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
     params["headless"] = True
     params["max_timesteps"] = 1000
     if extra_parameters:
-        print("no params:", int(len(extra_parameters) / 2))
-        for i in range(int(len(extra_parameters) / 2)):
-            key = extra_parameters[i * 2]
-            _type = key.split("*")[0]
-            key = key.split("*")[1]
-            val = extra_parameters[i * 2 + 1]
-            if _type == "float":
-                val = float(val)
-            elif _type == "int":
-                val = int(val)
-            elif _type == "list":
-                val = [float(v) for v in val.split("_")]
+        print("Extra parameters:", extra_parameters) # Example of usage: {\"verbosity\":1}
+        extra_parameters = json.loads(extra_parameters)
+        for key, val in extra_parameters.items():
             params[key] = val
-            print("treecover:", params[key], f"(key = {key})")
+            print("extra parameter:", val, f"(key = {key})")
             
     control_value = control_range[0] + process_index * (control_range[2] / 7)
     total_results_csv = csv_parent_dir + "/{}_results.csv".format(csv_parent_dir.split("state data/")[1])
@@ -82,8 +74,11 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument('-pi', '--process_index', type=int)
     parser.add_argument('-cv', '--control_variable', type=str)
-    parser.add_argument('-cr', '--control_range', type=float, nargs="*")
-    parser.add_argument('-ep', '--extra_parameters', type=str, nargs="*")
+    parser.add_argument('-cr', '--control_range', type=float, nargs="*", help="Format: min max stepsize")
+    parser.add_argument(
+        '-ep', '--extra_parameters', type=str,
+        help=r"Json string containing key-value pairs of custom parameters. Keys should be surrounded by double quotes preceded by a backslash. Example: {\"verbosity\":1}"
+    )
     args = parser.parse_args()
     main(**vars(args))
 
