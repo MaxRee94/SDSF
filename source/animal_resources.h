@@ -60,6 +60,9 @@ public:
 		init_cells();
 		init_coarse_cells();
 		init_neighbor_offsets();
+		printf("Initialized resource grid with width %i, where each resource cell has a discrete width of %i and a real width %f, %i coarse cells along x of grid width %i and real width %f\n",
+			width, state->grid.width / width, cell_width, no_coarse_cells_along_x, (int)((float)width / (float)no_coarse_cells_along_x), coarse_cell_width_r
+		);
 	}
 	void free() {
 		delete[] cells;
@@ -404,7 +407,7 @@ public:
 		return pair<float, float>((float)position.first * coarse_cell_width_r, (float)position.second * coarse_cell_width_r);
 	}
 	pair<int, int> get_gridbased_coarsecell_position(pair<float, float> position) {
-		return pair<int, int>(round(position.first / coarse_cell_width_r), round(position.second / coarse_cell_width_r));
+		return pair<int, int>(position.first / coarse_cell_width_r, position.second / coarse_cell_width_r);
 	}
 	CoarseCell* select_coarse_cell() {
 		int coarse_idx = coarse_selection_probabilities.sample();
@@ -498,8 +501,8 @@ private:
 		}
 	}
 	void init_coarse_cells() {
-		coarse_cell_width = (float)width / (float)no_coarse_cells_along_x;	// Number of gridcells along x per coarse cell.
-		coarse_cell_width_r = (float)coarse_cell_width * cell_width;		// Real width of a coarse cell.
+		coarse_cell_width = (float)width / (float)no_coarse_cells_along_x;		// Number of gridcells along x per coarse cell.
+		coarse_cell_width_r = (float)coarse_cell_width * cell_width;			// Real width of a coarse cell.
 		for (int i = 0; i < no_coarse_cells; i++) {
 			coarse_cells[i] = CoarseCell(idx_2_coarse_pos(i), i);
 			coarse_cells[i].grid_bb_min = coarse_cell_width * coarse_cells[i].pos;
