@@ -23,14 +23,14 @@ defaults = {
     "image_width": 1000,
     "timestep": 1,
     "timelimit": 1e32,
-    "self_ignition_factor": 140,
-    "unsuppressed_flammability": 0.4,
+    "self_ignition_factor": 100,
+    "unsuppressed_flammability": 0.3,
     "rainfall": 0.1,
     "test": "none",
     "dbh_q1": 1,
     "dbh_q2": 0,
     "verbosity": 0,
-    "seed_bearing_threshold": 0.5, # From Minor and Kobe (2018), Figure 5.
+    "seed_bearing_threshold": 0.25, # dbh fraction at which a tree reaches half its maximum height. We assume most trees are seed bearing at this height, based on Minor and Kobe (2018), Figure 5.
     "dispersal_mode": "all",
     "multi_disperser_params": f"{DATA_IN_DIR}/multi_disperser_params.json",
     "dispersal_min": 0,
@@ -39,7 +39,7 @@ defaults = {
     "flammability_coefficients_and_constants": [0.1, 0.35, 0, 1],
     "saturation_threshold": 3,
     "fire_resistance_params": [8.5, 50, 2.857], # See 'notes/fire_resistance_threshold_curve.xlsx' for details
-    "constant_mortality": 0.0181, # Pan-tropical best-estimate from Lewis et al (2004)
+    "constant_mortality": 0.003,
     "csv_path": "",
     "headless": False,
     "max_timesteps": 1e9,
