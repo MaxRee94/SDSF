@@ -107,6 +107,7 @@ public:
 		resource_grid->update_coarse_probability_distribution(species, traits, position);
 		ResourceCell* cell = resource_grid->select_cell(species, traits, position);
 		pair<float, float> destination;
+		//ResourceCell* cell = resource_grid->get_random_resource_cell();
 		resource_grid->get_random_location_within_cell(cell, destination);
 		return destination;
 	}
@@ -196,15 +197,20 @@ public:
 	void disperse(int& no_seeds_dispersed, State* state, ResourceGrid* resource_grid) {
 		place(state);
 		resource_grid->reset_color_arrays();
-		for (int i = 0; i < no_iterations; i++) {
+		int iteration = 0;
+		int no_nondispersed_fruits = resource_grid->total_no_fruits * 0.2f;	// We arbitrarily disperse only 80% of fruits, because dispersal becomes less computationally
+																			// efficient as the number of fruits decreases (can be justified by the fact that removal rates are not 100% in nature either).
+		while (resource_grid->total_no_fruits > no_nondispersed_fruits) {
 			for (auto& [species, species_population] : total_animal_population) {
 				for (auto& animal : species_population) {
-					if (i % 5 == 0) {
+					if (iteration % 5 == 0) {
 						resource_grid->update_cover_and_fruit_probabilities(species, animal.traits);
 					}
-					animal.update(no_seeds_dispersed, i, state, resource_grid);
+					animal.update(no_seeds_dispersed, iteration, state, resource_grid);
+					if (resource_grid->total_no_fruits % 10000 == 0) printf("No fruits left: %i\n", resource_grid->total_no_fruits);
 				}
 			}
+			iteration++;
 		}
 	}
 	int popsize() {

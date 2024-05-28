@@ -216,6 +216,10 @@ public:
 	pair<float, float> get_real_cell_position(ResourceCell* cell) {
 		return pair<float, float>(cell->pos.first * cell_width, cell->pos.second * cell_width);
 	}
+	ResourceCell* get_random_resource_cell() {
+		int idx = help::get_rand_int(0, size - 1);
+		return &cells[idx];
+	}
 	float get_resourcegrid_dist(pair<float, float> a, pair<float, float>* b, bool verbose = false) {
 		// This function yields the minimum distance between a and b, taking into account periodic boundary conditions.
 		// WARNING: Position b may be modified in the process to a position outside of the grid.
