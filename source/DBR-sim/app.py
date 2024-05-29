@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 import sys
-from turtle import color
 
 import cv2
 import numpy as np

@@ -1,4 +1,3 @@
-from msilib import Control
 import config
 import app
 from argparse import ArgumentParser
