@@ -4,17 +4,20 @@
 #include "kernel.h"
 
 
+const float AGB_coeff_a = -0.0299f;
+const float AGB_coeff_b = 2.673f;
+
 using namespace help;
 
 class Strategy {
 public:
 	Strategy() = default;
 	Strategy(string _vector, float _seed_mass, float _diaspore_mass, int _no_seeds_per_diaspore, float _seed_tspeed,
-		float _pulp_to_seed_ratio, float _recruitment_probability, float _seedling_dbh
+		float _pulp_to_seed_ratio, float _recruitment_probability, float _seedling_dbh, float _relative_growth_rate, float _seed_reserve_mass
 	) :
 		vector(_vector), seed_mass(_seed_mass), diaspore_mass(_diaspore_mass), no_seeds_per_diaspore(_no_seeds_per_diaspore),
 		seed_tspeed(_seed_tspeed), pulp_to_seed_ratio(_pulp_to_seed_ratio), recruitment_probability(_recruitment_probability),
-		seedling_dbh(_seedling_dbh)
+		seedling_dbh(_seedling_dbh), relative_growth_rate(_relative_growth_rate), seed_reserve_mass(_seed_reserve_mass)
 	{}
 	void print() {
 		printf("id: %d, seed_mass: %f, diaspore_mass: %f, no_seeds_per_diaspore: %d, vector: %s, pulp to seed ratio: %f, seed terminal speed: %f, germination prob: %f\n",
@@ -28,6 +31,8 @@ public:
 	float seed_tspeed = 0;
 	float pulp_to_seed_ratio = 0;
 	float recruitment_probability = 0;
+	float relative_growth_rate = 0;
+	float seed_reserve_mass = 0;
 	float seedling_dbh = 0;
 	string vector = "none";
 };
@@ -107,13 +112,42 @@ public:
 		float seedling_establishment_probability = max(0, 0.0385 * log(seed_mass) + 0.224); // Fitted to data from Barczyk et al (2024), see file 'seed weight vs seedling success.xlsx'
 		return successful_dispersal_probability * seedling_establishment_probability;
 	}
-	float calculate_seedling_dbh(float seed_mass) {
-		float seed_reserve_mass_milligrams = 731.3 * pow(seed_mass, 1.0633f);	// Fitted to Boot (1994) data, table 2a (see file 'Relationship seed mass to sedling diameter.xlsx').
-		float seedling_dbh = 0.0023 * pow(10.0f, 0.67 + 0.27 * log10(seed_reserve_mass_milligrams));	// Fitted to figure 2.11 from Boot (1994). Takes seed reserve mass in mg and returns dbh  
-																										// in mm, hence we divide the result by 10 to convert to cm (0.023 becomes 0.0023).									
-		// printf("seed mass: %f mg, seed reserve mass: %f mg, growth rate: %f \n", seed_mass * 1000.0f, seed_reserve_mass_milligrams, seedling_dbh);
-		return seedling_dbh;
+	float get_seed_reserve_mass(float seed_mass) {
+		float seed_reserve_mass = 0.7313f * pow(seed_mass, 1.0633f);	// In grams, fitted to Boot (1994) data, table 2a (see file 'Relationship seed mass to seedling diameter.xlsx').
+		return seed_reserve_mass;
 	}
+	float get_relative_growth_rate(float seed_mass) {
+		float relative_growth_rate = (1.0f - 6.97f * log10(seed_mass)) * 0.001f;	// Relative growth rate of seedlings in g/g/day, based on Rose (2003), 
+																						// table 2.2 (regression slope 'overall').
+		return relative_growth_rate;
+	}
+	float calculate_seedling_dbh(float seed_reserve_mass, float relative_growth_rate, float seed_mass) {
+		float new_mass_grams = pow(10.0f, seed_reserve_mass * exp(relative_growth_rate * 365.25f));				// Mass in grams after 1 year of growth, based on Rose (2003). 
+																													// Seedling start mass is assumed to be equal to seed reserve mass.
+		float Leaf_Mass_Fraction = 0.4f - 0.05f * log10(seed_mass);												// g/g. Based on table 2.2, Rose (2003).
+		float Leaf_Area_Ratio = 10.0f - 4.93f * log10(seed_mass);												// m^2 / kg. Based on table 2.2, Rose (2003).
+		float density_factor = (1.0f / (Leaf_Area_Ratio / 6.87f)) / (Leaf_Mass_Fraction / 0.368f);				// Compute factor to correct for differences in mass density.
+																													// We assume an average seed mass of 4.31 g (Figure 2.1, Rose (2003)) 
+																													// and thus normalize LAR to LAR_norm = LAR_{seedmass=4.31}.
+																													// LAR_norm will increase for smaller seeds (more m^2 leaf area per kg)
+																													// and decrease for larger seeds. The density factor varies inversely.
+																													// We divide by the normalized Leaf Mass Fraction (ratio leaf 
+																													// mass to total plant mass) to reduce the effect in proportion to the
+																													// leafiness of the tree.
+		//printf("seed_reserve_mass: %f, seed mass: %f, density factor: %f \n", seed_reserve_mass, seed_mass, density_factor);
+		new_mass_grams /= density_factor;																		// Correct for differences in mass density (rapidly growing seedlings have
+																													// lower density and should thus have a larger dbh for the same mass).												
+		float new_AGB_kilograms = 0.000666f * new_mass_grams;													// Aboveground mass in kilograms. We assume a shoot-to-root ratio of 2/3
+		float AGB_c = -(log(new_AGB_kilograms) + 1.776f);														// Derived from model 7, Chave et al (2014)
+		float ln_new_dbh = help::get_lowest_solution_for_quadratic(0, AGB_coeff_a, AGB_coeff_b, AGB_c);			// Solve for ln(dbh) using quadratic formula (derived from model 7, 
+																													// Chave et al (2014))										
+
+		float firstyear_dbh = exp(ln_new_dbh);
+		//printf("first year dbh: %f, new mass AGB: %f, relative growth rate (g/g/day): %f \n", firstyear_dbh, new_AGB_kilograms, relative_growth_rate);
+
+		return firstyear_dbh;
+	}
+
 	void generate(Strategy &strategy) {
 		int no_seeds_per_diaspore = sample_no_seeds_per_diaspore();
 		string vector = pick_vector();
@@ -123,10 +157,12 @@ public:
 		float diaspore_mass = compute_diaspore_mass(no_seeds_per_diaspore, seed_mass, vector, fruit_pulp_mass, pulp_to_seed_ratio);
 		float seed_tspeed = calculate_tspeed(diaspore_mass);
 		float recruitment_probability = calculate_recruitment_probability(seed_mass);
-		float seedling_dbh = calculate_seedling_dbh(seed_mass);
+		float seed_reserve_mass = get_seed_reserve_mass(seed_mass);
+		float relative_growth_rate = get_relative_growth_rate(seed_mass);
+		float seedling_dbh = calculate_seedling_dbh(seed_reserve_mass, relative_growth_rate, seed_mass);
 		strategy = Strategy(
 			vector, seed_mass, diaspore_mass, no_seeds_per_diaspore, seed_tspeed, pulp_to_seed_ratio, recruitment_probability,
-			seedling_dbh
+			seedling_dbh, relative_growth_rate, seed_reserve_mass
 		);
 	}
 	void mutate(Strategy& strategy, float mutation_rate) {
@@ -251,11 +287,20 @@ public:
 		return height * 0.4f; // We assume the tree's crown begins at 40% its height.
 							  // TODO: Perhaps make this fraction a function of dbh for added realism.
 	}
+	float get_AGB() {
+		float ln_dbh = log(dbh);
+		float ln_wood_specific_gravity = log(0.5f);
+		return -1.803 - 0.976f * -0.02802 + 0.976 * ln_wood_specific_gravity + 2.673f * ln_dbh - 0.0299f * (ln_dbh * ln_dbh); // From Chave et al (2014), equation 7.
+	}
 	float compute_new_dbh(float LAI_shade) {
 		float _dbh;
-		if (life_phase == 1 && age < 5) {
-			_dbh = resprout_growthcurve.at(age); // Resprouts younger than 5 years are assumed to grow according to a predefined growth curve.
-			
+		if (dbh < 2.5f) {
+			if (life_phase == 1) {
+				_dbh = resprout_growthcurve.at(age); // Resprouts younger than 5 years (implied by dbh < 2.5) are assumed to grow according to a predefined growth curve (Hoffmann et al, 2012, supplementary information 1).
+			}
+			else {
+				_dbh = dbh + 0.25f; // Assume a constant growth rate for saplings, until they reach 2.5 cm dbh. Based on growth rate of resprouts after first 5 years (Hoffmann et al, 2012, supplementary information 1. Also see "Tree Allometric Relations.xlsx").
+			}
 		}
 		else {
 			_dbh = dbh + get_dbh_increment(LAI_shade);
