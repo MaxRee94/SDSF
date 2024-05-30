@@ -149,7 +149,7 @@ def init(
     return dynamics, color_dicts
 
 
-def termination_condition_satisfied(dynamics, start_time, user_args):
+def termination_condition_satisfied(dynamics, start_time, user_args, prev_tree_cover, prev_longterm_tree_cover):
     satisfied = False
     condition = ""
     if (time.time() - start_time > user_args["timelimit"]):
@@ -162,6 +162,12 @@ def termination_condition_satisfied(dynamics, start_time, user_args):
         condition = "Tree cover converged to <5%."
     if (dynamics.time >= user_args["max_timesteps"]):
         condition = f"Maximum number of timesteps ({user_args['max_timesteps']}) reached."
+    if (dynamics.time > 30 and (dynamics.state.grid.get_tree_cover() - prev_tree_cover) > 0.02):
+        condition = "Tree cover increased by more than 2% in last 30 timesteps."
+    if (dynamics.time > 30 and (dynamics.state.grid.get_tree_cover() - prev_tree_cover) < -0.02):
+        condition = "Tree cover decreased by more than 2% in last 30 timesteps."
+    if (dynamics.time > 60 and abs(dynamics.state.grid.get_tree_cover() - prev_longterm_tree_cover) < 0.005):
+        condition = "Tree cover converged to a stable value."
     #print("Pop size: ", dynamics.state.population.size())
     satisfied = len(condition) > 0
     if satisfied:
@@ -220,6 +226,7 @@ def updateloop(dynamics, color_dicts, **user_args):
     visualization_types = [] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     #visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     init_csv = True
+    prev_tree_cover = [user_args["treecover"]] * 60
     export_animal_resources = True
     collect_states = 1
     fire_no_timesteps = 1
@@ -227,7 +234,7 @@ def updateloop(dynamics, color_dicts, **user_args):
     fire_freq_arrays = []
     if not user_args["headless"]:
         graphs = vis.Graphs(dynamics)
-    while not termination_condition_satisfied(dynamics, start, user_args):
+    while not termination_condition_satisfied(dynamics, start, user_args, prev_tree_cover[-30], prev_tree_cover[-60]):
         print("-- Starting update (calling from python)") if verbose else None
         dynamics.update()
         print("-- Finished update") if verbose else None
@@ -245,6 +252,8 @@ def updateloop(dynamics, color_dicts, **user_args):
         print("-- Showing graphs...") if verbose else None
         if not user_args["headless"]:
             graphs.update()
+            
+        prev_tree_cover.append(dynamics.state.grid.get_tree_cover())
 
         if export_animal_resources and (user_args["dispersal_mode"] == "all" or user_args["dispersal_mode"] == "animal"):
             # Get color image representations of the resource grid from the last iteration
