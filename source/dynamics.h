@@ -322,9 +322,9 @@ public:
 		if (tree->dbh < seedling_discard_dbh) return true; // We assume that seedlings with a dbh below this 'discard'-value are always killed by fire.
 		return !tree->survives_fire(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 	}
-	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue) {
+	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue, Cell* cell) {
 		if (verbosity > 1) printf("Burning tree %i ... \n", tree->id);
-		grid->burn_tree_domain(tree, queue, time_last_fire);
+		grid->burn_tree_domain(tree, queue, time_last_fire, false, true, cell->idx);
 		bool removed = pop->remove(tree->id);
 		if (!removed) {
 			printf("Tree %i could not be removed from the population. \n", tree->id);
@@ -350,7 +350,7 @@ public:
 		}
 		if (tree->last_mortality_check == time) return; // Skip mortality evaluation if this was already done in the current timestep.
 		if (tree_dies(tree, fire_free_interval)) {
-			kill_tree(tree, cell->time_last_fire, queue);
+			kill_tree(tree, cell->time_last_fire, queue, cell);
 		}
 		else tree->last_mortality_check = time;
 	}
