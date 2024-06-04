@@ -17,12 +17,14 @@ def get_tree_sizes(dynamics):
     return counts
 
 
-def export_state(dynamics, path="", init_csv=True, control_variable=None, control_value=None):
+def export_state(dynamics, path="", init_csv=True, control_variable=None, control_value=None, predicted_cover=0):
     fieldnames = [
-        "time", "tree cover", "population size", "#seeds spread", "fire mean spatial extent",
+        "time", "tree cover", "predicted final cover", "population size", "#seeds spread", "fire mean spatial extent",
         "#trees[dbh 0-20%]", "#trees[dbh 20-40%]", "#trees[dbh 40-60%]", "#trees[dbh 60-80%]", "#trees[dbh 80-100%]"
     ]
     if control_variable:
+        if control_variable == "treecover":
+            control_variable = "initial tree cover"
         fieldnames.insert(0, control_variable)
     if init_csv and not os.path.exists(path):
         if path == "":
@@ -37,6 +39,7 @@ def export_state(dynamics, path="", init_csv=True, control_variable=None, contro
         result = {
                 "time": str(dynamics.time),
                 "tree cover": str(dynamics.state.grid.get_tree_cover()), 
+                "predicted final cover": str(predicted_cover),
                 "population size": str(dynamics.state.population.size()),
                 "#seeds spread": str(dynamics.seeds_dispersed),
                 "fire mean spatial extent": str(dynamics.fire_spatial_extent),

@@ -149,7 +149,9 @@ def init(
     return dynamics, color_dicts
 
 
-def termination_condition_satisfied(dynamics, start_time, user_args, prev_tree_cover, prev_longterm_tree_cover):
+def termination_condition_satisfied(dynamics, start_time, user_args, prev_tree_cover, prev_longterm_tree_cover, slope):
+    slope_threshold = 0.0005
+    predicted_cover = dynamics.state.grid.get_tree_cover()
     satisfied = False
     condition = ""
     if (time.time() - start_time > user_args["timelimit"]):
@@ -162,18 +164,20 @@ def termination_condition_satisfied(dynamics, start_time, user_args, prev_tree_c
         condition = "Tree cover converged to <5%."
     if (dynamics.time >= user_args["max_timesteps"]):
         condition = f"Maximum number of timesteps ({user_args['max_timesteps']}) reached."
-    if (dynamics.time > 30 and (dynamics.state.grid.get_tree_cover() - prev_tree_cover) > 0.02):
-        condition = "Tree cover increased by more than 2% in last 30 timesteps."
-    if (dynamics.time > 30 and (dynamics.state.grid.get_tree_cover() - prev_tree_cover) < -0.02):
-        condition = "Tree cover decreased by more than 2% in last 30 timesteps."
-    if (dynamics.time > 60 and abs(dynamics.state.grid.get_tree_cover() - prev_longterm_tree_cover) < 0.005):
+    if (dynamics.time > 50 and (dynamics.state.grid.get_tree_cover() - prev_tree_cover) > (slope_threshold * 30)):
+        condition = "Tree cover increased by more than {} in last 30 timesteps.".format(round(slope_threshold * 30, 2))
+        predicted_cover = 0.9
+    if (dynamics.time > 50 and (dynamics.state.grid.get_tree_cover() - prev_tree_cover) < (-slope_threshold * 30)):
+        condition = "Tree cover decreased by more than {} in last 30 timesteps.".format(round(slope_threshold * 30, 2))
+        predicted_cover = 0.1
+    if (dynamics.time > 100 and abs(dynamics.state.grid.get_tree_cover() - prev_longterm_tree_cover) < 0.005) and abs(slope) < slope_threshold:
         condition = "Tree cover converged to a stable value."
     #print("Pop size: ", dynamics.state.population.size())
     satisfied = len(condition) > 0
     if satisfied:
         print("Simulation terminated. Cause:", condition)
 
-    return satisfied
+    return satisfied, predicted_cover
 
 
 def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, user_args):
@@ -223,10 +227,11 @@ def updateloop(dynamics, color_dicts, **user_args):
     start = time.time()
     print("Beginning simulation...")
     csv_path = user_args["csv_path"]
-    visualization_types = [] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
-    #visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
+    #visualization_types = [] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
+    visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     init_csv = True
     prev_tree_cover = [user_args["treecover"]] * 60
+    slope = 0
     export_animal_resources = True
     collect_states = 1
     fire_no_timesteps = 1
@@ -234,16 +239,23 @@ def updateloop(dynamics, color_dicts, **user_args):
     fire_freq_arrays = []
     if not user_args["headless"]:
         graphs = vis.Graphs(dynamics)
-    while not termination_condition_satisfied(dynamics, start, user_args, prev_tree_cover[-30], prev_tree_cover[-60]):
+    while True:
         print("-- Starting update (calling from python)") if verbose else None
         dynamics.update()
         print("-- Finished update") if verbose else None
+        
+        # Track tree cover trajectory and evaluate termination conditions
+        prev_tree_cover.append(dynamics.state.grid.get_tree_cover())
+        if dynamics.time > 10:
+            slope = (prev_tree_cover[-1] - prev_tree_cover[-10]) / 10
+        do_terminate, predicted_cover = termination_condition_satisfied(dynamics, start, user_args, prev_tree_cover[-1], prev_tree_cover[-60], slope)
+        print("-- Predicted final tree cover: ", round(predicted_cover, 5))
         
         # Do visualizations
         do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, user_args)
         
         print("-- Exporting state data...") if verbose else None
-        csv_path = io.export_state(dynamics, csv_path, init_csv)
+        csv_path = io.export_state(dynamics, csv_path, init_csv, predicted_cover=predicted_cover)
         init_csv = False
         
         print("-- Saving tree positions...") if verbose else None
@@ -252,8 +264,6 @@ def updateloop(dynamics, color_dicts, **user_args):
         print("-- Showing graphs...") if verbose else None
         if not user_args["headless"]:
             graphs.update()
-            
-        prev_tree_cover.append(dynamics.state.grid.get_tree_cover())
 
         if export_animal_resources and (user_args["dispersal_mode"] == "all" or user_args["dispersal_mode"] == "animal"):
             # Get color image representations of the resource grid from the last iteration
@@ -271,6 +281,9 @@ def updateloop(dynamics, color_dicts, **user_args):
             vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "distance_single_coarse", distance_coarse_path)
             vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "k", k_path)
             vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "k_coarse", k_coarse_path)
+
+        if do_terminate:
+            break
 
     if not user_args["headless"]:
         cv2.destroyAllWindows()
