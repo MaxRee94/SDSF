@@ -57,7 +57,7 @@ public:
 		curtime += rest_time;
 	}
 	float get_biomass_appetite() {
-		return 100; // TEMP: replace with value drawn from species-dependent poisson distribution.
+		return 1000; // We assume that the group of animals will eat 1 kg of fruit in a single session.
 	}
 	void eat(ResourceGrid* resource_grid, float begin_time) {
 		float biomass_appetite = get_biomass_appetite();
@@ -131,10 +131,13 @@ public:
 		else {
 			seed_deposition_location = position;
 		}
-		resource_grid->get_random_stategrid_location(seed_deposition_location);
-		seed.deposition_location = seed_deposition_location;
-		bool germination = seed.germinate_if_location_is_viable(resource_grid->state);
-		no_seeds_dispersed += germination;
+		
+		for (int i = 0; i < 2; i++) { // Resample once to speed up dispersal.
+			resource_grid->get_random_stategrid_location(seed_deposition_location);
+			seed.deposition_location = seed_deposition_location;
+			bool germination = seed.germinate_if_location_is_viable(resource_grid->state);
+			no_seeds_dispersed += germination;
+		}
 	}
 	map<string, float> traits;
 	map<int, pair<Seed, pair<float, float>>> stomach_content;
@@ -203,15 +206,18 @@ public:
 		while (resource_grid->total_no_fruits > no_nondispersed_fruits) {
 			for (auto& [species, species_population] : total_animal_population) {
 				for (auto& animal : species_population) {
-					if (iteration % 5 == 0) {
+					if (iteration % 1 == 0) {
+						resource_grid->update_cover_and_fruit_probabilities(species, animal.traits);
+					}
+					else if (resource_grid->total_no_fruits < no_nondispersed_fruits * 2) {
 						resource_grid->update_cover_and_fruit_probabilities(species, animal.traits);
 					}
 					animal.update(no_seeds_dispersed, iteration, state, resource_grid);
-					if (resource_grid->total_no_fruits % 10000 == 0) printf("No fruits left: %i\n", resource_grid->total_no_fruits);
 				}
 			}
 			iteration++;
 		}
+		printf("-- Number of iterations spent dispersing fruits: %d\n", iteration);
 	}
 	int popsize() {
 		int total_popsize = 0;
