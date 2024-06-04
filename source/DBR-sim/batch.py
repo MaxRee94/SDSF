@@ -7,6 +7,7 @@ import os
 import visualization as vis
 from helpers import *
 import numpy as np
+import random
 import time
 import json
 
@@ -50,14 +51,13 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
         
         run_starttime = time.time()
         dynamics = app.main(**params)
-            
-        try:
-            _io.export_state(dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value)
-        except:
-            time.sleep(3)
-            _io.export_state(dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value)
+
+        _io.export_state(dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value)
         init_csv = False
-        control_value = control_range[0] + control_range[2] * i + process_index * (control_range[2] / 7)
+        if process_index < 7:
+            control_value = control_range[0] + control_range[2] * i + process_index * (control_range[2] / 7)
+        else:
+            control_value = control_range[0] + control_range[2] * i + random.uniform(0, control_range[2]) # If we are running using 8 processes, the eighth process will choose a random value for the independent variable.
         i+=1
         
         # Get a color image representation of the final state
