@@ -144,11 +144,11 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
-            const float&, const map<string, map<string, float>>&, const int&, const float&, const int& >())
+            const float&, const map<string, map<string, float>>&, const int&, const float&, const float&, const int& >())
         .def_readwrite("time", &Dynamics::time)
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)
-        .def_readwrite("seeds_dispersed", &Dynamics::seeds_dispersed)
+        .def_readwrite("seeds_produced", &Dynamics::seeds_produced)
         .def_readwrite("fire_spatial_extent", &Dynamics::fire_spatial_extent)
         .def_readwrite("max_dbh", &Dynamics::max_dbh)
         .def("init_state", &Dynamics::init_state)
@@ -202,7 +202,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
-            const float&, const map<string, map<string, float>>&, const float&, const float&, const int&, const int&, const float&, const float&>()
+            const float&, const map<string, map<string, float>>&, const float&, const float&, const float&, const int&, const int&, const float&, const float&>()
         )
         .def("run_all", &Tests::run_all);
 
