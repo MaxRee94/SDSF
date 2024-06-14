@@ -2,6 +2,7 @@
 source/DBR-sim/.vs/
 build/
 source/__pycache__/
+source/tmp/
 data_out/
 source/DBR-sim/DawnCache/
 source/DBR-sim/GPUCache/
