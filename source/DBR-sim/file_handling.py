@@ -17,10 +17,10 @@ def get_tree_sizes(dynamics):
     return counts
 
 
-def export_state(dynamics, path="", init_csv=True, control_variable=None, control_value=None, predicted_cover=0):
+def export_state(dynamics, path="", init_csv=True, control_variable=None, control_value=None, predicted_cover=0, extra_parameters=""):
     fieldnames = [
-        "time", "tree cover", "predicted final cover", "population size", "#seeds spread", "fire mean spatial extent",
-        "#trees[dbh 0-20%]", "#trees[dbh 20-40%]", "#trees[dbh 40-60%]", "#trees[dbh 60-80%]", "#trees[dbh 80-100%]"
+        "time", "tree cover", "predicted final cover", "population size", "#seeds produced", "fire mean spatial extent",
+        "#trees[dbh 0-20%]", "#trees[dbh 20-40%]", "#trees[dbh 40-60%]", "#trees[dbh 60-80%]", "#trees[dbh 80-100%]", "extra_parameters"
     ]
     if control_variable:
         if control_variable == "treecover":
@@ -47,7 +47,8 @@ def export_state(dynamics, path="", init_csv=True, control_variable=None, contro
                 "#trees[dbh 20-40%]": tree_sizes[1],
                 "#trees[dbh 40-60%]": tree_sizes[2],
                 "#trees[dbh 60-80%]": tree_sizes[3],
-                "#trees[dbh 80-100%]": tree_sizes[4]
+                "#trees[dbh 80-100%]": tree_sizes[4],
+                "extra_parameters": extra_parameters
             }
         if control_variable:
             result[control_variable] = control_value
