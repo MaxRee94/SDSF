@@ -90,17 +90,19 @@ public:
 		}
 	}
 	void digest(ResourceGrid* resource_grid, int& no_seeds_dispersed) {
+		vector<int> defecation_schedule;
 		for (auto& [seed_id, seed_plus_times] : stomach_content) {
 			auto [gut_passage_time, ingestion_time] = seed_plus_times.second;
 			if (gut_passage_time + ingestion_time <= curtime) {
+				if (iteration < 5) continue; // Ignore the first 5 iterations (after Morales et al 2013)
 				float defecation_time = gut_passage_time + ingestion_time;
 				float time_since_defecation = curtime - defecation_time;
-				if (iteration > 4) { // Ignore the first 5 iterations (after Morales et al 2013)
-					Seed &to_defecate = seed_plus_times.first;
-					defecate(to_defecate, time_since_defecation, no_seeds_dispersed, resource_grid);
-					stomach_content.erase(seed_id);
-				}
+				Seed &to_defecate = seed_plus_times.first;
+				defecate(to_defecate, time_since_defecation, no_seeds_dispersed, resource_grid);
 			}
+		}
+		for (auto& seed_id : defecation_schedule) {
+			stomach_content.erase(seed_id);
 		}
 	}
 	pair<float, float> select_destination(ResourceGrid* resource_grid) {
