@@ -13,6 +13,7 @@ REPOSITORY_BASEDIR = os.path.dirname(os.path.dirname(cwd))
 DATA_IN_DIR = REPOSITORY_BASEDIR + "/data_in"
 DATA_OUT_DIR = REPOSITORY_BASEDIR + "/data_out"
 BUILD_DIR = REPOSITORY_BASEDIR + "/build"
+LEGEND_PATH = DATA_OUT_DIR + "/legends"
 
 
 defaults = {
@@ -24,9 +25,11 @@ defaults = {
     "timestep": 1,
     "timelimit": 1e32,
     "self_ignition_factor": 100,
-    "unsuppressed_flammability": 0.3,
+    "unsuppressed_flammability": 0.4,
     "rainfall": 0.1,
     "test": "none",
+    "termination_conditions": "all",
+    "environmental_recruitment_factor": 1.0, # Influence on recruitment rate due to environmental conditions (soil, etc.)
     "dbh_q1": 1,
     "dbh_q2": 0,
     "verbosity": 0,
@@ -35,14 +38,14 @@ defaults = {
     "multi_disperser_params": f"{DATA_IN_DIR}/multi_disperser_params.json",
     "dispersal_min": 0,
     "dispersal_max": 300,
-    "growth_rate_multiplier": 0.1,
+    "growth_rate_multiplier": 0.4,
     "flammability_coefficients_and_constants": [0.1, 0.35, 0, 1],
     "saturation_threshold": 3,
     "fire_resistance_params": [8.5, 50, 2.857], # See 'notes/fire_resistance_threshold_curve.xlsx' for details
     "constant_mortality": 0.003,
     "csv_path": "",
     "headless": False,
-    "max_timesteps": 1e9,
+    "max_timesteps": 100,
     "strategy_distribution_params": f"{DATA_IN_DIR}/strategy_distribution_params.json",
     "resource_grid_width": 64,
     "initial_pattern_image": "none",
@@ -409,6 +412,30 @@ _parameter_config = {
             "default": defaults["mutation_rate"],
         },
     },
+    "environmental_recruitment_factor": {
+        "keys": {
+            "cli": ["--environmental_recruitment_factor", "-erf"]
+        },
+        "settings": {
+            "type": float,
+            "help": (
+                "Influence on recruitment rate due to environmental conditions (soil, etc.)."
+            ),
+            "default": defaults["environmental_recruitment_factor"],
+        },
+    },
+    "termination_conditions": {
+        "keys": {
+            "cli": ["--termination_conditions", "-tcond"]
+        },
+        "settings": {
+            "type": str,
+            "help": (
+                "Condition for terminating the simulation. Possible options: 'all', 'timelimit'."
+            ),
+            "default": defaults["termination_conditions"],
+        },
+    }
 }
 
 
