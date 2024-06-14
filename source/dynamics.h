@@ -218,11 +218,11 @@ public:
 			help::readable_number(no_wind_seeds).c_str(), help::readable_number(resource_grid.total_no_fruits).c_str(), timer.elapsedSeconds()
 		);
 	}
-	void disperse_animal_seeds() {
+	void disperse_animal_seeds(int total_no_seeds) {
 		int no_animal_seeds = 0;
 		Timer timer; timer.start();
 		if (resource_grid.has_fruits) {
-			no_animal_seeds = animal_dispersal.disperse(&state, &resource_grid, 1);
+			no_animal_seeds = animal_dispersal.disperse(&state, &resource_grid, total_no_seeds, 1);
 		}
 		timer.stop(); printf("-- Dispersing %s animal seeds took %f seconds. \n", help::readable_number(no_animal_seeds).c_str(), timer.elapsedSeconds());
 	}
@@ -247,16 +247,16 @@ public:
 	void disperse() {
 		resource_grid.reset();
 		int pre_dispersal_popsize = pop->size();
-		seeds_dispersed = 0;
+		seeds_produced = 0;
 		int no_seed_bearing_trees = 0;
 		int no_wind_trees = 0;
-		disperse_wind_seeds_and_init_fruits(no_seed_bearing_trees, seeds_dispersed, no_wind_trees);
-		disperse_animal_seeds();
+		disperse_wind_seeds_and_init_fruits(no_seed_bearing_trees, seeds_produced, no_wind_trees);
+		disperse_animal_seeds(seeds_produced);
 		recruit();
 
 		if (verbosity > 0) printf(
 			"-- Fraction of trees that are seed-bearing: %f, #seeds (all): %s\n",
-			(float)no_seed_bearing_trees / (float)pop->size(), help::readable_number(seeds_dispersed).c_str()
+			(float)no_seed_bearing_trees / (float)pop->size(), help::readable_number(seeds_produced).c_str()
 		);
 		if (verbosity > 0) printf("-- Proportion wind dispersed trees: %f \n", no_wind_trees / (float)no_seed_bearing_trees);
 	}
@@ -420,7 +420,7 @@ public:
 	int time = 0;
 	int pop_size = 0;
 	int verbosity = 0;
-	int seeds_dispersed = 0;
+	int seeds_produced = 0;
 	int resource_grid_width = 0;
 	State state;
 	Population* pop = 0;

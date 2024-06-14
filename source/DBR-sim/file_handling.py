@@ -41,7 +41,7 @@ def export_state(dynamics, path="", init_csv=True, control_variable=None, contro
                 "tree cover": str(dynamics.state.grid.get_tree_cover()), 
                 "predicted final cover": str(predicted_cover),
                 "population size": str(dynamics.state.population.size()),
-                "#seeds spread": str(dynamics.seeds_dispersed),
+                "#seeds produced": str(dynamics.seeds_produced),
                 "fire mean spatial extent": str(dynamics.fire_spatial_extent),
                 "#trees[dbh 0-20%]": tree_sizes[0],
                 "#trees[dbh 20-40%]": tree_sizes[1],

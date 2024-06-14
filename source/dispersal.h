@@ -62,11 +62,11 @@ public:
 class AnimalDispersal : public Disperser {
 public:
 	AnimalDispersal() : Disperser() {};
-	int disperse(State* state, ResourceGrid* resource_grid, int verbosity = 0) {
+	int disperse(State* state, ResourceGrid* resource_grid, int total_no_seeds, int verbosity = 0) {
 		resource_grid->compute_cover_and_fruit_abundance();
 		animals.place(state);
 		int no_seeds_dispersed = 0;
-		animals.disperse(no_seeds_dispersed, state, resource_grid);
+		animals.disperse(no_seeds_dispersed, total_no_seeds, state, resource_grid);
 		return no_seeds_dispersed;
 	}
 	Animals animals;
