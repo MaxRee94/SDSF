@@ -46,7 +46,6 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
         
     return color_dict
 
-
 def visualize_image(img, image_width, interpolation="none"):
     if interpolation == "none":
         img_resized = cv2.resize(img, (image_width, image_width),
@@ -58,13 +57,15 @@ def visualize_image(img, image_width, interpolation="none"):
     cv2.imshow("DBR Simulation (TEST)", img_resized)
     cv2.waitKey(1)
 
-def get_image(img, color_dict, width):
+def get_image(img, color_dict, width, height="width"):
+    if height == "width":
+        height = width
     if (color_dict == {0:0, 1:255}):
         img *= 255
     elif (len(color_dict[0]) == 3):
-        new_img = np.zeros((width, width, 3), np.uint8)
+        new_img = np.zeros((width, height, 3), np.uint8)
         for i in range(width):
-            for j in range(width):
+            for j in range(height):
                 new_img[i, j] = color_dict[img[i, j]]
         img = new_img.copy()
             
@@ -132,6 +133,21 @@ def visualize_radial_distribution_function(g_r, radii, iteration):
     except:
         pass
 
+def visualize_legend(distr_type="normal"):
+    width = 500
+    height = 50
+    end_value = 90 if distr_type == "normal" else 0
+    vals = np.zeros((height, width))
+    for i in range(width):
+        vals[:, i] = end_value - int(float(i) * (end_value / width))
+        print(vals[0, i])
+        
+    color_dict = get_color_dict(100, begin=0.2, end=0.5, distr_type=distr_type)
+    img = get_image(vals, color_dict, height, width)
+    cv2.imwrite(os.path.join(LEGEND_PATH, f"Legend_{distr_type}.png"), img)
+    cv2.imshow(f"Legend_{distr_type}", img)
+    cv2.waitKey(1)
+
 
 class Graphs:
     def __init__(self, dynamics, width=6, height=4):
@@ -176,7 +192,7 @@ class Graph:
         if self.datatype == "Tree cover":
             self.data.append(self.dynamics.state.grid.get_tree_cover())
         elif self.datatype == "Seeds dispersed":
-            self.data.append(self.dynamics.seeds_dispersed)
+            self.data.append(self.dynamics.seeds_produced)
     def update(self):
         self.add_datapoint()
         self.times.append(self.dynamics.time)
