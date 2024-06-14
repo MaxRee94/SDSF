@@ -199,19 +199,16 @@ public:
 			}
 		}
 	}
-	void disperse(int& no_seeds_dispersed, State* state, ResourceGrid* resource_grid) {
+	void disperse(int& no_seeds_dispersed, int total_no_seeds, State* state, ResourceGrid* resource_grid) {
 		place(state);
 		resource_grid->reset_color_arrays();
 		int iteration = 0;
-		int no_nondispersed_fruits = resource_grid->total_no_fruits * 0.2f;	// We arbitrarily disperse only 80% of fruits, because dispersal becomes less computationally
-																			// efficient as the number of fruits decreases (can be justified by the fact that removal rates are not 100% in nature either).
-		while (resource_grid->total_no_fruits > no_nondispersed_fruits) {
+		int minimum_no_seeds_to_dispserse = total_no_seeds * 0.95f;	// We arbitrarily disperse only 95% of fruits, because dispersal becomes less computationally
+																	// efficient as the number of fruits decreases (can be justified by the fact that removal rates are not 100% in nature either).
+		while (no_seeds_dispersed < minimum_no_seeds_to_dispserse) {
 			for (auto& [species, species_population] : total_animal_population) {
 				for (auto& animal : species_population) {
 					if (iteration % 1 == 0) {
-						resource_grid->update_cover_and_fruit_probabilities(species, animal.traits);
-					}
-					else if (resource_grid->total_no_fruits < no_nondispersed_fruits * 2) {
 						resource_grid->update_cover_and_fruit_probabilities(species, animal.traits);
 					}
 					animal.update(no_seeds_dispersed, iteration, state, resource_grid);
