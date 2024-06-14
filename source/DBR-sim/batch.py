@@ -12,22 +12,26 @@ import time
 import json
 
 
-def main(process_index=None, control_variable=None, control_range=None, extra_parameters=None):
-    batch_no = 1
-    csv_parent_dir = "F:/Development/DBR-sim/data_out/state data/batch_1"
-    while os.path.exists(csv_parent_dir):
-        batch_no += 1
-        csv_parent_dir = csv_parent_dir.split("batch_")[0] + "batch_" + str(batch_no).zfill(6)
-    if process_index == 0:
+def get_csv_parent_dir(run):
+    with open("F:/Development/DBR-sim/data_out/state data/tmp/batchfolder_lookup_table.json", "r") as lookup_table_file:
+        folder_lookup_table = json.load(lookup_table_file)
+
+    csv_parent_dir = folder_lookup_table[run]
+    if not os.path.exists(csv_parent_dir):
         os.makedirs(csv_parent_dir)
-    else:
-        csv_parent_dir = csv_parent_dir.split("batch_")[0] + "batch_" + str(batch_no - 1).zfill(6)
+    
+    return csv_parent_dir
+
+
+def main(process_index=None, control_variable=None, control_range=None, extra_parameters=None, run=0, no_processes=7):
+    csv_parent_dir = get_csv_parent_dir(run)
+    print("csv parent dir: ", csv_parent_dir)
     
     no_colors = 100
     color_dict = vis.get_color_dict(no_colors, begin=0.2, end=0.5)
+    color_dict[0] = np.array((170, 255, 255), np.uint8)
     params = config.defaults
     params["headless"] = True
-    params["max_timesteps"] = 1000
     if extra_parameters:
         print("Extra parameters:", extra_parameters) # Example of usage: {\"verbosity\":1}
         extra_parameters = json.loads(extra_parameters)
@@ -46,18 +50,15 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
         singlerun_image_path = singlerun_csv_path.replace(".csv", ".png")
         params["csv_path"] = singlerun_csv_path
         params[control_variable] = control_value
-        print("csv path: ", params["csv_path"])
-        print("image path: ", singlerun_image_path)
         
+        # Run the simulation and append its results to the total results csv
         run_starttime = time.time()
-        dynamics = app.main(**params)
-
-        _io.export_state(dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value)
+        dynamics, predicted_cover = app.main(**params)
+        _io.export_state(dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value, predicted_cover=predicted_cover, extra_parameters=str(extra_parameters))
         init_csv = False
-        if process_index < 7:
-            control_value = control_range[0] + control_range[2] * i + process_index * (control_range[2] / 7)
-        else:
-            control_value = control_range[0] + control_range[2] * i + random.uniform(0, control_range[2]) # If we are running using 8 processes, the eighth process will choose a random value for the independent variable.
+        
+        # Get the next control value
+        control_value = control_range[0] + control_range[2] * (i+1) + process_index * (control_range[2] / no_processes)
         i+=1
         
         # Get a color image representation of the final state
@@ -74,6 +75,8 @@ if __name__ == "__main__":
     parser.add_argument('-pi', '--process_index', type=int)
     parser.add_argument('-cv', '--control_variable', type=str)
     parser.add_argument('-cr', '--control_range', type=float, nargs="*", help="Format: min max stepsize")
+    parser.add_argument('-np', '--no_processes', type=int, help="Number of processes to run simultaneously.")
+    parser.add_argument('-r', '--run', type=str, default=1, help="Unique run identifier in case of multiple runs per batch")
     parser.add_argument(
         '-ep', '--extra_parameters', type=str,
         help=r"Json string containing key-value pairs of custom parameters. Keys should be surrounded by double quotes preceded by a backslash. Example: {\"verbosity\":1}"
