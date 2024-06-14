@@ -186,10 +186,10 @@ public:
 			grid.update_grass_LAIs_for_individual_tree(tree);
 
 			// Thin crowds when close to target tree cover
-			if (grid.tree_cover > 0.95f * integral_image_cover && no_crowd_thinning_runs < max_no_crowd_thinning_runs) {
+			/*if (grid.tree_cover > 0.95f * integral_image_cover && no_crowd_thinning_runs < max_no_crowd_thinning_runs) {
 				no_crowd_thinning_runs++;
 				thin_crowds(true);
-			}
+			}*/
 
 			if (population.size() % 10000 == 0) printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
 		}
@@ -223,10 +223,10 @@ public:
 			}
 
 			// Thin crowds when close to target tree cover
-			if (grid.tree_cover > 0.95f * _tree_cover && no_crowd_thinning_runs < max_no_crowd_thinning_runs) {
+			/*if (grid.tree_cover > 0.95f * _tree_cover && no_crowd_thinning_runs < max_no_crowd_thinning_runs) {
 				no_crowd_thinning_runs++;
 				thin_crowds(true);
-			}
+			}*/
 
 			if (population.size() % 1000 == 0) {
 				printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
