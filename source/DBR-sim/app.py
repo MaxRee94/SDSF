@@ -126,8 +126,9 @@ def init(
         else:
             print("Setting tree cover from image...")
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        ret, img = cv2.threshold(img, img.shape[0], img.shape[0], cv2.THRESH_BINARY) 
+        ret, img = cv2.threshold(img, 123, 255, cv2.THRESH_BINARY) 
         img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR) 
+        #dynamics.state.set_cover_from_image(img / 255, treecover)
         dynamics.state.set_cover_from_image(img / 255)
     dynamics.state.repopulate_grid(0)
     

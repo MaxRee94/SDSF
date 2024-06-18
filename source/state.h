@@ -154,7 +154,7 @@ public:
 		grid.kill_tree_domain(tree, false);
 		population.remove(tree);
 	}
-	void set_cover_from_image(float* image, int img_width, int img_height) {
+	void set_cover_from_image(float* image, int img_width, int img_height, float target_cover = -1) {
 		float pixel_size = grid.width_r / (float)img_width;
 		int no_gridcells_along_x_per_pixel = round(grid.width_r / img_width);
 		pair<int, int> bb = pair<int, int>(no_gridcells_along_x_per_pixel, no_gridcells_along_x_per_pixel);
@@ -167,13 +167,15 @@ public:
 		probmodel.set_probabilities(image, integral_image_cover);
 		probmodel.normalize(integral_image_cover);
 		probmodel.build_cdf();
-		integral_image_cover /= (float)(img_width * img_height);
-		printf("Image cover: %f\n", integral_image_cover);
+		if (target_cover < 0) {
+			integral_image_cover /= (float)(img_width * img_height);
+			printf("Image cover: %f\n", integral_image_cover);
+		}
 
 		// Set tree cover
 		int no_crowd_thinning_runs = 0;
 		int max_no_crowd_thinning_runs = 10;
-		while (grid.get_tree_cover() < integral_image_cover) {
+		while (grid.get_tree_cover() < target_cover) {
 			int idx = probmodel.sample();
 			Cell &cell = grid.distribution[idx];
 			pair<float, float> position = grid.get_real_cell_position(&cell);

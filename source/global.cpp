@@ -101,11 +101,12 @@ PYBIND11_MODULE(dbr_cpp, module) {
             const float&, const float&, map<string, map<string, float>>&, const float&>())
         .def("repopulate_grid", &State::repopulate_grid)
         .def("set_tree_cover", &State::set_tree_cover)
-        .def("set_cover_from_image", [](State& state, py::array_t<float>& img) {
+        .def("set_cover_from_image", [](State& state, py::array_t<float>& img, float& target_cover) {
             float* cover_image;
             int width, height;
             convert_from_numpy_array(img, cover_image, width, height);
-            state.set_cover_from_image(cover_image, width, height);
+            if (target_cover > 0) state.set_cover_from_image(cover_image, width, height, target_cover);
+            else state.set_cover_from_image(cover_image, width, height);
             delete[] cover_image;
         })
         .def("get_tree_positions", [](State& state) {
