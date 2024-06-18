@@ -28,6 +28,10 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
     print("csv parent dir: ", csv_parent_dir)
     
     no_colors = 100
+    if "->" in control_variable:
+        sim_name = control_variable.split("->")[-2]
+    else:
+        sim_name = control_variable
     color_dict = vis.get_color_dict(no_colors, begin=0.2, end=0.5)
     color_dict[0] = np.array((170, 255, 255), np.uint8)
     params = config.defaults
@@ -45,16 +49,25 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
     i = 0
     time_budget_per_run = 60 * 60
     while control_value < control_range[1]:
-        print(f"\n ------- Beginning simulation with {control_variable}={str(control_value)} (process idx {str(process_index)}) ------- \n")
-        singlerun_csv_path = csv_parent_dir + f"/{control_variable}={str(control_value)}_process_{str(process_index)}.csv"
+        singlerun_name = f"/{sim_name}={str(control_value)}_process_{str(process_index)}"
+        print(f"\n ------- Beginning simulation with {singlerun_name} ------- \n")
+        singlerun_csv_path = csv_parent_dir + singlerun_name + ".csv"
         singlerun_image_path = singlerun_csv_path.replace(".csv", ".png")
         params["csv_path"] = singlerun_csv_path
-        params[control_variable] = control_value
+        if "->" in control_variable:
+            params["batch_parameters"] = {"control_variable": control_variable, "control_value": control_value}
+        else:
+            params[control_variable] = control_value
         
         # Run the simulation and append its results to the total results csv
         run_starttime = time.time()
-        dynamics, predicted_cover = app.main(**params)
-        _io.export_state(dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value, predicted_cover=predicted_cover, extra_parameters=str(extra_parameters))
+        dynamics, color_dicts = app.init(**params) 
+        dynamics, predicted_cover = app.updateloop(dynamics, color_dicts, **params)
+
+        _io.export_state(
+            dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value,
+            predicted_cover=predicted_cover, extra_parameters=str(extra_parameters)
+        )
         init_csv = False
         
         # Get the next control value

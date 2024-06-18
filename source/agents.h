@@ -57,6 +57,9 @@ public:
 			else if (distribution_type == "discrete") {
 				prob_model = ProbModel(value_range["probability0"], value_range["probability1"], value_range["probability2"]);
 			}
+			else if (distribution_type == "constant") {
+				prob_model = ProbModel(value_range["constant"]);
+			}
 			trait_distributions[trait] = prob_model;
 		}
 	}
@@ -117,11 +120,15 @@ public:
 		return seed_reserve_mass;
 	}
 	float get_relative_growth_rate(float seed_mass) {
-		float relative_growth_rate = (1.0f - 6.97f * log10(seed_mass)) * 0.001f;	// Relative growth rate of seedlings in g/g/day, based on Rose (2003), 
+		float relative_growth_rate = (1.0f - 6.97f * log10(seed_mass)) * 0.001f;		// Relative growth rate of seedlings in g/g/day, based on Rose (2003), 
 																						// table 2.2 (regression slope 'overall').
 		return relative_growth_rate;
 	}
-	float calculate_seedling_dbh(float seed_reserve_mass, float relative_growth_rate, float seed_mass) {
+	float calculate_seedling_dbh(float seed_reserve_mass, float relative_growth_rate, float seed_mass, string vector) {
+		if (trait_distributions["seedling_dbh_" + vector].sample() >= 0) {
+			return trait_distributions["seedling_dbh_" + vector].sample(); // If a constant value is provided in the parameter file, use that value.
+		}
+
 		float new_mass_grams = pow(10.0f, seed_reserve_mass * exp(relative_growth_rate * 365.25f));				// Mass in grams after 1 year of growth, based on Rose (2003). 
 																													// Seedling start mass is assumed to be equal to seed reserve mass.
 		float Leaf_Mass_Fraction = 0.4f - 0.05f * log10(seed_mass);												// g/g. Based on table 2.2, Rose (2003).
@@ -159,7 +166,7 @@ public:
 		float recruitment_probability = calculate_recruitment_probability(seed_mass);
 		float seed_reserve_mass = get_seed_reserve_mass(seed_mass);
 		float relative_growth_rate = get_relative_growth_rate(seed_mass);
-		float seedling_dbh = calculate_seedling_dbh(seed_reserve_mass, relative_growth_rate, seed_mass);
+		float seedling_dbh = calculate_seedling_dbh(seed_reserve_mass, relative_growth_rate, seed_mass, vector);
 		strategy = Strategy(
 			vector, seed_mass, diaspore_mass, no_seeds_per_diaspore, seed_tspeed, pulp_to_seed_ratio, recruitment_probability,
 			seedling_dbh, relative_growth_rate, seed_reserve_mass
@@ -189,7 +196,7 @@ public:
 		}
 	}
 	map<string, ProbModel> trait_distributions;
-	map<int, string> distribution_types = { { 0, "uniform" }, {1, "linear"}, {2, "normal"}, {3, "discrete"} };
+	map<int, string> distribution_types = { { 0, "uniform" }, {1, "linear"}, {2, "normal"}, {3, "discrete"}, {4, "constant"} };
 };
 
 
