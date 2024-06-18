@@ -11,12 +11,12 @@ from config import *
 
 
 # Perlin noise global variables
-perm = list(range(256))
+perm = list(range(3000))
 random.shuffle(perm)
 perm += perm
-dirs = [(math.cos(a * 2.0 * math.pi / 256),
-         math.sin(a * 2.0 * math.pi / 256))
-            for a in range(256)]
+dirs = [(math.cos(a * 2.0 * math.pi / 3000),
+         math.sin(a * 2.0 * math.pi / 3000))
+            for a in range(3000)]
 
 
 def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
@@ -120,6 +120,15 @@ def visualize_difference(image1, image2, image_width=1000):
     
     visualize_image(img, image_width)
 
+def get_thresholded_image(orig_img, white_pixel_sum):
+    threshold = 245
+    ret, img = cv2.threshold(orig_img, threshold, 255, cv2.THRESH_BINARY) 
+    while np.sum(img) < white_pixel_sum:
+        threshold -= 5
+        ret, img = cv2.threshold(orig_img, threshold, 255, cv2.THRESH_BINARY)
+    
+    return img
+
 def perlin_noise(x, y, per):
     def surflet(gridX, gridY):
         distX, distY = abs(x-gridX), abs(y-gridY)
@@ -139,7 +148,7 @@ def fBm(x, y, per, octs):
         val += 0.5**o * perlin_noise(x*2**o, y*2**o, per*2**o)
     return val
 
-def generate_perlin_noise_image(path, width=100, frequency=1/32.0, octaves=5):
+def generate_perlin_noise_image(path, width=200, frequency=1/32.0, octaves=5):
     data = []
     for y in range(width):
         row = []

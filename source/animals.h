@@ -203,9 +203,7 @@ public:
 		place(state);
 		resource_grid->reset_color_arrays();
 		int iteration = 0;
-		int minimum_no_seeds_to_dispserse = total_no_seeds * 0.95f;	// We arbitrarily disperse only 95% of fruits, because dispersal becomes less computationally
-																	// efficient as the number of fruits decreases (can be justified by the fact that removal rates are not 100% in nature either).
-		while (no_seeds_dispersed < minimum_no_seeds_to_dispserse) {
+		while (no_seeds_dispersed < total_no_seeds) {
 			for (auto& [species, species_population] : total_animal_population) {
 				for (auto& animal : species_population) {
 					if (iteration % 1 == 0) {

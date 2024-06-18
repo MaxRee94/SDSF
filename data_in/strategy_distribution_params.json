@@ -1,17 +1,22 @@
 {
     "seed_mass_wind" : {
-        "distribution_type": 2,
-        "mean": 1,
-        "stdev": 0.5,
-        "min": 0.01,
-        "max": 2.5
+        "distribution_type": 4,
+        "constant": 1.0
     },
     "seed_mass_animal" : {
         "distribution_type": 2,
-        "mean": 4.31,
-        "stdev": 3,
+        "mean": 0.1,
+        "stdev": 0.1,
         "min": 0.01,
-        "max": 100
+        "max": 200.0
+    },
+    "seedling_dbh_wind": {
+        "distribution_type": 4,
+        "constant": -999
+    },
+    "seedling_dbh_animal": {
+        "distribution_type": 4,
+        "constant": -999
     },
     "fruit_pulp_mass": {
         "distribution_type": 1,
@@ -22,14 +27,15 @@
     },
     "no_seeds_per_diaspore": {
         "distribution_type": 2,
-        "mean": 3,
-        "stdev": 2,
-        "min": 1
+        "mean": 1,
+        "stdev": 0,
+        "min": 1,
+        "max": 100000
     },
     "vector": {
         "distribution_type": 3,
         "probability0": 0.0,
-        "probability1": 0.0,
-        "probability2": 1.0
+        "probability1": 1.0,
+        "probability2": 0.0
     }
 }
