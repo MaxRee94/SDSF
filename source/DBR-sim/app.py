@@ -21,6 +21,11 @@ sys.path.append(BUILD_DIR)
 from x64.Release import dbr_cpp as cpp
 
 
+def unpack_control_keys(control_variable):
+    control_keys = control_variable.split("->")
+    return control_keys
+
+
 def set_dispersal_kernel(
         dynamics, dispersal_mode, multi_disperser_params
     ):
@@ -84,12 +89,16 @@ def init(
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
     initial_pattern_image=None, mutation_rate=None, environmental_recruitment_factor=None,
-    **user_args
+    batch_parameters=None, **user_args
     ):
     
     # Obtain strategy distribution parameters
     with open(strategy_distribution_params, "r") as sdp_jsonfile:
         strategy_distribution_params = json.load(sdp_jsonfile)
+    if batch_parameters and "strategies->" in batch_parameters["control_variable"]:
+        control_keys = unpack_control_keys(batch_parameters["control_variable"])
+        control_keys.remove("strategies")
+        strategy_distribution_params[control_keys[0]][control_keys[1]] = batch_parameters["control_value"]
 
     # Initialize dynamics object and state
     dynamics = cpp.Dynamics(
@@ -109,11 +118,16 @@ def init(
     if initial_pattern_image == "none":
         dynamics.state.set_tree_cover(treecover)
     else:
-        img = cv2.imread(f"{DATA_IN_DIR}/state patterns/" + initial_pattern_image, cv2.IMREAD_GRAYSCALE)
-        img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
-        #(thresh, img) = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-        print("Setting tree cover from image...")
-        print(img / 255)
+        path = f"{DATA_IN_DIR}/state patterns/" + initial_pattern_image
+        if "perlin_noise" in initial_pattern_image:
+            print("Setting tree cover using perlin noise function...")
+            path = f"{PERLIN_NOISE_DIR}/" + initial_pattern_image + ".png"
+            vis.generate_perlin_noise_image(path, frequency=user_args["noise_frequency"], octaves=user_args["noise_octaves"])
+        else:
+            print("Setting tree cover from image...")
+        img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        ret, img = cv2.threshold(img, img.shape[0], img.shape[0], cv2.THRESH_BINARY) 
+        img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR) 
         dynamics.state.set_cover_from_image(img / 255)
     dynamics.state.repopulate_grid(0)
     
@@ -309,7 +323,8 @@ def test_discrete_probmodel():
     plt.show()
 
 
-def main(**user_args):
+def main(**user_args): 
+
     #vis.visualize_legend()
     #return
 

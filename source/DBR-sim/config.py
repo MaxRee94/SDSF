@@ -13,6 +13,7 @@ REPOSITORY_BASEDIR = os.path.dirname(os.path.dirname(cwd))
 DATA_IN_DIR = REPOSITORY_BASEDIR + "/data_in"
 DATA_OUT_DIR = REPOSITORY_BASEDIR + "/data_out"
 BUILD_DIR = REPOSITORY_BASEDIR + "/build"
+PERLIN_NOISE_DIR = DATA_IN_DIR + "/state patterns/perlin_noise"
 LEGEND_PATH = DATA_OUT_DIR + "/legends"
 
 
@@ -23,6 +24,8 @@ defaults = {
     "max_dbh": 44.3, # (Close to) Theoretical maximum due to density-dependent constraint on LAI (see 'Tree Allometric Relationships v03.xlsx' for details)
     "image_width": 1000,
     "timestep": 1,
+    "noise_frequency": 0.03,
+    "noise_octaves": 5,
     "timelimit": 1e32,
     "self_ignition_factor": 100,
     "unsuppressed_flammability": 0.4,
@@ -435,7 +438,31 @@ _parameter_config = {
             ),
             "default": defaults["termination_conditions"],
         },
-    }
+    },
+    "noise_frequency": {
+        "keys": {
+            "cli": ["--noise_frequency", "-noifreq"]
+        },
+        "settings": {
+            "type": float,
+            "help": (
+                "Parameter to the perlin noise function."
+            ),
+            "default": defaults["noise_frequency"],
+        },
+    },
+    "noise_octaves": {
+        "keys": {
+            "cli": ["--noise_octaves", "-noict"]
+        },
+        "settings": {
+            "type": int,
+            "help": (
+                "Parameter to the perlin noise function."
+            ),
+            "default": defaults["noise_octaves"],
+        },
+    },
 }
 
 

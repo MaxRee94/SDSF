@@ -2,9 +2,21 @@ from multiprocessing import Value
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import math
+import random
+from PIL import Image
 
 from helpers import *
 from config import *
+
+
+# Perlin noise global variables
+perm = list(range(256))
+random.shuffle(perm)
+perm += perm
+dirs = [(math.cos(a * 2.0 * math.pi / 256),
+         math.sin(a * 2.0 * math.pi / 256))
+            for a in range(256)]
 
 
 def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
@@ -107,6 +119,38 @@ def visualize_difference(image1, image2, image_width=1000):
     img = img.transpose(1, 2, 0)
     
     visualize_image(img, image_width)
+
+def perlin_noise(x, y, per):
+    def surflet(gridX, gridY):
+        distX, distY = abs(x-gridX), abs(y-gridY)
+        polyX = 1 - 6*distX**5 + 15*distX**4 - 10*distX**3
+        polyY = 1 - 6*distY**5 + 15*distY**4 - 10*distY**3
+        hashed = perm[perm[int(gridX)%per] + int(gridY)%per]
+        grad = (x-gridX)*dirs[hashed][0] + (y-gridY)*dirs[hashed][1]
+        return polyX * polyY * grad
+    
+    intX, intY = int(x), int(y)
+    return (surflet(intX+0, intY+0) + surflet(intX+1, intY+0) +
+            surflet(intX+0, intY+1) + surflet(intX+1, intY+1))
+
+def fBm(x, y, per, octs):
+    val = 0
+    for o in range(octs):
+        val += 0.5**o * perlin_noise(x*2**o, y*2**o, per*2**o)
+    return val
+
+def generate_perlin_noise_image(path, width=100, frequency=1/32.0, octaves=5):
+    data = []
+    for y in range(width):
+        row = []
+        for x in range(width):
+            val = fBm(x*frequency, y*frequency, int(width*frequency), octaves)
+            val = max(0, (val + 0.5) * 255)
+            row.append([val, val, val])
+        data.append(row)
+    img = np.array(data, dtype=np.uint8)
+    print("min: ", img.min(), "max: ", img.max())
+    cv2.imwrite(path, img)
 
 def visualize_kernel(kernel, title="Kernel"):
     vals = []
