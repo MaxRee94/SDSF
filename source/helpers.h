@@ -429,6 +429,7 @@ namespace help {
 			max_value = _max;
 		};
 		ProbModel(float _q1, float _q2, float _min, float _max) : LinearProbabilityModel(_q1, _q2, _min, _max) { type = "linear"; };
+		ProbModel(float _constant) { type = "constant"; constant = _constant; };
 		float sample() {
 			if (type == "uniform") {
 				return UniformProbModel::get_uniform_sample();
@@ -445,6 +446,9 @@ namespace help {
 			else if (type == "discrete") {
 				return SmallDiscreteProbabilityModel::pick_outcome();
 			}
+			else if (type == "constant") {
+				return constant;
+			}
 			else {
 				return -999;
 			}
@@ -452,5 +456,6 @@ namespace help {
 		string type = "none";
 		float min_value = 0;
 		float max_value = 0;
+		float constant = 0;
 	};
 };
