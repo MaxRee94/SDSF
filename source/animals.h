@@ -206,9 +206,7 @@ public:
 		while (no_seeds_dispersed < no_seeds_to_disperse) {
 			for (auto& [species, species_population] : total_animal_population) {
 				for (auto& animal : species_population) {
-					if (iteration % 1 == 0) {
-						resource_grid->update_cover_and_fruit_probabilities(species, animal.traits);
-					}
+					resource_grid->update_cover_and_fruit_probabilities(species, animal.traits);
 					animal.update(no_seeds_dispersed, iteration, state, resource_grid);
 				}
 			}
