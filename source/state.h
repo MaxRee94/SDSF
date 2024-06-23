@@ -168,8 +168,8 @@ public:
 		probmodel.normalize(integral_image_cover);
 		probmodel.build_cdf();
 		if (target_cover < 0) {
-			integral_image_cover /= (float)(img_width * img_height);
-			printf("Image cover: %f\n", integral_image_cover);
+			target_cover = integral_image_cover / (float)(img_width * img_height);
+			printf("Image cover: %f\n", target_cover);
 		}
 
 		// Set tree cover
@@ -200,7 +200,6 @@ public:
 		printf("Finished setting tree cover from image.\n");
 	}
 	void set_tree_cover(float _tree_cover) {
-		help::init_RNG();
 		grid.reset();
 
 		int wind_trees = 0;
