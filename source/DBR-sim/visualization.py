@@ -11,12 +11,12 @@ from config import *
 
 
 # Perlin noise global variables
-perm = list(range(3000))
+perm = list(range(4096))
 random.shuffle(perm)
 perm += perm
-dirs = [(math.cos(a * 2.0 * math.pi / 3000),
-         math.sin(a * 2.0 * math.pi / 3000))
-            for a in range(3000)]
+dirs = [(math.cos(a * 2.0 * math.pi / 4096),
+         math.sin(a * 2.0 * math.pi / 4096))
+            for a in range(4096)]
 
 
 def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
@@ -154,11 +154,10 @@ def generate_perlin_noise_image(path, width=200, frequency=1/32.0, octaves=5):
         row = []
         for x in range(width):
             val = fBm(x*frequency, y*frequency, int(width*frequency), octaves)
-            val = max(0, (val + 0.5) * 255)
+            val = min(255, max(0, (val + 0.5) * 255))
             row.append([val, val, val])
         data.append(row)
     img = np.array(data, dtype=np.uint8)
-    print("min: ", img.min(), "max: ", img.max())
     cv2.imwrite(path, img)
 
 def visualize_kernel(kernel, title="Kernel"):
