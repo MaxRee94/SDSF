@@ -374,7 +374,7 @@ public:
 		while (it.next()) {
 			if (tree->crown_area < cell_area_half) break; // Do not populate cells with trees that are smaller than half the cell area.
 			if (tree->radius_spans(it.real_cell_position)) {
-				set_to_forest(it.gb_cell_position, tree);
+				add_tree_to_cell(it.gb_cell_position, tree);
 			}
 		}
 		int center_idx = get_capped_center_idx(it.tree_center_gb);
@@ -393,7 +393,7 @@ public:
 
 				// Set cell to savanna if the cumulative leaf area is less than half of the area of the cell
 				// (leaf area < 0.5 * cell_area   <==>   (LAI * cell_area) < 0.5 * cell_area   <==>   LAI < 0.5).
-				if (cell->get_LAI() < 0.5f) { 
+				if (cell->get_LAI() < 1.0f) { 
 					if (cell->idx != ignition_cell_idx) queue.push(cell); // The ignition cell (responsible for setting the tree alight) is already in the queue.
 					set_to_savanna(cell->idx, time_last_fire);
 					if (store_tree_death_in_color_distribution) state_distribution[cell->idx] = -6;
@@ -476,13 +476,15 @@ public:
 			}
 		}
 	}
-	void set_to_forest(int idx, Tree* tree) {
+	void add_tree_to_cell(int idx, Tree* tree) {
 		if (distribution[idx].state == 0) {
 			no_savanna_cells--;
 			no_forest_cells++;
 		}
-		distribution[idx].state = 1;
 		distribution[idx].add_tree(tree);
+		if (distribution[idx].get_LAI() > 1.0) {
+			distribution[idx].state = 1;
+		}
 	}
 	void set_to_savanna(int idx, float _time_last_fire = -1) {
 		no_savanna_cells += (distribution[idx].state == 1);
@@ -514,9 +516,9 @@ public:
 		}
 		return (float)no_forest_cells / (float)no_cells;
 	}
-	void set_to_forest(pair<int, int> position_grid, Tree* tree) {
+	void add_tree_to_cell(pair<int, int> position_grid, Tree* tree) {
 		cap(position_grid);
-		set_to_forest(position_grid.second * width + position_grid.first, tree);
+		add_tree_to_cell(position_grid.second * width + position_grid.first, tree);
 	}
 	void set_to_savanna(pair<int, int> position_grid, float time_last_fire = -1) {
 		cap(position_grid);
