@@ -446,8 +446,8 @@ public:
 	void add_random_offset(CoarseCell &coarse_cell) {
 		// Offset the coarse cell randomly to create a falloff effect.
 		pair<int, int> coarse_cell_offset = pair<int, int>(
-			help::get_rand_int((-0.3f * coarse_cell_width), (0.3f * coarse_cell_width)),
-			help::get_rand_int((-0.3f * coarse_cell_width), (0.3f * coarse_cell_width))
+			help::get_rand_int((-0.5f * coarse_cell_width), (0.5f * coarse_cell_width)),
+			help::get_rand_int((-0.5f * coarse_cell_width), (0.5f * coarse_cell_width))
 		);
 		coarse_cell.grid_bb_min = coarse_cell.grid_bb_min + coarse_cell_offset;
 		coarse_cell.grid_bb_max = coarse_cell.grid_bb_max + coarse_cell_offset;
