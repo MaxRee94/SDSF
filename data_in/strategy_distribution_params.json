@@ -1,14 +1,17 @@
 {
     "seed_mass_wind" : {
-        "distribution_type": 4,
-        "constant": 1.0
+        "distribution_type": 2,
+        "mean": 0.1,
+        "stdev": 0.1,
+        "min": 0.01,
+        "max": 2.5
     },
     "seed_mass_animal" : {
         "distribution_type": 2,
         "mean": 0.1,
         "stdev": 0.1,
         "min": 0.01,
-        "max": 200.0
+        "max": 2.5
     },
     "seedling_dbh_wind": {
         "distribution_type": 4,
@@ -35,7 +38,7 @@
     "vector": {
         "distribution_type": 3,
         "probability0": 0.0,
-        "probability1": 1.0,
-        "probability2": 0.0
+        "probability1": 0.0,
+        "probability2": 1.0
     }
 }

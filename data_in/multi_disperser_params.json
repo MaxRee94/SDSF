@@ -6,7 +6,7 @@
         "dist_max": 200
     },
     "wind": {
-        "wspeed_gmean": 30,
+        "wspeed_gmean": 10,
         "wspeed_stdev": 5,
         "wind_direction": 0,
         "wind_direction_stdev": 3600
@@ -17,7 +17,7 @@
             "no_iterations": 100
         },
         "Turdus iliacus": {
-            "population_fraction": 0.5,
+            "population_fraction": 0.1667,
             "fruitsize_pref": 0.02,
             "gut_passage_time_shape": 1.59,
             "gut_passage_time_scale": 13.51351,
@@ -33,13 +33,13 @@
             "a_o": -0.073,
             "b_o": -3.718
         },
-        "Turdus pilaris": {
-            "population_fraction": 0.5,
+        "Turdus philomelos": {
+            "population_fraction": 0.1667,
             "fruitsize_pref": 0.02,
             "gut_passage_time_shape": 1.59,
             "gut_passage_time_scale": 28.0112,
-            "rest_time_shape": 1.472,
-            "rest_time_scale": 1.114,
+            "rest_time_shape": 0.569,
+            "rest_time_scale": 4.902,
             "speed": 6,
             "a_d": -3.717,
             "b_d": -0.398,
@@ -49,6 +49,74 @@
             "b_f": 0.847,
             "a_o": -1.429,
             "b_o": -1.361
+        },
+        "Turdus merula": {
+            "population_fraction": 0.1667,
+            "fruitsize_pref": 0.02,
+            "gut_passage_time_shape": 0.931,
+            "gut_passage_time_scale": 25,
+            "rest_time_shape": 0.931,
+            "rest_time_scale": 2.033,
+            "speed": 6,
+            "a_d": -4.093,
+            "b_d": -0.437,
+            "a_c": 0.252,
+            "b_c": 3.278,
+            "a_f": 2.582,
+            "b_f": 0.335,
+            "a_o": -1.078,
+            "b_o": -1.752
+        },
+        "Turdus pilaris": {
+            "population_fraction": 0.1667,
+            "fruitsize_pref": 0.02,
+            "gut_passage_time_shape": 1.59,
+            "gut_passage_time_scale": 16.72241,
+            "rest_time_shape": 1.472,
+            "rest_time_scale": 0.898,
+            "speed": 6,
+            "a_d": -3.669,
+            "b_d": -0.406,
+            "a_c": 0.269,
+            "b_c": 2.382,
+            "a_f": 0,
+            "b_f": 0,
+            "a_o": -1.429,
+            "b_o": -1.361
+        },
+        "Turdus torquatus": {
+            "population_fraction": 0.1667,
+            "fruitsize_pref": 0.02,
+            "gut_passage_time_shape": 1.59,
+            "gut_passage_time_scale": 31.25,
+            "rest_time_shape": 1.256,
+            "rest_time_scale": 2.299,
+            "speed": 6,
+            "a_d": -3.662,
+            "b_d": -0.242,
+            "a_c": 0,
+            "b_c": 0,
+            "a_f": 0.105,
+            "b_f": 50.119,
+            "a_o": 0.714,
+            "b_o": -2.643
+        },
+        "Turdus viscivorus": {
+            "population_fraction": 0.1667,
+            "fruitsize_pref": 0.02,
+            "gut_passage_time_shape": 1.59,
+            "gut_passage_time_scale": 34.48276,
+            "rest_time_shape": 0.747,
+            "rest_time_scale": 3.717,
+            "speed": 6,
+            "a_d": -3.905,
+            "b_d": -0.517,
+            "a_c": 0.192,
+            "b_c": 1.477,
+            "a_f": 0.0978,
+            "b_f": 2.198,
+            "a_o": -0.698,
+            "b_o": -0.885
         }
     }
 }
