@@ -196,8 +196,8 @@ public:
 				pop->remove(id);
 				continue;
 			}
-			crop->update(tree, environmental_recruitment_factor);
-			total_no_seeds += crop->no_seeds;
+			crop->update(tree, fecundity_multiplier);
+			no_seeds_to_disperse += crop->no_seeds;
 
 			// Add fruit crop or disperse seeds, depending on dispersal vector type
 			if (pop->get_kernel(id)->type == "animal") {
