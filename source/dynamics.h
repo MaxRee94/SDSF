@@ -286,10 +286,6 @@ public:
 			Cell* sav_cell = grid->get_random_savanna_cell();
 			int _no_burned_cells = percolate(sav_cell, fire_ignition_times[i]);
 			no_burned_cells += _no_burned_cells;
-			if (_no_burned_cells <= 1 && re_ignitions < 5) { // If fire did not spread beyond ignition point, re-do percolation.
-				re_ignitions++;
-				i--; continue;
-			}
 		}
 		fire_spatial_extent = ((float)no_burned_cells * grid->cell_area) / (float)fire_ignition_times.size();
 		int no_trees_killed = popsize_before_burns - pop->size();
