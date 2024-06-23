@@ -199,11 +199,11 @@ public:
 			}
 		}
 	}
-	void disperse(int& no_seeds_dispersed, int total_no_seeds, State* state, ResourceGrid* resource_grid) {
+	void disperse(int& no_seeds_dispersed, int no_seeds_to_disperse, State* state, ResourceGrid* resource_grid) {
 		place(state);
 		resource_grid->reset_color_arrays();
 		int iteration = 0;
-		while (no_seeds_dispersed < total_no_seeds) {
+		while (no_seeds_dispersed < no_seeds_to_disperse) {
 			for (auto& [species, species_population] : total_animal_population) {
 				for (auto& animal : species_population) {
 					if (iteration % 1 == 0) {

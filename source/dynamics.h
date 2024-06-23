@@ -174,7 +174,7 @@ public:
 		}
 		return true;
 	}
-	void disperse_wind_seeds_and_init_fruits(int& no_seed_bearing_trees, int& total_no_seeds, int& wind_trees) {
+	void disperse_wind_seeds_and_init_fruits(int& no_seed_bearing_trees, int& no_seeds_to_disperse, int& wind_trees) {
 		int pre_dispersal_popsize = pop->size();
 		int no_wind_seeds = 0;
 		Timer timer; timer.start();
@@ -218,11 +218,11 @@ public:
 			help::readable_number(no_wind_seeds).c_str(), help::readable_number(resource_grid.total_no_fruits).c_str(), timer.elapsedSeconds()
 		);
 	}
-	void disperse_animal_seeds(int total_no_seeds) {
+	void disperse_animal_seeds(int no_seeds_to_disperse) {
 		int no_animal_seeds = 0;
 		Timer timer; timer.start();
 		if (resource_grid.has_fruits) {
-			no_animal_seeds = animal_dispersal.disperse(&state, &resource_grid, total_no_seeds, 1);
+			no_animal_seeds = animal_dispersal.disperse(&state, &resource_grid, no_seeds_to_disperse, 1);
 		}
 		timer.stop(); printf("-- Dispersing %s animal seeds took %f seconds. \n", help::readable_number(no_animal_seeds).c_str(), timer.elapsedSeconds());
 	}
