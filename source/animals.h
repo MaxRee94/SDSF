@@ -26,30 +26,12 @@ public:
 	void update(int &no_seeds_dispersed, int _iteration, State* state, ResourceGrid* resource_grid) {
 		float begin_time = curtime;
 		iteration = _iteration;
-		rest();
-		Timer timer; 
-		if (verbosity && iteration == 10) {
-			timer.start();
-		}
-		eat(resource_grid, begin_time);
-		if (verbosity && iteration == 10) {
-			timer.stop(); printf("	Eating took %f seconds\n", timer.elapsedSeconds());
-			timer.start();
-		}
-		digest(resource_grid, no_seeds_dispersed);
-		if (verbosity && iteration == 10) {
-			timer.stop(); printf("	Digesting (1) took %f seconds\n", timer.elapsedSeconds());
-			timer.start();
-		}
+
 		move(resource_grid);
-		if (verbosity && iteration == 10) {
-			timer.stop(); printf("	Moving took %f seconds\n", timer.elapsedSeconds());
-			timer.start();
-		}
 		digest(resource_grid, no_seeds_dispersed);
-		if (verbosity && iteration == 10) {
-			timer.stop(); printf("	Digesting (2)  took %f seconds\n", timer.elapsedSeconds());
-		}
+		rest();
+		eat(resource_grid, begin_time);
+		digest(resource_grid, no_seeds_dispersed);
 	}
 	void rest() {
 		moving = false;
