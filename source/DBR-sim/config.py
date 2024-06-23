@@ -27,8 +27,8 @@ defaults = {
     "noise_frequency": 0.03,
     "noise_octaves": 5,
     "timelimit": 1e32,
-    "self_ignition_factor": 100,
-    "unsuppressed_flammability": 0.4,
+    "self_ignition_factor": 1,
+    "unsuppressed_flammability": 0.9,
     "rainfall": 0.1,
     "test": "none",
     "termination_conditions": "all",
@@ -45,7 +45,7 @@ defaults = {
     "flammability_coefficients_and_constants": [0.1, 0.35, 0, 1],
     "saturation_threshold": 3,
     "fire_resistance_params": [8.5, 50, 2.857], # See 'notes/fire_resistance_threshold_curve.xlsx' for details
-    "constant_mortality": 0.003,
+    "constant_mortality": 0.013,
     "csv_path": "",
     "headless": False,
     "max_timesteps": 100,
@@ -111,6 +111,7 @@ _parameter_config = {
             "help": (
                 "Controls the amount of informational progress updates that are printed to the terminal."
             ),
+            "default": 0,
         },
     },
     "max_dbh": {
