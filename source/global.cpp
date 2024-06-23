@@ -52,7 +52,7 @@ py::array_t<float> as_2d_pairwise_numpy_array(float* distribution1, float* distr
     for (size_t i = 0; i < numpy_array.shape(0); i++)
     {
         setter(i, 0) = distribution1[i];
-        setter(i, 1) = distribution2[i + 1];
+        setter(i, 1) = distribution2[i];
     }
     return numpy_array;
 }
