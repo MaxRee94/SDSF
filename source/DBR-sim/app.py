@@ -101,6 +101,7 @@ def init(
         strategy_distribution_params[control_keys[0]][control_keys[1]] = batch_parameters["control_value"]
 
     # Initialize dynamics object and state
+    print("Verbosity type: ", type(verbosity))
     dynamics = cpp.Dynamics(
         timestep, cellsize, self_ignition_factor, rainfall, seed_bearing_threshold,
         growth_rate_multiplier, unsuppressed_flammability, flammability_coefficients_and_constants[0],
@@ -129,8 +130,7 @@ def init(
         img = vis.get_thresholded_image(img, treecover * img.shape[0] * img.shape[0] * 255 )
         cv2.imwrite(path.replace(".png", "_thresholded.png"), img)
         img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR) 
-        #dynamics.state.set_cover_from_image(img / 255, treecover)
-        dynamics.state.set_cover_from_image(img / 255)
+        dynamics.state.set_cover_from_image(img / 255, -1)
     dynamics.state.repopulate_grid(0)
     
     # Create a color dictionary
@@ -165,9 +165,7 @@ def init(
     return dynamics, color_dicts
 
 
-def termination_condition_satisfied(dynamics, start_time, user_args, prev_tree_cover, prev_longterm_tree_cover, slope):
-    slope_threshold = 0.0008
-    predicted_cover = dynamics.state.grid.get_tree_cover()
+def termination_condition_satisfied(dynamics, start_time, user_args):
     satisfied = False
     condition = ""
     if (dynamics.time >= user_args["max_timesteps"]):
@@ -178,7 +176,7 @@ def termination_condition_satisfied(dynamics, start_time, user_args, prev_tree_c
     if satisfied:
         print("\nSimulation terminated. Cause:", condition)
 
-    return satisfied, predicted_cover
+    return satisfied
 
 
 def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, user_args):
@@ -249,13 +247,15 @@ def updateloop(dynamics, color_dicts, **user_args):
         prev_tree_cover.append(dynamics.state.grid.get_tree_cover())
         if dynamics.time > 10:
             slope = (prev_tree_cover[-1] - prev_tree_cover[-10]) / 10
-        do_terminate, predicted_cover = termination_condition_satisfied(dynamics, start, user_args, prev_tree_cover[-30], prev_tree_cover[-60], slope)
+        else:
+            slope = 0
+        do_terminate = termination_condition_satisfied(dynamics, start, user_args)
         
         # Do visualizations
         do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, user_args)
         
         print("-- Exporting state data...") if verbose else None
-        csv_path = io.export_state(dynamics, csv_path, init_csv, predicted_cover=predicted_cover)
+        csv_path = io.export_state(dynamics, csv_path, init_csv, tree_cover_slope=slope)
         init_csv = False
         
         print("-- Saving tree positions...") if verbose else None
@@ -289,7 +289,7 @@ def updateloop(dynamics, color_dicts, **user_args):
         cv2.destroyAllWindows()
         dynamics.free()
     
-    return dynamics, predicted_cover
+    return dynamics, slope
 
 
 def test_kernel():
@@ -335,7 +335,7 @@ def main(**user_args):
     #return
 
     # Set number of cells
-    user_args["grid_width"] = int( (user_args["grid_width"] * 1.0) / user_args["cellsize"])
+    user_args["grid_width"] = int( user_args["grid_width"] / user_args["cellsize"])
 
     if user_args["test"] == "all":
         tests = init_tests(**user_args)

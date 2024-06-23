@@ -62,11 +62,11 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
         # Run the simulation and append its results to the total results csv
         run_starttime = time.time()
         dynamics, color_dicts = app.init(**params) 
-        dynamics, predicted_cover = app.updateloop(dynamics, color_dicts, **params)
+        dynamics, tree_cover_slope = app.updateloop(dynamics, color_dicts, **params)
 
         _io.export_state(
             dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value,
-            predicted_cover=predicted_cover, extra_parameters=str(extra_parameters)
+            tree_cover_slope=tree_cover_slope, extra_parameters=str(extra_parameters)
         )
         init_csv = False
         
