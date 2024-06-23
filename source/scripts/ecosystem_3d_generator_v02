@@ -1,0 +1,63 @@
+import bpy
+import numpy as np
+import random
+
+
+
+class EcosystemGenerator(bpy.types.Operator):
+    bl_idname = "mesh.run_ecosystem_generator"
+    bl_label = "Generate"
+    
+    def execute(self, context):
+        print("Running ecosystem generator...")
+        
+        NUMPY_FILE = r"F:\Development\DBR-sim\data_out\tree_positions\tree_positions_iter_0002.npy"
+        POSITION_SCALING = 0.3
+        print("Loading numpy file {}...".format(NUMPY_FILE))
+        tree_positions = np.load(NUMPY_FILE)
+        print("Finished loading numpy file. Generating empties at tree locations...")
+        
+        no_trees = tree_positions.shape[0]
+        created_indices = []
+        for i in range(no_trees):
+            if i > 1000:
+                break
+            if (i % 100 == 0):
+                print("Number of proxies created: {}/{}".format(i, no_trees))
+
+            bpy.ops.mesh.primitive_cube_add(
+                location=(tree_positions[i][0] * POSITION_SCALING, tree_positions[i][1] * POSITION_SCALING, 0),
+                scale=(1, 1, 1)
+            )
+        
+        return {"FINISHED"}
+
+
+class EcosystemGeneratorPanel(bpy.types.Panel):
+    bl_label = "Ecosystem Generator"
+    bl_idname =  "PT_EcoSystemGenerator"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'NewTab' 
+    
+    def draw(self, context):
+        layout = self.layout
+        
+        row = layout.row()
+        row.label(text="Run generator", icon="SETTINGS")
+        row = layout.row()
+        row.operator("mesh.run_ecosystem_generator")
+        
+        
+def register():
+    bpy.utils.register_class(EcosystemGeneratorPanel)
+    bpy.utils.register_class(EcosystemGenerator)
+
+def unregister():
+    bpy.utils.unregister_class(EcosystemGeneratorPanel)
+    bpy.utils.unregister_class(EcosystemGenerator)
+    
+
+if __name__  == "__main__":
+    register()
+        

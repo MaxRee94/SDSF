@@ -1,0 +1,55 @@
+import bpy
+import numpy as np
+import random
+
+
+
+class EcosystemGenerator(bpy.types.Operator):
+    bl_idname = "mesh.run_ecosystem_generator"
+    bl_label = "Run Ecosystem Generator"
+    
+    def execute(self, context):
+        print("Running ecosystem generator...")
+        
+        for i in range(10):
+            bpy.ops.object.empty_add(
+                type='ARROWS', align='WORLD', location=(i, i, i), scale=(1, 1, 1)
+            )
+            bpy.ops.transform.resize(value=(
+                random.uniform(0.1, 1.0), random.uniform(0.1, 1.0), random.uniform(0.1, 1.0))
+            )
+
+
+        
+        return {"FINISHED"}
+
+
+class TestPanel(bpy.types.Panel):
+    bl_label = "Test Panel"
+    bl_idname =  "PT_TestPanel"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'NewTab' 
+    
+    def draw(self, context):
+        layout = self.layout
+        
+        row = layout.row()
+        row.label(text="Run generator", icon="SETTINGS")
+        row = layout.row()
+        row.operator("mesh.primitive_cube_add")
+        row.operator("mesh.run_ecosystem_generator")
+        
+        
+def register():
+    bpy.utils.register_class(TestPanel)
+    bpy.utils.register_class(EcosystemGenerator)
+
+def unregister():
+    bpy.utils.unregister_class(TestPanel)
+    bpy.utils.unregister_class(EcosystemGenerator)
+    
+
+if __name__  == "__main__":
+    register()
+        
