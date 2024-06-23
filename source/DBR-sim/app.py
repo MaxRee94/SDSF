@@ -88,7 +88,7 @@ def init(
     flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
-    initial_pattern_image=None, mutation_rate=None, environmental_recruitment_factor=None,
+    initial_pattern_image=None, mutation_rate=None, fecundity_multiplier=None,
     batch_parameters=None, **user_args
     ):
     
@@ -108,7 +108,7 @@ def init(
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
         flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
-        resource_grid_width, mutation_rate, environmental_recruitment_factor, verbosity
+        resource_grid_width, mutation_rate, fecundity_multiplier, verbosity
     )
     dynamics.init_state(grid_width, dbh_q1, dbh_q2)
     

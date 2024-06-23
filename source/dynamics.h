@@ -10,7 +10,7 @@ public:
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
 		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_dbh, float _saturation_threshold, float _fire_resistance_argmin,
 		float _fire_resistance_argmax, float _fire_resistance_stretch, float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
-		int _resource_grid_width, float _mutation_rate, float _environmental_recruitment_factor, int _verbosity
+		int _resource_grid_width, float _mutation_rate, float _fecundity_multiplier, int _verbosity
 	) :
 		timestep(_timestep), cell_width(_cell_width), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_max_dbh * _seed_bearing_threshold),
@@ -21,7 +21,7 @@ public:
 		max_dbh(_max_dbh), seedling_discard_dbh(0.05 * _max_dbh), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold),
 		fire_resistance_argmin(_fire_resistance_argmin), fire_resistance_argmax(_fire_resistance_argmax), fire_resistance_stretch(_fire_resistance_stretch),
 		background_mortality(_background_mortality), strategy_distribution_params(_strategy_distribution_params),
-		resource_grid_width(_resource_grid_width), mutation_rate(_mutation_rate), environmental_recruitment_factor(_environmental_recruitment_factor)
+		resource_grid_width(_resource_grid_width), mutation_rate(_mutation_rate), fecundity_multiplier(_fecundity_multiplier)
 	{
 		time = 0;
 		help::init_RNG();
@@ -411,7 +411,7 @@ public:
 	float fire_resistance_stretch = 0;
 	float background_mortality = 0;
 	float mutation_rate = 0;
-	float environmental_recruitment_factor = 0;
+	float fecundity_multiplier = 0;
 	int timestep = 0;
 	int time = 0;
 	int pop_size = 0;

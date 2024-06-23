@@ -32,7 +32,7 @@ defaults = {
     "rainfall": 0.1,
     "test": "none",
     "termination_conditions": "all",
-    "environmental_recruitment_factor": 1.0, # Influence on recruitment rate due to environmental conditions (soil, etc.)
+    "fecundity_multiplier": 1.0,
     "dbh_q1": 1,
     "dbh_q2": 0,
     "verbosity": 0,
@@ -415,16 +415,16 @@ _parameter_config = {
             "default": defaults["mutation_rate"],
         },
     },
-    "environmental_recruitment_factor": {
+    "fecundity_multiplier": {
         "keys": {
-            "cli": ["--environmental_recruitment_factor", "-erf"]
+            "cli": ["--fecundity_multiplier", "-fcm"]
         },
         "settings": {
             "type": float,
             "help": (
-                "Influence on recruitment rate due to environmental conditions (soil, etc.)."
+                "Multiplier to artifically increase- or decrease the number seeds produced for all trees."
             ),
-            "default": defaults["environmental_recruitment_factor"],
+            "default": defaults["fecundity_multiplier"],
         },
     },
     "termination_conditions": {
