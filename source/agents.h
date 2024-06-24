@@ -111,7 +111,7 @@ public:
 		return trait_distributions["fruit_pulp_mass"].sample();
 	}
 	float calculate_recruitment_probability(float seed_mass) {
-		float proportion_eaten = 0.9f; // Average value taken from Wang and Ives (2017), figure 5c. Neglect possible effects of seed mass, since this study was done on a tree species in a different type of ecosystem (pine forest).
+		float proportion_eaten = 1.0f / (1.0f + exp((2.49f - 13.0f * seed_mass))); // Relation between seed mass and proportion of seeds eaten by rodents, from Wang and Ives (2017), figure 5
 		float seedling_establishment_probability = max(0, 0.0385 * log(seed_mass) + 0.224); // Fitted to data from Barczyk et al (2024), see file 'seed weight vs seedling success.xlsx'
 		return (1.0f - proportion_eaten) * seedling_establishment_probability;
 	}
