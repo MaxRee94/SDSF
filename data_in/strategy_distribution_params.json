@@ -1,14 +1,14 @@
 {
     "seed_mass_wind" : {
         "distribution_type": 2,
-        "mean": 0.1,
+        "mean": 0.41,
         "stdev": 0.1,
         "min": 0.01,
         "max": 2.5
     },
     "seed_mass_animal" : {
         "distribution_type": 2,
-        "mean": 0.1,
+        "mean": 0.41,
         "stdev": 0.1,
         "min": 0.01,
         "max": 2.5
