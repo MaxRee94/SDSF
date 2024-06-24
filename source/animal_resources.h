@@ -134,7 +134,7 @@ public:
 	void add_crop(pair<float, float> position, Crop* crop) {
 		ResourceCell* cell = get_resource_cell_at_position(position);
 		cell->fruits.add_fruits(crop);
-		total_no_fruits += crop->no_diaspora;
+		total_no_fruits += crop->fruit_abundance;
 		has_fruits = total_no_fruits > 0;
 	}
 	float get_tree_cover_within_resourcegrid_bb(pair<int, int> bb_min, pair<int, int> bb_max) {

@@ -52,36 +52,49 @@ public:
 class Fruits {
 public:
 	Fruits() = default;
-	void push(Fruit &fruit) {
-		fruits.push_back(fruit);
-	}
 	void add_fruits(Crop* crop) {
-		for (int i = 0; i < crop->no_diaspora; i++) {
-			Fruit fruit(crop->strategy);
-			fruits.push_back(fruit);
-		}
+		//printf("Fruit abundance: %d, no diaspora to disperse: %d\n", crop->fruit_abundance, crop->no_diaspora);
+		fruits[fruit_types.size()] = pair<Fruit, int>(Fruit(crop->strategy), crop->fruit_abundance);
+		fruit_types.push_back(fruits.size());
 	}
 	bool are_available() {
-		return !fruits.empty();
-	}
-	int no_fruits() {
-		return fruits.size();
+		return size() > 0;
 	}
 	void clear() {
 		fruits.clear();
+		fruit_types.clear();
 	}
-	bool get(int idx, Fruit &fruit) {
-		if (idx >= fruits.size()) return false;
-		fruit = fruits[idx];
+	bool get(Fruit &fruit) {
+		if (size() == 0) return false;
+
+		// Select fruit type randomly
+		int fruit_type = fruit_types[help::get_rand_int(0, fruit_types.size() - 1)];
+		
+		// Extract fruit
+		fruit = fruits[fruit_type].first;
+		decrement_one(fruit_type);
+
 		return true;
 	}
-	void remove(int idx) {
-		if (idx >= fruits.size()) return;
-		fruits.erase(fruits.begin() + idx);
+	void decrement_one(int fruit_type) {
+		fruits[fruit_type].second--;
+		if (fruits[fruit_type].second == 0) {
+			fruits.erase(fruit_type);
+			fruit_types.erase(find(fruit_types.begin(), fruit_types.end(), fruit_type));
+		}
+	}
+	int no_fruits() {
+		return size();
 	}
 	int size() {
-		return fruits.size();
+		int _no_fruits = 0;
+		for (auto [type, fruit] : fruits) {
+			_no_fruits += fruit.second;
+		}
+		return _no_fruits;
 	}
-	vector<Fruit> fruits;
+	map<int, pair<Fruit, int>> fruits;
+	vector<int> fruit_types;
+	Population* population;
 };
 
