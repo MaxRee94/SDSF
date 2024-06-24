@@ -223,10 +223,10 @@ public:
 		place(state);
 		resource_grid->reset_color_arrays();
 		int iteration = 0;
-		while (no_seeds_dispersed < no_seeds_to_disperse) {
 
 		int no_seeds_eaten = 0;
 		int no_seeds_defecated = 0;
+		while (no_seeds_defecated < no_seeds_to_disperse) {
 			int prev_no_seeds_dispersed = no_seeds_dispersed;
 			int prev_no_seeds_defecated = no_seeds_defecated;
 			int cur_no_seeds_eaten = 0;
