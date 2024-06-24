@@ -295,12 +295,12 @@ public:
 				"-- Fraction of domain burned: " << (float)no_burned_cells / (float)grid->no_cells << ", Area burned: " <<
 				scientific << (float)no_burned_cells * grid->cell_area << " / " << grid->area << " m^2 \n";
 			cout << fixed;
-			printf("-- Number of fires: %i, number of trees killed: %s \n", (int)fire_ignition_times.size(), help::readable_number(no_trees_killed).c_str());
 		}
+		printf("-- Number of fires: %i, number of trees killed: %s \n", (int)fire_ignition_times.size(), help::readable_number(no_trees_killed).c_str());
 	}
 	float get_forest_flammability(Cell* cell, float fire_free_interval) {
 		float fuel_load = cell->get_fuel_load();
-		return fire_free_interval * unsuppressed_flammability * fuel_load; // We assume flammability is directly proportional to fuel load and fire-free interval.
+		return fire_free_interval * unsuppressed_flammability * fuel_load; // We assume forest flammability is directly proportional to fuel load and fire-free interval.
 	}
 	float get_savanna_flammability(float fire_free_interval) {
 		return fire_free_interval * unsuppressed_flammability; // We assume grass flammability is directly proportional to fire-free interval.

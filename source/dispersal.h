@@ -13,7 +13,6 @@ public:
 		return get_random_unit_vector(direction);
 	}
 	void compute_deposition_location(Crop* crop, State* state, pair<float, float> &deposition_location) {
-		// Compute seed deposition location
 		Kernel* kernel = state->population.get_kernel(crop->id);
 		pair<float, float> direction;
 		get_direction(kernel, direction);
