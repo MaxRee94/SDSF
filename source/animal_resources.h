@@ -12,12 +12,9 @@ public:
 	}
 	bool extract_random_fruit(Fruit &fruit) {
 		if (fruits.no_fruits() == 0) {
-			printf("unable to extract fruit from cell.\n");
 			return false;
 		}
-		int rand_idx = help::get_rand_int(0, fruits.no_fruits() - 1);
-		bool success = fruits.get(rand_idx, fruit);
-		fruits.remove(rand_idx);
+		bool success = fruits.get(fruit);
 		return success;
 	}
 	float get_fruit_abundance_index() {
