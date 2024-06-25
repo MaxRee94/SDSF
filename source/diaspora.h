@@ -56,45 +56,56 @@ public:
 		//printf("Fruit abundance: %d, no diaspora to disperse: %d\n", crop->fruit_abundance, crop->no_diaspora);
 		fruits[fruit_types.size()] = pair<Fruit, int>(Fruit(crop->strategy), crop->fruit_abundance);
 		fruit_types.push_back(fruits.size());
+		_no_fruits += crop->fruit_abundance;
 	}
 	bool are_available() {
-		return size() > 0;
+		return _no_fruits > 0;
 	}
 	void clear() {
 		fruits.clear();
 		fruit_types.clear();
+		_no_fruits = 0;
 	}
-	bool get(Fruit &fruit) {
-		if (size() == 0) return false;
+	bool get(Fruit &fruit, vector<int>& compute_times) {
+		auto start = high_resolution_clock::now();
+		if (_no_fruits == 0) return false;
+		compute_times[12] += help::microseconds_elapsed_since(start);
 
 		// Select fruit type randomly
+		start = high_resolution_clock::now();
 		int fruit_type = fruit_types[help::get_rand_int(0, fruit_types.size() - 1)];
+		compute_times[9] += help::microseconds_elapsed_since(start);
 		
 		// Extract fruit
+		start = high_resolution_clock::now();
 		fruit = fruits[fruit_type].first;
 		decrement_one(fruit_type);
+		compute_times[10] += help::microseconds_elapsed_since(start);
 
 		return true;
 	}
 	void decrement_one(int fruit_type) {
 		fruits[fruit_type].second--;
+		_no_fruits--;
 		if (fruits[fruit_type].second == 0) {
 			fruits.erase(fruit_type);
 			fruit_types.erase(find(fruit_types.begin(), fruit_types.end(), fruit_type));
 		}
 	}
 	int no_fruits() {
-		return size();
+		return _no_fruits;
 	}
-	int size() {
+	/*int size() {
 		int _no_fruits = 0;
 		for (auto [type, fruit] : fruits) {
 			_no_fruits += fruit.second;
 		}
 		return _no_fruits;
-	}
+	}*/
 	map<int, pair<Fruit, int>> fruits;
 	vector<int> fruit_types;
 	Population* population;
+private:
+	int _no_fruits;
 };
 

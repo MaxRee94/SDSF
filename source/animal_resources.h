@@ -10,11 +10,13 @@ public:
 	void reset() {
 		fruits.clear();
 	}
-	bool extract_random_fruit(Fruit &fruit) {
+	bool extract_random_fruit(Fruit &fruit, vector<int>& compute_times) {
+		auto start = high_resolution_clock::now();
 		if (fruits.no_fruits() == 0) {
 			return false;
 		}
-		bool success = fruits.get(fruit);
+		compute_times[12] += help::microseconds_elapsed_since(start);
+		bool success = fruits.get(fruit, compute_times);
 		return success;
 	}
 	float get_fruit_abundance_index() {
@@ -141,9 +143,14 @@ public:
 		ResourceCell* cell = get_resource_cell_at_position(position);
 		update_fruit_abundance(cell, species, species_params);
 	}
-	bool extract_fruit(pair<int, int> pos, Fruit &fruit) {
+	bool extract_fruit(pair<int, int> pos, Fruit &fruit, vector<int>& compute_times) {
+		auto start = high_resolution_clock::now();
 		ResourceCell* cell = get_resource_cell_at_position(pos);
-		bool success = cell->extract_random_fruit(fruit);
+		compute_times[8] += help::microseconds_elapsed_since(start);
+
+		start = high_resolution_clock::now();
+		bool success = cell->extract_random_fruit(fruit, compute_times);
+		compute_times[11] += help::microseconds_elapsed_since(start);
 		total_no_fruits -= success;
 		return success;
 	}
