@@ -24,18 +24,32 @@ public:
 		total_no_seeds_consumed = 0;
 	}
 	void update(
-		int &no_seeds_dispersed, int _iteration, State* state, ResourceGrid* resource_grid, int& no_seeds_eaten,
+		int& no_seeds_dispersed, int _iteration, State* state, ResourceGrid* resource_grid, int& no_seeds_eaten,
 		float& time_spent_resting, float& distance_travelled, float& average_gut_passage_time, float& average_gut_time,
-		int& no_seeds_defecated
+		int& no_seeds_defecated, vector<int>& compute_times
 	) {
 		float begin_time = curtime;
 		iteration = _iteration;
 
+		auto start = high_resolution_clock::now();
 		move(resource_grid, distance_travelled);
+		compute_times[0] += help::microseconds_elapsed_since(start);
+
+		start = high_resolution_clock::now();
 		digest(resource_grid, no_seeds_dispersed, no_seeds_defecated);
+		compute_times[1] += help::microseconds_elapsed_since(start);
+
+		start = high_resolution_clock::now();
 		rest(time_spent_resting);
+		compute_times[2] += help::microseconds_elapsed_since(start);
+
+		start = high_resolution_clock::now();
 		eat(resource_grid, begin_time, no_seeds_eaten);
+		compute_times[3] += help::microseconds_elapsed_since(start);
+
+		start = high_resolution_clock::now();
 		digest(resource_grid, no_seeds_dispersed, no_seeds_defecated);
+		compute_times[1] += help::microseconds_elapsed_since(start);
 
 		// TEMPORARY: Calculate the average gut passage time.
 		average_gut_passage_time = 0;
@@ -225,6 +239,8 @@ public:
 
 		int no_seeds_eaten = 0;
 		int no_seeds_defecated = 0;
+		vector<int> compute_times = { 0, 0, 0, 0, 0, 0, 0};
+		auto overall_start_time = high_resolution_clock::now();
 		while (no_seeds_defecated < no_seeds_to_disperse) {
 			int prev_no_seeds_dispersed = no_seeds_dispersed;
 			int prev_no_seeds_defecated = no_seeds_defecated;
@@ -237,13 +253,17 @@ public:
 			float average_gut_time = 0;
 			for (auto& [species, species_population] : total_animal_population) {
 				for (auto& animal : species_population) {
+					auto start_time = high_resolution_clock::now();
 					resource_grid->update_cover_and_fruit_probabilities(species, animal.traits);
+					compute_times[5] += help::microseconds_elapsed_since(start_time);
 					float _average_gut_time = 0;
 					float _average_gut_passage_time = 0;
+					start_time = high_resolution_clock::now();
 					animal.update(
 						no_seeds_dispersed, iteration, state, resource_grid, cur_no_seeds_eaten, time_spent_resting,
-						distance_travelled, _average_gut_passage_time, _average_gut_time, no_seeds_defecated
+						distance_travelled, _average_gut_passage_time, _average_gut_time, no_seeds_defecated, compute_times
 					);
+					compute_times[4] += help::microseconds_elapsed_since(start_time);
 					average_curtime += animal.curtime;
 					average_gut_time += _average_gut_time;
 					average_gut_passage_time += _average_gut_passage_time;
@@ -261,6 +281,13 @@ public:
 				printf("Average curtime: %f\n", average_curtime / (float)popsize());
 				printf("Average gut time: %f\n", average_gut_time / (float)popsize());
 				printf("Current total number of seeds in animal stomachs: %s\n\n", help::readable_number(no_seeds_eaten - no_seeds_defecated).c_str());
+				printf("- Total movement times: %s\n", help::readable_number(compute_times[0]).c_str());
+				printf("- Total digestion times: %s\n", help::readable_number(compute_times[1]).c_str());
+				printf("- Total rest times: %s\n", help::readable_number(compute_times[2]).c_str());
+				printf("- Total eat times: %s\n", help::readable_number(compute_times[3]).c_str());
+				printf("- Total update times: %s\n", help::readable_number(compute_times[4]).c_str());
+				printf("- Total cover and fruit update times: %s\n", help::readable_number(compute_times[5]).c_str());
+				printf("- Overall time elapsed: %s\n", help::readable_number(help::microseconds_elapsed_since(overall_start_time)).c_str());
 			}
 			iteration++;
 		}
