@@ -9,6 +9,7 @@
 #include <queue>
 #include <unordered_map>
 #include <random>
+#include <chrono>
 
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -22,6 +23,7 @@ using namespace std;
 #define INV_RAND_MAX  1.0 / RAND_MAX
 
 
+using namespace std::chrono;
 typedef unsigned int uint;
 
 // Comparison function for sorting the
@@ -219,6 +221,15 @@ namespace help {
 	// Do binary search in array of floats or doubles
 	template <typename T>
 	int binary_search(T* arr, int size, T target);
+
+	// Measure the number of microseconds elapsed since given time point
+	int microseconds_elapsed_since(high_resolution_clock::time_point start_time);
+
+	// Measure the number of milliseconds elapsed since given time point
+	int milliseconds_elapsed_since(high_resolution_clock::time_point start_time);
+
+	// Measure the number of seconds elapsed since given time point
+	int seconds_elapsed_since(high_resolution_clock::time_point start_time);
 
 	// Do linear search in array of floats or doubles
 	template <typename T>

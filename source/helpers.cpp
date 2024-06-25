@@ -419,6 +419,24 @@ string help::readable_number(int number) {
     return reformatted_num;
 }
 
+int help::microseconds_elapsed_since(high_resolution_clock::time_point start_time) {
+    high_resolution_clock::time_point stop_time = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(stop_time - start_time);
+    return duration.count();
+}
+
+// Measure the number of milliseconds elapsed since given time point
+int help::milliseconds_elapsed_since(high_resolution_clock::time_point start_time) {
+    high_resolution_clock::time_point stop_time = high_resolution_clock::now();
+    return (duration_cast<milliseconds>(stop_time - start_time)).count();
+}
+
+// Measure the number of seconds elapsed since given time point
+int help::seconds_elapsed_since(high_resolution_clock::time_point start_time) {
+    high_resolution_clock::time_point stop_time = high_resolution_clock::now();
+    return (duration_cast<seconds>(stop_time - start_time)).count();
+}
+
 float help::get_sigmoid(float x, float x_min, float x_max, float x_stretch) {
     float x2 = 2.0f * log10(x * 1e6f) - 5 - x_min;
     return 1.0 / (1 + exp(- x2 * x_stretch));
