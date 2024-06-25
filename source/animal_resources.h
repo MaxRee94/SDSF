@@ -281,12 +281,6 @@ public:
 		compute_c(species, species_params["a_c"], species_params["b_c"]);
 		compute_f(species, species_params["a_f"], species_params["b_f"]);
 	}
-	void update_coarse_probability_distribution(string species, map<string, float> &species_params, pair<float, float> &cur_position) {
-		pair<int, int> gb_pos = get_gridbased_position(cur_position);
-		cap(gb_pos);
-		visits[pos_2_idx(gb_pos)] += 1;
-		visits_sum += 1;
-	}
 	void reset_color_arrays() {
 		for (int i = 0; i < size; i++) visits[i] = 0;
 		for (int i = 0; i < size; i++) dist_aggregate[i] = 0;
@@ -294,7 +288,10 @@ public:
 	}
 	ResourceCell* select_cell(string species, map<string, float>& species_params, pair<float, float> cur_position) {
 		compute_d(cur_position, species_params["a_d"], species_params["b_d"]);
+		compute_k(species);
 		int idx = selection_probabilities.sample();
+		visits[idx] += 1;
+		visits_sum += 1;
 		return &cells[idx];
 	}
 	State* state = 0;
@@ -306,7 +303,6 @@ public:
 	float* cover = 0;
 	float* fruit_abundance = 0;
 	float* d = 0;
-	float* d_coarse = 0;
 	float visits_sum = 0;
 	int* visits = 0;
 	int* color_distribution = 0;

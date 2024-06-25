@@ -123,7 +123,6 @@ public:
 		//printf("No seeds defecated %i, no seeds erased %i\n", no_seeds_defecated, no_seeds_erased);
 	}
 	pair<float, float> select_destination(ResourceGrid* resource_grid) {
-		resource_grid->update_coarse_probability_distribution(species, traits, position);
 		ResourceCell* cell = resource_grid->select_cell(species, traits, position);
 		pair<float, float> destination;
 		//ResourceCell* cell = resource_grid->get_random_resource_cell();
