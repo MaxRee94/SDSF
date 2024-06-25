@@ -156,7 +156,7 @@ public:
 		float resource_grid_cell_width = grid->width_r / (float)resource_grid_width;
 		vector<string> species = {};
 		for (auto& [_species, _] : animal_kernel_params) species.push_back(_species);
-		resource_grid = ResourceGrid(&state, resource_grid_width, resource_grid_cell_width, species);
+		resource_grid = ResourceGrid(&state, resource_grid_width, resource_grid_cell_width, species, animal_kernel_params);
 	}
 	bool global_kernel_exists(string type) {
 		return global_kernels.find(type) != global_kernels.end();

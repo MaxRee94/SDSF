@@ -32,17 +32,19 @@ public:
 class ResourceGrid : public Grid {
 public:
 	ResourceGrid() = default;
-	ResourceGrid(State* _state, int _width, float _cell_width, vector<string>& species): Grid(_width, _cell_width) {
+	ResourceGrid(State* _state, int _width, float _cell_width, vector<string>& species, map<string, map<string, float>>& animal_kernel_params): Grid(_width, _cell_width) {
 		width = _width;
 		state = _state;
 		grid = &state->grid;
 		width_r = (float)width * cell_width;
 		size = width * width;
+		lookup_table_size = size * size;
 		cells = new ResourceCell[size];
 		selection_probabilities = DiscreteProbabilityModel(size);
 		init_property_distributions(species);
 		init_cells();
 		init_neighbor_offsets();
+		for (string _species : species) precompute_dist_lookup_table(animal_kernel_params, _species);
 	}
 	void free() {
 		delete[] cells;
@@ -79,6 +81,7 @@ public:
 		for (int i = 0; i < species.size(); i++) {
 			c[species[i]] = new float[size];
 			f[species[i]] = new float[size];
+			dist_lookup_table[species[i]] = new float[lookup_table_size];
 		}
 	}
 	void reset() {
@@ -254,13 +257,36 @@ public:
 		int idx = help::get_rand_int(0, size - 1);
 		return &cells[idx];
 	}
-	void compute_d(pair<float, float>& cur_position, float a_d, float b_d) {
+	void precompute_dist_lookup_table(map<string, map<string, float>>& animal_kernel_params, string species) {
+		float a_d = animal_kernel_params[species]["a_d"];
+		float b_d = animal_kernel_params[species]["b_d"];
 		float a_d_recipr = 1.0f / a_d;
 		for (int i = 0; i < size; i++) {
-			pair<float, float> cell_pos = get_real_position(cells[i].pos);
-			float dist = get_resourcegrid_dist(cur_position, cell_pos);
-			d[i] = tanh(pow((-dist * a_d_recipr), b_d));
-			dist_aggregate[i] += d[i];
+			pair<float, float> curpos = get_real_position(cells[i].pos);
+			for (int j = 0; j < size; j++) {
+				pair<float, float> target_pos = get_real_position(cells[j].pos);
+				float dist = get_resourcegrid_dist(curpos, target_pos);
+				float val = tanh(pow((-dist * a_d_recipr), b_d));
+				dist_lookup_table[species][size * (cells[i].pos.first + cells[i].pos.second * width) + cells[j].pos.first + cells[j].pos.second * width] = val;
+			}
+			if (i % width == 0) printf("Finished row %i / %i\n", i / width, width);
+		}
+		printf("Computed dist lookup table for species %s \n", species.c_str());
+	}
+	void compute_d(pair<int, int>& curpos, string species) {
+		for (int i = 0; i < size; i++) {
+			//pair<float, float> cell_pos = get_real_position(cells[i].pos);
+			//float dist = get_resourcegrid_dist(get_real_position(curpos), cell_pos);
+			//d[i] = tanh(pow((-dist * 0.5), 0.4));
+			//continue;
+			
+			pair<int, int> target_pos = cells[i].pos;
+		    int lookup_idx = size * (curpos.first + curpos.second * width) + target_pos.first + target_pos.second * width;
+			/*if (lookup_idx < 0 || lookup_idx > size * size) {
+				printf("cur pos: %i, %i, target pos: %i, %i \n", curpos.first, curpos.second, target_pos.first, target_pos.second);
+				printf("Idx: %i (limits: %i - %i) \n", lookup_idx, 0, size * size);
+			}*/
+			d[i] = dist_lookup_table[species][lookup_idx];
 		}
 	}
 	void compute_c(string species, float a_c, float b_c) {
@@ -286,8 +312,10 @@ public:
 		for (int i = 0; i < size; i++) dist_aggregate[i] = 0;
 		visits_sum = 0;
 	}
-	ResourceCell* select_cell(string species, map<string, float>& species_params, pair<float, float> cur_position) {
-		compute_d(cur_position, species_params["a_d"], species_params["b_d"]);
+	ResourceCell* select_cell(string species, pair<float, float> cur_position) {
+		pair<int, int> gridbased_curpos = get_gridbased_position(cur_position);
+		cap(gridbased_curpos);
+		compute_d(gridbased_curpos, species);
 		compute_k(species);
 		int idx = selection_probabilities.sample();
 		visits[idx] += 1;
@@ -299,6 +327,7 @@ public:
 	ResourceCell* cells = 0;
 	map<string, float*> c;
 	map<string, float*> f;
+	map<string, float*> dist_lookup_table;
 	float* dist_aggregate = 0;
 	float* cover = 0;
 	float* fruit_abundance = 0;
@@ -308,6 +337,7 @@ public:
 	int* color_distribution = 0;
 	int iteration = -1;
 	int total_no_fruits = 0;
+	int lookup_table_size = 0;
 	int size = 0;
 	DiscreteProbabilityModel selection_probabilities;
 	pair<float, float>* neighbor_offsets = 0;
