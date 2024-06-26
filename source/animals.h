@@ -131,42 +131,39 @@ public:
 	}
 	void digest(
 		ResourceGrid* resource_grid, int& no_seeds_dispersed, int& no_seeds_defecated, vector<int>& compute_times,
-		State* state
+		State* state, pair<int, int>& time_interval
 	) {
 		vector<int> deletion_schedule;
 		auto start = high_resolution_clock::now();
-		for (auto& [seed_id, deftime_plus_crop_id] : stomach_content) {
+		for (int defecation_time = time_interval.first; defecation_time <= time_interval.second; defecation_time++) {
+			if (stomach_content[defecation_time].size() == 0) continue; // Skip if there are no seeds with this defecation time in the stomach.
+
 			auto _start = high_resolution_clock::now();
-			
-			float defecation_time = deftime_plus_crop_id.first;
-			if (defecation_time <= curtime) {
-				deletion_schedule.push_back(seed_id);
+			for (int crop_id : stomach_content[defecation_time]) {
+				
 				if (iteration < 5) continue; // Do not disperse in the first 5 iterations (after Morales et al 2013)
 
+				// Create seed and calculate time since defecation.
 				auto __start = high_resolution_clock::now();
+				Seed seed(state->population.get_crop(crop_id)->strategy);
 				float time_since_defecation = curtime - defecation_time;
-				Seed to_defecate(state->population.get_crop(deftime_plus_crop_id.second)->strategy);
 				compute_times[17] += help::microseconds_elapsed_since(__start);
 
+				// Defecate seed.
 				__start = high_resolution_clock::now();
-				defecate(to_defecate, time_since_defecation, no_seeds_dispersed, resource_grid);
+				defecate(seed, time_since_defecation, no_seeds_dispersed, resource_grid);
 				compute_times[13] += help::microseconds_elapsed_since(__start);
 
 				no_seeds_defecated++;
 			}
+			stomach_content[defecation_time].clear(); // Remove all seeds with this defecation time from the stomach.
 
 			compute_times[15] += help::microseconds_elapsed_since(_start);
 		}                  
 		compute_times[16] += help::microseconds_elapsed_since(start);
 
 		start = high_resolution_clock::now();
-		int no_seeds_erased = 0;
-		for (auto& seed_id : deletion_schedule) {
-			no_seeds_erased++;
-			stomach_content.erase(seed_id);
-		}
 		compute_times[14] += help::microseconds_elapsed_since(start);
-		//printf("No seeds defecated %i, no seeds erased %i\n", no_seeds_defecated, no_seeds_erased);
 	}
 	pair<float, float> select_destination(ResourceGrid* resource_grid) {
 		ResourceCell* cell = resource_grid->select_cell(species, position);
