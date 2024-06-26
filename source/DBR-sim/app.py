@@ -29,6 +29,7 @@ def unpack_control_keys(control_variable):
 def set_dispersal_kernel(
         dynamics, dispersal_mode, multi_disperser_params
     ):
+    animal_species = []
     with open(multi_disperser_params, "r") as mdp_jsonfile:
         multi_disperser_params = json.load(mdp_jsonfile)
     if (dispersal_mode == "linear_diffusion"):
@@ -46,10 +47,11 @@ def set_dispersal_kernel(
         dynamics.set_global_animal_kernel(multi_disperser_params["animal"])
     elif (dispersal_mode == "all"):
         animal_dispersal_params = multi_disperser_params["animal"]
+        animal_species = [species for species in animal_dispersal_params.keys() if species != "population"]
         multi_disperser_params.pop("animal")
         dynamics.set_global_kernels(multi_disperser_params, animal_dispersal_params)
 
-    return dynamics
+    return dynamics, animal_species
 
 
 def init_tests(
@@ -113,7 +115,8 @@ def init(
     dynamics.init_state(grid_width, dbh_q1, dbh_q2)
     
     # Set dispersal kernel
-    dynamics = set_dispersal_kernel(dynamics, dispersal_mode, multi_disperser_params)
+    dynamics, animal_species = set_dispersal_kernel(dynamics, dispersal_mode, multi_disperser_params)
+    print("species: ", animal_species)
     
     # Set initial tree cover
     if initial_pattern_image == "none":
@@ -161,6 +164,20 @@ def init(
     # Export image file
     imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
     vis.save_image(img, imagepath)
+    
+    if dispersal_mode == "all" or dispersal_mode == "animal":
+
+        # Export resource grid lookup table
+        for species in animal_species:
+            lookup_table, fpath = io.get_lookup_table(species, resource_grid_width * resource_grid_width)
+            if lookup_table is None:
+                print(f"Lookup table file {fpath} not found. Creating new one...")
+                dynamics.precompute_resourcegrid_lookup_table(species)
+                lookup_table = dynamics.get_resource_grid_lookup_table(species)
+                io.export_lookup_table(lookup_table, species)
+            else:
+                print(f"Lookup table file {fpath} found. Loading...")
+                dynamics.set_resource_grid_lookup_table(lookup_table, species)
 
     return dynamics, color_dicts
 
@@ -226,8 +243,8 @@ def updateloop(dynamics, color_dicts, **user_args):
     start = time.time()
     print("Beginning simulation...")
     csv_path = user_args["csv_path"]
-    visualization_types = [] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
-    #visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
+    #visualization_types = [] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
+    visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     init_csv = True
     prev_tree_cover = [user_args["treecover"]] * 60
     slope = 0

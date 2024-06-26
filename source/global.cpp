@@ -176,7 +176,20 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def("get_resource_grid_colors", [](Dynamics& dynamics, string& species, string& type, int& verbosity) {
             int* color_distribution = dynamics.resource_grid.get_color_distribution(species, type, verbosity);
             return as_2d_numpy_array(color_distribution, dynamics.resource_grid.width);
-        });
+        })
+        .def("get_resource_grid_lookup_table", [](Dynamics& dynamics, string& species) {
+            float* lookup_table = dynamics.resource_grid.get_lookup_table(species);
+            return as_2d_numpy_array(lookup_table, dynamics.resource_grid.width * dynamics.resource_grid.width);
+        })
+        .def("set_resource_grid_lookup_table", [](Dynamics& dynamics, py::array_t<float>& lookup_table, string& species) {
+            float* float_array;
+            int width, height;
+			convert_from_numpy_array(lookup_table, float_array, width, height);
+			dynamics.resource_grid.set_dist_lookup_table(float_array, species);
+		})
+        .def("precompute_resourcegrid_lookup_table", [](Dynamics& dynamics, string& species) {
+            dynamics.resource_grid.precompute_dist_lookup_table(species);
+		});
 
     py::class_<DiscreteProbabilityModel>(module, "DiscreteProbabilityModel")
         .def(py::init<>())

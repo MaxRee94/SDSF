@@ -34,7 +34,7 @@ public:
 class ResourceGrid : public Grid {
 public:
 	ResourceGrid() = default;
-	ResourceGrid(State* _state, int _width, float _cell_width, vector<string>& species, map<string, map<string, float>>& animal_kernel_params): Grid(_width, _cell_width) {
+	ResourceGrid(State* _state, int _width, float _cell_width, vector<string> _species, map<string, map<string, float>>& _animal_kernel_params): Grid(_width, _cell_width) {
 		width = _width;
 		state = _state;
 		grid = &state->grid;
@@ -43,10 +43,11 @@ public:
 		lookup_table_size = size * size;
 		cells = new ResourceCell[size];
 		selection_probabilities = DiscreteProbabilityModel(size);
+		species = _species;
+		animal_kernel_params = _animal_kernel_params;
 		init_property_distributions(species);
 		init_cells();
 		init_neighbor_offsets();
-		for (string _species : species) precompute_dist_lookup_table(animal_kernel_params, _species);
 	}
 	void free() {
 		delete[] cells;
@@ -260,11 +261,14 @@ public:
 		if (verbosity > 0) printf("collected %s for species %s \n", collect.c_str(), species.c_str());
 		return color_distribution;
 	}
+	float* get_lookup_table(string species) {
+		return dist_lookup_table[species];
+	}
 	ResourceCell* select_random_cell() {
 		int idx = help::get_rand_int(0, size - 1);
 		return &cells[idx];
 	}
-	void precompute_dist_lookup_table(map<string, map<string, float>>& animal_kernel_params, string species) {
+	void precompute_dist_lookup_table(string species) {
 		float a_d = animal_kernel_params[species]["a_d"];
 		float b_d = animal_kernel_params[species]["b_d"];
 		float a_d_recipr = 1.0f / a_d;
@@ -279,6 +283,11 @@ public:
 			if (i % width == 0) printf("Finished row %i / %i\n", i / width, width);
 		}
 		printf("Computed dist lookup table for species %s \n", species.c_str());
+	}
+	void set_dist_lookup_table(float* lookup_table, string species) {
+		for (int i = 0; i < width * width * width * width; i++) {
+			dist_lookup_table[species][i] = lookup_table[i];
+		}
 	}
 	void compute_d(pair<int, int>& curpos, string species) {
 		for (int i = 0; i < size; i++) {
@@ -335,6 +344,8 @@ public:
 	map<string, float*> c;
 	map<string, float*> f;
 	map<string, float*> dist_lookup_table;
+	vector<string> species;
+	map<string, map<string, float>> animal_kernel_params;	
 	float* dist_aggregate = 0;
 	float* cover = 0;
 	float* fruit_abundance = 0;

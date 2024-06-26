@@ -1,3 +1,4 @@
+from cgitb import lookup
 import csv
 import os
 from pathlib import Path
@@ -37,25 +38,37 @@ def export_state(dynamics, path="", init_csv=True, control_variable=None, contro
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         tree_sizes = get_tree_sizes(dynamics)
         result = {
-                "time": str(dynamics.time),
-                "tree cover": str(dynamics.state.grid.get_tree_cover()), 
-                "slope": str(tree_cover_slope),
-                "population size": str(dynamics.state.population.size()),
-                "#seeds produced": str(dynamics.seeds_produced),
-                "fire mean spatial extent": str(dynamics.fire_spatial_extent),
-                "#trees[dbh 0-20%]": tree_sizes[0],
-                "#trees[dbh 20-40%]": tree_sizes[1],
-                "#trees[dbh 40-60%]": tree_sizes[2],
-                "#trees[dbh 60-80%]": tree_sizes[3],
-                "#trees[dbh 80-100%]": tree_sizes[4],
-                "extra_parameters": extra_parameters
-            }
+            "time": str(dynamics.time),
+            "tree cover": str(dynamics.state.grid.get_tree_cover()), 
+            "slope": str(tree_cover_slope),
+            "population size": str(dynamics.state.population.size()),
+            "#seeds produced": str(dynamics.seeds_produced),
+            "fire mean spatial extent": str(dynamics.fire_spatial_extent),
+            "#trees[dbh 0-20%]": tree_sizes[0],
+            "#trees[dbh 20-40%]": tree_sizes[1],
+            "#trees[dbh 40-60%]": tree_sizes[2],
+            "#trees[dbh 60-80%]": tree_sizes[3],
+            "#trees[dbh 80-100%]": tree_sizes[4],
+            "extra_parameters": extra_parameters
+        }
         if control_variable:
             result[control_variable] = control_value
         writer.writerow(result)
         
     return path
 
+
+def get_lookup_table(species, width):
+    path = os.path.join(DATA_INTERNAL_DIR, f"lookup_table_{species}_width-{width}.npy")
+    if os.path.exists(path):
+        return np.load(path), path
+    else:
+        return None, path
+
+def export_lookup_table(lookup_table, species):
+    path = os.path.join(DATA_INTERNAL_DIR, f"lookup_table_{species}_width-{lookup_table.shape[0]}.npy")
+    print("path: ", path)
+    np.save(path, lookup_table)
 
 def import_image(fpath):
     img = cv2.imread(fpath)

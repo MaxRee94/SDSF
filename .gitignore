@@ -218,3 +218,4 @@ cython_debug/
 source/DBR-sim/.vs/DBR_Python/v17/ipch/AutoPCH/13075d2d37738811/GLOBAL.ipch
 *.blend
 *.blend1
+*.npy
