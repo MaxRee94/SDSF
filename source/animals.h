@@ -32,21 +32,25 @@ public:
 		iteration = _iteration;
 
 		auto start = high_resolution_clock::now();
+		pair<int, int> move_time_interval(curtime, curtime);
 		move(resource_grid, distance_travelled);
 		compute_times[0] += help::microseconds_elapsed_since(start);
+		move_time_interval.second = curtime;
 
 		start = high_resolution_clock::now();
-		digest(resource_grid, no_seeds_dispersed, no_seeds_defecated, compute_times, state);
+		digest(resource_grid, no_seeds_dispersed, no_seeds_defecated, compute_times, state, move_time_interval);
 		compute_times[1] += help::microseconds_elapsed_since(start);
 
 		start = high_resolution_clock::now();
+		pair<int, int> rest_time_interval(curtime, curtime);
 		rest(time_spent_resting);
 		compute_times[2] += help::microseconds_elapsed_since(start);
+		rest_time_interval.second = curtime;
 
 		eat(resource_grid, begin_time, no_seeds_eaten, compute_times);
 
 		start = high_resolution_clock::now();
-		digest(resource_grid, no_seeds_dispersed, no_seeds_defecated, compute_times, state);
+		digest(resource_grid, no_seeds_dispersed, no_seeds_defecated, compute_times, state, rest_time_interval);
 		compute_times[1] += help::microseconds_elapsed_since(start);
 
 		//// TEMPORARY: Calculate the average gut passage time.
@@ -78,7 +82,7 @@ public:
 		auto start = high_resolution_clock::now();
 
 		float biomass_appetite = get_biomass_appetite();
-		vector<int> consumed_seed_ids = {};
+		vector<pair<float, int>> consumed_seed_gpts_plus_cropids = {};
 		while (biomass_appetite > 0) {
 			Fruit fruit;
 
@@ -89,28 +93,30 @@ public:
 			if (!fruit_available) break;
 
 			auto _start2 = high_resolution_clock::now();
-			eat_fruit(fruit, consumed_seed_ids);
+			eat_fruit(fruit, consumed_seed_gpts_plus_cropids);
 			compute_times[7] += help::microseconds_elapsed_since(_start2);
 
 			no_seeds_eaten += fruit.strategy.no_seeds_per_diaspore;
 			biomass_appetite -= fruit.strategy.diaspore_mass;
 		}
 		auto _start3 = high_resolution_clock::now();
-		set_defecation_times(begin_time, consumed_seed_ids);
+		set_defecation_times(begin_time, consumed_seed_gpts_plus_cropids);
 		compute_times[18] += help::microseconds_elapsed_since(_start3);
 
 		compute_times[3] += help::microseconds_elapsed_since(start);
 	}
-	void set_defecation_times(float begin_time, vector<int> &consumed_seed_ids) {
-		float time_stepsize = (curtime - begin_time) / (float)consumed_seed_ids.size();
-		for (int i = consumed_seed_ids.size() - 1; i >= 0; i--) {
+	void set_defecation_times(float begin_time, vector<pair<float, int>>& consumed_seed_gpts_plus_cropids) {
+		float time_stepsize = (curtime - begin_time) / (float)consumed_seed_gpts_plus_cropids.size();
+		for (int i = consumed_seed_gpts_plus_cropids.size() - 1; i >= 0; i--) {
 			float ingestion_time = curtime - (float)(i + 1) * time_stepsize;
-			float gut_passage_time = stomach_content[consumed_seed_ids[i]].first;
-			float defecation_time = gut_passage_time + ingestion_time;
-			stomach_content[consumed_seed_ids[i]].first = defecation_time;
+			float gut_passage_time = consumed_seed_gpts_plus_cropids[i].first;
+			int crop_id = consumed_seed_gpts_plus_cropids[i].second;
+			int defecation_time = round(gut_passage_time + ingestion_time);
+			if (stomach_content[defecation_time].size() == 0) stomach_content[defecation_time] = { crop_id };
+			else stomach_content[defecation_time].push_back(crop_id);
 		}
 	}
-	void eat_fruit(Fruit &fruit, vector<int> &consumed_seed_ids) {
+	void eat_fruit(Fruit &fruit, vector<pair<float, int>>& consumed_seed_gpts_plus_cropids) {
 		vector<Seed> seeds;
 		//fruit.get_seeds(seeds);
 		for (int i = 0; i < fruit.strategy.no_seeds_per_diaspore; i++) {
@@ -119,9 +125,7 @@ public:
 			// Multiply GPT by 60 to convert minutes to seconds.
 			gut_passage_time *= 60.0f;
 
-			pair<float, float> times(gut_passage_time, curtime);
-			stomach_content[total_no_seeds_consumed] = pair<float, int>(gut_passage_time, fruit.id);
-			consumed_seed_ids.push_back(total_no_seeds_consumed);
+			consumed_seed_gpts_plus_cropids.push_back(pair<float, int>(gut_passage_time, fruit.id));
 			total_no_seeds_consumed++;
 		}
 	}
@@ -203,7 +207,7 @@ public:
 		//printf("No seeds dispersed: %i \n", no_seeds_dispersed);
 	}
 	map<string, float> traits;
-	map<int, pair<float, int>> stomach_content;
+	unordered_map<int, vector<int>> stomach_content; // { defecation_time: crop_ids }
 	pair<float, float> position;
 	pair<float, float> trajectory;
 	string species;
@@ -280,9 +284,9 @@ public:
 			float average_curtime = 0;
 			float average_gut_time = 0;
 			for (auto& [species, species_population] : total_animal_population) {
+				resource_grid->update_cover_and_fruit_probabilities(species, species_population[0].traits);
 				for (auto& animal : species_population) {
 					auto start_time = high_resolution_clock::now();
-					resource_grid->update_cover_and_fruit_probabilities(species, animal.traits);
 					compute_times[5] += help::microseconds_elapsed_since(start_time);
 					float _average_gut_time = 0;
 					float _average_gut_passage_time = 0;
