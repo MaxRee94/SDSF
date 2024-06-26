@@ -36,7 +36,7 @@ public:
 		compute_times[0] += help::microseconds_elapsed_since(start);
 
 		start = high_resolution_clock::now();
-		digest(resource_grid, no_seeds_dispersed, no_seeds_defecated);
+		digest(resource_grid, no_seeds_dispersed, no_seeds_defecated, compute_times, state);
 		compute_times[1] += help::microseconds_elapsed_since(start);
 
 		start = high_resolution_clock::now();
@@ -46,7 +46,7 @@ public:
 		eat(resource_grid, begin_time, no_seeds_eaten, compute_times);
 
 		start = high_resolution_clock::now();
-		digest(resource_grid, no_seeds_dispersed, no_seeds_defecated);
+		digest(resource_grid, no_seeds_dispersed, no_seeds_defecated, compute_times, state);
 		compute_times[1] += help::microseconds_elapsed_since(start);
 
 		//// TEMPORARY: Calculate the average gut passage time.
@@ -95,51 +95,62 @@ public:
 			no_seeds_eaten += fruit.strategy.no_seeds_per_diaspore;
 			biomass_appetite -= fruit.strategy.diaspore_mass;
 		}
-		//resource_grid->update_fruit_abundance(position, species, traits);
-		set_ingestion_times(begin_time, consumed_seed_ids);
+		set_defecation_times(begin_time, consumed_seed_ids);
 
 		compute_times[3] += help::microseconds_elapsed_since(start);
 	}
-	void set_ingestion_times(float begin_time, vector<int> &consumed_seed_ids) {
+	void set_defecation_times(float begin_time, vector<int> &consumed_seed_ids) {
 		float time_stepsize = (curtime - begin_time) / (float)consumed_seed_ids.size();
 		for (int i = consumed_seed_ids.size() - 1; i >= 0; i--) {
-			stomach_content[consumed_seed_ids[i]].second.second = curtime - (float)(i + 1) * time_stepsize;
+			float ingestion_time = curtime - (float)(i + 1) * time_stepsize;
+			float gut_passage_time = stomach_content[consumed_seed_ids[i]].first;
+			float defecation_time = gut_passage_time + ingestion_time;
+			stomach_content[consumed_seed_ids[i]].first = defecation_time;
 		}
 	}
 	void eat_fruit(Fruit &fruit, vector<int> &consumed_seed_ids) {
 		vector<Seed> seeds;
-		fruit.get_seeds(seeds);
-		for (auto& seed : seeds) {
+		//fruit.get_seeds(seeds);
+		for (int i = 0; i < fruit.strategy.no_seeds_per_diaspore; i++) {
 			float gut_passage_time = gut_passage_time_distribution.get_gamma_sample();
 			
 			// Multiply GPT by 60 to convert minutes to seconds.
 			gut_passage_time *= 60.0f;
 
 			pair<float, float> times(gut_passage_time, curtime);
-			stomach_content[total_no_seeds_consumed] = pair<Seed, pair<float, float>>(seed, times);
+			stomach_content[total_no_seeds_consumed] = pair<float, int>(gut_passage_time, fruit.id);
 			consumed_seed_ids.push_back(total_no_seeds_consumed);
 			total_no_seeds_consumed++;
 		}
 	}
-	void digest(ResourceGrid* resource_grid, int& no_seeds_dispersed, int& no_seeds_defecated) {
-		vector<int> defecation_schedule;
-		for (auto& [seed_id, seed_plus_times] : stomach_content) {
-			auto [gut_passage_time, ingestion_time] = seed_plus_times.second;
-			if (gut_passage_time + ingestion_time <= curtime) {
-				if (iteration < 5) continue; // Ignore the first 5 iterations (after Morales et al 2013)
-				float defecation_time = gut_passage_time + ingestion_time;
+	void digest(
+		ResourceGrid* resource_grid, int& no_seeds_dispersed, int& no_seeds_defecated, vector<int>& compute_times,
+		State* state
+	) {
+		vector<int> deletion_schedule;
+		for (auto& [seed_id, deftime_plus_crop_id] : stomach_content) {
+			
+			float defecation_time = deftime_plus_crop_id.first;
+			if (defecation_time <= curtime) {
+				deletion_schedule.push_back(seed_id);
+				if (iteration < 5) continue; // Do not disperse in the first 5 iterations (after Morales et al 2013)
+
 				float time_since_defecation = curtime - defecation_time;
-				Seed &to_defecate = seed_plus_times.first;
+				Seed to_defecate(state->population.get_crop(deftime_plus_crop_id.second)->strategy);
+
 				defecate(to_defecate, time_since_defecation, no_seeds_dispersed, resource_grid);
-				defecation_schedule.push_back(seed_id);
+
 				no_seeds_defecated++;
 			}
-		}
+
+		}                  
+
 		int no_seeds_erased = 0;
-		for (auto& seed_id : defecation_schedule) {
+		for (auto& seed_id : deletion_schedule) {
 			no_seeds_erased++;
 			stomach_content.erase(seed_id);
 		}
+		compute_times[14] += help::microseconds_elapsed_since(start);
 		//printf("No seeds defecated %i, no seeds erased %i\n", no_seeds_defecated, no_seeds_erased);
 	}
 	pair<float, float> select_destination(ResourceGrid* resource_grid) {
@@ -181,7 +192,7 @@ public:
 		//printf("No seeds dispersed: %i \n", no_seeds_dispersed);
 	}
 	map<string, float> traits;
-	map<int, pair<Seed, pair<float, float>>> stomach_content;
+	map<int, pair<float, int>> stomach_content;
 	pair<float, float> position;
 	pair<float, float> trajectory;
 	string species;
@@ -245,7 +256,7 @@ public:
 
 		int no_seeds_eaten = 0;
 		int no_seeds_defecated = 0;
-		vector<int> compute_times = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		vector<int> compute_times = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 		auto overall_start_time = high_resolution_clock::now();
 		while (no_seeds_defecated < no_seeds_to_disperse) {
 			int prev_no_seeds_dispersed = no_seeds_dispersed;

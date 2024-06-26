@@ -38,7 +38,7 @@ private:
 class Fruit {
 public:
 	Fruit() = default;
-	Fruit(Strategy &_strategy) : strategy(_strategy) {};
+	Fruit(Strategy &_strategy, int _id) : strategy(_strategy), id(_id) {};
 	void get_seeds(vector<Seed>& seeds) {
 		for (int i = 0; i < strategy.no_seeds_per_diaspore; i++) {
 			Seed seed(strategy);
@@ -46,6 +46,7 @@ public:
 		}
 	}
 	Strategy strategy;
+	int id = -1;
 };
 
 
@@ -54,7 +55,7 @@ public:
 	Fruits() = default;
 	void add_fruits(Crop* crop) {
 		//printf("Fruit abundance: %d, no diaspora to disperse: %d\n", crop->fruit_abundance, crop->no_diaspora);
-		fruits[fruit_types.size()] = pair<Fruit, int>(Fruit(crop->strategy), crop->fruit_abundance);
+		fruits[fruit_types.size()] = pair<Fruit, int>(Fruit(crop->strategy, crop->id), crop->fruit_abundance);
 		fruit_types.push_back(fruits.size());
 		_no_fruits += crop->fruit_abundance;
 	}
