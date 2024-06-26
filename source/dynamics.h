@@ -219,12 +219,12 @@ public:
 		);
 	}
 	void disperse_animal_seeds(int no_seeds_to_disperse) {
-		int no_animal_seeds = 0;
+		int no_recruits = 0;
 		Timer timer; timer.start();
 		if (resource_grid.has_fruits) {
-			no_animal_seeds = animal_dispersal.disperse(&state, &resource_grid, no_seeds_to_disperse, 1);
+			no_recruits = animal_dispersal.disperse(&state, &resource_grid, no_seeds_to_disperse, 1);
 		}
-		timer.stop(); printf("-- Dispersing %s animal seeds took %f seconds. \n", help::readable_number(no_animal_seeds).c_str(), timer.elapsedSeconds());
+		timer.stop(); printf("-- Dispersing %s animal seeds took %f seconds. \n", help::readable_number(no_seeds_to_disperse).c_str(), timer.elapsedSeconds());
 	}
 	void recruit() {
 		Timer timer; timer.start();
