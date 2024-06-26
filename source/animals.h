@@ -95,7 +95,9 @@ public:
 			no_seeds_eaten += fruit.strategy.no_seeds_per_diaspore;
 			biomass_appetite -= fruit.strategy.diaspore_mass;
 		}
+		auto _start3 = high_resolution_clock::now();
 		set_defecation_times(begin_time, consumed_seed_ids);
+		compute_times[18] += help::microseconds_elapsed_since(_start3);
 
 		compute_times[3] += help::microseconds_elapsed_since(start);
 	}
@@ -128,23 +130,32 @@ public:
 		State* state
 	) {
 		vector<int> deletion_schedule;
+		auto start = high_resolution_clock::now();
 		for (auto& [seed_id, deftime_plus_crop_id] : stomach_content) {
+			auto _start = high_resolution_clock::now();
 			
 			float defecation_time = deftime_plus_crop_id.first;
 			if (defecation_time <= curtime) {
 				deletion_schedule.push_back(seed_id);
 				if (iteration < 5) continue; // Do not disperse in the first 5 iterations (after Morales et al 2013)
 
+				auto __start = high_resolution_clock::now();
 				float time_since_defecation = curtime - defecation_time;
 				Seed to_defecate(state->population.get_crop(deftime_plus_crop_id.second)->strategy);
+				compute_times[17] += help::microseconds_elapsed_since(__start);
 
+				__start = high_resolution_clock::now();
 				defecate(to_defecate, time_since_defecation, no_seeds_dispersed, resource_grid);
+				compute_times[13] += help::microseconds_elapsed_since(__start);
 
 				no_seeds_defecated++;
 			}
 
+			compute_times[15] += help::microseconds_elapsed_since(_start);
 		}                  
+		compute_times[16] += help::microseconds_elapsed_since(start);
 
+		start = high_resolution_clock::now();
 		int no_seeds_erased = 0;
 		for (auto& seed_id : deletion_schedule) {
 			no_seeds_erased++;
@@ -310,6 +321,11 @@ public:
 				printf("- Total fruit type selection times: %s\n", help::readable_number(compute_times[9]).c_str());
 				printf("- Total fruit in-diaspora fruit extraction times: %s\n", help::readable_number(compute_times[10]).c_str());
 				printf("- Total size-check times: %s\n", help::readable_number(compute_times[12]).c_str());
+				printf("- Total defecation times: %s\n", help::readable_number(compute_times[13]).c_str());
+				printf("- Total seed erasure times: %s\n", help::readable_number(compute_times[14]).c_str());
+				printf("- Total seed iteration times: %s\n", help::readable_number(compute_times[15]).c_str());
+				printf("- Total seed creation times: %s\n", help::readable_number(compute_times[17]).c_str());
+				printf("- Total for-loop seed iteration times: %s\n", help::readable_number(compute_times[16]).c_str());
 				printf("- Overall time elapsed: %s\n", help::readable_number(help::microseconds_elapsed_since(overall_start_time)).c_str());
 			}
 			iteration++;
