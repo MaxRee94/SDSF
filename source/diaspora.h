@@ -67,21 +67,15 @@ public:
 		fruit_types.clear();
 		_no_fruits = 0;
 	}
-	bool get(Fruit &fruit, vector<int>& compute_times) {
-		auto start = high_resolution_clock::now();
+	bool get(Fruit &fruit) {
 		if (_no_fruits == 0) return false;
-		compute_times[12] += help::microseconds_elapsed_since(start);
 
 		// Select fruit type randomly
-		start = high_resolution_clock::now();
 		int fruit_type = fruit_types[help::get_rand_int(0, fruit_types.size() - 1)];
-		compute_times[9] += help::microseconds_elapsed_since(start);
 		
 		// Extract fruit
-		start = high_resolution_clock::now();
 		fruit = fruits[fruit_type].first;
 		decrement_one(fruit_type);
-		compute_times[10] += help::microseconds_elapsed_since(start);
 
 		return true;
 	}

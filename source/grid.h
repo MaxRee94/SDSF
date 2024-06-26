@@ -236,6 +236,7 @@ public:
 		printf("\nInitializing grid with width %i and cell width %f.\n", _width, _cell_width);
 		width = _width;
 		cell_width = _cell_width;
+		cell_half_width = cell_width * 0.5f;
 		width_r = (float)width * cell_width;
 		no_cells = width * width;
 		no_savanna_cells = no_cells;
@@ -545,6 +546,7 @@ public:
 	float width_r = 0;
 	float tree_cover = 0;
 	float cell_width = 0;
+	float cell_half_width = 0;
 	Cell* distribution = 0;
 	int* state_distribution = 0;
 	int no_savanna_cells = 0;

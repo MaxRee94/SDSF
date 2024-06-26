@@ -244,7 +244,8 @@ def updateloop(dynamics, color_dicts, **user_args):
     print("Beginning simulation...")
     csv_path = user_args["csv_path"]
     #visualization_types = [] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
-    visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
+    #visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
+    visualization_types = ["recruitment"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     init_csv = True
     prev_tree_cover = [user_args["treecover"]] * 60
     slope = 0

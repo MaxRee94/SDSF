@@ -10,13 +10,11 @@ public:
 	void reset() {
 		fruits.clear();
 	}
-	bool extract_random_fruit(Fruit &fruit, vector<int>& compute_times) {
-		auto start = high_resolution_clock::now();
+	bool extract_random_fruit(Fruit &fruit) {
 		if (fruits.no_fruits() == 0) {
 			return false;
 		}
-		compute_times[12] += help::microseconds_elapsed_since(start);
-		bool success = fruits.get(fruit, compute_times);
+		bool success = fruits.get(fruit);
 		return success;
 	}
 	float get_fruit_abundance_index() {
@@ -144,14 +142,10 @@ public:
 		ResourceCell* cell = get_resource_cell_at_position(position);
 		update_fruit_abundance(cell, species, species_params);
 	}
-	bool extract_fruit(pair<int, int> pos, Fruit &fruit, vector<int>& compute_times) {
-		auto start = high_resolution_clock::now();
+	bool extract_fruit(pair<int, int> pos, Fruit &fruit) {
 		ResourceCell* cell = get_resource_cell_at_position(pos);
-		compute_times[8] += help::microseconds_elapsed_since(start);
 
-		start = high_resolution_clock::now();
-		bool success = cell->extract_random_fruit(fruit, compute_times);
-		compute_times[11] += help::microseconds_elapsed_since(start);
+		bool success = cell->extract_random_fruit(fruit);
 		total_no_fruits -= success;
 		return success;
 	}
@@ -173,11 +167,22 @@ public:
 		return &cells[pos.second * width + pos.first];
 	}
 	ResourceCell* get_resource_cell_at_position(pair<float, float> _pos) {
-		pair<int, int> pos = get_gridbased_position(_pos);
+		pair<int, int> pos = get_rc_gridbased_position(_pos);
+		pos = pos - pair<int, int>(1, 1);
 		return get_resource_cell_at_position(pos);
 	}
 	pair<float, float> get_real_cell_position(ResourceCell* cell) {
 		return pair<float, float>(cell->pos.first * cell_width, cell->pos.second * cell_width);
+	}
+	pair<int, int> get_rc_gridbased_position(pair<float, float> position) {
+		return pair<int, int>(round((position.first) / cell_width), round((position.second) / cell_width));
+	}
+	pair<float, float> get_rc_real_position(pair<int, int> position) {
+		return pair<float, float>((float)position.first * cell_width, (float)position.second * cell_width);
+	}
+	pair<float, float> get_rc_real_position(int idx) {
+		pair<int, int> position = idx_2_pos(idx);
+		return pair<float, float>((float)position.first * cell_width, (float)position.second * cell_width);
 	}
 	ResourceCell* get_random_resource_cell() {
 		int idx = help::get_rand_int(0, size - 1);
@@ -273,9 +278,9 @@ public:
 		float b_d = animal_kernel_params[species]["b_d"];
 		float a_d_recipr = 1.0f / a_d;
 		for (int i = 0; i < size; i++) {
-			pair<float, float> curpos = get_real_position(cells[i].pos);
+			pair<float, float> curpos = get_rc_real_position(cells[i].pos);
 			for (int j = 0; j < size; j++) {
-				pair<float, float> target_pos = get_real_position(cells[j].pos);
+				pair<float, float> target_pos = get_rc_real_position(cells[j].pos);
 				float dist = get_resourcegrid_dist(curpos, target_pos);
 				float val = tanh(pow((-dist * a_d_recipr), b_d));
 				dist_lookup_table[species][size * (cells[i].pos.first + cells[i].pos.second * width) + cells[j].pos.first + cells[j].pos.second * width] = val;
@@ -329,7 +334,7 @@ public:
 		visits_sum = 0;
 	}
 	ResourceCell* select_cell(string species, pair<float, float> cur_position) {
-		pair<int, int> gridbased_curpos = get_gridbased_position(cur_position);
+		pair<int, int> gridbased_curpos = get_rc_gridbased_position(cur_position);
 		cap(gridbased_curpos);
 		compute_d(gridbased_curpos, species);
 		compute_k(species);
