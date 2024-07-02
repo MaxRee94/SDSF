@@ -126,8 +126,6 @@ public:
 	pair<float, float> select_destination(ResourceGrid* resource_grid) {
 		ResourceCell* cell = resource_grid->select_cell(species, position);
 		pair<float, float> destination;
-		//ResourceCell* cell = resource_grid->get_random_resource_cell();
-		//printf("------- Moving to cell: %i, %i\n", cell->pos.first, cell->pos.second);
 		if (cell->trees.size() == 0) return select_destination(resource_grid);
 		last_tree_visited = resource_grid->get_random_forested_location(cell, destination);
 		return destination;
@@ -158,7 +156,6 @@ public:
 		seed.deposition_location = seed_deposition_location;
 		bool germination = seed.germinate_if_location_is_viable(resource_grid->state);
 		no_seeds_dispersed += germination;
-		//printf("No seeds dispersed: %i \n", no_seeds_dispersed);
 	}
 	map<string, float> traits;
 	unordered_map<int, vector<int>> stomach_content; // { defecation_time: crop_ids }
@@ -252,9 +249,8 @@ public:
 					average_gut_passage_time += _average_gut_passage_time;
 				}
 			}
-			if (iteration % 40 == 0) {
-				printf("-- Number of seeds defecated: %d / %d\n", no_seeds_defecated, no_seeds_to_disperse);
-				//printf("-- No seeds in stomach: %d\n", no_seeds_eaten - no_seeds_defecated);
+			if (iteration % 60 == 0 && iteration > 0) {
+				printf("-- Animal dispersal progress: %f %%\n", (float)no_seeds_defecated / (float)no_seeds_to_disperse);
 			}
 			no_seeds_eaten += cur_no_seeds_eaten;
 			iteration++;

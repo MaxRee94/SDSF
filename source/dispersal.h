@@ -33,7 +33,6 @@ public:
 	void disperse_diaspore(Crop* crop, State* state) {
 		pair<float, float> deposition_location;
 		compute_deposition_location(crop, state, deposition_location);
-		//deposition_location = state->grid.get_random_real_position();
 		germinate_seeds_in_diaspore(crop, state, deposition_location);
 	}
 	void disperse_crop(Crop* crop, State* state) {

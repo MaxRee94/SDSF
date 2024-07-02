@@ -191,10 +191,6 @@ public:
 	bool can_increment_x() {
 		x++;
 		if (x > tree_center_gb.first + radius_gb) {
-			if (grid_bb_max.first < 100000) {
-				//printf("tree_center_gb : %f, %f \n", tree_center_gb.first, tree_center_gb.second);
-				//printf("x: %i, radius max: %f, bb x: %i, bb y: %i \n", x, tree_center_gb.first + radius_gb, grid_bb_max.first, grid_bb_max.second);
-			}
 			return false;
 		}
 		return true;
@@ -407,15 +403,10 @@ public:
 	) {
 		TreeDomainIterator it(cell_width, tree);
 		vector<pair<int, int>> cells;
-		//printf("bb min: %i, %i, bb max: %i, %i\n", grid_bb_min.first, grid_bb_min.second, grid_bb_max.first, grid_bb_max.second);
-		//printf("tree position real: %f, %f \n", tree->position.first, tree->position.second);
-		//printf("tree position gridbased: %i, %i \n", get_gridbased_position(tree->position).first, get_gridbased_position(tree->position).second);
 		while (it.next()) {
-			//printf("cell position: %i, %i\n", it.gb_cell_position.first, it.gb_cell_position.second);
 			cap(it.gb_cell_position);
 			if (it.gb_cell_position.first > grid_bb_max.first || it.gb_cell_position.second > grid_bb_max.second) continue; // Skip cells outside the bounding box.
 			if (it.gb_cell_position.first < grid_bb_min.first || it.gb_cell_position.second < grid_bb_min.second) continue; // Skip cells outside the bounding box.
-			//printf("cell position (after capping): %i, %i\n", it.gb_cell_position.first, it.gb_cell_position.second);
 			it.update_real_cell_position();
 			if (tree->radius_spans(it.real_cell_position)) {
 				cells.push_back(it.gb_cell_position);
@@ -423,9 +414,7 @@ public:
 		}
 		success = cells.size() > 0;
 		if (!success) return pair<float, float>(-1, -1);
-		//printf("no tree cells: %i\n", cells.size());
 		pair<int, int> random_cell = cells[help::get_rand_int(0, cells.size() - 1)];
-		//printf("random gridbased location: %i, %i\n", random_cell.first, random_cell.second);
 		return get_random_location_within_cell(random_cell);
 	}
 	pair<float, float> get_random_position_within_crown(Tree* tree) {

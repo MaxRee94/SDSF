@@ -165,13 +165,7 @@ public:
 	}
 	bool extract_fruit(pair<float, float> pos, Fruit &fruit, int tree_id) {
 		ResourceCell* cell = get_resource_cell_at_position(pos);
-		//printf("Cell width: %f \n", cell_width);
 		bool success = cell->extract_random_fruit(fruit, tree_id);
-		//if (!success) printf("\n\n\n\n\n\n------- Eating in cell: %i, %i (real position %f, %f) \n", cell->pos.first, cell->pos.second, pos.first, pos.second);
-		//if (!success) printf("(extracting fruit) %i is in tree list: %s\n", tree_id, (help::is_in(&cell->trees, tree_id) ? "yes" : "no"));
-		//if (!success) printf("Gridbased animal position: %i, %i\n", get_rc_gridbased_position(pos).first, get_rc_gridbased_position(pos).second);
-		//if (!success) printf("Life phase: %i \n", state->population.get(tree_id)->life_phase);
-		//if (!success) printf("Crop size per cell: %f \n", (float)state->population.get_crop(tree_id)->fruit_abundance / state->population.get(tree_id)->crown_area);
 		total_no_fruits -= success;
 		return success;
 	}
@@ -182,7 +176,6 @@ public:
 	}
 	int get_random_forested_location(ResourceCell* cell, pair<float, float>& location) {
 		// Attempt to a fruit-producing tree. If none is found after 10 attempts, choose a non-fruit-producing tree.
-		//printf("No trees in cell. k value: %f \n", selection_probabilities.probabilities[cell->idx]);
 		int tree_id = cell->trees[help::get_rand_int(0, cell->trees.size() - 1)];
 		int i = 0;
 		while (state->population.get(tree_id)->life_phase != 2 && i < 10) {
