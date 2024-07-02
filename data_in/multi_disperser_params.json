@@ -6,7 +6,7 @@
         "dist_max": 200
     },
     "wind": {
-        "wspeed_gmean": 10,
+        "wspeed_gmean": 5,
         "wspeed_stdev": 5,
         "wind_direction": 0,
         "wind_direction_stdev": 3600
@@ -17,12 +17,14 @@
             "no_iterations": 100
         },
         "Turdus iliacus": {
-            "population_fraction": 0.1667,
+            "population_fraction": 0.25,
             "fruitsize_pref": 0.02,
             "gut_passage_time_shape": 1.59,
             "gut_passage_time_scale": 13.51351,
             "rest_time_shape": 0.849,
             "rest_time_scale": 1.567,
+            "probability_fruit_consumption": 0.531,
+            "average_fruit_mass_consumed": 16,
             "speed": 6,
             "a_d": -4.407,
             "b_d": -0.647,
@@ -34,12 +36,14 @@
             "b_o": -3.718
         },
         "Turdus philomelos": {
-            "population_fraction": 0.1667,
+            "population_fraction": 0.25,
             "fruitsize_pref": 0.02,
             "gut_passage_time_shape": 1.59,
             "gut_passage_time_scale": 28.0112,
             "rest_time_shape": 0.569,
             "rest_time_scale": 4.902,
+            "probability_fruit_consumption": 0.370,
+            "average_fruit_mass_consumed": 20,
             "speed": 6,
             "a_d": -3.717,
             "b_d": -0.398,
@@ -51,12 +55,14 @@
             "b_o": -1.361
         },
         "Turdus merula": {
-            "population_fraction": 0.1667,
+            "population_fraction": 0.25,
             "fruitsize_pref": 0.02,
             "gut_passage_time_shape": 0.931,
             "gut_passage_time_scale": 25,
             "rest_time_shape": 0.931,
             "rest_time_scale": 2.033,
+            "probability_fruit_consumption": 0.524,
+            "average_fruit_mass_consumed": 18,
             "speed": 6,
             "a_d": -4.093,
             "b_d": -0.437,
@@ -74,6 +80,8 @@
             "gut_passage_time_scale": 16.72241,
             "rest_time_shape": 1.472,
             "rest_time_scale": 0.898,
+            "probability_fruit_consumption": 0.5,
+            "average_fruit_mass_consumed": 20,
             "speed": 6,
             "a_d": -3.669,
             "b_d": -0.406,
@@ -91,6 +99,8 @@
             "gut_passage_time_scale": 31.25,
             "rest_time_shape": 1.256,
             "rest_time_scale": 2.299,
+            "probability_fruit_consumption": 0.455,
+            "average_fruit_mass_consumed": 17,
             "speed": 6,
             "a_d": -3.662,
             "b_d": -0.242,
@@ -102,12 +112,14 @@
             "b_o": -2.643
         },
         "Turdus viscivorus": {
-            "population_fraction": 0.1667,
+            "population_fraction": 0.25,
             "fruitsize_pref": 0.02,
             "gut_passage_time_shape": 1.59,
             "gut_passage_time_scale": 34.48276,
             "rest_time_shape": 0.747,
             "rest_time_scale": 3.717,
+            "probability_fruit_consumption": 0.335,
+            "average_fruit_mass_consumed": 15,
             "speed": 6,
             "a_d": -3.905,
             "b_d": -0.517,
