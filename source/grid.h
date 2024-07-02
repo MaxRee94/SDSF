@@ -186,10 +186,15 @@ public:
 		radius_gb = round(tree->radius / cell_width);
 		x = tree_center_gb.first - radius_gb;
 		y = tree_center_gb.second - radius_gb;
+		y_lowbound = y;
 	}
 	bool can_increment_x() {
 		x++;
 		if (x > tree_center_gb.first + radius_gb) {
+			if (grid_bb_max.first < 100000) {
+				//printf("tree_center_gb : %f, %f \n", tree_center_gb.first, tree_center_gb.second);
+				//printf("x: %i, radius max: %f, bb x: %i, bb y: %i \n", x, tree_center_gb.first + radius_gb, grid_bb_max.first, grid_bb_max.second);
+			}
 			return false;
 		}
 		return true;
@@ -197,7 +202,7 @@ public:
 	bool can_increment_y() {
 		y++;
 		if (y > tree_center_gb.second + radius_gb) {
-			y = tree_center_gb.second - radius_gb; // Reset to lower bound.
+			y = y_lowbound; // Reset to lower bound.
 			return false;
 		}
 		return true;
@@ -217,13 +222,24 @@ public:
 		gb_cell_position.second = y;
 		return true;
 	}
+	void update_real_cell_position() {
+		real_cell_position.first = tree_center_gb.first * cell_width;
+		real_cell_position.second = tree_center_gb.second * cell_width;
+	}
+	int get_no_tree_cells() {
+		return tree->crown_area / (cell_width * cell_width);
+	}
 	int x = 0;
 	int y = 0;
+	int y_lowbound = 0;
+	int grid_width = 0;
 	bool begin = true;
 	Tree* tree;
 	pair<float, float> tree_center_gb;
 	pair<float, float> real_cell_position;
 	pair<int, int> gb_cell_position;
+	pair<int, int> grid_bb_min = pair<int, int>(-(2 << 28), -(2 << 28));
+	pair<int, int> grid_bb_max = pair<int, int>((2 << 28), (2 << 28));
 	float radius_gb;
 	float cell_width;
 };
@@ -236,6 +252,7 @@ public:
 		printf("\nInitializing grid with width %i and cell width %f.\n", _width, _cell_width);
 		width = _width;
 		cell_width = _cell_width;
+		cell_width_inv = 1.0f / cell_width;
 		cell_half_width = cell_width * 0.5f;
 		width_r = (float)width * cell_width;
 		no_cells = width * width;
@@ -245,6 +262,7 @@ public:
 		reset_state_distr();
 		area = no_cells * cell_width * cell_width;
 		cell_area = cell_width * cell_width;
+		cell_area_inv = 1.0f / cell_area;
 		cell_halfdiagonal_sqrt = help::get_dist(pair<float, float>(0, 0), pair<float, float>(0.5f * cell_width, 0.5f * cell_width));
 		cell_area_half = cell_area * 0.5f;
 	}
@@ -382,6 +400,38 @@ public:
 		distribution[center_idx].insert_stem(tree, cell_area, cell_halfdiagonal_sqrt);
 		return true;
 	}
+	pair<float, float> get_random_position_within_crown(
+		Tree* tree, bool success,
+		pair<int, int> grid_bb_min = pair<int, int>(-2 << 28, -2 << 28),
+		pair<int, int> grid_bb_max = pair<int, int>(2 << 28, 2 << 28)
+	) {
+		TreeDomainIterator it(cell_width, tree);
+		vector<pair<int, int>> cells;
+		//printf("bb min: %i, %i, bb max: %i, %i\n", grid_bb_min.first, grid_bb_min.second, grid_bb_max.first, grid_bb_max.second);
+		//printf("tree position real: %f, %f \n", tree->position.first, tree->position.second);
+		//printf("tree position gridbased: %i, %i \n", get_gridbased_position(tree->position).first, get_gridbased_position(tree->position).second);
+		while (it.next()) {
+			//printf("cell position: %i, %i\n", it.gb_cell_position.first, it.gb_cell_position.second);
+			cap(it.gb_cell_position);
+			if (it.gb_cell_position.first > grid_bb_max.first || it.gb_cell_position.second > grid_bb_max.second) continue; // Skip cells outside the bounding box.
+			if (it.gb_cell_position.first < grid_bb_min.first || it.gb_cell_position.second < grid_bb_min.second) continue; // Skip cells outside the bounding box.
+			//printf("cell position (after capping): %i, %i\n", it.gb_cell_position.first, it.gb_cell_position.second);
+			it.update_real_cell_position();
+			if (tree->radius_spans(it.real_cell_position)) {
+				cells.push_back(it.gb_cell_position);
+			}
+		}
+		success = cells.size() > 0;
+		if (!success) return pair<float, float>(-1, -1);
+		//printf("no tree cells: %i\n", cells.size());
+		pair<int, int> random_cell = cells[help::get_rand_int(0, cells.size() - 1)];
+		//printf("random gridbased location: %i, %i\n", random_cell.first, random_cell.second);
+		return get_random_location_within_cell(random_cell);
+	}
+	pair<float, float> get_random_position_within_crown(Tree* tree) {
+		bool success = true;
+		return get_random_position_within_crown(tree, success);
+	}
 	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = false,
 		bool store_burn_events = true, int ignition_cell_idx = -1) {
 		TreeDomainIterator it(cell_width, tree);
@@ -395,7 +445,7 @@ public:
 				// Set cell to savanna if the cumulative leaf area is less than half of the area of the cell
 				// (leaf area < 0.5 * cell_area   <==>   (LAI * cell_area) < 0.5 * cell_area   <==>   LAI < 0.5).
 				if (cell->get_LAI() < 1.0f) { 
-					if (cell->idx != ignition_cell_idx) queue.push(cell); // The ignition cell (responsible for setting the tree alight) is already in the queue.
+					if (cell->idx != ignition_cell_idx) queue.push(cell); // The ignition cell (responsible for setting the tree on fire) is already in the queue.
 					set_to_savanna(cell->idx, time_last_fire);
 					if (store_tree_death_in_color_distribution) state_distribution[cell->idx] = -6;
 					continue;
@@ -532,7 +582,7 @@ public:
 		position_grid.second %= width;
 	}
 	pair<int, int> get_gridbased_position(pair<float, float> position) {
-		return pair<int, int>(round(position.first / cell_width), round(position.second / cell_width));
+		return pair<int, int>(position.first / cell_width, position.second / cell_width);
 	}
 	pair<float, float> get_real_position(pair<int, int> position) {
 		return pair<float, float>((float)position.first * cell_width, (float)position.second * cell_width);
@@ -546,6 +596,7 @@ public:
 	float width_r = 0;
 	float tree_cover = 0;
 	float cell_width = 0;
+	float cell_width_inv = 0;
 	float cell_half_width = 0;
 	Cell* distribution = 0;
 	int* state_distribution = 0;
@@ -553,6 +604,7 @@ public:
 	int no_forest_cells = 0;
 	float area = 0;
 	float cell_area = 0;
+	float cell_area_inv = 0;
 	float cell_area_half = 0;
 	float cell_halfdiagonal_sqrt = 0;
 	pair<int, int>* neighbor_offsets = 0;

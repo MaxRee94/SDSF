@@ -17,6 +17,7 @@ public:
 		pair<float, float> direction;
 		get_direction(kernel, direction);
 		float distance = get_dist(kernel);
+		pair<float, float> release_location = state->grid.get_random_position_within_crown(state->population.get(crop->id));
 		deposition_location = crop->origin + distance * direction;
 	}
 	void germinate_seed(Crop* crop, State* state, pair<float, float>& deposition_location) {
@@ -62,7 +63,6 @@ class AnimalDispersal : public Disperser {
 public:
 	AnimalDispersal() : Disperser() {};
 	int disperse(State* state, ResourceGrid* resource_grid, int no_seeds_to_disperse, int verbosity = 0) {
-		resource_grid->compute_cover_and_fruit_abundance();
 		animals.place(state);
 		int no_seeds_dispersed = 0;
 		animals.disperse(no_seeds_dispersed, no_seeds_to_disperse, state, resource_grid);

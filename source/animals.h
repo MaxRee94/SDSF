@@ -28,20 +28,19 @@ public:
 		float& time_spent_resting, float& distance_travelled, float& average_gut_passage_time, float& average_gut_time,
 		int& no_seeds_defecated
 	) {
-		float begin_time = curtime;
 		iteration = _iteration;
 
-		pair<int, int> move_time_interval(curtime, curtime);
+		pair<int, int> move_time_interval(curtime, -1);
 		move(resource_grid, distance_travelled);
 		move_time_interval.second = curtime;
 
 		digest(resource_grid, no_seeds_dispersed, no_seeds_defecated, state, move_time_interval);
 
-		pair<int, int> rest_time_interval(curtime, curtime);
+		pair<int, int> rest_time_interval(curtime, -1);
 		rest(time_spent_resting);
+		eat(resource_grid, rest_time_interval.first, no_seeds_eaten);
 		rest_time_interval.second = curtime;
 
-		eat(resource_grid, begin_time, no_seeds_eaten);
 		digest(resource_grid, no_seeds_dispersed, no_seeds_defecated, state, rest_time_interval);
 	}
 	void rest(float& time_spent_resting) {
@@ -51,7 +50,15 @@ public:
 		time_spent_resting += rest_time;
 	}
 	float get_biomass_appetite() {
-		return 1000; // We assume that the group of animals will eat 1 kg of fruit in a single session.
+		float appetite = 0;
+		for (int i = 0; i < animal_group_size; i++) {
+			// Check if the current animal will engage in fruit consumption.
+			if (help::get_rand_float(0, 1) > traits["probability_fruit_consumption"]) continue;
+
+			// Add the mass of the average feeding bout to the total appetite.
+			appetite += traits["average_fruit_mass_consumed"];
+		}
+		return appetite;
 	}
 	void eat(ResourceGrid* resource_grid, float begin_time, int& no_seeds_eaten) {
 		float biomass_appetite = get_biomass_appetite();
@@ -59,7 +66,7 @@ public:
 		while (biomass_appetite > 0) {
 			Fruit fruit;
 
-			bool fruit_available = resource_grid->extract_fruit(position, fruit);
+			bool fruit_available = resource_grid->extract_fruit(position, fruit, last_tree_visited);
 
 			if (!fruit_available) break;
 
@@ -120,7 +127,9 @@ public:
 		ResourceCell* cell = resource_grid->select_cell(species, position);
 		pair<float, float> destination;
 		//ResourceCell* cell = resource_grid->get_random_resource_cell();
-		resource_grid->get_random_location_within_cell(cell, destination);
+		//printf("------- Moving to cell: %i, %i\n", cell->pos.first, cell->pos.second);
+		if (cell->trees.size() == 0) return select_destination(resource_grid);
+		last_tree_visited = resource_grid->get_random_forested_location(cell, destination);
 		return destination;
 	}
 	void move(ResourceGrid* resource_grid, float& distance_travelled) {
@@ -146,12 +155,9 @@ public:
 		}
 
 		int prev_seed_dispersed_number = no_seeds_dispersed;
-		for (int i = 0; i < 2; i++) {
-			resource_grid->get_random_stategrid_location(seed_deposition_location);
-			seed.deposition_location = seed_deposition_location;
-			bool germination = seed.germinate_if_location_is_viable(resource_grid->state);
-			no_seeds_dispersed += germination;
-		}
+		seed.deposition_location = seed_deposition_location;
+		bool germination = seed.germinate_if_location_is_viable(resource_grid->state);
+		no_seeds_dispersed += germination;
 		//printf("No seeds dispersed: %i \n", no_seeds_dispersed);
 	}
 	map<string, float> traits;
@@ -164,7 +170,9 @@ public:
 	float curtime = 0;
 	float recipr_speed = 0;
 	float travel_time = 0;
+	int last_tree_visited = -1;
 	int iteration = -1;
+	int animal_group_size = 20;
 	int verbosity = 0;
 	int total_no_seeds_consumed = 0;
 	bool moving = false;
@@ -230,7 +238,8 @@ public:
 			float average_curtime = 0;
 			float average_gut_time = 0;
 			for (auto& [species, species_population] : total_animal_population) {
-				resource_grid->update_cover_and_fruit_probabilities(species, species_population[0].traits);
+				if (iteration == 0) resource_grid->update_cover_probabilities(species, species_population[0].traits);
+				resource_grid->update_fruit_probabilities(species, species_population[0].traits);
 				for (auto& animal : species_population) {
 					float _average_gut_time = 0;
 					float _average_gut_passage_time = 0;
@@ -242,6 +251,10 @@ public:
 					average_gut_time += _average_gut_time;
 					average_gut_passage_time += _average_gut_passage_time;
 				}
+			}
+			if (iteration % 40 == 0) {
+				printf("-- Number of seeds defecated: %d / %d\n", no_seeds_defecated, no_seeds_to_disperse);
+				//printf("-- No seeds in stomach: %d\n", no_seeds_eaten - no_seeds_defecated);
 			}
 			no_seeds_eaten += cur_no_seeds_eaten;
 			iteration++;

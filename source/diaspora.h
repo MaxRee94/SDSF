@@ -53,10 +53,11 @@ public:
 class Fruits {
 public:
 	Fruits() = default;
-	void add_fruits(Crop* crop) {
+	void add_fruits(Crop* crop, float abundance) {
 		//printf("Fruit abundance: %d, no diaspora to disperse: %d\n", crop->fruit_abundance, crop->no_diaspora);
-		fruits[fruit_types.size()] = pair<Fruit, int>(Fruit(crop->strategy, crop->id), crop->fruit_abundance);
-		fruit_types.push_back(fruits.size());
+		fruits[crop->id] = pair<Fruit, int>(Fruit(crop->strategy, crop->id), crop->fruit_abundance);
+		//printf("fruits with crop id %d added, fruit id: %i\n", crop->id, fruits[crop->id].first.id);
+		if (!help::is_in(&fruit_types, crop->id)) fruit_types.push_back(crop->id);
 		_no_fruits += crop->fruit_abundance;
 	}
 	bool are_available() {
@@ -67,14 +68,25 @@ public:
 		fruit_types.clear();
 		_no_fruits = 0;
 	}
-	bool get(Fruit &fruit) {
+	bool get(Fruit &fruit, int tree_id = -1) {
 		if (_no_fruits == 0) return false;
 
 		// Select fruit type randomly
-		int fruit_type = fruit_types[help::get_rand_int(0, fruit_types.size() - 1)];
+		int fruit_type;
+		if (tree_id != -1) {
+			fruit_type = tree_id;
+		}
+		else fruit_type = fruit_types[help::get_rand_int(0, fruit_types.size() - 1)];
 		
 		// Extract fruit
 		fruit = fruits[fruit_type].first;
+		if (fruit.id == -1) {
+			//printf("---------------------------------------------- Error: fruit id is -1\n\n\n\n\n\n");
+			return false;
+			for (int i = 0; i < fruit_types.size(); i++) {
+				printf("Fruit type: %d\n", fruit_types[i]);
+			}
+		}
 		decrement_one(fruit_type);
 
 		return true;
@@ -85,6 +97,7 @@ public:
 		if (fruits[fruit_type].second == 0) {
 			fruits.erase(fruit_type);
 			fruit_types.erase(find(fruit_types.begin(), fruit_types.end(), fruit_type));
+			//printf("\n\n\n\n\n\n Erasing fruit type %i.\n", fruit_type);
 		}
 	}
 	int no_fruits() {

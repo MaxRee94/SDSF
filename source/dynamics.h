@@ -199,7 +199,9 @@ public:
 
 			// Add fruit crop or disperse seeds, depending on dispersal vector type
 			if (pop->get_kernel(id)->type == "animal") {
-				resource_grid.add_crop(tree.position, crop);
+				animal_seeds_dispersed += crop->no_seeds;
+				resource_grid.total_no_fruits += crop->no_seeds;
+				resource_grid.has_fruits = true;
 			}
 			else if (pop->get_kernel(id)->type == "wind") {
 				wind_seeds_dispersed += crop->no_seeds;

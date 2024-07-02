@@ -9,21 +9,28 @@ public:
 	ResourceCell(pair<int, int> _position, int _idx): pos(_position), idx(_idx) {}
 	void reset() {
 		fruits.clear();
+		trees.clear();
 	}
-	bool extract_random_fruit(Fruit &fruit) {
+	bool extract_random_fruit(Fruit &fruit, int tree_id) {
 		if (fruits.no_fruits() == 0) {
 			return false;
 		}
-		bool success = fruits.get(fruit);
+		bool success = fruits.get(fruit, tree_id);
 		return success;
 	}
 	float get_fruit_abundance_index() {
 		if (fruits.no_fruits() == 0) return 0.0f;
 		return log10(fruits.no_fruits()); // Fruit Abundance Index, as used by Morales et al 2013.
 	}
+	void add_tree(int tree_id) {
+		trees.push_back(tree_id);
+	}
 	pair<int, int> pos;
 	pair<int, int> grid_bb_min;
 	pair<int, int> grid_bb_max;
+	pair<int, int> normal_grid_bb_min;
+	pair<int, int> normal_grid_bb_max;
+	vector<int> trees;
 	int idx = 0;
 	Fruits fruits;
 };
@@ -92,29 +99,51 @@ public:
 		has_fruits = false;
 		total_no_fruits = 0;
 	}
-	void add_crop(pair<float, float> position, Crop* crop) {
-		ResourceCell* cell = get_resource_cell_at_position(position);
-		cell->fruits.add_fruits(crop);
+	void add_tree(Tree* tree) {
+		ResourceCell* cell = get_resource_cell_at_position(tree->position);
+		cell->add_tree(tree->id);
+	}
+	void add_crop(Tree* tree, Crop* crop) {
+		ResourceCell* cell = get_resource_cell_at_position(tree->position);
+		cell->fruits.add_fruits(crop, 1);
 		total_no_fruits += crop->fruit_abundance;
 		has_fruits = total_no_fruits > 0;
 	}
-	float get_tree_cover_within_resourcegrid_bb(pair<int, int> bb_min, pair<int, int> bb_max) {
+	float get_tree_cover_within_resourcegrid_bb(ResourceCell* rcell, pair<int, int> bb_min, pair<int, int> bb_max, vector<int>& trees) {
 		int no_forest_cells = 0;
 		int no_cells = 0;
 		for (int x = bb_min.first; x < bb_max.first; x++) {
 			for (int y = bb_min.second; y < bb_max.second; y++) {
 				Cell* cell = grid->get_cell_at_position(pair<int, int>(x, y));
+				for (int tree_id : cell->trees) {
+					if (!help::is_in(&trees, tree_id)) {
+						trees.push_back(tree_id);
+					}
+					if (state->population.get(tree_id)->life_phase == 2) {
+						rcell->fruits.add_fruits(
+							state->population.get_crop(tree_id),
+							state->population.get(tree_id)->crown_area * cell_area_inv
+						);
+					}
+					//printf("Tree %i, fruit abundance: %i \n", tree_id, rcell->fruits[tree_id]);
+				}
 				no_forest_cells += cell->state;
 				no_cells++;
 			}
 		}
 		return (float)no_forest_cells / (float)no_cells;
 	}
-	void compute_cover_and_fruit_abundance() {
+	void compute_cover() {
 		for (int i = 0; i < size; i++) {
 			ResourceCell* cell = &cells[i];
-			cover[i] = get_tree_cover_within_resourcegrid_bb(cell->grid_bb_min, cell->grid_bb_max);
+			if (cell->trees.size() == 0) cover[i] = 0.0f;
+			cover[i] = get_tree_cover_within_resourcegrid_bb(cell, cell->grid_bb_min, cell->grid_bb_max, cell->trees);
 			cover[i] = asin(sqrt(cover[i]));
+		}
+	}
+	void compute_fruit_abundance() {
+		for (int i = 0; i < size; i++) {
+			ResourceCell* cell = &cells[i];
 			fruit_abundance[i] = cell->get_fruit_abundance_index();
 		}
 	}
@@ -134,18 +163,15 @@ public:
 		location = state->grid.get_gridbased_position(location);
 		location = state->grid.cell_width * location; // Convert to real position, at the origin of a stategrid-cell.
 	}
-	void update_fruit_abundance(ResourceCell* cell, string species, map<string, float> &species_params) {
-		fruit_abundance[cell->idx] = cell->get_fruit_abundance_index();
-		f[species][cell->idx] = tanh(pow((fruit_abundance[cell->idx] / species_params["a_f"]), species_params["b_f"]));
-	}
-	void update_fruit_abundance(pair<float, float> position, string species, map<string, float> &species_params) {
-		ResourceCell* cell = get_resource_cell_at_position(position);
-		update_fruit_abundance(cell, species, species_params);
-	}
-	bool extract_fruit(pair<int, int> pos, Fruit &fruit) {
+	bool extract_fruit(pair<float, float> pos, Fruit &fruit, int tree_id) {
 		ResourceCell* cell = get_resource_cell_at_position(pos);
-
-		bool success = cell->extract_random_fruit(fruit);
+		//printf("Cell width: %f \n", cell_width);
+		bool success = cell->extract_random_fruit(fruit, tree_id);
+		//if (!success) printf("\n\n\n\n\n\n------- Eating in cell: %i, %i (real position %f, %f) \n", cell->pos.first, cell->pos.second, pos.first, pos.second);
+		//if (!success) printf("(extracting fruit) %i is in tree list: %s\n", tree_id, (help::is_in(&cell->trees, tree_id) ? "yes" : "no"));
+		//if (!success) printf("Gridbased animal position: %i, %i\n", get_rc_gridbased_position(pos).first, get_rc_gridbased_position(pos).second);
+		//if (!success) printf("Life phase: %i \n", state->population.get(tree_id)->life_phase);
+		//if (!success) printf("Crop size per cell: %f \n", (float)state->population.get_crop(tree_id)->fruit_abundance / state->population.get(tree_id)->crown_area);
 		total_no_fruits -= success;
 		return success;
 	}
@@ -154,9 +180,28 @@ public:
 		int y = idx / width;
 		return pair<int, int>(x, y);
 	}
-	void get_random_location_within_cell(ResourceCell* cell, pair<float, float>& deposition_location) {
-		deposition_location.first = help::get_rand_float((float)cell->pos.first * cell_width, (float)(cell->pos.first + 1) * cell_width);
-		deposition_location.second = help::get_rand_float((float)cell->pos.second * cell_width, (float)(cell->pos.second + 1) * cell_width);
+	int get_random_forested_location(ResourceCell* cell, pair<float, float>& location) {
+		// Attempt to a fruit-producing tree. If none is found after 10 attempts, choose a non-fruit-producing tree.
+		//printf("No trees in cell. k value: %f \n", selection_probabilities.probabilities[cell->idx]);
+		int tree_id = cell->trees[help::get_rand_int(0, cell->trees.size() - 1)];
+		int i = 0;
+		while (state->population.get(tree_id)->life_phase != 2 && i < 10) {
+			tree_id = cell->trees[help::get_rand_int(0, cell->trees.size() - 1)];
+			i++;
+		}
+		
+		// Get random cell within the crown of the tree
+		bool success = true;
+		location = state->grid.get_random_position_within_crown(
+			state->population.get(tree_id), success, cell->grid_bb_min, cell->grid_bb_max
+		);
+		if (!success) return get_random_forested_location(cell, location);
+
+		return tree_id;
+	}
+	void get_random_location_within_cell(ResourceCell* cell, pair<float, float>& location) {
+		location.first = help::get_rand_float((float)cell->pos.first * cell_width, (float)(cell->pos.first + 1) * cell_width);
+		location.second = help::get_rand_float((float)cell->pos.second * cell_width, (float)(cell->pos.second + 1) * cell_width);
 	}
 	void get_random_location_within_cell(pair<float, float>& deposition_location) {
 		ResourceCell* cell = get_resource_cell_at_position(deposition_location);
@@ -168,14 +213,14 @@ public:
 	}
 	ResourceCell* get_resource_cell_at_position(pair<float, float> _pos) {
 		pair<int, int> pos = get_rc_gridbased_position(_pos);
-		pos = pos - pair<int, int>(1, 1);
+		//pos = pos - pair<int, int>(1, 1);
 		return get_resource_cell_at_position(pos);
 	}
 	pair<float, float> get_real_cell_position(ResourceCell* cell) {
 		return pair<float, float>(cell->pos.first * cell_width, cell->pos.second * cell_width);
 	}
 	pair<int, int> get_rc_gridbased_position(pair<float, float> position) {
-		return pair<int, int>(round((position.first) / cell_width), round((position.second) / cell_width));
+		return pair<int, int>(position.first * cell_width_inv, position.second* cell_width_inv);
 	}
 	pair<float, float> get_rc_real_position(pair<int, int> position) {
 		return pair<float, float>((float)position.first * cell_width, (float)position.second * cell_width);
@@ -324,8 +369,12 @@ public:
 			_f[i] = tanh(pow((fruit_abundance[i] * a_f_recipr), b_f));
 		}
 	}
-	void update_cover_and_fruit_probabilities(string species, map<string, float>& species_params) {
+	void update_cover_probabilities(string species, map<string, float>& species_params) {
+		compute_cover();
 		compute_c(species, species_params["a_c"], species_params["b_c"]);
+	}
+	void update_fruit_probabilities(string species, map<string, float>& species_params) {
+		compute_fruit_abundance();
 		compute_f(species, species_params["a_f"], species_params["b_f"]);
 	}
 	void reset_color_arrays() {
@@ -368,11 +417,11 @@ public:
 
 private:
 	void init_cells() {
-		int no_gridcells_along_x_per_resource_cell = (float)grid->width / (float)width;
+		int no_gridcells_along_x_per_resource_cell = round((float)grid->width / (float)width);
 		for (int i = 0; i < size; i++) {
 			cells[i] = ResourceCell(idx_2_pos(i), i);
 			cells[i].grid_bb_min = no_gridcells_along_x_per_resource_cell * cells[i].pos;
-			cells[i].grid_bb_max = cells[i].grid_bb_min + pair<int, int>(no_gridcells_along_x_per_resource_cell, no_gridcells_along_x_per_resource_cell);
+			cells[i].grid_bb_max = cells[i].grid_bb_min + pair<int, int>(no_gridcells_along_x_per_resource_cell - 1, no_gridcells_along_x_per_resource_cell - 1);
 		}
 	}
 	void compute_k(string species) {
