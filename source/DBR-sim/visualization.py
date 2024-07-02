@@ -104,8 +104,11 @@ def visualize(grid, image_width=1000, collect_states=True, color_dict={0:0, 1:25
     
     return img
 
-def save_image(img, path, image_width = 1000):
-    img_resized = cv2.resize(img, (image_width, image_width), interpolation = cv2.INTER_LINEAR)
+def save_image(img, path, image_width = 1000, interpolation="linear"):
+    if interpolation == "linear":
+        img_resized = cv2.resize(img, (image_width, image_width), interpolation = cv2.INTER_LINEAR)
+    elif interpolation == "none":
+        img_resized = cv2.resize(img, (image_width, image_width), interpolation = cv2.INTER_NEAREST)
     cv2.imwrite(path, img_resized)
 
 def save_resource_grid_colors(dynamics, species, resource, path, image_width=1000):
@@ -124,7 +127,7 @@ def get_thresholded_image(orig_img, white_pixel_sum):
     threshold = 245
     ret, img = cv2.threshold(orig_img, threshold, 255, cv2.THRESH_BINARY) 
     while np.sum(img) < white_pixel_sum:
-        threshold -= 5
+        threshold -= 1
         ret, img = cv2.threshold(orig_img, threshold, 255, cv2.THRESH_BINARY)
     
     return img
@@ -148,7 +151,7 @@ def fBm(x, y, per, octs):
         val += 0.5**o * perlin_noise(x*2**o, y*2**o, per*2**o)
     return val
 
-def generate_perlin_noise_image(path, width=200, frequency=1/32.0, octaves=5):
+def generate_perlin_noise_image(path, width=256, frequency=1/32.0, octaves=5):
     data = []
     for y in range(width):
         row = []

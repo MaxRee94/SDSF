@@ -12,13 +12,14 @@ if cwd.endswith("source"):
 REPOSITORY_BASEDIR = os.path.dirname(os.path.dirname(cwd))
 DATA_IN_DIR = REPOSITORY_BASEDIR + "/data_in"
 DATA_OUT_DIR = REPOSITORY_BASEDIR + "/data_out"
+DATA_INTERNAL_DIR = REPOSITORY_BASEDIR + "/data_internal"  
 BUILD_DIR = REPOSITORY_BASEDIR + "/build"
 PERLIN_NOISE_DIR = DATA_IN_DIR + "/state patterns/perlin_noise"
 LEGEND_PATH = DATA_OUT_DIR + "/legends"
 
 
 defaults = {
-    "grid_width": 1024,
+    "grid_width": 960,
     "treecover": 0.5,
     "cellsize": 1,
     "max_dbh": 44.3, # (Close to) Theoretical maximum due to density-dependent constraint on LAI (see 'Tree Allometric Relationships v03.xlsx' for details)
@@ -38,7 +39,7 @@ defaults = {
     "verbosity": 0,
     "seed_bearing_threshold": 0.25, # dbh fraction at which a tree reaches half its maximum height. We assume most trees are seed bearing at this height, based on Minor and Kobe (2018), Figure 5.
     "dispersal_mode": "all",
-    "multi_disperser_params": f"{DATA_IN_DIR}/multi_disperser_params.json",
+    "multi_disperser_params": f"multi_disperser_params.json",
     "dispersal_min": 0,
     "dispersal_max": 300,
     "growth_rate_multiplier": 0.4,
@@ -49,7 +50,7 @@ defaults = {
     "csv_path": "",
     "headless": False,
     "max_timesteps": 100,
-    "strategy_distribution_params": f"{DATA_IN_DIR}/strategy_distribution_params.json",
+    "strategy_distribution_params": f"standard.json",
     "resource_grid_width": 64,
     "initial_pattern_image": "none",
     "mutation_rate": 0 # We do not incorporate mutation in this study.

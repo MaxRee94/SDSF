@@ -30,7 +30,7 @@ def set_dispersal_kernel(
         dynamics, dispersal_mode, multi_disperser_params
     ):
     animal_species = []
-    with open(multi_disperser_params, "r") as mdp_jsonfile:
+    with open(os.path.join(DATA_IN_DIR, multi_disperser_params), "r") as mdp_jsonfile:
         multi_disperser_params = json.load(mdp_jsonfile)
     if (dispersal_mode == "linear_diffusion"):
         dynamics.set_global_linear_kernel(
@@ -67,7 +67,7 @@ def init_tests(
     initial_pattern_image=None, mutation_rate=None, **user_args
 ):
     # Obtain strategy distribution parameters
-    with open(strategy_distribution_params, "r") as sdp_jsonfile:
+    with open(os.path.join(DATA_IN_DIR, strategy_distribution_params), "r") as sdp_jsonfile:
         strategy_distribution_params = json.load(sdp_jsonfile)    
 
     tests = cpp.Tests(timestep, cellsize, self_ignition_factor, rainfall, seed_bearing_threshold,
@@ -90,12 +90,12 @@ def init(
     flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
-    initial_pattern_image=None, mutation_rate=None, fecundity_multiplier=None,
+    initial_pattern_image=None, mutation_rate=None, STR=None,
     batch_parameters=None, **user_args
     ):
     
     # Obtain strategy distribution parameters
-    with open(strategy_distribution_params, "r") as sdp_jsonfile:
+    with open(os.path.join(DATA_IN_DIR, strategy_distribution_params), "r") as sdp_jsonfile:
         strategy_distribution_params = json.load(sdp_jsonfile)
     if batch_parameters and "strategies->" in batch_parameters["control_variable"]:
         control_keys = unpack_control_keys(batch_parameters["control_variable"])
@@ -110,7 +110,7 @@ def init(
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
         flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
-        resource_grid_width, mutation_rate, fecundity_multiplier, verbosity
+        resource_grid_width, mutation_rate, STR, verbosity
     )
     dynamics.init_state(grid_width, dbh_q1, dbh_q2)
     
@@ -123,7 +123,7 @@ def init(
         dynamics.state.set_tree_cover(treecover)
     else:
         path = f"{DATA_IN_DIR}/state patterns/" + initial_pattern_image
-        if "perlin_noise" in initial_pattern_image:
+        if "perlin_noise" == initial_pattern_image:
             print("Setting tree cover using perlin noise function...")
             path = f"{PERLIN_NOISE_DIR}/" + initial_pattern_image + ".png"
             vis.generate_perlin_noise_image(path, frequency=user_args["noise_frequency"], octaves=user_args["noise_octaves"])
@@ -201,7 +201,7 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         print("Saving recruitment img...") if verbose else None
         recruitment_img = vis.get_image_from_grid(dynamics.state.grid, 0, color_dicts["recruitment"])
         imagepath_recruitment = os.path.join(DATA_OUT_DIR, "image_timeseries/recruitment/" + str(dynamics.time) + ".png")
-        vis.save_image(recruitment_img, imagepath_recruitment, get_max(1000, recruitment_img.shape[0]))
+        vis.save_image(recruitment_img, imagepath_recruitment, get_max(1000, recruitment_img.shape[0]), interpolation="none")
     
     if ("fire_freq" in visualization_types):
         fire_freq_arrays.append(dynamics.state.grid.get_distribution(0) == -5)
@@ -292,13 +292,13 @@ def updateloop(dynamics, color_dicts, **user_args):
             distance_coarse_path = os.path.join(DATA_OUT_DIR, "image_timeseries/distance_coarse/" + str(dynamics.time) + ".png")
             k_coarse_path = os.path.join(DATA_OUT_DIR, "image_timeseries/k_coarse/" + str(dynamics.time) + ".png")
             k_path = os.path.join(DATA_OUT_DIR, "image_timeseries/k/" + str(dynamics.time) + ".png")
-            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "cover", cover_path)
-            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "fruits", fruits_path)
-            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "visits", visits_path)
-            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "distance_single", distance_path)
-            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "distance_single_coarse", distance_coarse_path)
-            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "k", k_path)
-            vis.save_resource_grid_colors(dynamics, "Turdus pilaris", "k_coarse", k_coarse_path)
+            vis.save_resource_grid_colors(dynamics, "Turdus merula", "cover", cover_path)
+            vis.save_resource_grid_colors(dynamics, "Turdus merula", "fruits", fruits_path)
+            vis.save_resource_grid_colors(dynamics, "Turdus merula", "visits", visits_path)
+            vis.save_resource_grid_colors(dynamics, "Turdus merula", "distance_single", distance_path)
+            vis.save_resource_grid_colors(dynamics, "Turdus merula", "distance_single_coarse", distance_coarse_path)
+            vis.save_resource_grid_colors(dynamics, "Turdus merula", "k", k_path)
+            vis.save_resource_grid_colors(dynamics, "Turdus merula", "k_coarse", k_coarse_path)
 
         if do_terminate:
             break
@@ -312,9 +312,9 @@ def updateloop(dynamics, color_dicts, **user_args):
 
 def test_kernel():
     cpp.init_RNG()
-    dist_max = 5000
-    windspeed_gmean = 20
-    windspeed_stdev = 3
+    dist_max = 200
+    windspeed_gmean = 10
+    windspeed_stdev = 5
     seed_terminal_speed = 0.65
     abscission_height = 30
     wind_kernel = cpp.Kernel(1, dist_max, windspeed_gmean, windspeed_stdev, 0, 3600, seed_terminal_speed, abscission_height)
@@ -352,8 +352,10 @@ def main(**user_args):
     #test_discrete_probmodel()
     #return
 
+    assert (user_args["grid_width"] % user_args["resource_grid_width"] == 0), "Resource grid width must be a divisor of grid width."
+
     # Set number of cells
-    user_args["grid_width"] = int( user_args["grid_width"] / user_args["cellsize"])
+    #user_args["grid_width"] = int( user_args["grid_width"] / user_args["cellsize"])
 
     if user_args["test"] == "all":
         tests = init_tests(**user_args)
