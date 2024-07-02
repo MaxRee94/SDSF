@@ -32,7 +32,7 @@ defaults = {
     "rainfall": 0.1,
     "test": "none",
     "termination_conditions": "all",
-    "fecundity_multiplier": 1.0,
+    "STR": 10000, # The number of seeds produced by a tree with a dbh of 30 cm
     "dbh_q1": 1,
     "dbh_q2": 0,
     "verbosity": 0,
@@ -416,16 +416,16 @@ _parameter_config = {
             "default": defaults["mutation_rate"],
         },
     },
-    "fecundity_multiplier": {
+    "STR": {
         "keys": {
-            "cli": ["--fecundity_multiplier", "-fcm"]
+            "cli": ["--STR", "-fcm"]
         },
         "settings": {
             "type": float,
             "help": (
                 "Multiplier to artifically increase- or decrease the number seeds produced for all trees."
             ),
-            "default": defaults["fecundity_multiplier"],
+            "default": defaults["STR"],
         },
     },
     "termination_conditions": {
