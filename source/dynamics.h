@@ -174,9 +174,8 @@ public:
 		}
 		return true;
 	}
-	void disperse_wind_seeds_and_init_fruits(int& no_seed_bearing_trees, int& no_seeds_to_disperse, int& wind_trees) {
+	void disperse_wind_seeds_and_init_fruits(int& no_seed_bearing_trees, int& wind_seeds_dispersed, int& animal_seeds_dispersed, int& wind_trees) {
 		int pre_dispersal_popsize = pop->size();
-		int no_wind_seeds = 0;
 		Timer timer; timer.start();
 		for (auto& [id, tree] : pop->members) {
 			// Get crop and kernel
@@ -196,18 +195,17 @@ public:
 				pop->remove(id);
 				continue;
 			}
-			crop->update(tree, fecundity_multiplier);
-			no_seeds_to_disperse += crop->no_seeds;
+			crop->update(tree, STR);
 
 			// Add fruit crop or disperse seeds, depending on dispersal vector type
 			if (pop->get_kernel(id)->type == "animal") {
 				resource_grid.add_crop(tree.position, crop);
 			}
 			else if (pop->get_kernel(id)->type == "wind") {
+				wind_seeds_dispersed += crop->no_seeds;
 				pop->get_kernel(id)->update(tree.height);
 				wind_disperser.disperse_crop(crop, &state);
 				wind_trees++;
-				no_wind_seeds += crop->no_seeds;
 			}
 			else {
 				linear_disperser.disperse_crop(crop, &state);
@@ -215,7 +213,7 @@ public:
 		}
 		timer.stop(); printf(
 			"-- Dispersing %s wind-dispersed seeds and initializing %s fruits took %f seconds. \n",
-			help::readable_number(no_wind_seeds).c_str(), help::readable_number(resource_grid.total_no_fruits).c_str(), timer.elapsedSeconds()
+			help::readable_number(wind_seeds_dispersed).c_str(), help::readable_number(resource_grid.total_no_fruits).c_str(), timer.elapsedSeconds()
 		);
 	}
 	void disperse_animal_seeds(int no_seeds_to_disperse) {
@@ -247,12 +245,14 @@ public:
 	void disperse() {
 		resource_grid.reset();
 		int pre_dispersal_popsize = pop->size();
-		seeds_produced = 0;
+		int animal_seeds_dispersed = 0;
+		int wind_seeds_dispersed = 0;
 		int no_seed_bearing_trees = 0;
 		int no_wind_trees = 0;
-		disperse_wind_seeds_and_init_fruits(no_seed_bearing_trees, seeds_produced, no_wind_trees);
-		disperse_animal_seeds(seeds_produced);
+		disperse_wind_seeds_and_init_fruits(no_seed_bearing_trees, wind_seeds_dispersed, animal_seeds_dispersed, no_wind_trees);
+		disperse_animal_seeds(animal_seeds_dispersed);
 		recruit();
+		seeds_produced = wind_seeds_dispersed + animal_seeds_dispersed;
 
 		if (verbosity > 0) printf(
 			"-- Fraction of trees that are seed-bearing: %f, #seeds (all): %s\n",
