@@ -46,7 +46,7 @@ defaults = {
     "flammability_coefficients_and_constants": [0.1, 0.35, 0, 1],
     "saturation_threshold": 3,
     "fire_resistance_params": [8.5, 50, 2.857], # See 'notes/fire_resistance_threshold_curve.xlsx' for details
-    "constant_mortality": 0.013,
+    "constant_mortality": 0.01,
     "csv_path": "",
     "headless": False,
     "max_timesteps": 100,

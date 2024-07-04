@@ -250,7 +250,7 @@ public:
 				}
 			}
 			if (iteration % 60 == 0 && iteration > 0) {
-				printf("-- Animal dispersal progress: %f %%\n", (float)no_seeds_defecated / (float)no_seeds_to_disperse);
+				printf("-- Animal dispersal progress: %f %%\n", (float)no_seeds_defecated * 100.0f / (float)no_seeds_to_disperse);
 			}
 			no_seeds_eaten += cur_no_seeds_eaten;
 			iteration++;
