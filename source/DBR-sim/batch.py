@@ -45,6 +45,9 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
             
     control_value = control_range[0] + process_index * (control_range[2] / 7)
     total_results_csv = csv_parent_dir + "/{}_results.csv".format(csv_parent_dir.split("state data/")[1])
+    params_json_path = csv_parent_dir + "/parameters.json"
+    with open(params_json_path, "w") as params_json_file:
+        json.dump(params, params_json_file)
     init_csv = True
     i = 0
     time_budget_per_run = 60 * 60
