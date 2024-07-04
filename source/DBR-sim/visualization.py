@@ -96,7 +96,7 @@ def get_fire_freq_image(fire_freq_arrays, color_dict_fire_freq, grid_width, fire
     img = np.zeros((grid_width, grid_width), np.uint8)
     for fire_freq_arr in fire_freq_arrays:
         img += fire_freq_arr
-    return get_image(img, color_dict_fire_freq, grid_width) * (10.0 / fire_no_timesteps)
+    return get_image(img, color_dict_fire_freq, grid_width)
 
 def visualize(grid, image_width=1000, collect_states=True, color_dict={0:0, 1:255}):
     img = get_image_from_grid(grid, collect_states, color_dict)    
@@ -151,7 +151,7 @@ def fBm(x, y, per, octs):
         val += 0.5**o * perlin_noise(x*2**o, y*2**o, per*2**o)
     return val
 
-def generate_perlin_noise_image(path, width=256, frequency=1/32.0, octaves=5):
+def generate_perlin_noise_image(path, width=200, frequency=1/32.0, octaves=5):
     data = []
     for y in range(width):
         row = []

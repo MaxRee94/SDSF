@@ -185,7 +185,7 @@ def init(
 def termination_condition_satisfied(dynamics, start_time, user_args):
     satisfied = False
     condition = ""
-    if (dynamics.time >= user_args["max_timesteps"]):
+    if (dynamics.time >= int(user_args["max_timesteps"])):
         condition = f"Maximum number of timesteps ({user_args['max_timesteps']}) reached."
     if (user_args["termination_conditions"] == "all" and dynamics.state.grid.get_tree_cover() > 0.98):
         condition = f"Tree cover exceeds 98%."
@@ -243,17 +243,19 @@ def updateloop(dynamics, color_dicts, **user_args):
     start = time.time()
     print("Beginning simulation...")
     csv_path = user_args["csv_path"]
-    #visualization_types = [] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
+    visualization_types = ["fire_freq"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     #visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
-    visualization_types = ["recruitment"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
+    #visualization_types = ["recruitment"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     init_csv = True
     prev_tree_cover = [user_args["treecover"]] * 60
     slope = 0
     export_animal_resources = True
     collect_states = 1
-    fire_no_timesteps = 1
+    fire_no_timesteps = 200
     verbose = user_args["verbosity"]
     fire_freq_arrays = []
+    color_dict_fire_freq = vis.get_color_dict(fire_no_timesteps, begin=0.2, end=0.5, distr_type="fire_freq")
+    color_dicts["fire_freq"] = color_dict_fire_freq
     if not user_args["headless"]:
         graphs = vis.Graphs(dynamics)
     while True:
