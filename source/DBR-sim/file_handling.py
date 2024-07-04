@@ -18,10 +18,18 @@ def get_tree_sizes(dynamics):
     return counts
 
 
+def get_firefree_interval_stats(dynamics):
+    intervals = dynamics.get_firefree_intervals()
+    stdev = np.std(intervals)
+    mean = np.mean(intervals)
+    return mean, stdev
+
+
 def export_state(dynamics, path="", init_csv=True, control_variable=None, control_value=None, tree_cover_slope=0, extra_parameters=""):
     fieldnames = [
         "time", "tree cover", "slope", "population size", "#seeds produced", "fire mean spatial extent",
-        "#trees[dbh 0-20%]", "#trees[dbh 20-40%]", "#trees[dbh 40-60%]", "#trees[dbh 60-80%]", "#trees[dbh 80-100%]", "extra_parameters"
+        "#trees[dbh 0-20%]", "#trees[dbh 20-40%]", "#trees[dbh 40-60%]", "#trees[dbh 60-80%]", "#trees[dbh 80-100%]", "extra_parameters",
+        "firefree interval mean", "firefree interval stdev"
     ]
     if control_variable:
         if control_variable == "treecover":
@@ -37,6 +45,7 @@ def export_state(dynamics, path="", init_csv=True, control_variable=None, contro
     with open(path, 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         tree_sizes = get_tree_sizes(dynamics)
+        firefree_interval_mean, firefree_interval_stdev = get_firefree_interval_stats(dynamics)
         result = {
             "time": str(dynamics.time),
             "tree cover": str(dynamics.state.grid.get_tree_cover()), 
@@ -49,7 +58,9 @@ def export_state(dynamics, path="", init_csv=True, control_variable=None, contro
             "#trees[dbh 40-60%]": tree_sizes[2],
             "#trees[dbh 60-80%]": tree_sizes[3],
             "#trees[dbh 80-100%]": tree_sizes[4],
-            "extra_parameters": extra_parameters
+            "extra_parameters": extra_parameters,
+            "firefree interval mean": firefree_interval_mean,
+            "firefree interval stdev": firefree_interval_stdev
         }
         if control_variable:
             result[control_variable] = control_value
