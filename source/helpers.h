@@ -447,9 +447,15 @@ namespace help {
 			}
 			else if (type == "normal") {
 				float _sample = NormalProbModel::get_normal_distr_sample();
-				_sample = min(_sample, max_value);
-				_sample = max(_sample, min_value);
-				return _sample;
+				int i = 0;
+				while (true) {
+					if (_sample >= min_value && _sample <= max_value) {
+						return _sample;
+					}
+					if (i > 100) printf("Warning: Normal distribution sampling is requiring a lot of resamples (%i) to get a value within the given range\n", i);
+					_sample = NormalProbModel::get_normal_distr_sample();
+					i++;
+				}
 			}
 			else if (type == "linear") {
 				return LinearProbabilityModel::linear_sample();

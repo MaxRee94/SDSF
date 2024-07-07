@@ -98,7 +98,8 @@ PYBIND11_MODULE(dbr_cpp, module) {
     py::class_<State>(module, "State")
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&,
-            const float&, const float&, map<string, map<string, float>>&, const float&>())
+            const float&, const float&, map<string, map<string, float>>&, const float&,
+            const float&, const float&>())
         .def("repopulate_grid", &State::repopulate_grid)
         .def("set_tree_cover", &State::set_tree_cover)
         .def("set_cover_from_image", [](State& state, py::array_t<float>& img, float& target_cover) {
@@ -155,10 +156,10 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def("init_state", &Dynamics::init_state)
         .def("update", &Dynamics::update)
         .def("simulate_fires", &Dynamics::burn)
-        .def("get_firefree_intervals", [](Dynamics& dynamics) {
-            float* intervals = dynamics.get_firefree_intervals();
+        .def("get_firefree_intervals", [](Dynamics& dynamics, string& type) {
+            float* intervals = dynamics.get_firefree_intervals(type);
             py::array_t<float> np_arr = as_1d_numpy_array(intervals, dynamics.grid->no_cells);
-            delete[] intervals;
+            if (type == "current_iteration") delete[] intervals;
             return np_arr;
         })
         .def("free", &Dynamics::free)
@@ -209,14 +210,15 @@ PYBIND11_MODULE(dbr_cpp, module) {
 
     py::class_<Population>(module, "Population")
         .def(py::init<>())
-        .def(py::init<const float&, const float&, const float&, const float&, const map<string, map<string, float>>&, const float&, const float& >())
+        .def(py::init<const float&, const float&, const float&, const float&, const map<string, map<string, float>>&, const float&, const float&, const float&, const float& >())
         .def("size", &Population::size);
     
     py::class_<Tests>(module, "Tests")
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
-            const float&, const map<string, map<string, float>>&, const float&, const float&, const float&, const int&, const int&, const float&, const float&>()
+            const float&, const map<string, map<string, float>>&, const float&, const float&, const float&, const int&, const int&, const float&, const float&,
+            const float&, const float&>()
         )
         .def("run_all", &Tests::run_all);
 

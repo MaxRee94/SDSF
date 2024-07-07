@@ -204,12 +204,13 @@ class Tree {
 public:
 	Tree() = default;
 	Tree(int _id, pair<float, float> _position, float _dbh, float seed_bearing_threshold,
-		map<int, float> _resprout_growthcurve
+		map<int, float> _resprout_growthcurve, float _growth_multiplier
 	) :
 		position(_position), dbh(_dbh), resprout_growthcurve(_resprout_growthcurve)
 	{
 		id = _id;
 		derive_allometries(seed_bearing_threshold);
+		growth_multiplier = _growth_multiplier;
 		//printf("Tree created with id: %i, radius: %f, radius_tmin1: %f, stem dbh: %f, bark thickness: %f, LAI: %f \n", id, radius, radius_tmin1, dbh, bark_thickness, LAI);
 	};
 	bool operator==(const Tree& tree) const
@@ -306,12 +307,13 @@ public:
 				_dbh = resprout_growthcurve.at(age); // Resprouts younger than 5 years (implied by dbh < 2.5) are assumed to grow according to a predefined growth curve (Hoffmann et al, 2012, supplementary information 1).
 			}
 			else {
-				_dbh = dbh + 0.25f; // Assume a constant growth rate for saplings, until they reach 2.5 cm dbh. Based on growth rate of resprouts after first 5 years (Hoffmann et al, 2012, supplementary information 1. Also see "Tree Allometric Relations.xlsx").
+				_dbh = dbh + growth_multiplier * 0.25f; // Assume a constant growth rate for saplings, until they reach 2.5 cm dbh. Based on growth rate of resprouts after first 5 years (Hoffmann et al, 2012, supplementary information 1. Also see "Tree Allometric Relations.xlsx").
 			}
 		}
 		else {
-			_dbh = dbh + get_dbh_increment(LAI_shade);
+			_dbh = dbh + growth_multiplier * get_dbh_increment(LAI_shade);
 		}
+		//printf("growth rate: %f, dbh: %f, new dbh: %f \n", _dbh - dbh, dbh, _dbh);
 		return _dbh;
 	}
 	pair<bool, bool> grow(float &seed_bearing_threshold, float LAI_shade) {
@@ -335,6 +337,7 @@ public:
 	float height = 0;
 	float lowest_branch = 0;
 	float crown_area = 0;
+	float growth_multiplier = 1;
 	pair<float, float> position = pair(0, 0);
 	int id = -1;
 	int age = -1;
@@ -386,13 +389,15 @@ class Population {
 public:
 	Population() = default;
 	Population(float _max_dbh, float _cellsize, float dbh_q1, float dbh_q2,
-		map<string, map<string, float>> strategy_parameters, float _mutation_rate, float _seed_bearing_threshold
+		map<string, map<string, float>> strategy_parameters, float _mutation_rate, float _seed_bearing_threshold,
+		float growth_multiplier_stdev, float growth_multiplier_min
 	) : max_dbh(_max_dbh), cellsize(_cellsize), seed_bearing_threshold(_seed_bearing_threshold)
 	{
 		strategy_generator = StrategyGenerator(strategy_parameters);
 		dbh_probability_model = help::LinearProbabilityModel(dbh_q1, dbh_q2, 0, max_dbh);
 		mutation_rate = _mutation_rate;
 		init_growth_curves();
+		growth_multiplier_distribution = ProbModel(1, growth_multiplier_stdev, growth_multiplier_min, 2, -1);
 	}
 	void init_growth_curves() {
 		resprout_growthcurve = {
@@ -411,7 +416,8 @@ public:
 				dbh = _strategy->seedling_dbh; // Growth rate determines initial dbh.
 			}
 		}
-		Tree tree(no_created_trees + 1, position, dbh, seed_bearing_threshold, resprout_growthcurve);
+		float growth_multiplier = growth_multiplier_distribution.sample();
+		Tree tree(no_created_trees + 1, position, dbh, seed_bearing_threshold, resprout_growthcurve, growth_multiplier);
 		members[tree.id] = tree;
 		no_created_trees++;
 
@@ -519,4 +525,5 @@ public:
 	int no_created_trees = 0;
 	float seed_bearing_threshold = 0;
 	map<int, float> resprout_growthcurve;
+	ProbModel growth_multiplier_distribution;
 };

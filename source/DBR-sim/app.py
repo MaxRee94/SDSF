@@ -64,7 +64,7 @@ def init_tests(
     flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
-    initial_pattern_image=None, mutation_rate=None, **user_args
+    initial_pattern_image=None, mutation_rate=None, growth_rate_multiplier_params=None, **user_args
 ):
     # Obtain strategy distribution parameters
     with open(os.path.join(DATA_IN_DIR, strategy_distribution_params), "r") as sdp_jsonfile:
@@ -75,7 +75,7 @@ def init_tests(
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
         flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
-        resource_grid_width, mutation_rate, verbosity, grid_width, dbh_q1, dbh_q2)
+        resource_grid_width, mutation_rate, verbosity, grid_width, dbh_q1, dbh_q2, growth_rate_multiplier_params[0], growth_rate_multiplier_params[1])
     
     return tests
 
@@ -91,7 +91,6 @@ def init(
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
     initial_pattern_image=None, mutation_rate=None, STR=None,
-    batch_parameters=None, **user_args
     ):
     
     # Obtain strategy distribution parameters
@@ -112,7 +111,7 @@ def init(
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
         resource_grid_width, mutation_rate, STR, verbosity
     )
-    dynamics.init_state(grid_width, dbh_q1, dbh_q2)
+    dynamics.init_state(grid_width, dbh_q1, dbh_q2, growth_rate_multiplier_params[0], growth_rate_multiplier_params[1])
     
     # Set dispersal kernel
     dynamics, animal_species = set_dispersal_kernel(dynamics, dispersal_mode, multi_disperser_params)

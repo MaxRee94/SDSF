@@ -26,10 +26,10 @@ public:
 		time = 0;
 		help::init_RNG();
 	};
-	void init_state(int gridsize, float dbh_q1, float dbh_q2) {
+	void init_state(int gridsize, float dbh_q1, float dbh_q2, float growth_multiplier_stdev, float growth_multiplier_min) {
 		state = State(
 			gridsize, cell_width, max_dbh, dbh_q1, dbh_q2, seed_bearing_threshold, saturation_threshold, strategy_distribution_params,
-			mutation_rate
+			mutation_rate, growth_multiplier_stdev, growth_multiplier_min
 		);
 		linear_disperser = Disperser();
 		wind_disperser = WindDispersal();
@@ -37,6 +37,8 @@ public:
 		neighbor_offsets = state.grid.neighbor_offsets;
 		pop = &state.population;
 		grid = &state.grid;
+		fire_free_interval_averages = new float[grid->no_cells];
+		for (int i = 0; i < grid->no_cells; i++) fire_free_interval_averages[i] = 0;
 	}
 	bool invalid_tree_ids() {
 		for (auto& [id, tree] : pop->members) {
@@ -78,6 +80,8 @@ public:
 		if (verbosity > 1) printf("Redoing grid count... \n");
 		grid->redo_count();
 		report_state();
+
+		update_firefree_interval_averages();
 	}
 	void report_state() {
 		int grid_memory_size = 0;
@@ -93,6 +97,16 @@ public:
 		resource_grid.free();
 		grid->free();
 		pop->free();
+	}
+	void update_firefree_interval_averages() {
+		float* fire_free_intervals = get_firefree_intervals("current_iteration");
+		for (int i = 0; i < grid->no_cells; i++) {
+			if (grid->distribution[i].state == 1) continue; // Skip forest cells
+			float cur_interval = fire_free_intervals[i];
+			float avg_interval = fire_free_interval_averages[i];
+			fire_free_interval_averages[i] = (avg_interval * ((float)time - 1) + cur_interval) / (float)time;
+		}
+		delete[] fire_free_intervals;
 	}
 	void grow() {
 		vector<int> tree_deletion_schedule = {};
@@ -260,15 +274,20 @@ public:
 	int* get_resource_grid_colors(string species, string type) {
 		return resource_grid.get_color_distribution(species, type);
 	}
-	bool get_fire_count(int no_ash_cells = 0) {
+	int get_fire_count() {
 		// Get number of fires to ignite
+
+		if (self_ignition_factor == -1) {
+			return 1;
+		}
+
 		std::default_random_engine generator;
-		std::binomial_distribution<int> fire_count_distribution(grid->no_savanna_cells - no_ash_cells, self_ignition_factor / (grid->no_cells));
+		std::binomial_distribution<int> fire_count_distribution(grid->no_savanna_cells, self_ignition_factor / (grid->no_cells));
 		int fire_count = fire_count_distribution(generator);
 		for (int i = 0; i < help::get_rand_int(0, 100); i++) {
 			fire_count = fire_count_distribution(generator);
 		}
-		return fire_count > 0;
+		return fire_count;
 	}
 	void burn() {
 		if (verbosity == 2) printf("Updated tree flammabilities.\n");
@@ -383,16 +402,22 @@ public:
 		}
 		return pair<int, int>(no_ash_cells, no_grassy_ash_cells);
 	}
-	float* get_firefree_intervals() {
-		float* histo = new float[grid->no_cells];
-		for (int i = 0; i < grid->no_cells; i++) {
-			if (grid->distribution[i].state == 1) continue; // Skip forest cells
-			float interval = time + 1 - grid->distribution[i].time_last_fire;
-			histo[i] = interval;
+	float* get_firefree_intervals(string type = "current_iteration") {
+		if (type == "current_iteration") {
+			float* intervals = new float[grid->no_cells];
+			for (int i = 0; i < grid->no_cells; i++) {
+				if (grid->distribution[i].state == 1) continue; // Skip forest cells
+				float interval = time + 1 - grid->distribution[i].time_last_fire;
+				intervals[i] = interval;
+			}
+			return intervals;
 		}
-		return histo;
+		else if (type == "average") {
+			return fire_free_interval_averages;
+		}
 	}
 	float unsuppressed_flammability = 0;
+	float* fire_free_interval_averages = 0;
 	float min_suppressed_flammability = 0;
 	float max_suppressed_flammability = 0;
 	float self_ignition_factor = 0;

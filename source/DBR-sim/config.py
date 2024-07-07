@@ -37,6 +37,7 @@ defaults = {
     "dbh_q1": 1,
     "dbh_q2": 0,
     "verbosity": 0,
+    "growth_rate_multiplier_params": [0.5, 0.2],
     "seed_bearing_threshold": 0.25, # dbh fraction at which a tree reaches half its maximum height. We assume most trees are seed bearing at this height, based on Minor and Kobe (2018), Figure 5.
     "dispersal_mode": "all",
     "multi_disperser_params": f"multi_disperser_params.json",
@@ -463,6 +464,19 @@ _parameter_config = {
                 "Parameter to the perlin noise function."
             ),
             "default": defaults["noise_octaves"],
+        },
+    },
+    "growth_rate_multiplier_params": {
+        "keys": {
+            "cli": ["--growth_rate_multiplier_params", "-grmp"]
+        },
+        "settings": {
+            "nargs": "*",
+            "type": float,
+            "help": (
+                ("Parameters to normal distribution (stdev and minimum) used to sample tree dbh growth rates.")
+            ),
+            "default": defaults["growth_rate_multiplier_params"],
         },
     },
 }
