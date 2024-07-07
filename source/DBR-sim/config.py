@@ -54,7 +54,9 @@ defaults = {
     "strategy_distribution_params": f"standard.json",
     "resource_grid_width": 64,
     "initial_pattern_image": "none",
-    "mutation_rate": 0 # We do not incorporate mutation in this study.
+    "mutation_rate": 0, # We do not incorporate mutation in this study.
+    #"batch_parameters": "{\"control_variable\": \"growth_rate_multiplier_params-><idx>0\", \"control_value\": 0.99}"
+    "batch_parameters": "",
 }
 
 gui_defaults = {
@@ -477,6 +479,18 @@ _parameter_config = {
                 ("Parameters to normal distribution (stdev and minimum) used to sample tree dbh growth rates.")
             ),
             "default": defaults["growth_rate_multiplier_params"],
+        },
+    },
+    "batch_parameters": {
+        "keys": {
+            "cli": ["--batch_parameters", "-bp"]
+        },
+        "settings": {
+            "type": str,
+            "help": (
+                ("Parameter settings set through a batch script.")
+            ),
+            "default": defaults["batch_parameters"],
         },
     },
 }

@@ -91,15 +91,8 @@ def init(
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
     initial_pattern_image=None, mutation_rate=None, STR=None,
+    batch_parameters=None, growth_rate_multiplier_params=None, **user_args
     ):
-    
-    # Obtain strategy distribution parameters
-    with open(os.path.join(DATA_IN_DIR, strategy_distribution_params), "r") as sdp_jsonfile:
-        strategy_distribution_params = json.load(sdp_jsonfile)
-    if batch_parameters and "strategies->" in batch_parameters["control_variable"]:
-        control_keys = unpack_control_keys(batch_parameters["control_variable"])
-        control_keys.remove("strategies")
-        strategy_distribution_params[control_keys[0]][control_keys[1]] = batch_parameters["control_value"]
 
     # Initialize dynamics object and state
     print("Verbosity type: ", type(verbosity))
@@ -115,7 +108,6 @@ def init(
     
     # Set dispersal kernel
     dynamics, animal_species = set_dispersal_kernel(dynamics, dispersal_mode, multi_disperser_params)
-    print("species: ", animal_species)
     
     # Set initial tree cover
     if initial_pattern_image == "none":
@@ -242,15 +234,17 @@ def updateloop(dynamics, color_dicts, **user_args):
     start = time.time()
     print("Beginning simulation...")
     csv_path = user_args["csv_path"]
-    visualization_types = ["fire_freq"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
+    visualization_types = []
+    #visualization_types = ["fire_freq"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     #visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     #visualization_types = ["recruitment"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     init_csv = True
     prev_tree_cover = [user_args["treecover"]] * 60
     slope = 0
+    largest_absolute_slope = 0
     export_animal_resources = True
     collect_states = 1
-    fire_no_timesteps = 200
+    fire_no_timesteps = 1
     verbose = user_args["verbosity"]
     fire_freq_arrays = []
     color_dict_fire_freq = vis.get_color_dict(fire_no_timesteps, begin=0.2, end=0.5, distr_type="fire_freq")
@@ -266,6 +260,9 @@ def updateloop(dynamics, color_dicts, **user_args):
         prev_tree_cover.append(dynamics.state.grid.get_tree_cover())
         if dynamics.time > 10:
             slope = (prev_tree_cover[-1] - prev_tree_cover[-10]) / 10
+            single_tstep_slope = prev_tree_cover[-1] - prev_tree_cover[-2]
+            if abs(single_tstep_slope) > largest_absolute_slope:
+                largest_absolute_slope = single_tstep_slope
         else:
             slope = 0
         do_terminate = termination_condition_satisfied(dynamics, start, user_args)
@@ -344,7 +341,7 @@ def test_discrete_probmodel():
     plt.show()
 
 
-def main(**user_args): 
+def main(batch_parameters=None, **user_args): 
 
     #vis.visualize_legend()
     #return
@@ -354,6 +351,21 @@ def main(**user_args):
     #return
 
     assert (user_args["grid_width"] % user_args["resource_grid_width"] == 0), "Resource grid width must be a divisor of grid width."
+    
+    # Set any given batch parameters
+    with open(os.path.join(DATA_IN_DIR, user_args["strategy_distribution_params"]), "r") as sdp_jsonfile:
+        user_args["strategy_distribution_params"] = json.load(sdp_jsonfile)
+    if batch_parameters:
+        print("-- Setting batch parameters: ", batch_parameters)
+        batch_parameters = json.loads(batch_parameters)
+        if "strategies->" in batch_parameters["control_variable"]:
+            control_keys = unpack_control_keys(batch_parameters["control_variable"])
+            control_keys.remove("strategies")
+            user_args["strategy_distribution_params"][control_keys[0]][control_keys[1]] = batch_parameters["control_value"]
+        elif "<idx>" in batch_parameters["control_variable"]:
+            control_keys = unpack_control_keys(batch_parameters["control_variable"])
+            idx = int(control_keys[1].split("<idx>")[1])
+            user_args[control_keys[0]][idx] = batch_parameters["control_value"]
 
     # Set number of cells
     #user_args["grid_width"] = int( user_args["grid_width"] / user_args["cellsize"])

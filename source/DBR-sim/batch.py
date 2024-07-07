@@ -23,6 +23,11 @@ def get_csv_parent_dir(run):
     return csv_parent_dir
 
 
+def get_next_control_value(i, control_variable, control_value, control_range, process_index, no_processes, dynamics, tree_cover_slope):
+    control_value = control_range[0] + control_range[2] * (i+1) + process_index * (control_range[2] / no_processes)
+    return control_value
+
+
 def main(process_index=None, control_variable=None, control_range=None, extra_parameters=None, run=0, no_processes=7):
     csv_parent_dir = get_csv_parent_dir(run)
     print("csv parent dir: ", csv_parent_dir)
@@ -64,8 +69,8 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
         
         # Run the simulation and append its results to the total results csv
         run_starttime = time.time()
-        dynamics, color_dicts = app.init(**params) 
-        dynamics, tree_cover_slope = app.updateloop(dynamics, color_dicts, **params)
+        dynamics, tree_cover_slope, largest_absolute_slope = app.main(**params) 
+        print(f"\n ------- Simulation with {control_variable}={str(control_value)} (process idx {str(process_index)}) complete. -------- \n")
 
         _io.export_state(
             dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value,
@@ -73,17 +78,16 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
         )
         init_csv = False
         
-        # Get the next control value
-        control_value = control_range[0] + control_range[2] * (i+1) + process_index * (control_range[2] / no_processes)
-        i+=1
-        
         # Get a color image representation of the final state
         img = vis.get_image_from_grid(dynamics.state.grid, True, color_dict)
         vis.save_image(img, singlerun_image_path, get_max(dynamics.state.grid.width, 1000))
         
+        # Get the next control value
+        control_value = get_next_control_value(i, control_variable, control_value, control_range, process_index, no_processes, dynamics, largest_absolute_slope)
+        i+=1
+        
         # Free memory
         dynamics.free()
-        print(f"\n ------- Simulation with {control_variable}={str(control_value)} (process idx {str(process_index)}) complete. -------- \n")
         
 
 if __name__ == "__main__":
