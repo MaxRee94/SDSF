@@ -1,3 +1,4 @@
+from tkinter import NO
 import config
 import app
 from argparse import ArgumentParser
@@ -28,7 +29,7 @@ def get_next_control_value(i, control_variable, control_value, control_range, pr
     return control_value
 
 
-def main(process_index=None, control_variable=None, control_range=None, extra_parameters=None, run=0, no_processes=7):
+def main(process_index=None, control_variable=None, control_range=None, extra_parameters=None, run=0, no_processes=7, no_reruns=None):
     csv_parent_dir = get_csv_parent_dir(run)
     print("csv parent dir: ", csv_parent_dir)
     
@@ -56,6 +57,7 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
     init_csv = True
     i = 0
     time_budget_per_run = 60 * 60
+    no_runs_for_current_parameter_set = 0
     while control_value < control_range[1]:
         singlerun_name = f"/{sim_name}={str(control_value)}_process_{str(process_index)}"
         print(f"\n ------- Beginning simulation with {singlerun_name} ------- \n")
@@ -63,6 +65,7 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
         singlerun_image_path = singlerun_csv_path.replace(".csv", ".png")
         params["csv_path"] = singlerun_csv_path
         if "->" in control_variable:
+            print("----- batch parameters -----: ", control_variable, control_value, "-----------------")
             params["batch_parameters"] = {"control_variable": control_variable, "control_value": control_value}
         else:
             params[control_variable] = control_value
@@ -83,7 +86,9 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
         vis.save_image(img, singlerun_image_path, get_max(dynamics.state.grid.width, 1000))
         
         # Get the next control value
-        control_value = get_next_control_value(i, control_variable, control_value, control_range, process_index, no_processes, dynamics, largest_absolute_slope)
+        no_runs_for_current_parameter_set += 1
+        if no_runs_for_current_parameter_set >= no_reruns:
+            control_value = get_next_control_value(i, control_variable, control_value, control_range, process_index, no_processes, dynamics, largest_absolute_slope)
         i+=1
         
         # Free memory
@@ -96,6 +101,7 @@ if __name__ == "__main__":
     parser.add_argument('-cv', '--control_variable', type=str)
     parser.add_argument('-cr', '--control_range', type=float, nargs="*", help="Format: min max stepsize")
     parser.add_argument('-np', '--no_processes', type=int, help="Number of processes to run simultaneously.")
+    parser.add_argument('-nrr', '--no_reruns', type=int, default=1, help="Number of reruns to perform per parameter set.")
     parser.add_argument('-r', '--run', type=str, default=1, help="Unique run identifier in case of multiple runs per batch")
     parser.add_argument(
         '-ep', '--extra_parameters', type=str,
