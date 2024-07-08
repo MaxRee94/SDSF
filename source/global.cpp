@@ -99,7 +99,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&,
             const float&, const float&, map<string, map<string, float>>&, const float&,
-            const float&, const float&>())
+            const float&, const float&, const float&>())
         .def("repopulate_grid", &State::repopulate_grid)
         .def("set_tree_cover", &State::set_tree_cover)
         .def("set_cover_from_image", [](State& state, py::array_t<float>& img, float& target_cover) {
@@ -210,7 +210,8 @@ PYBIND11_MODULE(dbr_cpp, module) {
 
     py::class_<Population>(module, "Population")
         .def(py::init<>())
-        .def(py::init<const float&, const float&, const float&, const float&, const map<string, map<string, float>>&, const float&, const float&, const float&, const float& >())
+        .def(py::init<const float&, const float&, const float&, const float&, const map<string, map<string, float>>&, const float&, const float&, const float&,
+            const float&, const float& >())
         .def("size", &Population::size);
     
     py::class_<Tests>(module, "Tests")
@@ -218,7 +219,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const map<string, map<string, float>>&, const float&, const float&, const float&, const int&, const int&, const float&, const float&,
-            const float&, const float&>()
+            const float&, const float&, const float&>()
         )
         .def("run_all", &Tests::run_all);
 

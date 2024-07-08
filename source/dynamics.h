@@ -26,10 +26,10 @@ public:
 		time = 0;
 		help::init_RNG();
 	};
-	void init_state(int gridsize, float dbh_q1, float dbh_q2, float growth_multiplier_stdev, float growth_multiplier_min) {
+	void init_state(int gridsize, float dbh_q1, float dbh_q2, float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max) {
 		state = State(
 			gridsize, cell_width, max_dbh, dbh_q1, dbh_q2, seed_bearing_threshold, saturation_threshold, strategy_distribution_params,
-			mutation_rate, growth_multiplier_stdev, growth_multiplier_min
+			mutation_rate, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max
 		);
 		linear_disperser = Disperser();
 		wind_disperser = WindDispersal();
