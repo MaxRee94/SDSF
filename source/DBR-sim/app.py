@@ -75,7 +75,9 @@ def init_tests(
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
         flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
-        resource_grid_width, mutation_rate, verbosity, grid_width, dbh_q1, dbh_q2, growth_rate_multiplier_params[0], growth_rate_multiplier_params[1])
+        resource_grid_width, mutation_rate, verbosity, grid_width, dbh_q1, dbh_q2, growth_rate_multiplier_params[0],
+        growth_rate_multiplier_params[1], growth_rate_multiplier_params[2]
+    )
     
     return tests
 
@@ -104,7 +106,7 @@ def init(
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
         resource_grid_width, mutation_rate, STR, verbosity
     )
-    dynamics.init_state(grid_width, dbh_q1, dbh_q2, growth_rate_multiplier_params[0], growth_rate_multiplier_params[1])
+    dynamics.init_state(grid_width, dbh_q1, dbh_q2, growth_rate_multiplier_params[0], growth_rate_multiplier_params[1], growth_rate_multiplier_params[2])
     
     # Set dispersal kernel
     dynamics, animal_species = set_dispersal_kernel(dynamics, dispersal_mode, multi_disperser_params)
@@ -242,7 +244,7 @@ def updateloop(dynamics, color_dicts, **user_args):
     prev_tree_cover = [user_args["treecover"]] * 60
     slope = 0
     largest_absolute_slope = 0
-    export_animal_resources = True
+    export_animal_resources = False
     collect_states = 1
     fire_no_timesteps = 1
     verbose = user_args["verbosity"]
@@ -305,7 +307,7 @@ def updateloop(dynamics, color_dicts, **user_args):
         cv2.destroyAllWindows()
         dynamics.free()
     
-    return dynamics, slope
+    return dynamics, slope, largest_absolute_slope
 
 
 def test_kernel():
@@ -357,7 +359,8 @@ def main(batch_parameters=None, **user_args):
         user_args["strategy_distribution_params"] = json.load(sdp_jsonfile)
     if batch_parameters:
         print("-- Setting batch parameters: ", batch_parameters)
-        batch_parameters = json.loads(batch_parameters)
+        if (type(batch_parameters) == str):
+            batch_parameters = json.loads(batch_parameters)
         if "strategies->" in batch_parameters["control_variable"]:
             control_keys = unpack_control_keys(batch_parameters["control_variable"])
             control_keys.remove("strategies")

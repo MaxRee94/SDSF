@@ -277,6 +277,12 @@ public:
 	}
 	void init_neighbor_offsets() {
 		neighbor_offsets = new pair<int, int>[8];
+		/*neighbor_offsets = new pair<int, int>[4];
+		neighbor_offsets[0] = pair<int, int>(-1, 0);
+		neighbor_offsets[1] = pair<int, int>(0, -1);
+		neighbor_offsets[2] = pair<int, int>(1, 0);
+		neighbor_offsets[3] = pair<int, int>(0, 1);
+		return;*/
 		int q = 0;
 		for (int i = -1; i < 2; i++) {
 			for (int j = -1; j < 2; j++) {

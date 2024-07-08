@@ -72,7 +72,8 @@ def visualize_image(img, image_width, interpolation="none"):
 def get_image(img, color_dict, width, height="width"):
     if height == "width":
         height = width
-    if (color_dict == {0:0, 1:255}):
+    if (color_dict is False):
+        color_dict = {0: 0, 1: 255}
         img *= 255
     elif (len(color_dict[0]) == 3):
         new_img = np.zeros((width, height, 3), np.uint8)
@@ -98,7 +99,7 @@ def get_fire_freq_image(fire_freq_arrays, color_dict_fire_freq, grid_width, fire
         img += fire_freq_arr
     return get_image(img, color_dict_fire_freq, grid_width)
 
-def visualize(grid, image_width=1000, collect_states=True, color_dict={0:0, 1:255}):
+def visualize(grid, image_width=1000, collect_states=True, color_dict=False):
     img = get_image_from_grid(grid, collect_states, color_dict)    
     visualize_image(img, image_width)
     
