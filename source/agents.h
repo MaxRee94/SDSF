@@ -259,11 +259,12 @@ public:
 	float get_dbh_increment(float LAI_shade) {
 		if (LAI_shade > 5.0f) return 0.0f; // If the LAI of shading leaf cover is larger than 5, the tree is too shaded to grow.
 
-		float stem_increment = 3.0f * (1.0f - exp(-0.118 * dbh));	// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
+		float stem_increment = 0.3f * (1.0f - exp(-0.118 * dbh * 10.0f));	// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
 																	// Current stem dbh and increment in cm.
 
 		stem_increment *= (5.0f - LAI_shade) / 5.0f;	// LAI-dependent growth reduction to introduce density dependence. Multiplication factor: ((LAI_max - LAI) / LAI_max) 
 														// From Hoffman et al (2012), Appendix 2.
+
 
 		return stem_increment;
 	}
@@ -313,13 +314,12 @@ public:
 				_dbh = resprout_growthcurve.at(age); // Resprouts younger than 5 years (implied by dbh < 2.5) are assumed to grow according to a predefined growth curve (Hoffmann et al, 2012, supplementary information 1).
 			}
 			else {
-				_dbh = dbh + growth_multiplier * 0.25f; // Assume a constant growth rate for saplings, until they reach 2.5 cm dbh. Based on growth rate of resprouts after first 5 years (Hoffmann et al, 2012, supplementary information 1. Also see "Tree Allometric Relations.xlsx").
+				_dbh = dbh + growth_multiplier * 0.25f; // Assume a constant growth rate of 2.5 mm for saplings, until they reach 2.5 cm dbh. Based on growth rate of resprouts after first 5 years (Hoffmann et al, 2012, supplementary information 1. Also see "Tree Allometric Relations.xlsx").
 			}
 		}
 		else {
 			_dbh = dbh + growth_multiplier * get_dbh_increment(LAI_shade);
 		}
-		//printf("growth rate: %f, dbh: %f, new dbh: %f \n", _dbh - dbh, dbh, _dbh);
 		return _dbh;
 	}
 	pair<bool, bool> grow(float &seed_bearing_threshold, float LAI_shade) {
@@ -396,14 +396,14 @@ public:
 	Population() = default;
 	Population(float _max_dbh, float _cellsize, float dbh_q1, float dbh_q2,
 		map<string, map<string, float>> strategy_parameters, float _mutation_rate, float _seed_bearing_threshold,
-		float growth_multiplier_stdev, float growth_multiplier_min
+		float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max
 	) : max_dbh(_max_dbh), cellsize(_cellsize), seed_bearing_threshold(_seed_bearing_threshold)
 	{
 		strategy_generator = StrategyGenerator(strategy_parameters);
 		dbh_probability_model = help::LinearProbabilityModel(dbh_q1, dbh_q2, 0, max_dbh);
 		mutation_rate = _mutation_rate;
 		init_growth_curves();
-		growth_multiplier_distribution = ProbModel(1, growth_multiplier_stdev, growth_multiplier_min, 2, -1);
+		growth_multiplier_distribution = ProbModel(1, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max, -1);
 	}
 	void init_growth_curves() {
 		resprout_growthcurve = {
@@ -422,7 +422,7 @@ public:
 				dbh = _strategy->seedling_dbh; // Growth rate determines initial dbh.
 			}
 		}
-		float growth_multiplier = growth_multiplier_distribution.sample();
+		float growth_multiplier = help::get_rand_float(growth_multiplier_distribution.min_value, growth_multiplier_distribution.max_value);
 		Tree tree(no_created_trees + 1, position, dbh, seed_bearing_threshold, resprout_growthcurve, growth_multiplier);
 		members[tree.id] = tree;
 		no_created_trees++;
