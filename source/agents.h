@@ -243,7 +243,7 @@ public:
 		int new_life_phase;
 		bool life_phase_changed = false;
 		if (dbh > seed_bearing_threshold) new_life_phase = 2;
-		else new_life_phase = 0;
+		else new_life_phase = life_phase;
 		if (new_life_phase != life_phase) {
 			life_phase_changed = true;
 		}

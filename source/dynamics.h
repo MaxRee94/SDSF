@@ -110,6 +110,7 @@ public:
 	}
 	void grow() {
 		vector<int> tree_deletion_schedule = {};
+		map<float, int> increment_counts;
 		for (auto& [id, tree] : pop->members) {
 			float shade = state.compute_shade_on_individual_tree(&tree);
 			tree.shade = shade;
@@ -295,6 +296,7 @@ public:
 		int no_ash_cells = 0;
 		int popsize_before_burns = pop->size();
 		int re_ignitions = 0;
+		int no_trees_topkilled = 0;
 		fire_spatial_extent = 0;
 		for (int i = 0; i < no_fires; i++) {
 			Cell* sav_cell = grid->get_random_savanna_cell();
@@ -302,13 +304,16 @@ public:
 				no_fires--; // We cannot ignite fire in a cell that has already been burned in the current timestep.
 				continue;
 			}
-			auto [_no_ash_cells, _no_grassy_ash_cells] = percolate(sav_cell, time);
+			auto [_no_ash_cells, _no_grassy_ash_cells] = percolate(sav_cell, time, no_trees_topkilled);
 			no_ash_cells += _no_ash_cells;
 		}
 		fire_spatial_extent = ((float)no_ash_cells * grid->cell_area) / (float)no_fires;
 		int no_trees_killed = popsize_before_burns - pop->size();
 		cout.precision(2);
-		printf("-- Number of fires: %i, number of trees killed: %s \n", no_fires, help::readable_number(no_trees_killed).c_str());
+		printf(
+			"-- Fires: %i, Topkills: %s, Kills: %s \n",
+			no_fires, help::readable_number(no_trees_topkilled).c_str(), help::readable_number(no_trees_killed).c_str()
+		);
 		cout <<
 			"-- Fraction of domain burned: " << (float)no_ash_cells / (float)grid->no_cells << ", Area burned: " <<
 			scientific << (float)no_ash_cells * grid->cell_area << " / " << grid->area << " m^2 \n";
@@ -327,7 +332,7 @@ public:
 		}
 		else return get_savanna_flammability(grass_has_recovered);
 	}
-	bool tree_dies(Tree* tree) {
+	bool tree_is_topkilled(Tree* tree) {
 		// if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", dbh, bark_thickness, survival_probability);
 		// COMMENT: We currently assume topkill always implies death, but resprouting should also be possible. (TODO: make death dependent on fire-free interval)
 		
@@ -354,7 +359,7 @@ public:
 		grid->kill_tree_domain(tree, false);
 		pop->remove(tree);
 	}
-	void induce_tree_mortality(Cell* cell, queue<Cell*>& queue) {
+	void induce_tree_mortality(Cell* cell, queue<Cell*>& queue, int& no_trees_topkilled) {
 		int tree_id = cell->stem.second;
 		if (tree_id == 0) return; // If no tree stem is present in this cell, skip mortality evaluation.
 
@@ -368,7 +373,8 @@ public:
 			return;
 		}
 		if (tree->last_mortality_check == time) return; // Skip mortality evaluation if this was already done in the current timestep.
-		if (tree_dies(tree)) {
+		if (tree_is_topkilled(tree)) {
+			no_trees_topkilled++;
 			kill_tree(tree, cell->time_last_fire, queue, cell);
 		}
 		else tree->last_mortality_check = time;
@@ -379,14 +385,14 @@ public:
 		}
 		return help::get_rand_float(0.0, 1.0) < get_cell_flammability(cell, min(t_start - cell->time_last_fire, 1));
 	}
-	inline void burn_cell(Cell* cell, float t_start, queue<Cell*>& queue) {
+	inline void burn_cell(Cell* cell, float t_start, queue<Cell*>& queue, int& no_trees_topkilled) {
 		cell->time_last_fire = t_start;
 		grid->state_distribution[grid->pos_2_idx(cell->pos)] = -5;
-		induce_tree_mortality(cell, queue);
+		induce_tree_mortality(cell, queue, no_trees_topkilled);
 	}
-	pair<int, int> percolate(Cell* cell, float t_start) {
+	pair<int, int> percolate(Cell* cell, float t_start, int& no_trees_topkilled) {
 		std::queue<Cell*> queue;
-		burn_cell(cell, t_start, queue);
+		burn_cell(cell, t_start, queue, no_trees_topkilled);
 		queue.push(cell);
 		int no_ash_cells = 1;
 		int no_grassy_ash_cells = 1;
@@ -400,7 +406,7 @@ public:
 			for (int i = 0; i < 8; i++) {
 				Cell* neighbor = grid->get_cell_at_position(cell->pos + neighbor_offsets[i]);
 				if (cell_will_ignite(neighbor, t_start)) {
-					burn_cell(neighbor, t_start, queue);
+					burn_cell(neighbor, t_start, queue, no_trees_topkilled);
 					queue.push(neighbor);
 					no_ash_cells++;
 					if (neighbor->state == 0) no_grassy_ash_cells++;
