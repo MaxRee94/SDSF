@@ -217,6 +217,12 @@ public:
 	{
 		return id == tree.id;
 	}
+	void resprout(float seed_bearing_threshold) {
+		life_phase = 1;
+		dbh = 0;
+		age = 0;
+		derive_allometries(seed_bearing_threshold);
+	}
 	bool derive_allometries(float seed_bearing_threshold) {
 		crown_area = compute_crown_area();
 		radius = compute_radius();

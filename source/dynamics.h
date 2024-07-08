@@ -337,9 +337,16 @@ public:
 	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue, Cell* cell) {
 		if (verbosity > 1) printf("Burning tree %i ... \n", tree->id);
 		grid->burn_tree_domain(tree, queue, time_last_fire, false, true, cell->idx);
-		bool removed = pop->remove(tree->id);
-		if (!removed) {
-			printf("Tree %i could not be removed from the population. \n", tree->id);
+		if (tree->life_phase == 2 || tree->life_phase == 0) {
+			// A tree that is an adult or a sapling which has been burned once is allowed to resprout, in line with findings of Hoffmann et al. (2012).
+			tree->resprout(seed_bearing_threshold);
+		}
+		else {
+			// Resprouts are not allowed to resprout again, since previous work appears to indicate that forest species are not able to consistently recover from repeated burning (Fensham et al 2003)
+			bool removed = pop->remove(tree->id);
+			if (!removed) {
+				printf("Tree %i could not be removed from the population. \n", tree->id);
+			}
 		}
 	}
 	void kill_tree(Tree* tree) {
