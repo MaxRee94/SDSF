@@ -146,7 +146,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
-            const float&, const map<string, map<string, float>>&, const int&, const float&, const float&, const int& >())
+            const float&, const map<string, map<string, float>>&, const int&, const float&, const float&, const int&, const int&, const int& >())
         .def_readwrite("time", &Dynamics::time)
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)
@@ -162,6 +162,10 @@ PYBIND11_MODULE(dbr_cpp, module) {
             if (type == "current_iteration") delete[] intervals;
             return np_arr;
         })
+        .def("get_no_recruits", [](Dynamics& dynamics, string& type) {
+			float no_recruits = dynamics.get_no_recruits(type);
+			return no_recruits;
+		})
         .def("free", &Dynamics::free)
         .def("set_global_linear_kernel", &Dynamics::set_global_linear_kernel)
         .def("set_global_wind_kernel", &Dynamics::set_global_wind_kernel)
@@ -187,6 +191,21 @@ PYBIND11_MODULE(dbr_cpp, module) {
             int width, height;
 			convert_from_numpy_array(lookup_table, float_array, width, height);
 			dynamics.resource_grid.set_dist_lookup_table(float_array, species);
+		})
+        .def("get_fraction_time_spent_moving", [](Dynamics& dynamics) {
+			return dynamics.fraction_time_spent_moving;
+		})
+        .def("get_fraction_seedlings_dead_due_to_shade", [](Dynamics& dynamics) {
+            return (float)dynamics.no_seedlings_dead_due_to_shade / (float)dynamics.seeds_produced;
+        })
+        .def("get_fraction_seedlings_outcompeted", [](Dynamics& dynamics) {
+            return (float)dynamics.no_seedling_competitions / (float)dynamics.seeds_produced;
+        })
+        .def("get_fraction_seedlings_outcompeted_by_older_trees", [](Dynamics& dynamics) {
+            return (float)dynamics.no_competitions_with_older_trees / (float)dynamics.seeds_produced;
+        })
+        .def("get_no_germination_attempts", [](Dynamics& dynamics) {
+			return dynamics.no_germination_attempts;
 		})
         .def("precompute_resourcegrid_lookup_table", [](Dynamics& dynamics, string& species) {
             dynamics.resource_grid.precompute_dist_lookup_table(species);
@@ -219,7 +238,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const map<string, map<string, float>>&, const float&, const float&, const float&, const int&, const int&, const float&, const float&,
-            const float&, const float&, const float&>()
+            const float&, const float&, const float&, const int&, const int&>()
         )
         .def("run_all", &Tests::run_all);
 

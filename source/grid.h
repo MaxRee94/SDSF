@@ -36,12 +36,23 @@ public:
 	void update_grass_LAI(float tree_LAI_local_neighborhood) {
 		grass_LAI = compute_grass_LAI(tree_LAI_local_neighborhood);
 	}
-	bool is_hospitable(pair<float, int> tree_proxy) {
+	bool is_hospitable(
+		pair<float, int> tree_proxy, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions,
+		int& no_competitions_with_older_trees
+	) {
 		// If tree_proxy is larger than the current largest stem in the cell, it is assumed to be able to outcompete the other tree.
 		// If not, tree_proxy is assumed to be shaded out or otherwise outcompeted by the existing larger tree.
-		bool hospitable = !cell_is_occupied_by_larger_stem(tree_proxy);
-		hospitable = hospitable && !seedling_is_shaded_out();
-		return hospitable;
+		no_seedling_competitions += seedling_present;
+		if (cell_is_occupied_by_larger_stem(tree_proxy)) {
+			no_competitions_with_older_trees += !seedling_present;
+			return false;
+		}
+		if (seedling_is_shaded_out()) {
+			no_seedlings_dead_due_to_shade++; 
+			no_seedling_competitions -= seedling_present; // If the seedling is dead due to shade, it should not be counted as a competitor.
+			return false;
+		}
+		return true;
 	}
 	float query_grass_LAI() {
 		return grass_LAI;
@@ -569,6 +580,13 @@ public:
 	void set_to_savanna(pair<int, int> position_grid, float time_last_fire = -1) {
 		cap(position_grid);
 		set_to_savanna(pos_2_idx(position_grid), time_last_fire);
+	}
+	float get_cumulative_fuel_load() {
+		float cumulative_load = 0;
+		for (int i = 0; i < no_cells; i++) {
+			cumulative_load += distribution[i].get_fuel_load();
+		}
+		return cumulative_load;
 	}
 	void cap(pair<int, int> &position_grid) {
 		if (position_grid.first < 0) position_grid.first = width + (position_grid.first % width);
