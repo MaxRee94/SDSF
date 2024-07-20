@@ -192,7 +192,7 @@ def visualize_radial_distribution_function(g_r, radii, iteration):
 def visualize_legend(distr_type="normal"):
     width = 500
     height = 50
-    end_value = 90 if distr_type == "normal" else 0
+    end_value = 80 if distr_type == "normal" else 0
     vals = np.zeros((height, width))
     for i in range(width):
         vals[:, i] = end_value - int(float(i) * (end_value / width))
