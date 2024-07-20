@@ -44,7 +44,7 @@ public:
 			//if (verbosity == 1) printf("Tree id (beginning): %i \n", tree.id);
 			//if (i % (population.size()/1000) == 0) printf("i: %i / %i \n", i, population.size());
 			if (id == -1 || tree.id == -1) {
-				printf("Removing tree %i\n", tree.id);
+				printf("Removing tree with wrong id %i\n", tree.id);
 				population.remove(id); // HOTFIX: Sometimes trees are not initialized properly and need to be removed.
 				continue;
 			}
