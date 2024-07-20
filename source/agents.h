@@ -121,7 +121,7 @@ public:
 	}
 	float get_relative_growth_rate(float seed_mass) {
 		float relative_growth_rate = (1.0f - 6.97f * log10(seed_mass)) * 0.001f;		// Relative growth rate of seedlings in g/g/day, based on Rose (2003), 
-																						// table 2.2 (regression slope 'overall').
+																						// table 2.2 (regression slope 'overall'). We multiply by 0.001 to convert mg/g/day to g/g/day.
 		return relative_growth_rate;
 	}
 	float calculate_seedling_dbh(float seed_reserve_mass, float relative_growth_rate, float seed_mass, string vector) {
@@ -131,21 +131,20 @@ public:
 
 		float new_mass_grams = pow(10.0f, seed_reserve_mass * exp(relative_growth_rate * 365.25f));				// Mass in grams after 1 year of growth, based on Rose (2003). 
 																													// Seedling start mass is assumed to be equal to seed reserve mass.
+		
 		float Leaf_Mass_Fraction = 0.4f - 0.05f * log10(seed_mass);												// g/g. Based on table 2.2, Rose (2003).
 		float Leaf_Area_Ratio = 10.0f - 4.93f * log10(seed_mass);												// m^2 / kg. Based on table 2.2, Rose (2003).
-		float density_factor = (1.0f / (Leaf_Area_Ratio / 6.87f)) / (Leaf_Mass_Fraction / 0.368f);				// Compute factor to correct for differences in mass density.
+		float density_factor = 1.0f / (Leaf_Area_Ratio / 6.87f);												// Compute factor to correct for differences in mass density.
 																													// We assume an average seed mass of 4.31 g (Figure 2.1, Rose (2003)) 
 																													// and thus normalize LAR to LAR_norm = LAR_{seedmass=4.31}.
 																													// LAR_norm will increase for smaller seeds (more m^2 leaf area per kg)
 																													// and decrease for larger seeds. The density factor varies inversely.
-																													// We divide by the normalized Leaf Mass Fraction (ratio leaf 
-																													// mass to total plant mass) to reduce the effect in proportion to the
-																													// leafiness of the tree.
+																												
 		//printf("seed_reserve_mass: %f, seed mass: %f, density factor: %f \n", seed_reserve_mass, seed_mass, density_factor);
 		new_mass_grams /= density_factor;																		// Correct for differences in mass density (rapidly growing seedlings have
 																													// lower density and should thus have a larger dbh for the same mass).												
 		float new_AGB_kilograms = 0.000666f * new_mass_grams;													// Aboveground mass in kilograms. We assume a shoot-to-root ratio of 2/3
-		float AGB_c = -(log(new_AGB_kilograms) + 1.776f);														// Derived from model 7, Chave et al (2014)
+		float AGB_c = -(log(new_AGB_kilograms) + 2.5f);															// Derived from model 7, Chave et al (2014)
 		float ln_new_dbh = help::get_lowest_solution_for_quadratic(0, AGB_coeff_a, AGB_coeff_b, AGB_c);			// Solve for ln(dbh) using quadratic formula (derived from model 7, 
 																													// Chave et al (2014))										
 
