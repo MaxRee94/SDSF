@@ -29,7 +29,9 @@ def export_state(dynamics, path="", init_csv=True, control_variable=None, contro
     fieldnames = [
         "time", "tree cover", "slope", "population size", "#seeds produced", "fire mean spatial extent",
         "#trees[dbh 0-20%]", "#trees[dbh 20-40%]", "#trees[dbh 40-60%]", "#trees[dbh 60-80%]", "#trees[dbh 80-100%]", "extra_parameters",
-        "firefree interval mean", "firefree interval stdev","firefree interval full sim mean", "firefree interval full sim stdev"
+        "firefree interval mean", "firefree interval stdev","firefree interval full sim mean", "firefree interval full sim stdev", "recruits",
+        "fraction_time_spent_moving", "fraction_shaded_out", "fraction_outcompeted_by_seedlings", "fraction_outcompeted_by_older_trees",
+        "germination_attempts"
     ]
     if control_variable:
         if control_variable == "treecover":
@@ -63,7 +65,13 @@ def export_state(dynamics, path="", init_csv=True, control_variable=None, contro
             "firefree interval mean": firefree_interval_mean,
             "firefree interval stdev": firefree_interval_stdev,
             "firefree interval full sim mean": firefree_interval_fullsim_mean,
-            "firefree interval full sim stdev": firefree_interval_fullsim_stdev
+            "firefree interval full sim stdev": firefree_interval_fullsim_stdev,
+            "recruits": str(dynamics.get_no_recruits("all")),
+            "fraction_time_spent_moving": str(dynamics.get_fraction_time_spent_moving()),
+            "fraction_shaded_out": str(dynamics.get_fraction_seedlings_dead_due_to_shade()),
+            "fraction_outcompeted_by_seedlings": str(dynamics.get_fraction_seedlings_outcompeted()),
+            "fraction_outcompeted_by_older_trees": str(dynamics.get_fraction_seedlings_outcompeted_by_older_trees()),
+            "germination_attempts": str(dynamics.get_no_germination_attempts())
         }
         if control_variable:
             result[control_variable] = control_value

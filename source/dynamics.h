@@ -198,17 +198,17 @@ public:
 			// Add fruit crop or disperse seeds, depending on dispersal vector type
 			if (pop->get_kernel(id)->type == "animal") {
 				animal_seeds_dispersed += crop->no_seeds;
-				resource_grid.total_no_fruits += crop->no_seeds;
+				resource_grid.total_no_fruits += crop->fruit_abundance;
 				resource_grid.has_fruits = true;
 			}
 			else if (pop->get_kernel(id)->type == "wind") {
 				wind_seeds_dispersed += crop->no_seeds;
 				pop->get_kernel(id)->update(tree.height);
-				wind_disperser.disperse_crop(crop, &state);
+				no_wind_seedlings += wind_disperser.disperse_crop(crop, &state, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts);
 				wind_trees++;
 			}
 			else {
-				linear_disperser.disperse_crop(crop, &state);
+				linear_disperser.disperse_crop(crop, &state, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts);
 			}
 		}
 		timer.stop(); printf(
@@ -216,11 +216,13 @@ public:
 			help::readable_number(wind_seeds_dispersed).c_str(), help::readable_number(resource_grid.total_no_fruits).c_str(), timer.elapsedSeconds()
 		);
 	}
-	void disperse_animal_seeds(int no_seeds_to_disperse) {
-		int no_recruits = 0;
+	void disperse_animal_seeds(int no_seeds_to_disperse, int& no_recruits) {
 		Timer timer; timer.start();
 		if (resource_grid.has_fruits) {
-			no_recruits = animal_dispersal.disperse(&state, &resource_grid, no_seeds_to_disperse, 1);
+			no_recruits = animal_dispersal.disperse(
+				&state, &resource_grid, no_seeds_to_disperse, fraction_time_spent_moving, no_seedlings_dead_due_to_shade, no_seedling_competitions, 
+				no_competitions_with_older_trees, no_germination_attempts, 1
+			);
 		}
 		timer.stop(); printf("-- Dispersing %s animal seeds took %f seconds. \n", help::readable_number(no_seeds_to_disperse).c_str(), timer.elapsedSeconds());
 	}
@@ -239,8 +241,14 @@ public:
 			}
 		}
 
-		int no_recruits = pop->size() - pre_recruitment_popsize;
-		timer.stop(); printf("-- Recruitment of %s trees took %f seconds. \n", help::readable_number(no_recruits).c_str(), timer.elapsedSeconds());
+		no_recruits = pop->size() - pre_recruitment_popsize;
+		timer.stop();
+		printf("-- Recruitment of %s trees took %f seconds. \n", help::readable_number(no_recruits).c_str(), timer.elapsedSeconds());
+	}
+	int get_no_recruits(string type) {
+		if (type == "wind") return no_wind_seedlings;
+		else if (type == "animal") return no_animal_seedlings;
+		else return (no_recruits);
 	}
 	void disperse() {
 		resource_grid.reset();
@@ -249,15 +257,23 @@ public:
 		int wind_seeds_dispersed = 0;
 		int no_seed_bearing_trees = 0;
 		int no_wind_trees = 0;
-		disperse_wind_seeds_and_init_fruits(no_seed_bearing_trees, wind_seeds_dispersed, animal_seeds_dispersed, no_wind_trees);
-		disperse_animal_seeds(animal_seeds_dispersed);
+		no_wind_seedlings = 0;
+		no_seedlings_dead_due_to_shade = 0;
+		no_competitions_with_older_trees = 0;
+		no_germination_attempts = 0;
+		no_seedling_competitions = 0;
+		no_animal_seedlings = 0;
+		disperse_wind_seeds_and_init_fruits(no_seed_bearing_trees, no_wind_seedlings, wind_seeds_dispersed, animal_seeds_dispersed, no_wind_trees);
+		disperse_animal_seeds(animal_seeds_dispersed, no_animal_seedlings);
 		recruit();
 		seeds_produced = wind_seeds_dispersed + animal_seeds_dispersed;
 
-		if (verbosity > 0) printf(
-			"-- Fraction of trees that are seed-bearing: %f, #seeds (all): %s\n",
-			(float)no_seed_bearing_trees / (float)pop->size(), help::readable_number(seeds_produced).c_str()
-		);
+		if (verbosity > 0) {
+			printf(
+				"-- Fraction of trees that are seed-bearing: %f, #seeds (all): %s\n",
+				(float)no_seed_bearing_trees / (float)pop->size(), help::readable_number(seeds_produced).c_str()
+			);
+		}
 		if (verbosity > 0) printf("-- Proportion wind dispersed trees: %f \n", no_wind_trees / (float)no_seed_bearing_trees);
 	}
 	void induce_background_mortality() {
@@ -448,8 +464,16 @@ public:
 	float fire_resistance_argmax = 0;
 	float fire_resistance_stretch = 0;
 	float background_mortality = 0;
+	float fraction_time_spent_moving = 0;
 	float mutation_rate = 0;
 	float STR = 0;
+	int no_germination_attempts = 0;
+	int no_competitions_with_older_trees = 0;
+	int no_seedlings_dead_due_to_shade = 0;
+	int no_seedling_competitions = 0;
+	int no_wind_seedlings = 0;
+	int no_animal_seedlings = 0;
+	int no_recruits = 0;
 	int timestep = 0;
 	int time = 0;
 	int pop_size = 0;

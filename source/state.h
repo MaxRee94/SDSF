@@ -181,7 +181,8 @@ public:
 			Cell &cell = grid.distribution[idx];
 			pair<float, float> position = grid.get_real_cell_position(&cell);
 			Tree* tree = population.add(position);
-			if (!cell.is_hospitable(pair<float, int>(tree->radius, tree->id))) {
+			int dummy1, dummy2, dummy3;
+			if (!cell.is_hospitable(pair<float, int>(tree->radius, tree->id), dummy1, dummy2, dummy3)) {
 				population.remove(tree->id);
 				continue;
 			}
@@ -211,7 +212,8 @@ public:
 			pair<float, float> position = grid.get_random_real_position();
 			Cell* cell = grid.get_cell_at_position(position);
 			Tree* tree = population.add(position);
-			if (!cell->is_hospitable(pair<float, int>(tree->radius, tree->id))) {
+			int dummy1, dummy2, dummy3;
+			if (!cell->is_hospitable(pair<float, int>(tree->radius, tree->id), dummy1, dummy2, dummy3)) {
 				population.remove(tree->id);
 				continue;
 			}

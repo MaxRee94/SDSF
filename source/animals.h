@@ -26,22 +26,30 @@ public:
 	void update(
 		int& no_seeds_dispersed, int _iteration, State* state, ResourceGrid* resource_grid, int& no_seeds_eaten,
 		float& time_spent_resting, float& distance_travelled, float& average_gut_passage_time, float& average_gut_time,
-		int& no_seeds_defecated
+		int& no_seeds_defecated, float& time_spent_moving, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions,
+		int& no_competitions_with_older_trees, int& no_germination_attempts
 	) {
 		iteration = _iteration;
 
 		pair<int, int> move_time_interval(curtime, -1);
 		move(resource_grid, distance_travelled);
 		move_time_interval.second = curtime;
+		time_spent_moving += travel_time;
 
-		digest(resource_grid, no_seeds_dispersed, no_seeds_defecated, state, move_time_interval);
+		digest(
+			resource_grid, no_seeds_dispersed, no_seeds_defecated, state, move_time_interval,
+			no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts
+		);
 
 		pair<int, int> rest_time_interval(curtime, -1);
 		rest(time_spent_resting);
 		eat(resource_grid, rest_time_interval.first, no_seeds_eaten);
 		rest_time_interval.second = curtime;
 
-		digest(resource_grid, no_seeds_dispersed, no_seeds_defecated, state, rest_time_interval);
+		digest(
+			resource_grid, no_seeds_dispersed, no_seeds_defecated, state, rest_time_interval,
+			no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts
+		);
 	}
 	void rest(float& time_spent_resting) {
 		moving = false;
@@ -63,7 +71,8 @@ public:
 	void eat(ResourceGrid* resource_grid, float begin_time, int& no_seeds_eaten) {
 		float biomass_appetite = get_biomass_appetite();
 		vector<pair<float, int>> consumed_seed_gpts_plus_cropids = {};
-		while (biomass_appetite > 0) {
+		float fruit_mass = resource_grid->state->population.get_crop(last_tree_visited)->strategy.diaspore_mass;
+		while (biomass_appetite >= fruit_mass) {
 			Fruit fruit;
 
 			bool fruit_available = resource_grid->extract_fruit(position, fruit, last_tree_visited);
@@ -73,7 +82,7 @@ public:
 			eat_fruit(fruit, consumed_seed_gpts_plus_cropids);
 
 			no_seeds_eaten += fruit.strategy.no_seeds_per_diaspore;
-			biomass_appetite -= fruit.strategy.diaspore_mass;
+			biomass_appetite -= fruit_mass;
 		}
 		set_defecation_times(begin_time, consumed_seed_gpts_plus_cropids);
 	}
@@ -102,7 +111,8 @@ public:
 	}
 	void digest(
 		ResourceGrid* resource_grid, int& no_seeds_dispersed, int& no_seeds_defecated,
-		State* state, pair<int, int>& time_interval
+		State* state, pair<int, int>& time_interval, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions,
+		int& no_competitions_with_older_trees, int& no_germination_attempts
 	) {
 		vector<int> deletion_schedule;
 		for (int defecation_time = time_interval.first; defecation_time <= time_interval.second; defecation_time++) {
@@ -116,7 +126,10 @@ public:
 				float time_since_defecation = curtime - defecation_time;
 
 				// Defecate seed.
-				defecate(seed, time_since_defecation, no_seeds_dispersed, resource_grid);
+				defecate(
+					seed, time_since_defecation, no_seeds_dispersed, resource_grid, no_seedlings_dead_due_to_shade,
+					no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts
+				);
 
 				no_seeds_defecated++;
 			}
@@ -143,7 +156,11 @@ public:
 	pair<float, float> get_backwards_traced_location(float time_since_defecation) {
 		return position - (time_since_defecation / travel_time) * trajectory;
 	}
-	void defecate(Seed &seed, float time_since_defecation, int &no_seeds_dispersed, ResourceGrid* resource_grid) {
+	void defecate(
+		Seed &seed, float time_since_defecation, int &no_seeds_dispersed, ResourceGrid* resource_grid,
+		int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions, int& no_competitions_with_older_trees,
+		int& no_germination_attempts
+	) {
 		pair<float, float> seed_deposition_location;
 		if (moving) {
 			seed_deposition_location = get_backwards_traced_location(time_since_defecation);
@@ -154,7 +171,9 @@ public:
 
 		int prev_seed_dispersed_number = no_seeds_dispersed;
 		seed.deposition_location = seed_deposition_location;
-		bool germination = seed.germinate_if_location_is_viable(resource_grid->state);
+		bool germination = seed.germinate_if_location_is_viable(
+			resource_grid->state, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts
+		);
 		no_seeds_dispersed += germination;
 	}
 	map<string, float> traits;
@@ -194,11 +213,19 @@ public:
 		}
 	}
 	void initialize_population() {
+		float cumulative_population_fraction = 0;
 		for (auto& [species, params] : animal_kernel_params) {
 			int popsize = round(total_no_animals * params["population_fraction"]);
+			cumulative_population_fraction += params["population_fraction"];
 			vector<Animal> species_population;
 			create_species_population(popsize, species_population, params, species);
 			total_animal_population[species] = species_population;
+		}
+		if (
+			(cumulative_population_fraction < 0.95f) || (cumulative_population_fraction > 1.05f)
+			) {
+			printf("\nERROR: Cumulative population fraction %f outside of range (0.95 - 1.05).\n", cumulative_population_fraction);
+			throw;
 		}
 	}
 	void create_species_population(
@@ -217,23 +244,27 @@ public:
 			}
 		}
 	}
-	void disperse(int& no_seeds_dispersed, int no_seeds_to_disperse, State* state, ResourceGrid* resource_grid) {
+	void disperse(int& no_seeds_dispersed, int no_seeds_to_disperse, State* state, ResourceGrid* resource_grid,
+		float& fraction_time_spent_moving, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions,
+		int& no_competitions_with_older_trees, int& no_germination_attempts
+	) {
 		place(state);
 		resource_grid->reset_color_arrays();
 		int iteration = 0;
 
 		int no_seeds_eaten = 0;
 		int no_seeds_defecated = 0;
+		float time_spent_resting = 0;
+		float time_spent_moving = 0;
 		while (no_seeds_defecated < no_seeds_to_disperse) {
 			int prev_no_seeds_dispersed = no_seeds_dispersed;
 			int prev_no_seeds_defecated = no_seeds_defecated;
-			int cur_no_seeds_eaten = 0;
-			int cur_no_seeds_defecated = 0;
-			float time_spent_resting = 0;
-			float distance_travelled = 0;
 			float average_gut_passage_time = 0;
-			float average_curtime = 0;
+			int cur_no_seeds_defecated = 0;
+			float distance_travelled = 0;
 			float average_gut_time = 0;
+			int cur_no_seeds_eaten = 0;
+			float average_curtime = 0;
 			for (auto& [species, species_population] : total_animal_population) {
 				if (iteration == 0) resource_grid->update_cover_probabilities(species, species_population[0].traits);
 				resource_grid->update_fruit_probabilities(species, species_population[0].traits);
@@ -242,7 +273,9 @@ public:
 					float _average_gut_passage_time = 0;
 					animal.update(
 						no_seeds_dispersed, iteration, state, resource_grid, cur_no_seeds_eaten, time_spent_resting,
-						distance_travelled, _average_gut_passage_time, _average_gut_time, no_seeds_defecated
+						distance_travelled, _average_gut_passage_time, _average_gut_time, no_seeds_defecated, time_spent_moving,
+						no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees,
+						no_germination_attempts
 					);
 					average_curtime += animal.curtime;
 					average_gut_time += _average_gut_time;
@@ -256,6 +289,7 @@ public:
 			iteration++;
 		}
 		printf("-- Number of iterations spent dispersing fruits: %d\n", iteration);
+		fraction_time_spent_moving = time_spent_moving / (time_spent_moving + time_spent_resting);
 	}
 	int popsize() {
 		int total_popsize = 0;
