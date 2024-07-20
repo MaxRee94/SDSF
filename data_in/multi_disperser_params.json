@@ -17,7 +17,7 @@
             "no_iterations": 100
         },
         "Turdus iliacus": {
-            "population_fraction": 0.25,
+            "population_fraction": 0.16667,
             "fruitsize_pref": 0.02,
             "gut_passage_time_shape": 1.59,
             "gut_passage_time_scale": 13.51351,
@@ -36,7 +36,7 @@
             "b_o": -3.718
         },
         "Turdus philomelos": {
-            "population_fraction": 0.25,
+            "population_fraction": 0.16667,
             "fruitsize_pref": 0.02,
             "gut_passage_time_shape": 1.59,
             "gut_passage_time_scale": 28.0112,
@@ -55,7 +55,7 @@
             "b_o": -1.361
         },
         "Turdus merula": {
-            "population_fraction": 0.25,
+            "population_fraction": 0.16667,
             "fruitsize_pref": 0.02,
             "gut_passage_time_shape": 0.931,
             "gut_passage_time_scale": 25,
@@ -112,7 +112,7 @@
             "b_o": -2.643
         },
         "Turdus viscivorus": {
-            "population_fraction": 0.25,
+            "population_fraction": 0.16667,
             "fruitsize_pref": 0.02,
             "gut_passage_time_shape": 1.59,
             "gut_passage_time_scale": 34.48276,
