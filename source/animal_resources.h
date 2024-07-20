@@ -64,6 +64,7 @@ public:
 		delete[] dist_aggregate;
 		delete[] color_distribution;
 		delete[] visits;
+		delete_lookup_table();
 		selection_probabilities.free();
 		Grid::free();
 	}
@@ -74,6 +75,11 @@ public:
 	}
 	void delete_f() {
 		for (auto it = f.begin(); it != f.end(); it++) {
+			delete[] it->second;
+		}
+	}
+	void delete_lookup_table() {
+		for (auto it = dist_lookup_table.begin(); it != dist_lookup_table.end(); it++) {
 			delete[] it->second;
 		}
 	}
@@ -175,7 +181,7 @@ public:
 		return pair<int, int>(x, y);
 	}
 	int get_random_forested_location(ResourceCell* cell, pair<float, float>& location) {
-		// Attempt to a fruit-producing tree. If none is found after 10 attempts, choose a non-fruit-producing tree.
+		// Attempt to find a fruit-producing tree. If none is found after 10 attempts, choose a non-fruit-producing tree.
 		int tree_id = cell->trees[help::get_rand_int(0, cell->trees.size() - 1)];
 		int i = 0;
 		while (state->population.get(tree_id)->life_phase != 2 && i < 10) {
