@@ -32,6 +32,8 @@ defaults = {
     "unsuppressed_flammability": 0.9,
     "rainfall": 0.1,
     "test": "none",
+    "random_seed": -999,
+    "random_seed_firefreq": 0,
     "termination_conditions": "all",
     "STR": 10000, # The number of seeds produced by a tree with a dbh of 30 cm
     "dbh_q1": 1,
@@ -466,6 +468,30 @@ _parameter_config = {
                 "Parameter to the perlin noise function."
             ),
             "default": defaults["noise_octaves"],
+        },
+    },
+    "random_seed": {
+        "keys": {
+            "cli": ["--random_seed", "-rseed"]
+        },
+        "settings": {
+            "type": int,
+            "help": (
+                "Random seed used by the c++ component of this program. A value of -999 (default) indicates each run will use a different unique seed."
+            ),
+            "default": defaults["random_seed"],
+        },
+    },
+    "random_seed_firefreq": {
+        "keys": {
+            "cli": ["--random_seed_firefreq", "-rseedff"]
+        },
+        "settings": {
+            "type": int,
+            "help": (
+                "Random seed used for the fire frequency distribution. Default: {}.".format(defaults["random_seed_firefreq"])
+            ),
+            "default": defaults["random_seed_firefreq"],
         },
     },
     "growth_rate_multiplier_params": {

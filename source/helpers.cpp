@@ -13,8 +13,15 @@ using namespace std;
 #define RAND_DOUBLE_PRECISION 0.001
 #define INV_RAND_DOUBLE_PRECISION_PLUSONE 1.0 / (1.0 + RAND_DOUBLE_PRECISION)
 
-void help::init_RNG() {
-    srand(time(NULL));
+void help::init_RNG(int seed) {
+    if (seed == -999) {
+        // Seed the random number generator with the current time
+		srand(time(NULL));
+	}
+	else {
+        // Seed the random number generator with the given seed
+		srand(seed);
+	}
     int x = rand();
     int z = x * 3;
 }

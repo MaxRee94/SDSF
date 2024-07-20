@@ -90,7 +90,7 @@ template<std::floating_point value_t> [[nodiscard]]
 namespace help {
 
 
-	void init_RNG();
+	void init_RNG(int seed);
 
 	void sort(std::map<int, double>& _map, PairSet& _set);
 

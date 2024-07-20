@@ -44,6 +44,8 @@ def set_dispersal_kernel(
             
         );
     elif (dispersal_mode == "animal"):
+        animal_dispersal_params = multi_disperser_params["animal"]
+        animal_species = [species for species in animal_dispersal_params.keys() if species != "population"]
         dynamics.set_global_animal_kernel(multi_disperser_params["animal"])
     elif (dispersal_mode == "all"):
         animal_dispersal_params = multi_disperser_params["animal"]
@@ -64,7 +66,8 @@ def init_tests(
     flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
-    initial_pattern_image=None, mutation_rate=None, growth_rate_multiplier_params=None, **user_args
+    initial_pattern_image=None, mutation_rate=None, growth_rate_multiplier_params=None, 
+    random_seed=None, random_seed_firefreq=None, **user_args
 ):
     # Obtain strategy distribution parameters
     with open(os.path.join(DATA_IN_DIR, strategy_distribution_params), "r") as sdp_jsonfile:
@@ -76,7 +79,7 @@ def init_tests(
         flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
         resource_grid_width, mutation_rate, verbosity, grid_width, dbh_q1, dbh_q2, growth_rate_multiplier_params[0],
-        growth_rate_multiplier_params[1], growth_rate_multiplier_params[2]
+        growth_rate_multiplier_params[1], growth_rate_multiplier_params[2], random_seed, random_seed_firefreq
     )
     
     return tests
@@ -93,18 +96,18 @@ def init(
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
     initial_pattern_image=None, mutation_rate=None, STR=None,
-    batch_parameters=None, growth_rate_multiplier_params=None, **user_args
+    batch_parameters=None, growth_rate_multiplier_params=None,
+    random_seed=None, random_seed_firefreq=None, **user_args
     ):
 
     # Initialize dynamics object and state
-    print("Verbosity type: ", type(verbosity))
     dynamics = cpp.Dynamics(
         timestep, cellsize, self_ignition_factor, rainfall, seed_bearing_threshold,
         growth_rate_multiplier, unsuppressed_flammability, flammability_coefficients_and_constants[0],
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
         flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
-        resource_grid_width, mutation_rate, STR, verbosity
+        resource_grid_width, mutation_rate, STR, verbosity, random_seed, random_seed_firefreq
     )
     dynamics.init_state(grid_width, dbh_q1, dbh_q2, growth_rate_multiplier_params[0], growth_rate_multiplier_params[1], growth_rate_multiplier_params[2])
     
@@ -161,6 +164,7 @@ def init(
     if dispersal_mode == "all" or dispersal_mode == "animal":
 
         # Export resource grid lookup table
+        print("animal species: ", animal_species)
         for species in animal_species:
             lookup_table, fpath = io.get_lookup_table(species, resource_grid_width * resource_grid_width)
             if lookup_table is None:
@@ -238,7 +242,7 @@ def updateloop(dynamics, color_dicts, **user_args):
     csv_path = user_args["csv_path"]
     visualization_types = []
     #visualization_types = ["fire_freq"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
-    #visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
+    visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     #visualization_types = ["recruitment"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     init_csv = True
     prev_tree_cover = [user_args["treecover"]] * 60

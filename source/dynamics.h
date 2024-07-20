@@ -10,7 +10,7 @@ public:
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
 		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_dbh, float _saturation_threshold, float _fire_resistance_argmin,
 		float _fire_resistance_argmax, float _fire_resistance_stretch, float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
-		int _resource_grid_width, float _mutation_rate, float _STR, int _verbosity
+		int _resource_grid_width, float _mutation_rate, float _STR, int _verbosity, int random_seed, int firefreq_random_seed
 	) :
 		timestep(_timestep), cell_width(_cell_width), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_max_dbh * _seed_bearing_threshold),
@@ -24,7 +24,8 @@ public:
 		resource_grid_width(_resource_grid_width), mutation_rate(_mutation_rate), STR(_STR)
 	{
 		time = 0;
-		help::init_RNG();
+		help::init_RNG(random_seed);
+		random_generator = default_random_engine(firefreq_random_seed);
 	};
 	void init_state(int gridsize, float dbh_q1, float dbh_q2, float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max) {
 		state = State(
@@ -165,14 +166,14 @@ public:
 			if (global_kernel_exists(tree_dispersal_vector))
 				pop->add_kernel(tree_dispersal_vector, global_kernels[tree_dispersal_vector]);
 			else {
-				printf("\n\n-------------- ERROR: No global kernel found for tree dispersal vector %s. \n\n", tree_dispersal_vector.c_str());
+				if (id != -1) printf("No global kernel found for tree dispersal vector '%s'.\n", tree_dispersal_vector.c_str());
 				//exit(1); Let's not exit the program for now
 				return false;
 			}
 		}
 		return true;
 	}
-	void disperse_wind_seeds_and_init_fruits(int& no_seed_bearing_trees, int& wind_seeds_dispersed, int& animal_seeds_dispersed, int& wind_trees) {
+	void disperse_wind_seeds_and_init_fruits(int& no_seed_bearing_trees, int& no_wind_seedlings, int& wind_seeds_dispersed, int& animal_seeds_dispersed, int& wind_trees) {
 		int pre_dispersal_popsize = pop->size();
 		Timer timer; timer.start();
 		for (auto& [id, tree] : pop->members) {
@@ -188,7 +189,7 @@ public:
 				pop->remove(id);
 				continue;
 			}
-			bool kernel_exists = ensure_kernel_exists(id);
+			bool kernel_exists = ensure_kernel_exists(tree.id);
 			if (!kernel_exists) {
 				pop->remove(id);
 				continue;
@@ -291,36 +292,30 @@ public:
 	int* get_resource_grid_colors(string species, string type) {
 		return resource_grid.get_color_distribution(species, type);
 	}
-	int get_fire_count() {
+	int get_no_fires() {
 		// Get number of fires to ignite
-
 		if (self_ignition_factor == -1) {
 			return 1;
 		}
-
-		std::default_random_engine generator;
-		std::binomial_distribution<int> fire_count_distribution(grid->no_savanna_cells, self_ignition_factor / (grid->no_cells));
-		int fire_count = fire_count_distribution(generator);
-		for (int i = 0; i < help::get_rand_int(0, 100); i++) {
-			fire_count = fire_count_distribution(generator);
-		}
-		return fire_count;
+		std::binomial_distribution<int> no_fires_distribution(grid->no_savanna_cells, self_ignition_factor / 1e6);
+		return no_fires_distribution(random_generator);
 	}
 	void burn() {
 		if (verbosity == 2) printf("Updated tree flammabilities.\n");
-		int no_fires = get_fire_count();
+		int no_fires = get_no_fires();
 		int no_ash_cells = 0;
 		int popsize_before_burns = pop->size();
 		int re_ignitions = 0;
 		int no_trees_topkilled = 0;
 		fire_spatial_extent = 0;
 		for (int i = 0; i < no_fires; i++) {
-			Cell* sav_cell = grid->get_random_savanna_cell();
-			if (sav_cell->time_last_fire == time) {
-				no_fires--; // We cannot ignite fire in a cell that has already been burned in the current timestep.
+			Cell* cell = grid->get_random_cell();
+			if (cell->time_last_fire == time) {
+				no_fires--;
 				continue;
 			}
-			auto [_no_ash_cells, _no_grassy_ash_cells] = percolate(sav_cell, time, no_trees_topkilled);
+			no_fires++;
+			auto [_no_ash_cells, _no_grassy_ash_cells] = percolate(cell, time, no_trees_topkilled);
 			no_ash_cells += _no_ash_cells;
 		}
 		fire_spatial_extent = ((float)no_ash_cells * grid->cell_area) / (float)no_fires;
@@ -351,7 +346,7 @@ public:
 	bool tree_is_topkilled(Tree* tree) {
 		// if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", dbh, bark_thickness, survival_probability);
 		// COMMENT: We currently assume topkill always implies death, but resprouting should also be possible. (TODO: make death dependent on fire-free interval)
-		
+
 		if (tree->dbh < seedling_discard_dbh) return true; // We assume that seedlings with a dbh below this 'discard'-value are always killed by fire.
 		return !tree->survives_fire(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 	}
@@ -382,10 +377,10 @@ public:
 		Tree* tree = pop->get(tree_id);
 		vector<int> trees = cell->trees;
 		if (tree->id == -1) {
-			printf("\n\n ------- ERROR: Tree %i has been removed from the population but is still present in cell %i, %i. \n", tree_id, cell->pos.first, cell->pos.second);
-			printf("Trees in cell before starting this mortality loop: ");
-			help::print_vector(&trees);
-			bool present = state.check_grid_for_tree_presence(tree_id, 0);
+			//printf("\n\n ------- ERROR: Tree %i has been removed from the population but is still present in cell %i, %i. \n", tree_id, cell->pos.first, cell->pos.second);
+			//printf("Trees in cell before starting this mortality loop: ");
+			//help::print_vector(&trees);
+			//bool present = state.check_grid_for_tree_presence(tree_id, 0);
 			return;
 		}
 		if (tree->last_mortality_check == time) return; // Skip mortality evaluation if this was already done in the current timestep.
@@ -486,6 +481,7 @@ public:
 	Disperser linear_disperser;
 	WindDispersal wind_disperser;
 	AnimalDispersal animal_dispersal;
+	default_random_engine random_generator;
 	ResourceGrid resource_grid;
 	pair<int, int>* neighbor_offsets = 0;
 	map<string, Kernel> global_kernels;
