@@ -59,7 +59,7 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
     time_budget_per_run = 60 * 60
     no_runs_for_current_parameter_set = 0
     while control_value < control_range[1]:
-        singlerun_name = f"/{sim_name}={str(control_value)}_process_{str(process_index)}"
+        singlerun_name = f"/{sim_name}={str(control_value)}_process_{str(process_index)}_run_{str(no_runs_for_current_parameter_set)}"
         print(f"\n ------- Beginning simulation with {singlerun_name} ------- \n")
         singlerun_csv_path = csv_parent_dir + singlerun_name + ".csv"
         singlerun_image_path = singlerun_csv_path.replace(".csv", ".png")
@@ -88,6 +88,7 @@ def main(process_index=None, control_variable=None, control_range=None, extra_pa
         # Get the next control value
         no_runs_for_current_parameter_set += 1
         if no_runs_for_current_parameter_set >= no_reruns:
+            no_runs_for_current_parameter_set = 0
             control_value = get_next_control_value(i, control_variable, control_value, control_range, process_index, no_processes, dynamics, largest_absolute_slope)
         i+=1
         
