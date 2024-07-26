@@ -146,7 +146,8 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
-            const float&, const map<string, map<string, float>>&, const int&, const float&, const float&, const int&, const int&, const int& >())
+            const float&, const map<string, map<string, float>>&, const int&, const float&, const float&, const int&, const int&, const int&,
+            const float& >())
         .def_readwrite("time", &Dynamics::time)
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)
@@ -196,13 +197,19 @@ PYBIND11_MODULE(dbr_cpp, module) {
 			return dynamics.fraction_time_spent_moving;
 		})
         .def("get_fraction_seedlings_dead_due_to_shade", [](Dynamics& dynamics) {
-            return (float)dynamics.no_seedlings_dead_due_to_shade / (float)dynamics.seeds_produced;
+            return (float)dynamics.no_seedlings_dead_due_to_shade / (float)dynamics.no_germination_attempts;
         })
         .def("get_fraction_seedlings_outcompeted", [](Dynamics& dynamics) {
-            return (float)dynamics.no_seedling_competitions / (float)dynamics.seeds_produced;
+            return (float)dynamics.no_seedling_competitions / (float)dynamics.no_germination_attempts;
         })
         .def("get_fraction_seedlings_outcompeted_by_older_trees", [](Dynamics& dynamics) {
-            return (float)dynamics.no_competitions_with_older_trees / (float)dynamics.seeds_produced;
+            return (float)dynamics.no_competitions_with_older_trees / (float)dynamics.no_germination_attempts;
+        })
+        .def("get_fraction_cases_seedling_competition_and_shading", [](Dynamics& dynamics) {
+            return (float)dynamics.no_cases_seedling_competition_and_shading / (float)dynamics.no_germination_attempts;
+        })
+        .def("get_fraction_cases_oldstem_competition_and_shading", [](Dynamics& dynamics) {
+            return (float)dynamics.no_cases_oldstem_competition_and_shading / (float)dynamics.no_germination_attempts;
         })
         .def("get_no_germination_attempts", [](Dynamics& dynamics) {
 			return dynamics.no_germination_attempts;
@@ -238,7 +245,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const map<string, map<string, float>>&, const float&, const float&, const float&, const int&, const int&, const float&, const float&,
-            const float&, const float&, const float&, const int&, const int&>()
+            const float&, const float&, const float&, const int&, const int&, const float&>()
         )
         .def("run_all", &Tests::run_all);
 

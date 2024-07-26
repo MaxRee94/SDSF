@@ -25,10 +25,11 @@ defaults = {
     "max_dbh": 44.3, # (Close to) Theoretical maximum due to density-dependent constraint on LAI (see 'Tree Allometric Relationships v03.xlsx' for details)
     "image_width": 1000,
     "timestep": 1,
-    "noise_frequency": 0.03,
+    "patch_width": 0.03,
+    "enforce_no_recruits": -1,
     "noise_octaves": 5,
     "timelimit": 1e32,
-    "self_ignition_factor": 1,
+    "self_ignition_factor": 1.5,
     "unsuppressed_flammability": 0.9,
     "rainfall": 0.1,
     "test": "none",
@@ -446,16 +447,16 @@ _parameter_config = {
             "default": defaults["termination_conditions"],
         },
     },
-    "noise_frequency": {
+    "patch_width": {
         "keys": {
-            "cli": ["--noise_frequency", "-noifreq"]
+            "cli": ["--patch_width", "-pw"]
         },
         "settings": {
             "type": float,
             "help": (
                 "Parameter to the perlin noise function."
             ),
-            "default": defaults["noise_frequency"],
+            "default": defaults["patch_width"],
         },
     },
     "noise_octaves": {
@@ -492,6 +493,18 @@ _parameter_config = {
                 "Random seed used for the fire frequency distribution. Default: {}.".format(defaults["random_seed_firefreq"])
             ),
             "default": defaults["random_seed_firefreq"],
+        },
+    },
+    "enforce_no_recruits": {
+        "keys": {
+            "cli": ["--enforce_no_recruits", "-enr"]
+        },
+        "settings": {
+            "type": int,
+            "help": (
+                "Enforce a fraction of the total number of produced seeds to become recruits. -1 (default) means no specific fraction is enforced."
+            ),
+            "default": defaults["enforce_no_recruits"],
         },
     },
     "growth_rate_multiplier_params": {
