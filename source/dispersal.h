@@ -17,45 +17,54 @@ public:
 		pair<float, float> direction;
 		get_direction(kernel, direction);
 		float distance = get_dist(kernel);
-		pair<float, float> release_location = state->grid.get_random_position_within_crown(state->population.get(crop->id));
-		deposition_location = crop->origin + distance * direction;
+		//pair<float, float> release_location = state->grid.get_random_position_within_crown(state->population.get(crop->id));
+		pair<float, float> release_location = state->population.get(crop->id)->position;
+		deposition_location = release_location + distance * direction;
 	}
 	bool germinate_seed(
 		Crop* crop, State* state, pair<float, float>& deposition_location, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions,
-		int& no_competitions_with_older_trees, int& no_germination_attempts
+		int& no_competitions_with_older_trees, int& no_germination_attempts, int& no_cases_seedling_competition_and_shading, int& no_cases_oldstem_competition_and_shading
 	) {
 		// Create seed and germinate if location has suitable conditions (existing LAI not too high).
 		Seed seed(crop->strategy, deposition_location);
 		return seed.germinate_if_location_is_viable(
-			state, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts
+			state, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts,
+			no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading
 		);
 	}
 	void germinate_seeds_in_diaspore(
 		Crop* crop, State* state, pair<float, float>& deposition_location, int& no_recruits,
-		int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions, int& no_competitions_with_older_trees, int& no_germination_attempts
+		int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions, int& no_competitions_with_older_trees, int& no_germination_attempts,
+		int& no_cases_seedling_competition_and_shading, int& no_cases_oldstem_competition_and_shading
 	) {
 		for (int i = 0; i < crop->strategy.no_seeds_per_diaspore; i++) {
 			no_recruits += germinate_seed(
-				crop, state, deposition_location, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts
+				crop, state, deposition_location, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts,
+				no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading
 			);
 		}
 	}
-	void disperse_diaspore(
+	pair<int, int> disperse_diaspore(
 		Crop* crop, State* state, int& no_recruits, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions, int& no_competitions_with_older_trees,
-		int& no_germination_attempts
+		int& no_germination_attempts, int& no_cases_seedling_competition_and_shading, int& no_cases_oldstem_competition_and_shading
 	) {
 		pair<float, float> deposition_location;
 		compute_deposition_location(crop, state, deposition_location);
 		germinate_seeds_in_diaspore(
-			crop, state, deposition_location, no_recruits, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts
+			crop, state, deposition_location, no_recruits, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts,
+			no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading
 		);
+		return deposition_location;
 	}
 	int disperse_crop(
-		Crop* crop, State* state, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions, int& no_competitions_with_older_trees, int& no_germination_attempts
+		Crop* crop, State* state, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions, int& no_competitions_with_older_trees, int& no_germination_attempts,
+		int& no_cases_seedling_competition_and_shading, int& no_cases_oldstem_competition_and_shading, int& enforce_no_recruits, int& no_recruits
 	) {
-		int no_recruits = 0;
 		for (int i = 0; i < crop->no_diaspora; i++) {
-			disperse_diaspore(crop, state, no_recruits, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts);
+			disperse_diaspore(
+				crop, state, no_recruits, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts,
+				no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading
+			);
 		}
 		return no_recruits;
 	}
@@ -81,13 +90,15 @@ class AnimalDispersal : public Disperser {
 public:
 	AnimalDispersal() : Disperser() {};
 	int disperse(State* state, ResourceGrid* resource_grid, int no_seeds_to_disperse, float& fraction_time_spent_moving, int& no_seedlings_dead_due_to_shade,
-		int& no_seedling_competitions, int& no_competitions_with_older_trees, int& no_germination_attempts, int verbosity = 0
+		int& no_seedling_competitions, int& no_competitions_with_older_trees, int& no_germination_attempts, int& no_cases_seedling_competition_and_shading,
+		int& no_cases_oldstem_competition_and_shading, int enforce_no_recruits, int verbosity = 0
 	) {
 		animals.place(state);
 		int no_seeds_dispersed = 0;
 		animals.disperse(
 			no_seeds_dispersed, no_seeds_to_disperse, state, resource_grid, fraction_time_spent_moving, no_seedlings_dead_due_to_shade,
-			no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts
+			no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts, no_cases_seedling_competition_and_shading,
+			no_cases_oldstem_competition_and_shading, enforce_no_recruits
 		);
 		return no_seeds_dispersed;
 	}

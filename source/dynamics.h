@@ -10,7 +10,7 @@ public:
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
 		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_dbh, float _saturation_threshold, float _fire_resistance_argmin,
 		float _fire_resistance_argmax, float _fire_resistance_stretch, float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
-		int _resource_grid_width, float _mutation_rate, float _STR, int _verbosity, int random_seed, int firefreq_random_seed
+		int _resource_grid_width, float _mutation_rate, float _STR, int _verbosity, int random_seed, int firefreq_random_seed, float __enforce_no_recruits
 	) :
 		timestep(_timestep), cell_width(_cell_width), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_max_dbh * _seed_bearing_threshold),
@@ -21,7 +21,7 @@ public:
 		max_dbh(_max_dbh), seedling_discard_dbh(0.05 * _max_dbh), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold),
 		fire_resistance_argmin(_fire_resistance_argmin), fire_resistance_argmax(_fire_resistance_argmax), fire_resistance_stretch(_fire_resistance_stretch),
 		background_mortality(_background_mortality), strategy_distribution_params(_strategy_distribution_params),
-		resource_grid_width(_resource_grid_width), mutation_rate(_mutation_rate), STR(_STR)
+		resource_grid_width(_resource_grid_width), mutation_rate(_mutation_rate), STR(_STR), _enforce_no_recruits(__enforce_no_recruits)
 	{
 		time = 0;
 		help::init_RNG(random_seed);
@@ -204,12 +204,24 @@ public:
 			}
 			else if (pop->get_kernel(id)->type == "wind") {
 				wind_seeds_dispersed += crop->no_seeds;
+				int enforce_no_recruits = -1;
+				if (_enforce_no_recruits >= 0) enforce_no_recruits = (float)crop->no_seeds * _enforce_no_recruits; // Enforce a certain fraction of the number of produced seeds to be recruited.
 				pop->get_kernel(id)->update(tree.height);
-				no_wind_seedlings += wind_disperser.disperse_crop(crop, &state, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts);
+				wind_disperser.disperse_crop(
+					crop, &state, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees,
+					no_germination_attempts, no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading,
+					enforce_no_recruits, no_wind_seedlings
+				);
 				wind_trees++;
 			}
 			else {
-				linear_disperser.disperse_crop(crop, &state, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts);
+				int enforce_no_recruits = -1;
+				if (_enforce_no_recruits >= 0) enforce_no_recruits = (float)crop->no_seeds * _enforce_no_recruits; // Enforce a certain fraction of the number of produced seeds to be recruited.
+				linear_disperser.disperse_crop(
+					crop, &state, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees,
+					no_germination_attempts, no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading,
+					enforce_no_recruits, no_wind_seedlings
+				);
 			}
 		}
 		timer.stop(); printf(
@@ -219,10 +231,13 @@ public:
 	}
 	void disperse_animal_seeds(int no_seeds_to_disperse, int& no_recruits) {
 		Timer timer; timer.start();
+		int enforce_no_recruits = -1;
+		if (enforce_no_recruits >= 0) enforce_no_recruits = (float)no_seeds_to_disperse * enforce_no_recruits; // Enforce a certain fraction of the number of produced seeds to be recruited.)
 		if (resource_grid.has_fruits) {
 			no_recruits = animal_dispersal.disperse(
 				&state, &resource_grid, no_seeds_to_disperse, fraction_time_spent_moving, no_seedlings_dead_due_to_shade, no_seedling_competitions, 
-				no_competitions_with_older_trees, no_germination_attempts, 1
+				no_competitions_with_older_trees, no_germination_attempts, no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading, 
+				enforce_no_recruits, 1
 			);
 		}
 		timer.stop(); printf("-- Dispersing %s animal seeds took %f seconds. \n", help::readable_number(no_seeds_to_disperse).c_str(), timer.elapsedSeconds());
@@ -259,6 +274,8 @@ public:
 		int no_seed_bearing_trees = 0;
 		int no_wind_trees = 0;
 		no_wind_seedlings = 0;
+		no_cases_oldstem_competition_and_shading = 0;
+		no_cases_seedling_competition_and_shading = 0;
 		no_seedlings_dead_due_to_shade = 0;
 		no_competitions_with_older_trees = 0;
 		no_germination_attempts = 0;
@@ -267,7 +284,6 @@ public:
 		disperse_wind_seeds_and_init_fruits(no_seed_bearing_trees, no_wind_seedlings, wind_seeds_dispersed, animal_seeds_dispersed, no_wind_trees);
 		disperse_animal_seeds(animal_seeds_dispersed, no_animal_seedlings);
 		recruit();
-		seeds_produced = wind_seeds_dispersed + animal_seeds_dispersed;
 
 		if (verbosity > 0) {
 			printf(
@@ -352,10 +368,11 @@ public:
 	}
 	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue, Cell* cell) {
 		if (verbosity > 1) printf("Burning tree %i ... \n", tree->id);
-		grid->burn_tree_domain(tree, queue, time_last_fire, false, true, cell->idx);
+		Cell* stem_cell = grid->burn_tree_domain(tree, queue, time_last_fire, true, true, cell->idx);
 		if (tree->life_phase == 2 || tree->life_phase == 0) {
-			// A tree that is an adult or a sapling which has been burned once is allowed to resprout, in line with findings of Hoffmann et al. (2012).
+			// A tree which has been burned once is allowed to resprout, in line with findings of Hoffmann et al. (2012).
 			tree->resprout(seed_bearing_threshold);
+			stem_cell->resprout_present = true;
 		}
 		else {
 			// Resprouts are not allowed to resprout again, since previous work appears to indicate that forest species are not able to consistently recover from repeated burning (Fensham et al 2003)
@@ -372,6 +389,7 @@ public:
 	}
 	void induce_tree_mortality(Cell* cell, queue<Cell*>& queue, int& no_trees_topkilled) {
 		int tree_id = cell->stem.second;
+		//printf("idx: %i , no trees: %i\n", idx, cell->trees.size());
 		if (tree_id == 0) return; // If no tree stem is present in this cell, skip mortality evaluation.
 
 		Tree* tree = pop->get(tree_id);
@@ -462,6 +480,9 @@ public:
 	float fraction_time_spent_moving = 0;
 	float mutation_rate = 0;
 	float STR = 0;
+	float _enforce_no_recruits = 0;
+	int no_cases_seedling_competition_and_shading = 0;
+	int no_cases_oldstem_competition_and_shading = 0;
 	int no_germination_attempts = 0;
 	int no_competitions_with_older_trees = 0;
 	int no_seedlings_dead_due_to_shade = 0;

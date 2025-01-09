@@ -12,6 +12,7 @@ public:
 	vector<int> trees;
 	pair<int, int> pos;
 	bool seedling_present = false;
+	bool resprout_present = false;
 	pair<float, int> stem = pair<float, int>(0, 0);	// < float: dbh of largest tree or seedling that has its stem in this cell,
 													//	 int:   Largest tree id, or id of parent tree if the largest stem belongs to a seedling >
 	bool cell_is_occupied_by_larger_stem(pair<float, int> &tree_proxy) {
@@ -38,21 +39,37 @@ public:
 	}
 	bool is_hospitable(
 		pair<float, int> tree_proxy, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions,
-		int& no_competitions_with_older_trees
+		int& no_competitions_with_older_trees, int& no_cases_seedling_competition_and_shading, int& no_cases_oldstem_competition_and_shading
 	) {
 		// If tree_proxy is larger than the current largest stem in the cell, it is assumed to be able to outcompete the other tree.
 		// If not, tree_proxy is assumed to be shaded out or otherwise outcompeted by the existing larger tree.
-		no_seedling_competitions += seedling_present;
+		//no_seedling_competitions += seedling_present;
+		bool outcompeted = false;
+		bool shaded_out = false;
+		bool outcompeted_by_sapling = false;
+		bool outcompeted_by_older_tree = false;
 		if (cell_is_occupied_by_larger_stem(tree_proxy)) {
-			no_competitions_with_older_trees += !seedling_present;
-			return false;
+			outcompeted_by_sapling = seedling_present; // If there is an existing sapling in the cell, and its stem is larger than the new sapling's stem, the new sapling is outcompeted.
+			outcompeted_by_older_tree = !seedling_present; // If there is an existing older stem in the cell, and it is larger than the new sapling's stem, the new sapling is outcompeted.
+			no_competitions_with_older_trees += outcompeted_by_older_tree;
+			no_seedling_competitions += outcompeted_by_sapling;
+			outcompeted = true;
 		}
 		if (seedling_is_shaded_out()) {
-			no_seedlings_dead_due_to_shade++; 
-			no_seedling_competitions -= seedling_present; // If the seedling is dead due to shade, it should not be counted as a competitor.
-			return false;
+			no_seedlings_dead_due_to_shade += !outcompeted; // This counter indicates how many seedlings died due to shading exclusively (i.e. without suffering from competition).
+			//no_seedling_competitions -= seedling_present; // If the new sapling dies due to shade, the number of seedling competitions should remain the same.
+			shaded_out = true;
 		}
-		return true;
+
+		// Determine viability of the cell for the new sapling.
+		bool viable = !(outcompeted || shaded_out);
+
+		// Track seed fate
+		no_cases_seedling_competition_and_shading += outcompeted_by_sapling && shaded_out;
+		no_cases_oldstem_competition_and_shading += outcompeted_by_older_tree && shaded_out;
+		no_seedling_competitions += viable && seedling_present; // If the new sapling is viable, it will replace (outcompete) the existing sapling.
+
+		return viable;
 	}
 	float query_grass_LAI() {
 		return grass_LAI;

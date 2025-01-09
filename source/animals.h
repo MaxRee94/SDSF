@@ -27,7 +27,8 @@ public:
 		int& no_seeds_dispersed, int _iteration, State* state, ResourceGrid* resource_grid, int& no_seeds_eaten,
 		float& time_spent_resting, float& distance_travelled, float& average_gut_passage_time, float& average_gut_time,
 		int& no_seeds_defecated, float& time_spent_moving, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions,
-		int& no_competitions_with_older_trees, int& no_germination_attempts
+		int& no_competitions_with_older_trees, int& no_germination_attempts, int& no_cases_seedling_competition_and_shading,
+		int& no_cases_oldstem_competition_and_shading
 	) {
 		iteration = _iteration;
 
@@ -38,7 +39,8 @@ public:
 
 		digest(
 			resource_grid, no_seeds_dispersed, no_seeds_defecated, state, move_time_interval,
-			no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts
+			no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts,
+			no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading
 		);
 
 		pair<int, int> rest_time_interval(curtime, -1);
@@ -48,7 +50,8 @@ public:
 
 		digest(
 			resource_grid, no_seeds_dispersed, no_seeds_defecated, state, rest_time_interval,
-			no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts
+			no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts,
+			no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading
 		);
 	}
 	void rest(float& time_spent_resting) {
@@ -112,7 +115,8 @@ public:
 	void digest(
 		ResourceGrid* resource_grid, int& no_seeds_dispersed, int& no_seeds_defecated,
 		State* state, pair<int, int>& time_interval, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions,
-		int& no_competitions_with_older_trees, int& no_germination_attempts
+		int& no_competitions_with_older_trees, int& no_germination_attempts, int& no_cases_seedling_competition_and_shading,
+		int& no_cases_oldstem_competition_and_shading
 	) {
 		vector<int> deletion_schedule;
 		for (int defecation_time = time_interval.first; defecation_time <= time_interval.second; defecation_time++) {
@@ -128,7 +132,8 @@ public:
 				// Defecate seed.
 				defecate(
 					seed, time_since_defecation, no_seeds_dispersed, resource_grid, no_seedlings_dead_due_to_shade,
-					no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts
+					no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts,
+					no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading
 				);
 
 				no_seeds_defecated++;
@@ -159,7 +164,7 @@ public:
 	void defecate(
 		Seed &seed, float time_since_defecation, int &no_seeds_dispersed, ResourceGrid* resource_grid,
 		int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions, int& no_competitions_with_older_trees,
-		int& no_germination_attempts
+		int& no_germination_attempts, int& no_cases_seedling_competition_and_shading, int& no_cases_oldstem_competition_and_shading
 	) {
 		pair<float, float> seed_deposition_location;
 		if (moving) {
@@ -172,7 +177,8 @@ public:
 		int prev_seed_dispersed_number = no_seeds_dispersed;
 		seed.deposition_location = seed_deposition_location;
 		bool germination = seed.germinate_if_location_is_viable(
-			resource_grid->state, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts
+			resource_grid->state, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts,
+			no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading
 		);
 		no_seeds_dispersed += germination;
 	}
@@ -246,7 +252,8 @@ public:
 	}
 	void disperse(int& no_seeds_dispersed, int no_seeds_to_disperse, State* state, ResourceGrid* resource_grid,
 		float& fraction_time_spent_moving, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions,
-		int& no_competitions_with_older_trees, int& no_germination_attempts
+		int& no_competitions_with_older_trees, int& no_germination_attempts, int& no_cases_seedling_competition_and_shading,
+		int& no_cases_oldstem_competition_and_shading, int enforce_no_recruits
 	) {
 		place(state);
 		resource_grid->reset_color_arrays();
@@ -275,14 +282,16 @@ public:
 						no_seeds_dispersed, iteration, state, resource_grid, cur_no_seeds_eaten, time_spent_resting,
 						distance_travelled, _average_gut_passage_time, _average_gut_time, no_seeds_defecated, time_spent_moving,
 						no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees,
-						no_germination_attempts
+						no_germination_attempts, no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading
 					);
 					average_curtime += animal.curtime;
 					average_gut_time += _average_gut_time;
 					average_gut_passage_time += _average_gut_passage_time;
+					if (no_seeds_defecated < no_seeds_to_disperse) break;
 				}
+				if (no_seeds_defecated < no_seeds_to_disperse) break;
 			}
-			if (iteration % 60 == 0 && iteration > 0) {
+			if (iteration % 600 == 0 && iteration > 0) {
 				printf("-- Animal dispersal progress: %f %%\n", (float)no_seeds_defecated * 100.0f / (float)no_seeds_to_disperse);
 			}
 			no_seeds_eaten += cur_no_seeds_eaten;

@@ -16,13 +16,13 @@ public:
 	{};
 	bool germinate_if_location_is_viable(
 		State* state, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions, int& no_competitions_with_older_trees,
-		int& no_germination_attempts
+		int& no_germination_attempts, int& no_cases_seedling_competition_and_shading, int& no_cases_oldstem_competition_and_shading
 	) {
 		Cell* cell = state->grid.get_cell_at_position(deposition_location);
 		no_germination_attempts++;
-		if (cell->is_hospitable(pair<float, int>(strategy.seedling_dbh, strategy.id), no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees)) {
-			if (!cell->seedling_present) {
-			}
+		if (cell->is_hospitable(pair<float, int>(strategy.seedling_dbh, strategy.id), no_seedlings_dead_due_to_shade, no_seedling_competitions,
+			no_competitions_with_older_trees, no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading)
+		) {
 			germinate(cell, state);
 			return true;
 		}
