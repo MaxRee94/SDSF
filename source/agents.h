@@ -436,6 +436,7 @@ public:
 			strategy_generator.generate(strategy);
 		} 
 		strategy.id = tree.id;
+		recruitment_rates.push_back(strategy.recruitment_probability);
 
 		// Create crop
 		Crop crop(strategy, tree);
@@ -526,6 +527,7 @@ public:
 	float cellsize = 0;
 	float seed_mass = 0;
 	float mutation_rate = 0;
+	vector<float> recruitment_rates;
 	Tree removed_tree;
 	int no_created_trees = 0;
 	float seed_bearing_threshold = 0;

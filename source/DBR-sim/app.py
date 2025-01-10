@@ -67,7 +67,7 @@ def init_tests(
     constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
     initial_pattern_image=None, mutation_rate=None, growth_rate_multiplier_params=None, 
-    random_seed=None, random_seed_firefreq=None, **user_args
+    random_seed=None, random_seed_firefreq=None, enforce_no_recruits=None, **user_args
 ):
     # Obtain strategy distribution parameters
     with open(os.path.join(DATA_IN_DIR, strategy_distribution_params), "r") as sdp_jsonfile:
@@ -79,7 +79,8 @@ def init_tests(
         flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
         resource_grid_width, mutation_rate, verbosity, grid_width, dbh_q1, dbh_q2, growth_rate_multiplier_params[0],
-        growth_rate_multiplier_params[1], growth_rate_multiplier_params[2], random_seed, random_seed_firefreq
+        growth_rate_multiplier_params[1], growth_rate_multiplier_params[2], random_seed, random_seed_firefreq,
+        enforce_no_recruits
     )
     
     return tests
@@ -97,7 +98,7 @@ def init(
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
     initial_pattern_image=None, mutation_rate=None, STR=None,
     batch_parameters=None, growth_rate_multiplier_params=None,
-    random_seed=None, random_seed_firefreq=None, **user_args
+    random_seed=None, random_seed_firefreq=None, enforce_no_recruits=None, **user_args
     ):
 
     # Initialize dynamics object and state
@@ -107,7 +108,7 @@ def init(
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
         flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
-        resource_grid_width, mutation_rate, STR, verbosity, random_seed, random_seed_firefreq
+        resource_grid_width, mutation_rate, STR, verbosity, random_seed, random_seed_firefreq, enforce_no_recruits
     )
     dynamics.init_state(grid_width, dbh_q1, dbh_q2, growth_rate_multiplier_params[0], growth_rate_multiplier_params[1], growth_rate_multiplier_params[2])
     
@@ -262,6 +263,10 @@ def updateloop(dynamics, color_dicts, **user_args):
         dynamics.update()
         print("-- Finished update") if verbose else None
         
+        # Obtain initial number of recruits
+        if dynamics.time == 1:
+            initial_no_recruits = dynamics.get_no_recruits("all")
+        
         # Track tree cover trajectory and evaluate termination conditions
         prev_tree_cover.append(dynamics.state.grid.get_tree_cover())
         if dynamics.time > 10:
@@ -311,7 +316,7 @@ def updateloop(dynamics, color_dicts, **user_args):
         cv2.destroyAllWindows()
         dynamics.free()
     
-    return dynamics, slope, largest_absolute_slope
+    return dynamics, slope, largest_absolute_slope, initial_no_recruits
 
 
 def test_kernel():
