@@ -71,7 +71,192 @@ def execute_single_run(
     return dynamics, tree_cover_slope, largest_absolute_slope, initial_no_recruits, singlerun_name, singlerun_csv_path, singlerun_image_path
 
 
+def execute_multiple_runs(params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
+        dependent_var, opti_mode, statistic, batch_type, init_csv, secondary_value=None, secondary_variable=None, dependent_result_range_mean=1, dependent_result_range_stdev=1
+    ):
+    
+    params[secondary_variable] = secondary_value
+    dependent_values = []
+    for i in range(no_reruns):
+        print(f"Beginning run {i+1} of {no_reruns}")
+        dynamics, tree_cover_slope, largest_absolute_slope, initial_no_recruits, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_single_run(
+            params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
+            dependent_var, opti_mode, statistic, batch_type, init_csv, secondary_value=secondary_value, secondary_variable=secondary_variable, export_to_parent_csv=False
+        )
+        if dependent_var == "tree_cover_slope":
+            dependent_values.append(tree_cover_slope)
+        else:
+            dependent_values.append(getattr(dynamics, dependent_var))
+        print("Current {}: ".format(dependent_var), tree_cover_slope)
+        if i < (no_reruns - 1):
+            dynamics.free()
+
+    print("Dependent values: ", dependent_values)
+    result = 0
+    if (statistic == "mean"):
+        result = abs(stats.mean(dependent_values))
+    elif (statistic == "stdev"):
+        result = stats.stdev(dependent_values)
+    elif (statistic == "stdev_and_mean" and opti_mode == "minimize"):
+        result = (abs(stats.mean(dependent_values)) / dependent_result_range_mean) - (stats.stdev(dependent_values) / dependent_result_range_stdev)
+    else:
+        raise RuntimeError("Invalid statistic '{}'".format(statistic))
+    
+    if (dependent_var == "tree_cover_slope"):
+        tree_cover_slope = stats.mean(dependent_values)
+
+    return dynamics, tree_cover_slope, largest_absolute_slope, result, initial_no_recruits, stats.stdev(dependent_values), singlerun_name, singlerun_csv_path, singlerun_image_path
+
+
+def interpolate_secondary_value(argmin, argmax, argmin_result, argmax_result, opti_mode):
+    if opti_mode == "maximize":
+        return (argmin_result + argmax_result) / 2
+    elif opti_mode == "minimize":
+        cumulative_deviation = argmin_result + argmax_result
+        argmin_deviation = argmin_result / cumulative_deviation
+        return argmin + argmin_deviation * (argmax - argmin) # Linear interpolation between argmin and argmax
+
+
+def hillclimb(latest_arg, latest_result, previous_arg, previous_result, secondary_range, opti_mode, stepsize):
+    stepsize = stepsize * (secondary_range[1] - secondary_range[0])
+    print("Stepsize: ", stepsize)
+    if opti_mode == "minimize":
+        if latest_result > previous_result:
+            # Result in direction of latest argument is worse, since latest result is larger.
+            # Therefore, we should move back in the direction of the previous argument value
+            print("Moving toward previous best argument value (latest result = {}, latest arg: {}, previous best result = {}, previous best arg: {})".format(
+                    latest_result, latest_arg, previous_result, previous_arg
+                )
+            )
+            diff = previous_arg - latest_arg
+        else:
+            # The latest argument value is better, since the result is smaller.
+            # Therefore, we should continue moving in the same direction
+            print("Moving toward latest argument value, which is better than previous (latest result = {}, latest arg: {}, previous best result = {}, previous best arg: {})".format(
+                    latest_result, latest_arg, previous_result, previous_arg
+                )
+            )
+            diff = latest_arg - previous_arg
             
+    print("Diff: {}, abs(diff): {}".format(diff, abs(diff)))
+    direction = diff / abs(diff)
+    val = latest_arg + stepsize * direction
+    if (val < secondary_range[0]):
+        val = (latest_arg + secondary_range[0]) / 2
+        print("-- latest arg: ", latest_arg, ", prev arg: ", previous_arg, ", lower bound: ", secondary_range[0], ", avg:", val)      
+    elif (val > secondary_range[1]):
+        val = (latest_arg + secondary_range[1]) / 2
+        print("-- latest arg: ", latest_arg, ", prev arg: ", previous_arg, ", upper bound: ", secondary_range[1], ", avg:", val)
+    
+    return val
+
+def execute_saddle_search(
+        params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict,
+        extra_parameters, dependent_var, opti_mode, statistic, secondary_variable, secondary_range, no_attempts
+    ):
+    no_attempts = int(no_attempts)
+    print("\nExecuting saddle search with primary variable {} = {}".format(primary_variable, primary_value), "and secondary variable {} in {}".format(secondary_variable, secondary_range))
+    init_csv = True
+    
+    # Perform the first two attempts
+    argmin = secondary_range[0]
+    argmax = secondary_range[1]
+    dynamics, tree_cover_slope, largest_absolute_slope, argmin_result, initial_no_recruits, argmin_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_multiple_runs(
+        params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv,
+        color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=argmin, secondary_variable=secondary_variable
+    )
+    dynamics, tree_cover_slope, largest_absolute_slope, argmax_result, initial_no_recruits, argmax_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_multiple_runs(
+        params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv,
+        color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=argmax, secondary_variable=secondary_variable
+    )
+    secondary_value_trajectory = {argmin:argmin_result, argmax:argmax_result}
+    negative_value_trajectory = {}
+    if dependent_var == "tree_cover_slope":
+        if argmin_result < 0:
+            negative_value_trajectory = {argmin:argmin_result}
+        if argmax_result < 0:
+            negative_value_trajectory = {argmax:argmax_result}
+    print("Initial argmin_result and argmax_result:", argmin_result, argmax_result)
+    cur_secondary_value = interpolate_secondary_value(secondary_range[0], secondary_range[1], argmin_result, argmax_result, opti_mode)
+    
+    # Establish a secondary range-wide mean and stdev, for use in the stdev_and_mean statistic as a normalization factor
+    dependent_result_range_mean = (argmin_result + argmax_result) / 2
+    dependent_result_range_stdev = (argmin_results_stdev + argmax_results_stdev) / 2
+    
+    # Perform the remaining attempts using a hillclimbing algorithm
+    # -- Initialize 'previous' variables; secondary value with the most optimal result is chosen as the initial 'previous' value
+    stepsize = 0.5
+    min_and_max_argvalues = np.array([argmin, argmax])
+    min_and_max_results = np.array([argmin_result, argmax_result])
+    if opti_mode == "minimize":
+        prev_result = min_and_max_results[min_and_max_results.argmin()]
+        prev_secondary_value = min_and_max_argvalues[min_and_max_results.argmin()]
+    else:
+        raise RuntimeError("Currently unsupported opti mode '{}'".format(opti_mode))
+    
+    # -- Run the hillclimbing algorithm
+    best_result = prev_result
+    best_secondary_value = prev_secondary_value
+    best_negative_secondary_value = argmax
+    best_negative_secondary_result = argmax_result
+    best_positive_secondary_value = argmin
+    best_positive_secondary_result = argmin_result
+    for i in range(no_attempts - 2):
+        print("Value trajectory so far: ", secondary_value_trajectory)
+        dynamics.free()
+        dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, cur_initial_no_recruits, _, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_multiple_runs(
+            params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv,
+            color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=cur_secondary_value, secondary_variable=secondary_variable,
+            dependent_result_range_mean=dependent_result_range_mean, dependent_result_range_stdev=dependent_result_range_stdev
+        )
+        secondary_value_trajectory[cur_secondary_value] = cur_secondary_value_result
+        
+        # Get smallest and largest secondary values
+        secondary_values = np.array([cur_secondary_value, prev_secondary_value])
+        prev_and_current_results = np.array([cur_secondary_value_result, prev_result])
+        argmax = secondary_values[np.argmax(secondary_values)]
+        argmin = secondary_values[np.argmin(secondary_values)]
+        
+        # Obtain new secondary value
+        if opti_mode == "minimize" and dependent_var == "tree_cover_slope":
+            if tree_cover_slope > 0:
+                # Get average of latest argument and argument corresponding to best negative result
+                _secondary_value = (best_negative_secondary_value + cur_secondary_value) / 2
+                print("Moving in negative direction of dependent variable")
+            else:
+                # Get average of latest argument and argument corresponding to best positive result
+                _secondary_value = (best_positive_secondary_value + cur_secondary_value) / 2
+                print("Moving in positive direction of dependent variable")
+        else:
+            _secondary_value = hillclimb(cur_secondary_value, cur_secondary_value_result, best_secondary_value, best_result, secondary_range, opti_mode, stepsize)
+        prev_secondary_value = cur_secondary_value
+        prev_result = cur_secondary_value_result
+        stepsize *= 0.8 # Reduce stepsize asymptotically
+        
+        # Update best result and best secondary value
+        if opti_mode == "minimize":
+            if cur_secondary_value_result < best_result:
+                best_result = cur_secondary_value_result
+                best_secondary_value = cur_secondary_value
+                initial_no_recruits = cur_initial_no_recruits
+                if (dependent_var == "tree_cover_slope"):
+                    largest_absolute_slope = best_result
+                    if tree_cover_slope > 0:
+                        best_positive_secondary_value = cur_secondary_value
+                        best_positive_secondary_result = cur_secondary_value_result
+                    else:
+                        best_negative_secondary_value = cur_secondary_value
+                        best_negative_secondary_result = cur_secondary_value_result
+        else:
+            raise RuntimeError("Currently unsupported opti mode '{}'".format(opti_mode))
+        
+        # Update secondary value
+        cur_secondary_value = _secondary_value
+        
+    
+    return best_secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, initial_no_recruits, singlerun_name, singlerun_csv_path, singlerun_image_path
+
+
 def iterate_across_range(params, control_variable, control_range, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict,
                         extra_parameters, batch_type, dependent_var, opti_mode, statistic, secondary_variable, secondary_range, attempts=None):
     init_csv = True
