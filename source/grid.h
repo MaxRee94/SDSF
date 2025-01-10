@@ -182,6 +182,7 @@ public:
 		grass_LAI = 0;
 		stem = pair<float, int>(0, 0);
 		seedling_present = false;
+		resprout_present = false;
 	}
 	bool operator==(const Cell& cell) const
 	{

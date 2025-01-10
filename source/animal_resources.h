@@ -290,7 +290,7 @@ public:
 		}
 		else if (collect == "cover") {
 			for (int i = 0; i < no_cells; i++) {
-				color_distribution[i] = c[species][i] * 100;
+				color_distribution[i] = c[species][i] * 100000;
 			}
 		}
 		else if (collect == "visits") {
