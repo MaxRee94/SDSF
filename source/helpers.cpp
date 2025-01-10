@@ -10,7 +10,7 @@
 
 using namespace std;
 
-#define RAND_DOUBLE_PRECISION 0.001
+#define RAND_DOUBLE_PRECISION 0.0001
 #define INV_RAND_DOUBLE_PRECISION_PLUSONE 1.0 / (1.0 + RAND_DOUBLE_PRECISION)
 
 void help::init_RNG(int seed) {

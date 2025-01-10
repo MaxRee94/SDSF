@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <random>
 #include <chrono>
+#include <numeric>
 
 #define _USE_MATH_DEFINES
 #include <cmath>
