@@ -129,9 +129,14 @@ def init(
         else:
             print("Setting tree cover from image...")
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        img = vis.get_thresholded_image(img, treecover * img.shape[0] * img.shape[0] * 255 )
-        cv2.imwrite(path.replace(".png", "_thresholded.png"), img)
-        img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR) 
+        if img is None and initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
+            vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=user_args["noise_octaves"])
+        
+        if not "thresholded.png" in path:
+            img = vis.get_thresholded_image(img, treecover * img.shape[0] * img.shape[0] * 255 )
+            cv2.imwrite(path.replace(".png", "_thresholded.png"), img)
+ 
+        img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
         dynamics.state.set_cover_from_image(img / 255, -1)
     dynamics.state.repopulate_grid(0)
     
