@@ -388,8 +388,7 @@ def main(batch_parameters=None, **user_args):
             idx = int(control_keys[1].split("<idx>")[1])
             user_args[control_keys[0]][idx] = batch_parameters["control_value"]
 
-    # Set number of cells
-    #user_args["grid_width"] = int( user_args["grid_width"] / user_args["cellsize"])
+    user_args["patch_width"] = round(user_args["patch_width"], 2)
 
     if user_args["test"] == "all":
         tests = init_tests(**user_args)
