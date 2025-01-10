@@ -551,12 +551,12 @@ public:
 		}
 	}
 	void add_tree_to_cell(int idx, Tree* tree) {
-		if (distribution[idx].state == 0) {
-			no_savanna_cells--;
-			no_forest_cells++;
-		}
 		distribution[idx].add_tree(tree);
 		if (distribution[idx].get_LAI() > 1.0) {
+			if (distribution[idx].state == 0) {
+				no_savanna_cells--;
+				no_forest_cells++;
+			}
 			distribution[idx].state = 1;
 		}
 	}
