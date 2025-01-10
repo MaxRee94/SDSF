@@ -277,10 +277,10 @@ def updateloop(dynamics, color_dicts, **user_args):
         # Track tree cover trajectory and evaluate termination conditions
         prev_tree_cover.append(dynamics.state.grid.get_tree_cover())
         if dynamics.time > 10:
-            slope = (prev_tree_cover[-1] - prev_tree_cover[-10]) / 10
+            slope = (prev_tree_cover[-1] - user_args["treecover"]) / dynamics.time
             single_tstep_slope = prev_tree_cover[-1] - prev_tree_cover[-2]
             if abs(single_tstep_slope) > largest_absolute_slope:
-                largest_absolute_slope = single_tstep_slope
+                largest_absolute_slope = abs(single_tstep_slope)
         else:
             slope = 0
         do_terminate = termination_condition_satisfied(dynamics, start, user_args)
@@ -293,7 +293,8 @@ def updateloop(dynamics, color_dicts, **user_args):
         init_csv = False
         
         print("-- Saving tree positions...") if verbose else None
-        io.save_tree_positions(dynamics)
+        #io.save_state(dynamics)
+        io.update_state_report(dynamics)
 
         print("-- Showing graphs...") if verbose else None
         if not user_args["headless"]:
