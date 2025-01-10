@@ -455,7 +455,7 @@ public:
 		bool success = true;
 		return get_random_position_within_crown(tree, success);
 	}
-	void burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = false,
+	Cell* burn_tree_domain(Tree* tree, queue<Cell*> &queue, float time_last_fire = -1, bool store_tree_death_in_color_distribution = false,
 		bool store_burn_events = true, int ignition_cell_idx = -1) {
 		TreeDomainIterator it(cell_width, tree);
 		while (it.next()) {
@@ -478,6 +478,8 @@ public:
 		}
 		int center_idx = get_capped_center_idx(it.tree_center_gb);
 		distribution[center_idx].remove_stem(tree, cell_area, cell_halfdiagonal_sqrt);
+
+		return &distribution[center_idx];
 	}
 	void kill_tree_domain(Tree* tree, bool store_tree_death_in_color_distribution = true) {
 		queue<Cell*> dummy;
