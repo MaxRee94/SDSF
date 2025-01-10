@@ -118,10 +118,69 @@ def import_image(fpath):
 def save_numpy_array_to_file(array, path):
     np.save(path, array)
 
-def save_tree_positions(dynamics):
-    tree_positions = dynamics.state.get_tree_positions()
+def save_state(dynamics):
+    state_table = dynamics.state.get_state_table()
     time = str(dynamics.time).zfill(4)
-    save_numpy_array_to_file(tree_positions, f"{DATA_OUT_DIR}/tree_positions/tree_positions_iter_{time}.npy")
+    save_numpy_array_to_file(state_table, f"{DATA_OUT_DIR}/tree_positions/tree_positions_iter_{time}.npy")
+
+def load_tree_dbh_values(_time):
+    if os.path.exists(TREE_DBH_FILE):
+        if _time == 1:
+            os.remove(TREE_DBH_FILE)
+            return {_time : {}}
+    else:
+        return {_time : {}}
+    
+    with open (TREE_DBH_FILE, "r") as dbh_json_file:
+        tree_dbh_values = json.load(dbh_json_file)
+    tree_dbh_values[_time] = {}
+    
+    return tree_dbh_values
+    
+def save_tree_dbh_values(tree_dbh_values):
+    with open(TREE_DBH_FILE, "w") as dbh_json_file:
+        json.dump(tree_dbh_values, dbh_json_file)
+
+def update_state_report(dynamics):
+    state_report_file = f"{DATA_OUT_DIR}/state_reports/state_report.npy"
+    current_state = dynamics.state.get_state_table()
+    germ_index = 3 
+    death_index = germ_index + 1
+    tree_dbh_values = load_tree_dbh_values(dynamics.time)
+
+    if os.path.exists(state_report_file) and dynamics.time == 1:
+        os.remove(state_report_file)
+    elif os.path.exists(state_report_file):
+        state_report = np.load(state_report_file)
+        
+        # Update the state report with newly germinated trees
+        for i in range(current_state.shape[0]):
+            _id = int(current_state[i, 0])
+            if _id not in state_report[:, 0]:
+                # Use tree format: id, x, y, time of germination, time of death
+                new_tree = list(current_state[i])[:3] # Get the tree id, x and y coordinates
+                new_tree = np.concatenate((new_tree, np.array([dynamics.time, 99999])), axis=0) # Add time of germination and placeholder for time of death
+                state_report = np.vstack([state_report, new_tree])
+            
+        # Update dbh file
+        for i in range(current_state.shape[0]):
+            _id = int(current_state[i, 0])
+            cur_dbh = float(current_state[i][3])
+            tree_dbh_values[dynamics.time][_id] = cur_dbh
+        
+        # Update the state report with tree deaths
+        for i in range(state_report.shape[0]):
+            _id = int(state_report[i, 0])
+            if (_id not in current_state[:, 0]) and (int(state_report[i][death_index]) == 99999):
+                state_report[i][death_index] = dynamics.time - 1
+    
+    if dynamics.time == 1:
+        state_report = np.zeros((current_state.shape[0], 5))
+        state_report[:,:3] = current_state[:,:3]
+        state_report[:,-1] = 99999
+
+    save_numpy_array_to_file(state_report, state_report_file)
+    save_tree_dbh_values(tree_dbh_values)
 
 
 
