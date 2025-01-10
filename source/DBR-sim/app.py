@@ -123,7 +123,9 @@ def init(
         if "perlin_noise" == initial_pattern_image:
             print("Setting tree cover using perlin noise function...")
             path = f"{PERLIN_NOISE_DIR}/" + initial_pattern_image + ".png"
-            vis.generate_perlin_noise_image(path, frequency=user_args["noise_frequency"], octaves=user_args["noise_octaves"])
+            noise_frequency = 5.0 / user_args["patch_width"] # Convert patch width to noise frequency
+            noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
+            vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=user_args["noise_octaves"])
         else:
             print("Setting tree cover from image...")
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
