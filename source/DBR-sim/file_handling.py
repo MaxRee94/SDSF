@@ -8,7 +8,7 @@ from config import *
 import numpy as np
 
 
-
+TREE_DBH_FILE = f"{DATA_OUT_DIR}/state_reports/tree_dbh_values.json"
 EXPORT_LOCATION = r"F:/Development/DBR-sim/data_out/state data"
 
 
@@ -25,14 +25,25 @@ def get_firefree_interval_stats(dynamics, _type):
     return mean, stdev
 
 
-def export_state(dynamics, path="", init_csv=True, control_variable=None, control_value=None, tree_cover_slope=0, extra_parameters=""):
+def export_state(
+        dynamics, path="", init_csv=True, control_variable=None, control_value=None, tree_cover_slope=0,
+        extra_parameters="", secondary_variable=None, secondary_value=None, dependent_var=None, dependent_val=None, initial_no_recruits=None
+    ):
     fieldnames = [
         "time", "tree cover", "slope", "population size", "#seeds produced", "fire mean spatial extent",
         "#trees[dbh 0-20%]", "#trees[dbh 20-40%]", "#trees[dbh 40-60%]", "#trees[dbh 60-80%]", "#trees[dbh 80-100%]", "extra_parameters",
-        "firefree interval mean", "firefree interval stdev","firefree interval full sim mean", "firefree interval full sim stdev", "recruits",
-        "fraction_time_spent_moving", "fraction_shaded_out", "fraction_outcompeted_by_seedlings", "fraction_outcompeted_by_older_trees",
-        "germination_attempts"
+        "firefree interval mean", "firefree interval stdev", "firefree interval full sim mean", "firefree interval full sim stdev", "time_spent_moving",
+        "shaded_out", "outcompeted_by_seedlings", "outcompeted_by_oldstems",
+        "recruits", "germination_attempts", "oldstem_competition_and_shading", "seedling_competition_and_shading"
     ]
+    if dependent_var:
+        fieldnames.insert(0, dependent_var)
+    if secondary_variable:
+        if secondary_variable == "treecover":
+            secondary_variable = "initial tree cover"
+        fieldnames.insert(0, secondary_variable)
+    if initial_no_recruits:
+        fieldnames.insert(-3, "initial_no_recruits")
     if control_variable:
         if control_variable == "treecover":
             control_variable = "initial tree cover"
@@ -67,21 +78,29 @@ def export_state(dynamics, path="", init_csv=True, control_variable=None, contro
             "firefree interval full sim mean": firefree_interval_fullsim_mean,
             "firefree interval full sim stdev": firefree_interval_fullsim_stdev,
             "recruits": str(dynamics.get_no_recruits("all")),
-            "fraction_time_spent_moving": str(dynamics.get_fraction_time_spent_moving()),
-            "fraction_shaded_out": str(dynamics.get_fraction_seedlings_dead_due_to_shade()),
-            "fraction_outcompeted_by_seedlings": str(dynamics.get_fraction_seedlings_outcompeted()),
-            "fraction_outcompeted_by_older_trees": str(dynamics.get_fraction_seedlings_outcompeted_by_older_trees()),
-            "germination_attempts": str(dynamics.get_no_germination_attempts())
+            "time_spent_moving": str(dynamics.get_fraction_time_spent_moving()),
+            "shaded_out": str(dynamics.get_fraction_seedlings_dead_due_to_shade()),
+            "outcompeted_by_seedlings": str(dynamics.get_fraction_seedlings_outcompeted()),
+            "outcompeted_by_oldstems": str(dynamics.get_fraction_seedlings_outcompeted_by_older_trees()),
+            "germination_attempts": str(dynamics.get_no_germination_attempts()),
+            "oldstem_competition_and_shading": str(dynamics.get_fraction_cases_oldstem_competition_and_shading()),
+            "seedling_competition_and_shading": str(dynamics.get_fraction_cases_seedling_competition_and_shading())
         }
         if control_variable:
             result[control_variable] = control_value
+        if secondary_variable:
+            result[secondary_variable] = secondary_value
+        if dependent_var:
+            result[dependent_var] = dependent_val
+        if initial_no_recruits:
+            result["initial_no_recruits"] = initial_no_recruits
         writer.writerow(result)
         
     return path
 
 
-def get_lookup_table(species, width):
-    path = os.path.join(DATA_INTERNAL_DIR, f"lookup_table_{species}_width-{width}.npy")
+def get_lookup_table(species, width, rcg_width):
+    path = os.path.join(DATA_INTERNAL_DIR, f"lookup_table_{species}_width-{width}_rcg_width-{rcg_width}.npy")
     if os.path.exists(path):
         return np.load(path), path
     else:
