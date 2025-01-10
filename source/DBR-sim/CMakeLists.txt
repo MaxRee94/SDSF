@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.17)
 
-project(SDSF)
+project(SDSF VERSION 1.0.0 DESCRIPTION "model of Seed Dispersal of forest trees in Savanna-Forest boundaries")
 
-add_executable(SDSF main.cpp)
+add_library(SDSF SHARED global.cpp)
 
