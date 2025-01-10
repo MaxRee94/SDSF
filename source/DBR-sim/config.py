@@ -25,7 +25,7 @@ defaults = {
     "max_dbh": 44.3, # (Close to) Theoretical maximum due to density-dependent constraint on LAI (see 'Tree Allometric Relationships v03.xlsx' for details)
     "image_width": 1000,
     "timestep": 1,
-    "patch_width": 0.03,
+    "patch_width": 170,
     "enforce_no_recruits": -1,
     "noise_octaves": 5,
     "timelimit": 1e32,
