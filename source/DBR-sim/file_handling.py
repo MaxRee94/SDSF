@@ -87,8 +87,8 @@ def get_lookup_table(species, width):
     else:
         return None, path
 
-def export_lookup_table(lookup_table, species):
-    path = os.path.join(DATA_INTERNAL_DIR, f"lookup_table_{species}_width-{lookup_table.shape[0]}.npy")
+def export_lookup_table(lookup_table, width, species):
+    path = os.path.join(DATA_INTERNAL_DIR, f"lookup_table_{species}_width-{width}_rcg_width-{lookup_table.shape[0]}.npy")
     print("path: ", path)
     np.save(path, lookup_table)
 
