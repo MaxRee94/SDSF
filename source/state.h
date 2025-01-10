@@ -181,13 +181,14 @@ public:
 			Cell &cell = grid.distribution[idx];
 			pair<float, float> position = grid.get_real_cell_position(&cell);
 			Tree* tree = population.add(position);
-			int dummy1, dummy2, dummy3;
-			if (!cell.is_hospitable(pair<float, int>(tree->radius, tree->id), dummy1, dummy2, dummy3)) {
+			int dummy1, dummy2, dummy3, dummy4, dummy5;
+			if (!cell.is_hospitable(pair<float, int>(tree->radius, tree->id), dummy1, dummy2, dummy3, dummy4, dummy5)) {
 				population.remove(tree->id);
 				continue;
 			}
 			grid.populate_tree_domain(tree);
 			grid.update_grass_LAIs_for_individual_tree(tree);
+			
 
 			// Thin crowds when close to target tree cover
 			/*if (grid.tree_cover > 0.95f * integral_image_cover && no_crowd_thinning_runs < max_no_crowd_thinning_runs) {
@@ -195,8 +196,12 @@ public:
 				thin_crowds(true);
 			}*/
 
-			if (population.size() % 10000 == 0) printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
+			if (population.size() % 10000 == 0) {
+				repopulate_grid(0);
+				printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
+			}
 		}
+		printf("Final tree cover: %f\n", grid.tree_cover);
 		probmodel.free();
 		repopulate_grid(0);
 		printf("Finished setting tree cover from image.\n");
@@ -212,8 +217,8 @@ public:
 			pair<float, float> position = grid.get_random_real_position();
 			Cell* cell = grid.get_cell_at_position(position);
 			Tree* tree = population.add(position);
-			int dummy1, dummy2, dummy3;
-			if (!cell->is_hospitable(pair<float, int>(tree->radius, tree->id), dummy1, dummy2, dummy3)) {
+			int dummy1, dummy2, dummy3, dummy4, dummy5;
+			if (!cell->is_hospitable(pair<float, int>(tree->radius, tree->id), dummy1, dummy2, dummy3, dummy4, dummy5)) {
 				population.remove(tree->id);
 				continue;
 			}
@@ -253,6 +258,19 @@ public:
 
 		initial_tree_cover = grid.tree_cover;
 		repopulate_grid(0);
+
+		// Get recruitment rate distribution
+		float mean = 0;
+		for (int i = 0; i < population.recruitment_rates.size(); i++) {
+			mean += population.recruitment_rates[i];
+		}
+		mean /= (float)population.recruitment_rates.size();
+		float sum_of_sq = 0;
+		for (int i = 0; i < population.recruitment_rates.size(); i++) {
+			sum_of_sq += (population.recruitment_rates[i] - mean) * (population.recruitment_rates[i] - mean);
+		}
+		float stdev = sqrt(sum_of_sq / (float)population.recruitment_rates.size());
+		printf("Recruitment rate mean: %f, stdev: %f\n", mean, stdev);
 	}
 	void get_state_table(float* state_table) {
 		int i = 0;
