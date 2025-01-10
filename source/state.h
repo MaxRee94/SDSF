@@ -254,12 +254,15 @@ public:
 		initial_tree_cover = grid.tree_cover;
 		repopulate_grid(0);
 	}
-	void get_tree_positions(float* x, float* y) {
+	void get_state_table(float* state_table) {
 		int i = 0;
+		int number_of_values_per_tree = 4;
+		// Values per tree: id, x, y, dbh
 		for (auto& [id, tree] : population.members) {
-			if (tree.life_phase < 2) continue; // Only consider trees in the mature phase (life_phase = 2)
-			x[i] = tree.position.first;
-			y[i] = tree.position.second;
+			state_table[i * number_of_values_per_tree] = id;
+			state_table[i * number_of_values_per_tree + 1] = tree.position.first;
+			state_table[i * number_of_values_per_tree + 2] = tree.position.second;
+			state_table[i * number_of_values_per_tree + 3] = tree.dbh;
 			i++;
 		}
 	}

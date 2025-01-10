@@ -57,6 +57,23 @@ py::array_t<float> as_2d_pairwise_numpy_array(float* distribution1, float* distr
     return numpy_array;
 }
 
+py::array_t<float> as_state_report_numpy_array(float* distribution, int rows) {
+    constexpr size_t element_size = sizeof(float);
+    const int cols = 4;
+    size_t shape[2]{ rows, cols };
+    size_t strides[2]{ cols * element_size, element_size };
+    auto numpy_array = py::array_t<float>(shape, strides);
+    auto setter = numpy_array.mutable_unchecked<2>();
+
+    for (size_t i = 0; i < numpy_array.shape(0); i++)
+    {
+        for (int j = 0; j < cols; j++) {
+            setter(i, j) = distribution[i * cols + j];
+        }
+    }
+    return numpy_array;
+}
+
 py::array_t<float> as_2d_numpy_array(float* distribution, int width) {
     constexpr size_t element_size = sizeof(float);
     size_t shape[2]{ width, width };
@@ -110,13 +127,12 @@ PYBIND11_MODULE(dbr_cpp, module) {
             else state.set_cover_from_image(cover_image, width, height);
             delete[] cover_image;
         })
-        .def("get_tree_positions", [](State& state) {
-            float* tree_positions_x = new float[state.population.size()];
-            float* tree_positions_y = new float[state.population.size()];
-            state.get_tree_positions(tree_positions_x, tree_positions_y);
-            py::array_t<float> np_arr = as_2d_pairwise_numpy_array(tree_positions_x, tree_positions_y, state.population.size());
-            delete[] tree_positions_x;
-            delete[] tree_positions_y;
+        .def("get_state_table", [](State& state) {
+            int number_of_values_per_tree = 4;
+            float* state_table = new float[state.population.size() * number_of_values_per_tree];
+            state.get_state_table(state_table);
+            py::array_t<float> np_arr = as_state_report_numpy_array(state_table, state.population.size());
+            delete[] state_table;
             return np_arr;
 		})
         .def("get_tree_sizes", [](State& state) {
