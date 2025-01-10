@@ -286,7 +286,8 @@ def updateloop(dynamics, color_dicts, **user_args):
         do_terminate = termination_condition_satisfied(dynamics, start, user_args)
         
         # Do visualizations
-        do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, user_args)
+        if not user_args["headless"]:
+            do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, user_args)
         
         print("-- Exporting state data...") if verbose else None
         csv_path = io.export_state(dynamics, csv_path, init_csv, tree_cover_slope=slope)

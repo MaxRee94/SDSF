@@ -18,6 +18,12 @@ dirs = [(math.cos(a * 2.0 * math.pi / 4096),
          math.sin(a * 2.0 * math.pi / 4096))
             for a in range(4096)]
 
+def reshuffle_perlin_noise():
+    global perm
+    perm = list(range(4096))
+    random.shuffle(perm)
+    perm += perm
+
 
 def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
     color_dict = {}
@@ -52,8 +58,8 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
             color_dict[i] = np.array((0, 0, i * color_step), np.uint8)
     elif distr_type == "normal":
         color_dict[0] = savanna_color
-        color_dict[-5] = savanna_color
-        color_dict[-6] = savanna_color
+        color_dict[-5] = red
+        color_dict[-6] = red
         color_dict[-7] = savanna_color
         
     return color_dict
@@ -152,7 +158,8 @@ def fBm(x, y, per, octs):
         val += 0.5**o * perlin_noise(x*2**o, y*2**o, per*2**o)
     return val
 
-def generate_perlin_noise_image(path, width=200, frequency=1/32.0, octaves=5):
+def generate_perlin_noise_image(path, width=200, frequency=1/32.0, octaves=5, write=True):
+    reshuffle_perlin_noise()
     data = []
     for y in range(width):
         row = []
@@ -162,7 +169,10 @@ def generate_perlin_noise_image(path, width=200, frequency=1/32.0, octaves=5):
             row.append([val, val, val])
         data.append(row)
     img = np.array(data, dtype=np.uint8)
-    cv2.imwrite(path, img)
+    if write:
+        cv2.imwrite(path, img)
+
+    return img
 
 def visualize_kernel(kernel, title="Kernel"):
     vals = []
