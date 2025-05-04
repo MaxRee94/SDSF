@@ -109,12 +109,6 @@ public:
 		ResourceCell* cell = get_resource_cell_at_position(tree->position);
 		cell->add_tree(tree->id);
 	}
-	void add_crop(Tree* tree, Crop* crop) {
-		ResourceCell* cell = get_resource_cell_at_position(tree->position);
-		cell->fruits.add_fruits(crop, 1);
-		total_no_fruits += crop->fruit_abundance;
-		has_fruits = total_no_fruits > 0;
-	}
 	float get_tree_cover_within_resourcegrid_bb(ResourceCell* rcell, pair<int, int> bb_min, pair<int, int> bb_max, vector<int>& trees) {
 		int no_forest_cells = 0;
 		int no_cells = 0;
