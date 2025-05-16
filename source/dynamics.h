@@ -5,6 +5,8 @@
 class Dynamics {
 public:
 	Dynamics() = default;
+	Dynamics(Dynamics&&) = default;
+	Dynamics& operator=(Dynamics&&) = default;
 	Dynamics(
 		int _timestep, float _cell_width, float _self_ignition_factor, float _rainfall, float _seed_bearing_threshold,
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
@@ -95,7 +97,6 @@ public:
 		if (verbosity == 2) for (auto& [id, tree] : pop->members) if (id % 500 == 0) printf("Radius of tree %i : %f \n", id, tree.radius);
 	}
 	void free() {
-		resource_grid.free();
 		grid->free();
 		pop->free();
 	}
@@ -155,7 +156,9 @@ public:
 		float resource_grid_cell_width = grid->width_r / (float)resource_grid_width;
 		vector<string> species = {};
 		for (auto& [_species, _] : animal_kernel_params) species.push_back(_species);
+		if (resource_grid.selection_probabilities.probabilities != nullptr) printf("not nullptr");
 		resource_grid = ResourceGrid(&state, resource_grid_width, resource_grid_cell_width, species, animal_kernel_params);
+		printf("resource grid's probmodel obj id: %i \n", resource_grid.selection_probabilities.id);
 	}
 	bool global_kernel_exists(string type) {
 		return global_kernels.find(type) != global_kernels.end();
@@ -199,7 +202,6 @@ public:
 			// Add fruit crop or disperse seeds, depending on dispersal vector type
 			if (pop->get_kernel(id)->type == "animal") {
 				animal_seeds_dispersed += crop->no_seeds;
-				resource_grid.total_no_fruits += crop->fruit_abundance;
 				resource_grid.has_fruits = true;
 			}
 			else if (pop->get_kernel(id)->type == "wind") {

@@ -39,6 +39,11 @@ public:
 class ResourceGrid : public Grid {
 public:
 	ResourceGrid() = default;
+	~ResourceGrid() {
+		free();
+	}
+	ResourceGrid(ResourceGrid&&) = default;
+	ResourceGrid& operator=(ResourceGrid&&) = default;
 	ResourceGrid(State* _state, int _width, float _cell_width, vector<string> _species, map<string, map<string, float>>& _animal_kernel_params): Grid(_width, _cell_width) {
 		width = _width;
 		state = _state;
@@ -46,7 +51,7 @@ public:
 		width_r = (float)width * cell_width;
 		size = width * width;
 		lookup_table_size = size * size;
-		cells = new ResourceCell[size];
+		cells = make_shared<ResourceCell[]>(size);
 		selection_probabilities = DiscreteProbabilityModel(size);
 		species = _species;
 		animal_kernel_params = _animal_kernel_params;
@@ -55,32 +60,43 @@ public:
 		init_neighbor_offsets();
 	}
 	void free() {
-		delete[] cells;
+		printf("calling free on resource grid whose probmodel has id %i \n", selection_probabilities.id);
+		cells = nullptr;
 		delete_c();
 		delete_f();
 		delete[] d;
+		d = nullptr;
 		delete[] cover;
+		cover = nullptr;
 		delete[] fruit_abundance;
+		fruit_abundance = nullptr;
 		delete[] dist_aggregate;
+		dist_aggregate = nullptr;
 		delete[] color_distribution;
+		color_distribution = nullptr;
 		delete[] visits;
+		visits = nullptr;
+		delete[] neighbor_offsets;
+		neighbor_offsets = nullptr;
 		delete_lookup_table();
-		selection_probabilities.free();
 		Grid::free();
 	}
 	void delete_c() {
 		for (auto it = c.begin(); it != c.end(); it++) {
 			delete[] it->second;
+			it->second = nullptr;
 		}
 	}
 	void delete_f() {
 		for (auto it = f.begin(); it != f.end(); it++) {
 			delete[] it->second;
+			it->second = nullptr;
 		}
 	}
 	void delete_lookup_table() {
 		for (auto it = dist_lookup_table.begin(); it != dist_lookup_table.end(); it++) {
 			delete[] it->second;
+			it->second = nullptr;
 		}
 	}
 	void init_property_distributions(vector<string> &species) {
@@ -375,11 +391,11 @@ public:
 		for (int i = 0; i < size; i++) dist_aggregate[i] = 0;
 		visits_sum = 0;
 	}
-	ResourceCell* select_cell(string species, pair<float, float> cur_position) {
+	ResourceCell* select_cell(string species, pair<float, float> cur_position, bool fruit_agnostic_selection = false) {
 		pair<int, int> gridbased_curpos = get_rc_gridbased_position(cur_position);
 		cap(gridbased_curpos);
 		compute_d(gridbased_curpos, species);
-		compute_k(species);
+		compute_k(species, fruit_agnostic_selection);
 		int idx = selection_probabilities.sample();
 		visits[idx] += 1;
 		visits_sum += 1;
@@ -387,7 +403,7 @@ public:
 	}
 	State* state = 0;
 	Grid* grid = 0;
-	ResourceCell* cells = 0;
+	shared_ptr<ResourceCell[]> cells = 0;
 	map<string, float*> c;
 	map<string, float*> f;
 	map<string, float*> dist_lookup_table;
@@ -417,13 +433,18 @@ private:
 			cells[i].grid_bb_max = cells[i].grid_bb_min + pair<int, int>(no_gridcells_along_x_per_resource_cell - 1, no_gridcells_along_x_per_resource_cell - 1);
 		}
 	}
-	void compute_k(string species) {
+	void compute_k(string species, bool try_fruit_agnostic_selection = false) {
 		float* _c = c[species];
 		float* _f = f[species];
 		float sum = 0.0f;
 		for (int i = 0; i < size; i++) {
-			selection_probabilities.probabilities[i] = d[i] * _c[i] * _f[i];
-			sum += selection_probabilities.probabilities[i];
+			if (try_fruit_agnostic_selection) {
+				selection_probabilities.probabilities[i] = d[i] * _c[i];
+			}
+			else {
+				selection_probabilities.probabilities[i] = d[i] * _c[i] * _f[i];
+				sum += selection_probabilities.probabilities[i];
+			}
 		}
 		selection_probabilities.normalize(sum);
 		selection_probabilities.build_cdf();

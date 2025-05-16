@@ -141,10 +141,21 @@ public:
 			stomach_content[defecation_time].clear(); // Remove all seeds with this defecation time from the stomach.
 		}
 	}
-	pair<float, float> select_destination(ResourceGrid* resource_grid) {
-		ResourceCell* cell = resource_grid->select_cell(species, position);
+	pair<float, float> select_destination(ResourceGrid* resource_grid, int recursion_depth = 0, bool try_fruit_agnostic_selection = false) {
+		ResourceCell* cell = resource_grid->select_cell(species, position, try_fruit_agnostic_selection);
+		if (cell->trees.size() == 0) {
+			if (recursion_depth > 10) {
+				if (try_fruit_agnostic_selection) {
+					printf("\n\n WARNING: No cell containing trees found after recursing 10 times. Selecting random location instead...\n\n");
+					return resource_grid->grid->get_random_real_position();
+				}
+				printf("Trying fruit-agnostic selection...\n");
+				if (try_fruit_agnostic_selection == false) recursion_depth = 0; // Reset recursion counter if we are trying fruit-agnostic selection.
+				return select_destination(resource_grid, recursion_depth + 1, true);
+			}
+			return select_destination(resource_grid, recursion_depth + 1, try_fruit_agnostic_selection);
+		}
 		pair<float, float> destination;
-		if (cell->trees.size() == 0) return select_destination(resource_grid);
 		last_tree_visited = resource_grid->get_random_forested_location(cell, destination);
 		return destination;
 	}

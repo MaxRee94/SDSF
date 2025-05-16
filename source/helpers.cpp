@@ -668,7 +668,7 @@ float help::PieceWiseLinearProbModel::pdf(float x) {
     return 0.01 * x * x; // Dummy return value; OVERRIDE THIS FUNCTION TO USE YOUR CUSTOM PDF.
 }
 void help::PieceWiseLinearProbModel::build() {
-    if (cdf == nullptr) cdf = new float[resolution];
+    cdf = make_shared<double[]>(resolution);
     float _xmin = 0.0f;
     float _xmax = piece_width;
     float cdf_maximum = 0.0f;
@@ -697,8 +697,8 @@ void help::PieceWiseLinearProbModel::build() {
     built = 1;
 }
 float help::PieceWiseLinearProbModel::sample() {
-    float cdf_sample = help::get_rand_float(0.0f, 1.0f);
-    float x = binary_search(cdf, resolution, cdf_sample);
+    double cdf_sample = help::get_rand_float(0.0f, 1.0f);
+    float x = binary_search(cdf.get(), resolution, cdf_sample);
     x *= piece_width;
     return x;
 }

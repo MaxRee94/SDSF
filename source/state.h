@@ -202,7 +202,6 @@ public:
 			}
 		}
 		printf("Final tree cover: %f\n", grid.tree_cover);
-		probmodel.free();
 		repopulate_grid(0);
 		printf("Finished setting tree cover from image.\n");
 	}

@@ -295,7 +295,7 @@ namespace help {
 		float xmax = 0;
 		float resolution = 1000.0f;
 		float piece_width = 0.0f;
-		float* cdf = 0;
+		shared_ptr<double[]> cdf = 0;
 		bool built = false;
 	};
 
@@ -343,13 +343,29 @@ namespace help {
 		DiscreteProbabilityModel() = default;
 		DiscreteProbabilityModel(int _size) {
 			size = _size;
-			probabilities = new double[size];
-			cdf = new double[size];
+			probabilities = std::make_shared<double[]>(_size);
+			cdf = std::make_shared<double[]>(_size);
+			id = rand();
+			printf("Initializing %i through non-default constructor\n", id);
 		};
-		void free() {
-			delete[] probabilities;
-			delete[] cdf;
-		}
+		/*~DiscreteProbabilityModel() {
+			free();
+		}*/
+		/*void free() {
+			printf("Freeing prob model %i \n", id);
+			if (probabilities != nullptr) {
+				printf("probs: %i\n", probabilities[0]);
+				printf("probs: %i (ptr)\n", probabilities);
+				delete[] probabilities;
+				probabilities = nullptr;
+
+				printf("probs after delete: %i\n", probabilities);
+			}
+			if (cdf != nullptr) {
+				delete[] cdf;
+				cdf = nullptr;
+			}
+		}*/
 		void build_cdf() {
 			double height = 0.0f;
 			for (int i = 0; i < size; i++) {
@@ -359,7 +375,7 @@ namespace help {
 		}
 		int sample() {
 			double cdf_sample = help::get_rand_double(0.0f, 1.0);
-			int idx = binary_search(cdf, size, cdf_sample);
+			int idx = binary_search(cdf.get(), size, cdf_sample);
 			if (idx != -1) return idx;
 			else return uniform_rand_idx();
 		}
@@ -386,9 +402,10 @@ namespace help {
 				probabilities[i] *= recipr;
 			}
 		}
-		double* probabilities = 0;
-		double* cdf = 0;
+		shared_ptr<double[]> probabilities = 0;
+		shared_ptr<double[]> cdf = 0;
 		int size = 0;
+		int id = 0;
 	};
 
 	class SmallDiscreteProbabilityModel {

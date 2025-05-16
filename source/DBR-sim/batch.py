@@ -10,6 +10,7 @@ from helpers import *
 import numpy as np
 import random
 import time
+import traceback
 import json
 import statistics as stats
 
@@ -76,6 +77,7 @@ def execute_multiple_runs(params, primary_variable, primary_value, csv_parent_di
     ):
     
     params[secondary_variable] = secondary_value
+    params["report_state"] = "False"
     dependent_values = []
     for i in range(no_reruns):
         print(f"Beginning run {i+1} of {no_reruns}")
@@ -105,7 +107,9 @@ def execute_multiple_runs(params, primary_variable, primary_value, csv_parent_di
     if (dependent_var == "tree_cover_slope"):
         tree_cover_slope = stats.mean(dependent_values)
 
-    return dynamics, tree_cover_slope, largest_absolute_slope, result, initial_no_recruits, stats.stdev(dependent_values), singlerun_name, singlerun_csv_path, singlerun_image_path
+    dependent_result_range_stdev = stats.stdev(dependent_values)
+
+    return dynamics, tree_cover_slope, largest_absolute_slope, result, initial_no_recruits, stats.stdev(dependent_values), singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev
 
 
 def interpolate_secondary_value(argmin, argmax, argmin_result, argmax_result, opti_mode):
@@ -161,11 +165,11 @@ def execute_saddle_search(
     # Perform the first two attempts
     argmin = secondary_range[0]
     argmax = secondary_range[1]
-    dynamics, tree_cover_slope, largest_absolute_slope, argmin_result, initial_no_recruits, argmin_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_multiple_runs(
+    dynamics, tree_cover_slope, largest_absolute_slope, argmin_result, initial_no_recruits, argmin_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_multiple_runs(
         params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv,
         color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=argmin, secondary_variable=secondary_variable
     )
-    dynamics, tree_cover_slope, largest_absolute_slope, argmax_result, initial_no_recruits, argmax_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_multiple_runs(
+    dynamics, tree_cover_slope, largest_absolute_slope, argmax_result, initial_no_recruits, argmax_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_multiple_runs(
         params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv,
         color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=argmax, secondary_variable=secondary_variable
     )
@@ -204,7 +208,7 @@ def execute_saddle_search(
     for i in range(no_attempts - 2):
         print("Value trajectory so far: ", secondary_value_trajectory)
         dynamics.free()
-        dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, cur_initial_no_recruits, _, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_multiple_runs(
+        dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, cur_initial_no_recruits, _, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_multiple_runs(
             params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv,
             color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=cur_secondary_value, secondary_variable=secondary_variable,
             dependent_result_range_mean=dependent_result_range_mean, dependent_result_range_stdev=dependent_result_range_stdev
@@ -254,7 +258,7 @@ def execute_saddle_search(
         cur_secondary_value = _secondary_value
         
     
-    return best_secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, initial_no_recruits, singlerun_name, singlerun_csv_path, singlerun_image_path
+    return best_secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, initial_no_recruits, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev
 
 
 def iterate_across_range(params, control_variable, control_range, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict,
@@ -263,7 +267,8 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
     i = 0
     time_budget_per_run = 60 * 60
     no_runs_for_current_parameter_set = 0
-    control_value = control_range[0] + process_index * (control_range[2] / no_processes)
+    params["report_state"] = "False"
+    control_value = control_range[0] + process_index * (control_range[2] / (no_processes-1) )
     params_json_path = csv_parent_dir + "/parameters.json"
     with open(params_json_path, "w") as params_json_file:
         json.dump(params, params_json_file)
@@ -280,14 +285,14 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
                 tree_cover_slope=tree_cover_slope, extra_parameters=str(extra_parameters)
             )
         elif (batch_type == "saddle_search"):
-            secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, guess_result, initial_no_recruits, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_saddle_search(
+            secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, guess_result, initial_no_recruits, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_saddle_search(
                 params, control_variable, control_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
                 dependent_var, opti_mode, statistic, secondary_variable, secondary_range, attempts
             )
             _io.export_state(
                 dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value,
                 tree_cover_slope=tree_cover_slope, extra_parameters=str(extra_parameters), secondary_variable=secondary_variable, secondary_value=secondary_value,
-                dependent_var=dependent_var, dependent_val=guess_result
+                dependent_var=dependent_var, dependent_val=guess_result, dependent_result_range_stdev=dependent_result_range_stdev
             )
         else:
             raise RuntimeError("Invalid batch type '{}'. Exiting..".format(batch_type))
@@ -315,6 +320,43 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
     
     print("Batch complete. Exiting..")
 
+def _ensure_correct_arg_datatype(element):
+    if not type(element) == str:
+        return element
+    element = element.strip()
+    if element == "True":
+        result = True
+    elif element == "False":
+        element = False
+    elif element == "None":
+        element = None
+    elif is_number(element):
+        if "." in element:
+            element = float(element)
+        else:
+            element = int(element)
+    elif "[" in element:
+        stringlist = [x.strip() for x in element.split(",")]
+        element = [_ensure_correct_arg_datatype(x) for x in stringlist]
+    
+    return element
+
+
+def ensure_correct_arg_datatype(args):
+    """Ensure that the arguments are of the correct datatype.
+
+    Args:
+        args (dict): Dictionary containing the arguments and their values.
+
+    Returns:
+        dict: Dictionary with the arguments and their values, with the correct datatypes.
+    """
+    print("args: ", args)
+    for key in args:
+        args[key] = _ensure_correct_arg_datatype(args[key])
+    
+    return args
+ 
 
 def main(
         process_index=None, control_variable=None, control_range=None, extra_parameters=None, run=0, no_processes=7, no_reruns=None, batch_type=None,
@@ -334,7 +376,10 @@ def main(
     params["headless"] = True
     if extra_parameters:
         print("Extra parameters:", extra_parameters) # Example of usage: {\"verbosity\":1}
+        extra_parameters = extra_parameters.replace(",", ", ")
+        extra_parameters = extra_parameters.replace("'", "")
         extra_parameters = json.loads(extra_parameters)
+        extra_parameters = ensure_correct_arg_datatype(extra_parameters)
         for key, val in extra_parameters.items():
             params[key] = val
             print("extra parameter:", val, f"(key = {key})")
@@ -347,6 +392,9 @@ def main(
         
 
 if __name__ == "__main__":
+    print(sys.argv)
+
+
     parser = ArgumentParser()
     parser.add_argument('-pi', '--process_index', type=int)
     parser.add_argument('-cv', '--control_variable', default="constant_batch", type=str)
@@ -366,7 +414,19 @@ if __name__ == "__main__":
         help=r"Json string containing key-value pairs of custom parameters. Keys should be surrounded by double quotes preceded by a backslash. Example: {\"verbosity\":1}"
     )
     args = parser.parse_args()
-    main(**vars(args))
+    try:
+        main(**vars(args))
+    except Exception as e:
+        print("======== ERROR =========")
+        parent_dir = get_csv_parent_dir(args.run)
+        csv_file = parent_dir + "/Error_log.txt";
+        with open(csv_file, 'a') as f:
+            f.write(str(e))
+            f.write(traceback.format_exc())
+            
+        traceback.print_exc()
+        time.sleep(10)
+     
 
 
 

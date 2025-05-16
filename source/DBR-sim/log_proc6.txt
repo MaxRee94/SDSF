@@ -1,0 +1,34 @@
+
+F:\Development\DBR-sim\source\DBR-sim>python ./batch.py --process_index 6 --control_variable "treecover" --control_range 0.1 0.9 0.78 --extra_parameters "{\"constant_mortality\": 0.013, \"multi_disperser_params\": \"multi_disperser_params.json\", \"grid_width\": 960, \"strategy_distribution_params\":\"animalkernel.json\", \"resource_grid_width\": 32, \"initial_pattern_image\": \"perlin_noise\", \"patch_width\": 500, \"max_timesteps\": 100, \"dispersal_mode\": \"animal\"}" --run 0 --no_reruns 20 --no_processes 8 --attempts 25 --batch_type saddle_search --secondary_range 0.05 40 --statistic mean 
+['./batch.py', '--process_index', '6', '--control_variable', 'treecover', '--control_range', '0.1', '0.9', '0.78', '--extra_parameters', '{"constant_mortality": 0.013, "multi_disperser_params": "multi_disperser_params.json", "grid_width": 960, "strategy_distribution_params":"animalkernel.json", "resource_grid_width": 32, "initial_pattern_image": "perlin_noise", "patch_width": 500, "max_timesteps": 100, "dispersal_mode": "animal"}', '--run', '0', '--no_reruns', '20', '--no_processes', '8', '--attempts', '25', '--batch_type', 'saddle_search', '--secondary_range', '0.05', '40', '--statistic', 'mean']
+csv parent dir:  F:/Development/DBR-sim/data_out/state data/batch_000379
+Extra parameters: {"constant_mortality": 0.013, "multi_disperser_params": "multi_disperser_params.json", "grid_width": 960, "strategy_distribution_params":"animalkernel.json", "resource_grid_width": 32, "initial_pattern_image": "perlin_noise", "patch_width": 500, "max_timesteps": 100, "dispersal_mode": "animal"}
+args:  {'constant_mortality': 0.013, 'multi_disperser_params': 'multi_disperser_params.json', 'grid_width': 960, 'strategy_distribution_params': 'animalkernel.json', 'resource_grid_width': 32, 'initial_pattern_image': 'perlin_noise', 'patch_width': 500, 'max_timesteps': 100, 'dispersal_mode': 'animal'}
+extra parameter: 0.013 (key = constant_mortality)
+extra parameter: multi_disperser_params.json (key = multi_disperser_params)
+extra parameter: 960 (key = grid_width)
+extra parameter: animalkernel.json (key = strategy_distribution_params)
+extra parameter: 32 (key = resource_grid_width)
+extra parameter: perlin_noise (key = initial_pattern_image)
+extra parameter: 500 (key = patch_width)
+extra parameter: 100 (key = max_timesteps)
+extra parameter: animal (key = dispersal_mode)
+
+Executing saddle search with primary variable treecover = 0.7685714285714286 and secondary variable self_ignition_factor in [0.05, 40.0]
+Beginning run 1 of 20
+
+ ------- Beginning simulation with treecover=0.7685714285714286, self_ignition_factor=0.05, process 6 ------- 
+
+finished setting dispersal kernel.
+Setting tree cover using perlin noise function...
+Path perlin noise image:  F:\Development\DBR-sim/data_in/state patterns/perlin_noise/perlin_noise.png
+created image. Setting cover...
+Visualizing state at t = 0
+animal species:  ['Turdus iliacus', 'Turdus philomelos', 'Turdus merula', 'Turdus pilaris', 'Turdus torquatus', 'Turdus viscivorus']
+Lookup table file F:\Development\DBR-sim/data_internal\lookup_table_Turdus iliacus_width-960_rcg_width-1024.npy found. Loading...
+Lookup table file F:\Development\DBR-sim/data_internal\lookup_table_Turdus philomelos_width-960_rcg_width-1024.npy found. Loading...
+Lookup table file F:\Development\DBR-sim/data_internal\lookup_table_Turdus merula_width-960_rcg_width-1024.npy found. Loading...
+Lookup table file F:\Development\DBR-sim/data_internal\lookup_table_Turdus pilaris_width-960_rcg_width-1024.npy found. Loading...
+Lookup table file F:\Development\DBR-sim/data_internal\lookup_table_Turdus torquatus_width-960_rcg_width-1024.npy found. Loading...
+Lookup table file F:\Development\DBR-sim/data_internal\lookup_table_Turdus viscivorus_width-960_rcg_width-1024.npy found. Loading...
+Beginning simulation...

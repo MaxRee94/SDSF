@@ -1,0 +1,15 @@
+C:\Users\Max\AppData\Roaming\Python\Python311\site-packages\numpy\core\_methods.py:176: RuntimeWarning: overflow encountered in multiply
+  x = um.multiply(x, x, out=x)
+C:\Users\Max\AppData\Roaming\Python\Python311\site-packages\numpy\core\_methods.py:187: RuntimeWarning: overflow encountered in reduce
+  ret = umr_sum(x, axis, dtype, out, keepdims=keepdims, where=where)
+C:\Users\Max\AppData\Roaming\Python\Python311\site-packages\numpy\core\_methods.py:152: RuntimeWarning: overflow encountered in reduce
+  arrmean = umr_sum(arr, axis, dtype, keepdims=True, where=where)
+C:\Users\Max\AppData\Roaming\Python\Python311\site-packages\numpy\core\_methods.py:173: RuntimeWarning: invalid value encountered in subtract
+  x = asanyarray(arr - arrmean)
+C:\Users\Max\AppData\Roaming\Python\Python311\site-packages\numpy\core\_methods.py:118: RuntimeWarning: overflow encountered in reduce
+  ret = umr_sum(arr, axis, dtype, out, keepdims, where=where)
+^Cype, out, keepdims, where=where)
+C:\Users\Max\AppData\Roaming\Python\Python311\site-packages\numpy\core\_methods.py:176: RuntimeWarning: overflow encountered in multiply
+  x = um.multiply(x, x, out=x)
+C:\Users\Max\AppData\Roaming\Python\Python311\site-packages\numpy\core\_methods.py:187: RuntimeWarning: overflow encountered in reduce
+  ret = umr_sum(x, axis, dtype, out, keepdims=keepdims, where=where)

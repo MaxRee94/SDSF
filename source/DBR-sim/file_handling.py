@@ -3,7 +3,9 @@ import csv
 import os
 from pathlib import Path
 import datetime
+from shutil import ExecError
 import cv2
+import time
 from config import *
 import numpy as np
 
@@ -27,7 +29,7 @@ def get_firefree_interval_stats(dynamics, _type):
 
 def export_state(
         dynamics, path="", init_csv=True, control_variable=None, control_value=None, tree_cover_slope=0,
-        extra_parameters="", secondary_variable=None, secondary_value=None, dependent_var=None, dependent_val=None, initial_no_recruits=None
+        extra_parameters="", secondary_variable=None, secondary_value=None, dependent_var=None, dependent_val=None, initial_no_recruits=None, dependent_result_range_stdev=None
     ):
     fieldnames = [
         "time", "tree cover", "slope", "population size", "#seeds produced", "fire mean spatial extent",
@@ -48,6 +50,8 @@ def export_state(
         if control_variable == "treecover":
             control_variable = "initial tree cover"
         fieldnames.insert(0, control_variable)
+    if dependent_result_range_stdev:
+        fieldnames.insert(0, "dependent_result_range_stdev")
     if init_csv and not os.path.exists(path):
         if path == "":
             path = os.path.join(EXPORT_LOCATION, "Simulation_" + str(datetime.datetime.now()).replace(":", "-") + ".csv")
@@ -94,6 +98,8 @@ def export_state(
             result[dependent_var] = dependent_val
         if initial_no_recruits:
             result["initial_no_recruits"] = initial_no_recruits
+        if dependent_result_range_stdev:
+            result["dependent_result_range_stdev"] = dependent_result_range_stdev
         writer.writerow(result)
         
     return path
@@ -131,8 +137,10 @@ def load_tree_dbh_values(_time):
     else:
         return {_time : {}}
     
+     
     with open (TREE_DBH_FILE, "r") as dbh_json_file:
         tree_dbh_values = json.load(dbh_json_file)
+            
     tree_dbh_values[_time] = {}
     
     return tree_dbh_values

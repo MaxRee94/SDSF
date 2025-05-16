@@ -60,6 +60,7 @@ defaults = {
     "mutation_rate": 0, # We do not incorporate mutation in this study.
     #"batch_parameters": "{\"control_variable\": \"growth_rate_multiplier_params-><idx>0\", \"control_value\": 0.99}"
     "batch_parameters": "",
+    "report_state": False,
 }
 
 gui_defaults = {
@@ -83,6 +84,17 @@ _parameter_config = {
                 "The width (measured by the number of cells along the horizontal- or vertical axis) of the spatial domain."
             ),
             "default": defaults["grid_width"],
+        },
+    },
+    "report_state": {
+        "keys": {
+            "cli": ["--report_state", "-repst"]
+        },
+        "settings": {
+            "action": "store_true",
+            "help": (
+                "Export state report in each time step. Default false."
+            ),
         },
     },
     "treecover": {
@@ -490,7 +502,7 @@ _parameter_config = {
         "settings": {
             "type": int,
             "help": (
-                "Random seed used for the fire frequency distribution. Default: {}.".format(defaults["random_seed_firefreq"])
+                "Random seed used for the fire frequency distribution. If -999 is given, a random seed will be generated on the fly. Default: {}.".format(defaults["random_seed_firefreq"])
             ),
             "default": defaults["random_seed_firefreq"],
         },

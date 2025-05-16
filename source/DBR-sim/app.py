@@ -9,6 +9,7 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 import json
 import scipy.stats as stats
+import random
 import math
 
 import visualization as vis
@@ -17,8 +18,8 @@ from helpers import *
 from config import *
 
 sys.path.append(BUILD_DIR)
-#from x64.Debug import dbr_cpp as cpp
-from x64.Release import dbr_cpp as cpp
+from x64.Debug import dbr_cpp as cpp
+#from x64.Release import dbr_cpp as cpp
 
 
 def unpack_control_keys(control_variable):
@@ -52,6 +53,8 @@ def set_dispersal_kernel(
         animal_species = [species for species in animal_dispersal_params.keys() if species != "population"]
         multi_disperser_params.pop("animal")
         dynamics.set_global_kernels(multi_disperser_params, animal_dispersal_params)
+
+    print("finished setting dispersal kernel.")
 
     return dynamics, animal_species
 
@@ -100,6 +103,11 @@ def init(
     batch_parameters=None, growth_rate_multiplier_params=None,
     random_seed=None, random_seed_firefreq=None, enforce_no_recruits=None, **user_args
     ):
+    
+    # Set random seed for fire frequency probability distribution. If -999 is given, a random seed will be generated. Otherwise, the given seed will be used.
+    if random_seed_firefreq == -999:
+        random_seed_firefreq = random.randint(0, 1000000)
+        print("Generated random seed for fire frequency probability distribution: ", random_seed_firefreq)
 
     # Initialize dynamics object and state
     dynamics = cpp.Dynamics(
@@ -129,14 +137,26 @@ def init(
         else:
             print("Setting tree cover from image...")
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        print("Path perlin noise image: ", path)
         if img is None and initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
+            print("Image not found. Generating new one...")
             vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=user_args["noise_octaves"])
+            
+            img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+            time.sleep(1) # Wait for the image to be generated before trying to load it again
+            print("Path perlin noise image: (attempt 2)", path)
+            if img is None and initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
+                print("Image not found. Generating new one...")
+                vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=user_args["noise_octaves"])
+                time.sleep(1) # Wait for the image to be generated before trying to load it again
+                img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         
         if not "thresholded.png" in path:
             img = vis.get_thresholded_image(img, treecover * img.shape[0] * img.shape[0] * 255 )
             cv2.imwrite(path.replace(".png", "_thresholded.png"), img)
  
         img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
+        print("created image. Setting cover...")
         dynamics.state.set_cover_from_image(img / 255, -1)
     dynamics.state.repopulate_grid(0)
     
@@ -295,7 +315,9 @@ def updateloop(dynamics, color_dicts, **user_args):
         
         print("-- Saving tree positions...") if verbose else None
         #io.save_state(dynamics)
-        io.update_state_report(dynamics)
+        
+        if user_args["report_state"] == "True" or user_args["report_state"] == True:
+            io.update_state_report(dynamics)
 
         print("-- Showing graphs...") if verbose else None
         if not user_args["headless"]:

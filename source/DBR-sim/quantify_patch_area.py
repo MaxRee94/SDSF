@@ -91,7 +91,7 @@ def main(patch_width, num_trials=100, domain_width=960):
     for i in range(num_trials):
         print(f"Processing pattern {i+1} / {num_trials}...")
         patch_image = generate_and_load_patch_image(patch_width, i)
-        #patch_areas += quantify_patch_area_distribution(patch_image, domain_width)
+        patch_areas += quantify_patch_area_distribution(patch_image, domain_width)
     
     domain_area = domain_width * domain_width
     print("-"*40)
@@ -101,6 +101,6 @@ def main(patch_width, num_trials=100, domain_width=960):
     print("-"*40)
 
 if __name__ == "__main__":
-    main(500, num_trials=100, domain_width=960)
+    main(167, num_trials=100, domain_width=960)
     
 
