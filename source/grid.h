@@ -292,20 +292,16 @@ public:
 		cell_area_half = cell_area * 0.5f;
 	}
 	void init_grid_cells() {
-		distribution = new Cell[no_cells];
+		distribution = make_shared<Cell[]>(no_cells);
 		for (int i = 0; i < no_cells; i++) {
 			pair<int, int> pos = idx_2_pos(i);
 			distribution[i].pos = pos;
 			distribution[i].idx = i;
 		}
-		state_distribution = new int[no_cells];
-	}
-	void free() {
-		delete[] distribution;
-		delete[] state_distribution;
+		state_distribution = make_shared<int[]>(no_cells);
 	}
 	void init_neighbor_offsets() {
-		neighbor_offsets = new pair<int, int>[8];
+		neighbor_offsets = make_shared<pair<int, int>[]>(8);
 		/*neighbor_offsets = new pair<int, int>[4];
 		neighbor_offsets[0] = pair<int, int>(-1, 0);
 		neighbor_offsets[1] = pair<int, int>(0, -1);
@@ -531,7 +527,7 @@ public:
 			update_grass_LAI(cell);
 		}
 	}
-	int* get_state_distribution(int collect = 0) {
+	shared_ptr<int[]> get_state_distribution(int collect = 0) {
 		if (collect > 0) {
 			for (int i = 0; i < no_cells; i++) {
 				if (collect == 1) {
@@ -631,8 +627,8 @@ public:
 	float cell_width = 0;
 	float cell_width_inv = 0;
 	float cell_half_width = 0;
-	Cell* distribution = 0;
-	int* state_distribution = 0;
+	shared_ptr<Cell[]> distribution = 0;
+	shared_ptr<int[]> state_distribution = 0;
 	int no_savanna_cells = 0;
 	int no_forest_cells = 0;
 	float area = 0;
@@ -640,5 +636,5 @@ public:
 	float cell_area_inv = 0;
 	float cell_area_half = 0;
 	float cell_halfdiagonal_sqrt = 0;
-	pair<int, int>* neighbor_offsets = 0;
+	shared_ptr<pair<int, int>[]> neighbor_offsets = 0;
 };

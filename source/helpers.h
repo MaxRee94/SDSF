@@ -389,7 +389,7 @@ namespace help {
 				integral += probs[i];
 			}
 		}
-		void set_probabilities(float* probs, float& integral) {
+		void set_probabilities(shared_ptr<float[]> probs, float& integral) {
 			integral = 0;
 			for (int i = 0; i < size; i++) {
 				probabilities[i] = probs[i];

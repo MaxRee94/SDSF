@@ -18,8 +18,8 @@ from helpers import *
 from config import *
 
 sys.path.append(BUILD_DIR)
-from x64.Debug import dbr_cpp as cpp
-#from x64.Release import dbr_cpp as cpp
+#from x64.Debug import dbr_cpp as cpp
+from x64.Release import dbr_cpp as cpp
 
 
 def unpack_control_keys(control_variable):
@@ -101,7 +101,7 @@ def init(
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
     initial_pattern_image=None, mutation_rate=None, STR=None,
     batch_parameters=None, growth_rate_multiplier_params=None,
-    random_seed=None, random_seed_firefreq=None, enforce_no_recruits=None, **user_args
+    random_seed=None, random_seed_firefreq=None, enforce_no_recruits=None, animal_group_size=None, **user_args
     ):
     
     # Set random seed for fire frequency probability distribution. If -999 is given, a random seed will be generated. Otherwise, the given seed will be used.
@@ -109,14 +109,18 @@ def init(
         random_seed_firefreq = random.randint(0, 1000000)
         print("Generated random seed for fire frequency probability distribution: ", random_seed_firefreq)
 
+    
+
     # Initialize dynamics object and state
+    print("Animal group size:", animal_group_size)
     dynamics = cpp.Dynamics(
         timestep, cellsize, self_ignition_factor, rainfall, seed_bearing_threshold,
         growth_rate_multiplier, unsuppressed_flammability, flammability_coefficients_and_constants[0],
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
         flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
-        resource_grid_width, mutation_rate, STR, verbosity, random_seed, random_seed_firefreq, enforce_no_recruits
+        resource_grid_width, mutation_rate, STR, verbosity, random_seed, random_seed_firefreq, enforce_no_recruits,
+        int(animal_group_size)
     )
     dynamics.init_state(grid_width, dbh_q1, dbh_q2, growth_rate_multiplier_params[0], growth_rate_multiplier_params[1], growth_rate_multiplier_params[2])
     
@@ -195,11 +199,12 @@ def init(
         print("animal species: ", animal_species)
         for species in animal_species:
             lookup_table, fpath = io.get_lookup_table(species, grid_width, resource_grid_width * resource_grid_width)
+            lookup_table = None # Hotfix; lookup table might lead to memory leaks (?)
             if lookup_table is None:
                 print(f"Lookup table file {fpath} not found. Creating new one...")
                 dynamics.precompute_resourcegrid_lookup_table(species)
-                lookup_table = dynamics.get_resource_grid_lookup_table(species)
-                io.export_lookup_table(lookup_table, grid_width, species)
+                #lookup_table = dynamics.get_resource_grid_lookup_table(species)
+                #io.export_lookup_table(lookup_table, grid_width, species)
             else:
                 print(f"Lookup table file {fpath} found. Loading...")
                 dynamics.set_resource_grid_lookup_table(lookup_table, species)
@@ -212,8 +217,8 @@ def termination_condition_satisfied(dynamics, start_time, user_args):
     condition = ""
     if (dynamics.time >= int(user_args["max_timesteps"])):
         condition = f"Maximum number of timesteps ({user_args['max_timesteps']}) reached."
-    if (user_args["termination_conditions"] == "all" and dynamics.state.grid.get_tree_cover() > 0.95):
-        condition = f"Tree cover exceeds 95%."
+    if (user_args["termination_conditions"] == "all" and dynamics.state.grid.get_tree_cover() > 0.93):
+        condition = f"Tree cover exceeds 93%."
     satisfied = len(condition) > 0
     if satisfied:
         print("\nSimulation terminated. Cause:", condition)

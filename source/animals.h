@@ -6,13 +6,14 @@
 class Animal {
 public:
 	Animal() = default;
-	Animal(map<string, float> _traits, string _species) {
+	Animal(map<string, float> _traits, string _species, int _animal_group_size) {
 		traits = _traits;
 		traits["a_c_recipr"] = 1.0f / traits["a_c"];
 		traits["a_f_recipr"] = 1.0f / traits["a_f"];
 		species = _species;
 		recipr_speed = 1.0f / traits["speed"];
 		init_prob_distributions();
+		animal_group_size = _animal_group_size;
 	}
 	void init_prob_distributions() {
 		gut_passage_time_distribution = GammaProbModel(traits["gut_passage_time_shape"], traits["gut_passage_time_scale"]);
@@ -215,8 +216,9 @@ public:
 class Animals {
 public:
 	Animals() = default;
-	Animals(State* state, map<string, map<string, float>> _animal_kernel_params) {
+	Animals(State* state, map<string, map<string, float>> _animal_kernel_params, int _animal_group_size) {
 		animal_kernel_params = _animal_kernel_params;
+		animal_group_size = _animal_group_size;
 		total_no_animals = round(animal_kernel_params["population"]["density"] * (state->grid.area / 1e6));
 		no_iterations = animal_kernel_params["population"]["no_iterations"];
 		animal_kernel_params.erase("population");
@@ -249,7 +251,7 @@ public:
 		int popsize, vector<Animal>& species_population, map<string, float> traits, string species
 	) {
 		for (int i = 0; i < popsize; i++) {
-			Animal animal(traits, species);
+			Animal animal(traits, species, animal_group_size);
 			species_population.push_back(animal);
 		}
 	}
@@ -320,6 +322,7 @@ public:
 	}
 	map<string, vector<Animal>> total_animal_population;
 	map<string, map<string, float>> animal_kernel_params;
+	int animal_group_size = 0;
 	float total_no_animals = 0;
 	int verbose = 0;
 	int no_iterations = 0;

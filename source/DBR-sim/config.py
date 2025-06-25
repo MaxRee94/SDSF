@@ -55,12 +55,13 @@ defaults = {
     "headless": False,
     "max_timesteps": 100,
     "strategy_distribution_params": f"standard.json",
-    "resource_grid_width": 64,
+    "resource_grid_width": 24,
     "initial_pattern_image": "none",
     "mutation_rate": 0, # We do not incorporate mutation in this study.
     #"batch_parameters": "{\"control_variable\": \"growth_rate_multiplier_params-><idx>0\", \"control_value\": 0.99}"
     "batch_parameters": "",
     "report_state": False,
+    "animal_group_size": 20
 }
 
 gui_defaults = {
@@ -517,6 +518,18 @@ _parameter_config = {
                 "Enforce a fraction of the total number of produced seeds to become recruits. -1 (default) means no specific fraction is enforced."
             ),
             "default": defaults["enforce_no_recruits"],
+        },
+    },
+    "animal_group_size": {
+        "keys": {
+            "cli": ["--animal_group_size", "-ags"]
+        },
+        "settings": {
+            "type": int,
+            "help": (
+                "The number of animals per simulated animal unit (a cluster/flock of animals), which moves and disperses seeds in unison."
+            ),
+            "default": defaults["animal_group_size"],
         },
     },
     "growth_rate_multiplier_params": {

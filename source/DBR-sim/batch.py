@@ -20,7 +20,8 @@ def get_csv_parent_dir(run):
         folder_lookup_table = json.load(lookup_table_file)
 
     csv_parent_dir = folder_lookup_table[run]
-    if not os.path.exists(csv_parent_dir):
+    print("csv parent dir: ", csv_parent_dir)
+    if not os.path.isdir(csv_parent_dir):
         os.makedirs(csv_parent_dir)
     
     return csv_parent_dir
@@ -207,7 +208,6 @@ def execute_saddle_search(
     best_positive_secondary_result = argmin_result
     for i in range(no_attempts - 2):
         print("Value trajectory so far: ", secondary_value_trajectory)
-        dynamics.free()
         dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, cur_initial_no_recruits, _, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_multiple_runs(
             params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv,
             color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=cur_secondary_value, secondary_variable=secondary_variable,
@@ -268,7 +268,7 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
     time_budget_per_run = 60 * 60
     no_runs_for_current_parameter_set = 0
     params["report_state"] = "False"
-    control_value = control_range[0] + process_index * (control_range[2] / (no_processes-1) )
+    control_value = control_range[0] + process_index * (control_range[2] / (no_processes) )
     params_json_path = csv_parent_dir + "/parameters.json"
     with open(params_json_path, "w") as params_json_file:
         json.dump(params, params_json_file)
