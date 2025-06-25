@@ -56,13 +56,13 @@ defaults = {
     "headless": False,
     "max_timesteps": 100,
     "strategy_distribution_params": f"windkernel.json",
-    "resource_grid_width": 24,
+    "resource_grid_width": 48,
     "initial_pattern_image": "none",
     "mutation_rate": 0, # We do not incorporate mutation in this study.
     #"batch_parameters": "{\"control_variable\": \"growth_rate_multiplier_params-><idx>0\", \"control_value\": 0.99}"
     "batch_parameters": "",
     "report_state": False,
-    "animal_group_size": 20,
+    "animal_group_size": 10,
     "image_size":(1000, 1000),
     "mean_radius":30,
     "cv_radius":0,
@@ -75,13 +75,14 @@ defaults = {
     "draw_stripes":False,
     "stripe_angle_deg":0,
     "stripe_mean_length":200,
-    "enforce_distance_uniformity":False,
+    "enforce_distance_uniformity":True,
     "stripe_std_length":20,
     "sin_stripe":False,
     "sin_stripe_amp":10,
     "sin_stripe_wavelength":100,
     "grid_type":"square",
-    "rotate_randomly":False
+    "rotate_randomly":False,
+    "suppress_distance_warning": False,  # If True, suppresses the warning about distance uniformity in the cpg script.
 }
 
 gui_defaults = {
@@ -765,6 +766,16 @@ _parameter_config = {
             "type": bool,
             "help": "If True, randomly rotate disks to avoid orientation artifacts.",
             "default": defaults["rotate_randomly"],
+        }
+    },
+    "suppress_distance_warning": {
+        "keys": {
+            "cli": ["--suppress_distance_warning", "-sdw"]
+        },
+        "settings": {
+            "type": bool,
+            "help": "If True, no error is raised if the given mean_distance (used for generating disk patterns) is automatically changed to generate a perfect grid.",
+            "default": defaults["suppress_distance_warning"],
         }
     }
 }

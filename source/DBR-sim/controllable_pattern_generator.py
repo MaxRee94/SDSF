@@ -233,7 +233,8 @@ def create_image(
     sin_stripe_amp=10,
     sin_stripe_wavelength=100,
     grid_type="hex",
-    rotate_randomly=True
+    rotate_randomly=True,
+    suppress_distance_warning=False
 ):
     
     if grid_type == "hex":
@@ -241,14 +242,20 @@ def create_image(
             original_distance = mean_distance
             mean_distance = adjust_mean_distance_for_uniform_hex_grid(image_size, mean_distance)
             if not math.isclose(original_distance, mean_distance, abs_tol=1):
-                raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {mean_distance-0.5} to have a perfect hex grid.")
+                if suppress_distance_warning:
+                    print(f"Warning: Mean_distance {original_distance:.2f} adjusted to {mean_distance:.2f} for uniform hex grid.")
+                else:
+                    raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {mean_distance-0.5} to have a perfect hex grid.")
         base_positions = generate_hex_grid_with_filter(image_size, mean_distance)
     elif grid_type == "square":
         if enforce_distance_uniformity:
             original_distance = mean_distance
             mean_distance = adjust_mean_distance_for_uniform_square_grid(image_size, mean_distance)
             if not math.isclose(original_distance, mean_distance, abs_tol=1):
-                raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {mean_distance:.2f} to have a perfect square grid.")
+                if suppress_distance_warning:
+                    print(f"Warning: Mean_distance {original_distance:.2f} adjusted to {mean_distance:.2f} for uniform square grid.")
+                else:
+                    raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {mean_distance:.2f} to have a perfect square grid.")
         base_positions = generate_square_grid(image_size, mean_distance)
     else:
         raise ValueError("grid_type must be 'hex' or 'square'")
