@@ -1,0 +1,2211 @@
+
+F:\Development\DBR-sim\source\DBR-sim>python ./batch.py --process_index 0 --control_variable "treecover" --control_range 0.769 0.9 0.78 --extra_parameters "{\"constant_mortality\": 0.013, \"multi_disperser_params\": \"multi_disperser_params.json\", \"grid_width\": 960, \"strategy_distribution_params\":\"animalkernel.json\", \"resource_grid_width\": 32, \"initial_pattern_image\": \"perlin_noise\", \"patch_width\": 500, \"max_timesteps\": 100, \"dispersal_mode\": \"animal\"}" --run 0 --no_reruns 20 --no_processes 8 --attempts 25 --batch_type saddle_search --secondary_range 0.05 40 --statistic mean 
+['./batch.py', '--process_index', '0', '--control_variable', 'treecover', '--control_range', '0.769', '0.9', '0.78', '--extra_parameters', '{"constant_mortality": 0.013, "multi_disperser_params": "multi_disperser_params.json", "grid_width": 960, "strategy_distribution_params":"animalkernel.json", "resource_grid_width": 32, "initial_pattern_image": "perlin_noise", "patch_width": 500, "max_timesteps": 100, "dispersal_mode": "animal"}', '--run', '0', '--no_reruns', '20', '--no_processes', '8', '--attempts', '25', '--batch_type', 'saddle_search', '--secondary_range', '0.05', '40', '--statistic', 'mean']
+csv parent dir:  F:/Development/DBR-sim/data_out/state data/batch_000379
+Extra parameters: {"constant_mortality": 0.013, "multi_disperser_params": "multi_disperser_params.json", "grid_width": 960, "strategy_distribution_params":"animalkernel.json", "resource_grid_width": 32, "initial_pattern_image": "perlin_noise", "patch_width": 500, "max_timesteps": 100, "dispersal_mode": "animal"}
+args:  {'constant_mortality': 0.013, 'multi_disperser_params': 'multi_disperser_params.json', 'grid_width': 960, 'strategy_distribution_params': 'animalkernel.json', 'resource_grid_width': 32, 'initial_pattern_image': 'perlin_noise', 'patch_width': 500, 'max_timesteps': 100, 'dispersal_mode': 'animal'}
+extra parameter: 0.013 (key = constant_mortality)
+extra parameter: multi_disperser_params.json (key = multi_disperser_params)
+extra parameter: 960 (key = grid_width)
+extra parameter: animalkernel.json (key = strategy_distribution_params)
+extra parameter: 32 (key = resource_grid_width)
+extra parameter: perlin_noise (key = initial_pattern_image)
+extra parameter: 500 (key = patch_width)
+extra parameter: 100 (key = max_timesteps)
+extra parameter: animal (key = dispersal_mode)
+
+Executing saddle search with primary variable treecover = 0.769 and secondary variable self_ignition_factor in [0.05, 40.0]
+Beginning run 1 of 20
+
+ ------- Beginning simulation with treecover=0.769, self_ignition_factor=0.05, process 0 ------- 
+
+finished setting dispersal kernel.
+Setting tree cover using perlin noise function...
+Path perlin noise image:  F:\Development\DBR-sim/data_in/state patterns/perlin_noise/perlin_noise.png
+created image. Setting cover...
+Visualizing state at t = 0
+animal species:  ['Turdus iliacus', 'Turdus philomelos', 'Turdus merula', 'Turdus pilaris', 'Turdus torquatus', 'Turdus viscivorus']
+Lookup table file F:\Development\DBR-sim/data_internal\lookup_table_Turdus iliacus_width-960_rcg_width-1024.npy found. Loading...
+Lookup table file F:\Development\DBR-sim/data_internal\lookup_table_Turdus philomelos_width-960_rcg_width-1024.npy found. Loading...
+Lookup table file F:\Development\DBR-sim/data_internal\lookup_table_Turdus merula_width-960_rcg_width-1024.npy found. Loading...
+Lookup table file F:\Development\DBR-sim/data_internal\lookup_table_Turdus pilaris_width-960_rcg_width-1024.npy found. Loading...
+Lookup table file F:\Development\DBR-sim/data_internal\lookup_table_Turdus torquatus_width-960_rcg_width-1024.npy found. Loading...
+Lookup table file F:\Development\DBR-sim/data_internal\lookup_table_Turdus viscivorus_width-960_rcg_width-1024.npy found. Loading...
+Beginning simulation...
+
+Initializing grid with width 960 and cell width 1.000000.
+
+Initializing grid with width 32 and cell width 30.000000.
+Initializing 32358 through non-default constructor
+calling free on resource grid whose probmodel has id 32358 
+resource grid's probmodel obj id: 32358 
+Global kernel created (Dispersal by animals). 
+Initializing 2907 through non-default constructor
+Image cover: 0.773219
+Current tree cover: 0.107918, current population size: 10000
+Current tree cover: 0.207730, current population size: 20000
+Current tree cover: 0.300991, current population size: 30000
+Current tree cover: 0.384855, current population size: 40000
+Current tree cover: 0.460342, current population size: 50000
+Current tree cover: 0.527636, current population size: 60000
+Current tree cover: 0.587214, current population size: 70000
+Current tree cover: 0.638329, current population size: 80000
+Current tree cover: 0.681259, current population size: 90000
+Current tree cover: 0.715944, current population size: 100000
+Current tree cover: 0.742601, current population size: 110000
+Current tree cover: 0.763373, current population size: 120000
+Final tree cover: 0.773219
+Finished setting tree cover from image.
+
+Time: 1
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.024000 seconds. 
+-- Animal dispersal progress: 0.555482 %
+-- Animal dispersal progress: 1.095941 %
+-- Animal dispersal progress: 1.577175 %
+-- Animal dispersal progress: 2.057656 %
+-- Animal dispersal progress: 2.624582 %
+-- Animal dispersal progress: 3.129774 %
+-- Animal dispersal progress: 3.628949 %
+-- Animal dispersal progress: 4.258565 %
+-- Animal dispersal progress: 4.799434 %
+-- Animal dispersal progress: 5.354825 %
+-- Animal dispersal progress: 5.925717 %
+-- Animal dispersal progress: 6.441989 %
+-- Animal dispersal progress: 6.959287 %
+-- Animal dispersal progress: 7.512352 %
+-- Animal dispersal progress: 8.021968 %
+-- Animal dispersal progress: 8.519455 %
+-- Animal dispersal progress: 9.059754 %
+-- Animal dispersal progress: 9.600214 %
+-- Animal dispersal progress: 10.150543 %
+-- Animal dispersal progress: 10.667955 %
+-- Animal dispersal progress: 11.201895 %
+-- Animal dispersal progress: 11.719670 %
+-- Animal dispersal progress: 12.238632 %
+-- Animal dispersal progress: 12.778248 %
+-- Animal dispersal progress: 13.291146 %
+-- Animal dispersal progress: 13.782091 %
+-- Animal dispersal progress: 14.279032 %
+-- Animal dispersal progress: 14.824780 %
+-- Animal dispersal progress: 15.318071 %
+-- Animal dispersal progress: 15.787156 %
+-- Animal dispersal progress: 16.290319 %
+-- Animal dispersal progress: 16.802465 %
+-- Animal dispersal progress: 17.398548 %
+-- Animal dispersal progress: 17.930687 %
+-- Animal dispersal progress: 18.443949 %
+-- Animal dispersal progress: 18.925707 %
+-- Animal dispersal progress: 19.449524 %
+-- Animal dispersal progress: 19.986404 %
+-- Animal dispersal progress: 20.474432 %
+-- Animal dispersal progress: 20.966402 %
+-- Animal dispersal progress: 21.445766 %
+-- Animal dispersal progress: 22.011734 %
+-- Animal dispersal progress: 22.535097 %
+-- Animal dispersal progress: 23.098467 %
+-- Animal dispersal progress: 23.604046 %
+-- Animal dispersal progress: 24.053093 %
+-- Animal dispersal progress: 24.560154 %
+-- Animal dispersal progress: 25.058075 %
+-- Animal dispersal progress: 25.523441 %
+-- Animal dispersal progress: 26.037319 %
+-- Animal dispersal progress: 26.557398 %
+-- Animal dispersal progress: 27.122295 %
+-- Animal dispersal progress: 27.633209 %
+-- Animal dispersal progress: 28.073023 %
+-- Animal dispersal progress: 28.629848 %
+-- Animal dispersal progress: 29.117216 %
+-- Animal dispersal progress: 29.645821 %
+-- Animal dispersal progress: 30.194099 %
+-- Animal dispersal progress: 30.784710 %
+-- Animal dispersal progress: 31.277935 %
+-- Animal dispersal progress: 31.785566 %
+-- Animal dispersal progress: 32.356686 %
+-- Animal dispersal progress: 32.909798 %
+-- Animal dispersal progress: 33.409519 %
+-- Animal dispersal progress: 33.962402 %
+-- Animal dispersal progress: 34.484371 %
+-- Animal dispersal progress: 34.965565 %
+-- Animal dispersal progress: 35.493393 %
+-- Animal dispersal progress: 36.015774 %
+-- Animal dispersal progress: 36.560654 %
+-- Animal dispersal progress: 37.069950 %
+-- Animal dispersal progress: 37.644855 %
+-- Animal dispersal progress: 38.198807 %
+-- Animal dispersal progress: 38.726982 %
+-- Animal dispersal progress: 39.247219 %
+-- Animal dispersal progress: 39.886639 %
+-- Animal dispersal progress: 40.473534 %
+-- Animal dispersal progress: 41.058674 %
+-- Animal dispersal progress: 41.645248 %
+-- Animal dispersal progress: 42.169338 %
+-- Animal dispersal progress: 42.712742 %
+-- Animal dispersal progress: 43.253700 %
+-- Animal dispersal progress: 43.782467 %
+-- Animal dispersal progress: 44.348934 %
+-- Animal dispersal progress: 44.830212 %
+-- Animal dispersal progress: 45.322777 %
+-- Animal dispersal progress: 45.917015 %
+-- Animal dispersal progress: 46.417534 %
+-- Animal dispersal progress: 46.921654 %
+-- Animal dispersal progress: 47.487850 %
+-- Animal dispersal progress: 48.028194 %
+-- Animal dispersal progress: 48.477058 %
+-- Animal dispersal progress: 49.031879 %
+-- Animal dispersal progress: 49.539898 %
+-- Animal dispersal progress: 50.088699 %
+-- Animal dispersal progress: 50.544243 %
+-- Animal dispersal progress: 51.124847 %
+-- Animal dispersal progress: 51.674721 %
+-- Animal dispersal progress: 52.235168 %
+-- Animal dispersal progress: 52.758717 %
+-- Animal dispersal progress: 53.312874 %
+-- Animal dispersal progress: 53.869541 %
+-- Animal dispersal progress: 54.365917 %
+-- Animal dispersal progress: 54.827610 %
+-- Animal dispersal progress: 55.350563 %
+-- Animal dispersal progress: 55.880878 %
+-- Animal dispersal progress: 56.423092 %
+-- Animal dispersal progress: 56.887432 %
+-- Animal dispersal progress: 57.362919 %
+-- Animal dispersal progress: 57.884346 %
+-- Animal dispersal progress: 58.384819 %
+-- Animal dispersal progress: 58.972446 %
+-- Animal dispersal progress: 59.475105 %
+-- Animal dispersal progress: 59.949959 %
+-- Animal dispersal progress: 60.435638 %
+-- Animal dispersal progress: 61.008377 %
+-- Animal dispersal progress: 61.515667 %
+-- Animal dispersal progress: 62.057812 %
+-- Animal dispersal progress: 62.595169 %
+-- Animal dispersal progress: 63.117458 %
+-- Animal dispersal progress: 63.620052 %
+-- Animal dispersal progress: 64.110046 %
+-- Animal dispersal progress: 64.605728 %
+-- Animal dispersal progress: 65.145233 %
+-- Animal dispersal progress: 65.696220 %
+-- Animal dispersal progress: 66.220695 %
+-- Animal dispersal progress: 66.715935 %
+-- Animal dispersal progress: 67.237099 %
+-- Animal dispersal progress: 67.791603 %
+-- Animal dispersal progress: 68.252365 %
+-- Animal dispersal progress: 68.787766 %
+-- Animal dispersal progress: 69.361099 %
+-- Animal dispersal progress: 69.904106 %
+-- Animal dispersal progress: 70.433350 %
+-- Animal dispersal progress: 70.914284 %
+-- Animal dispersal progress: 71.391533 %
+-- Animal dispersal progress: 71.897064 %
+-- Animal dispersal progress: 72.379738 %
+-- Animal dispersal progress: 72.933556 %
+-- Animal dispersal progress: 73.459404 %
+-- Animal dispersal progress: 73.944916 %
+-- Animal dispersal progress: 74.526871 %
+-- Animal dispersal progress: 75.051460 %
+-- Animal dispersal progress: 75.568146 %
+-- Animal dispersal progress: 76.087639 %
+-- Animal dispersal progress: 76.581566 %
+-- Animal dispersal progress: 77.176033 %
+-- Animal dispersal progress: 77.667747 %
+-- Animal dispersal progress: 78.174606 %
+-- Animal dispersal progress: 78.701477 %
+-- Animal dispersal progress: 79.213074 %
+-- Animal dispersal progress: 79.795914 %
+-- Animal dispersal progress: 80.328644 %
+-- Animal dispersal progress: 80.858269 %
+-- Animal dispersal progress: 81.366180 %
+-- Animal dispersal progress: 81.902855 %
+-- Animal dispersal progress: 82.409805 %
+-- Animal dispersal progress: 82.932114 %
+-- Animal dispersal progress: 83.487274 %
+-- Animal dispersal progress: 83.983238 %
+-- Animal dispersal progress: 84.495003 %
+-- Animal dispersal progress: 84.986855 %
+-- Animal dispersal progress: 85.516304 %
+-- Animal dispersal progress: 86.114616 %
+-- Animal dispersal progress: 86.643745 %
+-- Animal dispersal progress: 87.116089 %
+-- Animal dispersal progress: 87.566414 %
+-- Animal dispersal progress: 88.137115 %
+-- Animal dispersal progress: 88.649658 %
+-- Animal dispersal progress: 89.141670 %
+-- Animal dispersal progress: 89.735405 %
+-- Animal dispersal progress: 90.237907 %
+-- Animal dispersal progress: 90.758308 %
+-- Animal dispersal progress: 91.218109 %
+-- Animal dispersal progress: 91.738396 %
+-- Animal dispersal progress: 92.273811 %
+-- Animal dispersal progress: 92.802650 %
+-- Animal dispersal progress: 93.346184 %
+-- Animal dispersal progress: 93.840324 %
+-- Animal dispersal progress: 94.380577 %
+-- Animal dispersal progress: 94.959648 %
+-- Animal dispersal progress: 95.505150 %
+-- Animal dispersal progress: 96.059265 %
+-- Animal dispersal progress: 96.594887 %
+-- Animal dispersal progress: 97.072342 %
+-- Animal dispersal progress: 97.597939 %
+-- Animal dispersal progress: 98.131508 %
+-- Animal dispersal progress: 98.650101 %
+-- Animal dispersal progress: 99.116570 %
+-- Animal dispersal progress: 99.577240 %
+-- Number of iterations spent dispersing fruits: 114510
+-- Dispersing 4 386 642 animal seeds took 15.001000 seconds. 
+-- Recruitment of 148 779 trees took 0.400000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 34966 
+-- Number of trees dead due to background mortality: 3048 
+Tree cover: 0.755849, Number of trees: 236 924 
+
+Time: 2
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.029000 seconds. 
+-- Animal dispersal progress: 0.517696 %
+-- Animal dispersal progress: 1.033844 %
+-- Animal dispersal progress: 1.569577 %
+-- Animal dispersal progress: 2.071384 %
+-- Animal dispersal progress: 2.670185 %
+-- Animal dispersal progress: 3.175272 %
+-- Animal dispersal progress: 3.744213 %
+-- Animal dispersal progress: 4.262001 %
+-- Animal dispersal progress: 4.831658 %
+-- Animal dispersal progress: 5.304552 %
+-- Animal dispersal progress: 5.782087 %
+-- Animal dispersal progress: 6.257383 %
+-- Animal dispersal progress: 6.771360 %
+-- Animal dispersal progress: 7.321134 %
+-- Animal dispersal progress: 7.829015 %
+-- Animal dispersal progress: 8.331376 %
+-- Animal dispersal progress: 8.817180 %
+-- Animal dispersal progress: 9.399423 %
+-- Animal dispersal progress: 9.912269 %
+-- Animal dispersal progress: 10.468184 %
+-- Animal dispersal progress: 10.933573 %
+-- Animal dispersal progress: 11.429606 %
+-- Animal dispersal progress: 11.962914 %
+-- Animal dispersal progress: 12.473751 %
+-- Animal dispersal progress: 13.017520 %
+-- Animal dispersal progress: 13.553460 %
+-- Animal dispersal progress: 14.117898 %
+-- Animal dispersal progress: 14.618388 %
+-- Animal dispersal progress: 15.125715 %
+-- Animal dispersal progress: 15.648075 %
+-- Animal dispersal progress: 16.120369 %
+-- Animal dispersal progress: 16.625294 %
+-- Animal dispersal progress: 17.174513 %
+-- Animal dispersal progress: 17.718260 %
+-- Animal dispersal progress: 18.256901 %
+-- Animal dispersal progress: 18.766975 %
+-- Animal dispersal progress: 19.268181 %
+-- Animal dispersal progress: 19.790243 %
+-- Animal dispersal progress: 20.284290 %
+-- Animal dispersal progress: 20.879650 %
+-- Animal dispersal progress: 21.407070 %
+-- Animal dispersal progress: 21.957350 %
+-- Animal dispersal progress: 22.440266 %
+-- Animal dispersal progress: 22.946278 %
+-- Animal dispersal progress: 23.519930 %
+-- Animal dispersal progress: 24.091528 %
+-- Animal dispersal progress: 24.595736 %
+-- Animal dispersal progress: 25.101030 %
+-- Animal dispersal progress: 25.592354 %
+-- Animal dispersal progress: 26.119265 %
+-- Animal dispersal progress: 26.656380 %
+-- Animal dispersal progress: 27.201281 %
+-- Animal dispersal progress: 27.679302 %
+-- Animal dispersal progress: 28.174110 %
+-- Animal dispersal progress: 28.637190 %
+-- Animal dispersal progress: 29.145624 %
+-- Animal dispersal progress: 29.646278 %
+-- Animal dispersal progress: 30.179123 %
+-- Animal dispersal progress: 30.682987 %
+-- Animal dispersal progress: 31.183777 %
+-- Animal dispersal progress: 31.718121 %
+-- Animal dispersal progress: 32.252747 %
+-- Animal dispersal progress: 32.781780 %
+-- Animal dispersal progress: 33.322803 %
+-- Animal dispersal progress: 33.800293 %
+-- Animal dispersal progress: 34.295818 %
+-- Animal dispersal progress: 34.823536 %
+-- Animal dispersal progress: 35.322643 %
+-- Animal dispersal progress: 35.807915 %
+-- Animal dispersal progress: 36.349236 %
+-- Animal dispersal progress: 36.922863 %
+-- Animal dispersal progress: 37.453121 %
+-- Animal dispersal progress: 37.995438 %
+-- Animal dispersal progress: 38.486691 %
+-- Animal dispersal progress: 39.024685 %
+-- Animal dispersal progress: 39.511528 %
+-- Animal dispersal progress: 40.047234 %
+-- Animal dispersal progress: 40.588512 %
+-- Animal dispersal progress: 41.118584 %
+-- Animal dispersal progress: 41.667183 %
+-- Animal dispersal progress: 42.233257 %
+-- Animal dispersal progress: 42.753471 %
+-- Animal dispersal progress: 43.335854 %
+-- Animal dispersal progress: 43.784267 %
+-- Animal dispersal progress: 44.341824 %
+-- Animal dispersal progress: 44.835041 %
+-- Animal dispersal progress: 45.357864 %
+-- Animal dispersal progress: 45.862995 %
+-- Animal dispersal progress: 46.331085 %
+-- Animal dispersal progress: 46.808113 %
+-- Animal dispersal progress: 47.285580 %
+-- Animal dispersal progress: 47.794937 %
+-- Animal dispersal progress: 48.311478 %
+-- Animal dispersal progress: 48.872635 %
+-- Animal dispersal progress: 49.375759 %
+-- Animal dispersal progress: 49.895260 %
+-- Animal dispersal progress: 50.391018 %
+-- Animal dispersal progress: 50.928642 %
+-- Animal dispersal progress: 51.469040 %
+-- Animal dispersal progress: 52.035900 %
+-- Animal dispersal progress: 52.567753 %
+-- Animal dispersal progress: 53.112629 %
+-- Animal dispersal progress: 53.585823 %
+-- Animal dispersal progress: 54.104836 %
+-- Animal dispersal progress: 54.620663 %
+-- Animal dispersal progress: 55.111843 %
+-- Animal dispersal progress: 55.585480 %
+-- Animal dispersal progress: 56.088024 %
+-- Animal dispersal progress: 56.608654 %
+-- Animal dispersal progress: 57.150921 %
+-- Animal dispersal progress: 57.656910 %
+-- Animal dispersal progress: 58.233192 %
+-- Animal dispersal progress: 58.765297 %
+-- Animal dispersal progress: 59.283665 %
+-- Animal dispersal progress: 59.799049 %
+-- Animal dispersal progress: 60.241600 %
+-- Animal dispersal progress: 60.733360 %
+-- Animal dispersal progress: 61.225906 %
+-- Animal dispersal progress: 61.754642 %
+-- Animal dispersal progress: 62.211807 %
+-- Animal dispersal progress: 62.690334 %
+-- Animal dispersal progress: 63.267151 %
+-- Animal dispersal progress: 63.740742 %
+-- Animal dispersal progress: 64.276863 %
+-- Animal dispersal progress: 64.719086 %
+-- Animal dispersal progress: 65.214638 %
+-- Animal dispersal progress: 65.783951 %
+-- Animal dispersal progress: 66.324432 %
+-- Animal dispersal progress: 66.827377 %
+-- Animal dispersal progress: 67.322929 %
+-- Animal dispersal progress: 67.857132 %
+-- Animal dispersal progress: 68.362244 %
+-- Animal dispersal progress: 68.839340 %
+-- Animal dispersal progress: 69.357735 %
+-- Animal dispersal progress: 69.869995 %
+-- Animal dispersal progress: 70.324486 %
+-- Animal dispersal progress: 70.841232 %
+-- Animal dispersal progress: 71.361633 %
+-- Animal dispersal progress: 71.898430 %
+-- Animal dispersal progress: 72.408844 %
+-- Animal dispersal progress: 72.903152 %
+-- Animal dispersal progress: 73.429222 %
+-- Animal dispersal progress: 73.935585 %
+-- Animal dispersal progress: 74.447235 %
+-- Animal dispersal progress: 74.981667 %
+-- Animal dispersal progress: 75.455780 %
+-- Animal dispersal progress: 76.029465 %
+-- Animal dispersal progress: 76.546921 %
+-- Animal dispersal progress: 77.026772 %
+-- Animal dispersal progress: 77.614044 %
+-- Animal dispersal progress: 78.144218 %
+-- Animal dispersal progress: 78.697990 %
+-- Animal dispersal progress: 79.175224 %
+-- Animal dispersal progress: 79.674049 %
+-- Animal dispersal progress: 80.128670 %
+-- Animal dispersal progress: 80.709930 %
+-- Animal dispersal progress: 81.184601 %
+-- Animal dispersal progress: 81.663147 %
+-- Animal dispersal progress: 82.148094 %
+-- Animal dispersal progress: 82.697136 %
+-- Animal dispersal progress: 83.205917 %
+-- Animal dispersal progress: 83.717331 %
+-- Animal dispersal progress: 84.253983 %
+-- Animal dispersal progress: 84.785233 %
+-- Animal dispersal progress: 85.246948 %
+-- Animal dispersal progress: 85.768898 %
+-- Animal dispersal progress: 86.256866 %
+-- Animal dispersal progress: 86.721939 %
+-- Animal dispersal progress: 87.283463 %
+-- Animal dispersal progress: 87.767372 %
+-- Animal dispersal progress: 88.352020 %
+-- Animal dispersal progress: 88.863800 %
+-- Animal dispersal progress: 89.398216 %
+-- Animal dispersal progress: 89.871964 %
+-- Animal dispersal progress: 90.307533 %
+-- Animal dispersal progress: 90.845581 %
+-- Animal dispersal progress: 91.373138 %
+-- Animal dispersal progress: 91.840324 %
+-- Animal dispersal progress: 92.360748 %
+-- Animal dispersal progress: 92.849670 %
+-- Animal dispersal progress: 93.341591 %
+-- Animal dispersal progress: 93.817650 %
+-- Animal dispersal progress: 94.283501 %
+-- Animal dispersal progress: 94.773186 %
+-- Animal dispersal progress: 95.261826 %
+-- Animal dispersal progress: 95.738602 %
+-- Animal dispersal progress: 96.258629 %
+-- Animal dispersal progress: 96.767502 %
+-- Animal dispersal progress: 97.295433 %
+-- Animal dispersal progress: 97.868965 %
+-- Animal dispersal progress: 98.379387 %
+-- Animal dispersal progress: 98.896179 %
+-- Animal dispersal progress: 99.347321 %
+-- Animal dispersal progress: 99.856659 %
+-- Number of iterations spent dispersing fruits: 116543
+-- Dispersing 4 330 149 animal seeds took 16.168000 seconds. 
+-- Recruitment of 71 841 trees took 0.168000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 1417 
+-- Number of trees dead due to background mortality: 3959 
+Tree cover: 0.751908, Number of trees: 303 389 
+
+Time: 3
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.031000 seconds. 
+-- Animal dispersal progress: 0.511835 %
+-- Animal dispersal progress: 1.057875 %
+-- Animal dispersal progress: 1.543963 %
+-- Animal dispersal progress: 2.074769 %
+-- Animal dispersal progress: 2.622422 %
+-- Animal dispersal progress: 3.096197 %
+-- Animal dispersal progress: 3.642096 %
+-- Animal dispersal progress: 4.177903 %
+-- Animal dispersal progress: 4.641655 %
+-- Animal dispersal progress: 5.196035 %
+-- Animal dispersal progress: 5.692567 %
+-- Animal dispersal progress: 6.208935 %
+-- Animal dispersal progress: 6.720303 %
+-- Animal dispersal progress: 7.247931 %
+-- Animal dispersal progress: 7.789135 %
+-- Animal dispersal progress: 8.263167 %
+-- Animal dispersal progress: 8.748227 %
+-- Animal dispersal progress: 9.288754 %
+-- Animal dispersal progress: 9.838648 %
+-- Animal dispersal progress: 10.386487 %
+-- Animal dispersal progress: 10.862926 %
+-- Animal dispersal progress: 11.379410 %
+-- Animal dispersal progress: 11.872391 %
+-- Animal dispersal progress: 12.373175 %
+-- Animal dispersal progress: 12.900009 %
+-- Animal dispersal progress: 13.476048 %
+-- Animal dispersal progress: 14.012650 %
+-- Animal dispersal progress: 14.477757 %
+-- Animal dispersal progress: 14.976344 %
+-- Animal dispersal progress: 15.481894 %
+-- Animal dispersal progress: 16.041719 %
+-- Animal dispersal progress: 16.552011 %
+-- Animal dispersal progress: 17.059057 %
+-- Animal dispersal progress: 17.597317 %
+-- Animal dispersal progress: 18.137959 %
+-- Animal dispersal progress: 18.660915 %
+-- Animal dispersal progress: 19.209642 %
+-- Animal dispersal progress: 19.727810 %
+-- Animal dispersal progress: 20.320717 %
+-- Animal dispersal progress: 20.798138 %
+-- Animal dispersal progress: 21.263197 %
+-- Animal dispersal progress: 21.751575 %
+-- Animal dispersal progress: 22.327452 %
+-- Animal dispersal progress: 22.888630 %
+-- Animal dispersal progress: 23.406845 %
+-- Animal dispersal progress: 23.943350 %
+-- Animal dispersal progress: 24.473783 %
+-- Animal dispersal progress: 24.976507 %
+-- Animal dispersal progress: 25.480658 %
+-- Animal dispersal progress: 26.018074 %
+-- Animal dispersal progress: 26.577642 %
+-- Animal dispersal progress: 27.081415 %
+-- Animal dispersal progress: 27.576126 %
+-- Animal dispersal progress: 28.056232 %
+-- Animal dispersal progress: 28.632669 %
+-- Animal dispersal progress: 29.186396 %
+-- Animal dispersal progress: 29.679470 %
+-- Animal dispersal progress: 30.215979 %
+-- Animal dispersal progress: 30.797110 %
+-- Animal dispersal progress: 31.268150 %
+-- Animal dispersal progress: 31.731295 %
+-- Animal dispersal progress: 32.270329 %
+-- Animal dispersal progress: 32.786621 %
+-- Animal dispersal progress: 33.341427 %
+-- Animal dispersal progress: 33.831459 %
+-- Animal dispersal progress: 34.323647 %
+-- Animal dispersal progress: 34.795063 %
+-- Animal dispersal progress: 35.248955 %
+-- Animal dispersal progress: 35.778709 %
+-- Animal dispersal progress: 36.299282 %
+-- Animal dispersal progress: 36.802475 %
+-- Animal dispersal progress: 37.314846 %
+-- Animal dispersal progress: 37.835560 %
+-- Animal dispersal progress: 38.296181 %
+-- Animal dispersal progress: 38.861309 %
+-- Animal dispersal progress: 39.408539 %
+-- Animal dispersal progress: 39.892036 %
+-- Animal dispersal progress: 40.431416 %
+-- Animal dispersal progress: 40.981964 %
+-- Animal dispersal progress: 41.515038 %
+-- Animal dispersal progress: 42.011944 %
+-- Animal dispersal progress: 42.522003 %
+-- Animal dispersal progress: 43.017296 %
+-- Animal dispersal progress: 43.558338 %
+-- Animal dispersal progress: 44.109352 %
+-- Animal dispersal progress: 44.685509 %
+-- Animal dispersal progress: 45.225735 %
+-- Animal dispersal progress: 45.715603 %
+-- Animal dispersal progress: 46.177814 %
+-- Animal dispersal progress: 46.740093 %
+-- Animal dispersal progress: 47.266319 %
+-- Animal dispersal progress: 47.756775 %
+-- Animal dispersal progress: 48.271465 %
+-- Animal dispersal progress: 48.831612 %
+-- Animal dispersal progress: 49.324989 %
+-- Animal dispersal progress: 49.912079 %
+-- Animal dispersal progress: 50.404289 %
+-- Animal dispersal progress: 50.946404 %
+-- Animal dispersal progress: 51.480183 %
+-- Animal dispersal progress: 51.998230 %
+-- Animal dispersal progress: 52.513309 %
+-- Animal dispersal progress: 53.087410 %
+-- Animal dispersal progress: 53.623077 %
+-- Animal dispersal progress: 54.140823 %
+-- Animal dispersal progress: 54.702938 %
+-- Animal dispersal progress: 55.184052 %
+-- Animal dispersal progress: 55.616238 %
+-- Animal dispersal progress: 56.065083 %
+-- Animal dispersal progress: 56.624439 %
+-- Animal dispersal progress: 57.109455 %
+-- Animal dispersal progress: 57.567783 %
+-- Animal dispersal progress: 58.077377 %
+-- Animal dispersal progress: 58.562576 %
+-- Animal dispersal progress: 59.045418 %
+-- Animal dispersal progress: 59.531273 %
+-- Animal dispersal progress: 60.101704 %
+-- Animal dispersal progress: 60.681198 %
+-- Animal dispersal progress: 61.240559 %
+-- Animal dispersal progress: 61.746342 %
+-- Animal dispersal progress: 62.271847 %
+-- Animal dispersal progress: 62.783607 %
+-- Animal dispersal progress: 63.364670 %
+-- Animal dispersal progress: 63.874027 %
+-- Animal dispersal progress: 64.447289 %
+-- Animal dispersal progress: 64.958565 %
+-- Animal dispersal progress: 65.501572 %
+-- Animal dispersal progress: 66.007912 %
+-- Animal dispersal progress: 66.506966 %
+-- Animal dispersal progress: 67.082840 %
+-- Animal dispersal progress: 67.605026 %
+-- Animal dispersal progress: 68.173851 %
+-- Animal dispersal progress: 68.739258 %
+-- Animal dispersal progress: 69.259018 %
+-- Animal dispersal progress: 69.738327 %
+-- Animal dispersal progress: 70.299202 %
+-- Animal dispersal progress: 70.821198 %
+-- Animal dispersal progress: 71.332962 %
+-- Animal dispersal progress: 71.842293 %
+-- Animal dispersal progress: 72.319687 %
+-- Animal dispersal progress: 72.813515 %
+-- Animal dispersal progress: 73.302711 %
+-- Animal dispersal progress: 73.772369 %
+-- Animal dispersal progress: 74.302505 %
+-- Animal dispersal progress: 74.859711 %
+-- Animal dispersal progress: 75.379677 %
+-- Animal dispersal progress: 75.883125 %
+-- Animal dispersal progress: 76.395355 %
+-- Animal dispersal progress: 76.893028 %
+-- Animal dispersal progress: 77.433655 %
+-- Animal dispersal progress: 78.013474 %
+-- Animal dispersal progress: 78.524162 %
+-- Animal dispersal progress: 79.025627 %
+-- Animal dispersal progress: 79.556015 %
+-- Animal dispersal progress: 80.093712 %
+-- Animal dispersal progress: 80.575363 %
+-- Animal dispersal progress: 81.141075 %
+-- Animal dispersal progress: 81.654854 %
+-- Animal dispersal progress: 82.201050 %
+-- Animal dispersal progress: 82.721458 %
+-- Animal dispersal progress: 83.209297 %
+-- Animal dispersal progress: 83.721298 %
+-- Animal dispersal progress: 84.235489 %
+-- Animal dispersal progress: 84.778336 %
+-- Animal dispersal progress: 85.266853 %
+-- Animal dispersal progress: 85.768150 %
+-- Animal dispersal progress: 86.289444 %
+-- Animal dispersal progress: 86.761452 %
+-- Animal dispersal progress: 87.280342 %
+-- Animal dispersal progress: 87.738808 %
+-- Animal dispersal progress: 88.268143 %
+-- Animal dispersal progress: 88.736198 %
+-- Animal dispersal progress: 89.206955 %
+-- Animal dispersal progress: 89.672203 %
+-- Animal dispersal progress: 90.252846 %
+-- Animal dispersal progress: 90.772209 %
+-- Animal dispersal progress: 91.257751 %
+-- Animal dispersal progress: 91.780991 %
+-- Animal dispersal progress: 92.343361 %
+-- Animal dispersal progress: 92.832153 %
+-- Animal dispersal progress: 93.365021 %
+-- Animal dispersal progress: 93.943329 %
+-- Animal dispersal progress: 94.454506 %
+-- Animal dispersal progress: 94.970131 %
+-- Animal dispersal progress: 95.448227 %
+-- Animal dispersal progress: 95.944527 %
+-- Animal dispersal progress: 96.470940 %
+-- Animal dispersal progress: 96.987869 %
+-- Animal dispersal progress: 97.490753 %
+-- Animal dispersal progress: 97.960159 %
+-- Animal dispersal progress: 98.509583 %
+-- Animal dispersal progress: 99.096916 %
+-- Animal dispersal progress: 99.653557 %
+-- Number of iterations spent dispersing fruits: 115635
+-- Dispersing 4 280 090 animal seeds took 14.449000 seconds. 
+-- Recruitment of 36 877 trees took 0.077000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 1457 
+-- Number of trees dead due to background mortality: 4409 
+Tree cover: 0.747756, Number of trees: 334 400 
+
+Time: 4
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.038000 seconds. 
+-- Animal dispersal progress: 0.539976 %
+-- Animal dispersal progress: 1.029198 %
+-- Animal dispersal progress: 1.595285 %
+-- Animal dispersal progress: 2.123625 %
+-- Animal dispersal progress: 2.671430 %
+-- Animal dispersal progress: 3.259276 %
+-- Animal dispersal progress: 3.746156 %
+-- Animal dispersal progress: 4.198269 %
+-- Animal dispersal progress: 4.728714 %
+-- Animal dispersal progress: 5.203036 %
+-- Animal dispersal progress: 5.758054 %
+-- Animal dispersal progress: 6.301957 %
+-- Animal dispersal progress: 6.830652 %
+-- Animal dispersal progress: 7.339669 %
+-- Animal dispersal progress: 7.868624 %
+-- Animal dispersal progress: 8.396420 %
+-- Animal dispersal progress: 8.895622 %
+-- Animal dispersal progress: 9.471738 %
+-- Animal dispersal progress: 9.991611 %
+-- Animal dispersal progress: 10.554245 %
+-- Animal dispersal progress: 11.024380 %
+-- Animal dispersal progress: 11.545672 %
+-- Animal dispersal progress: 12.100596 %
+-- Animal dispersal progress: 12.613469 %
+-- Animal dispersal progress: 13.126719 %
+-- Animal dispersal progress: 13.629966 %
+-- Animal dispersal progress: 14.158992 %
+-- Animal dispersal progress: 14.654788 %
+-- Animal dispersal progress: 15.175750 %
+-- Animal dispersal progress: 15.683514 %
+-- Animal dispersal progress: 16.193783 %
+-- Animal dispersal progress: 16.663303 %
+-- Animal dispersal progress: 17.183392 %
+-- Animal dispersal progress: 17.685549 %
+-- Animal dispersal progress: 18.244919 %
+-- Animal dispersal progress: 18.806158 %
+-- Animal dispersal progress: 19.374966 %
+-- Animal dispersal progress: 19.900917 %
+-- Animal dispersal progress: 20.391460 %
+-- Animal dispersal progress: 20.916349 %
+-- Animal dispersal progress: 21.442513 %
+-- Animal dispersal progress: 21.974260 %
+-- Animal dispersal progress: 22.492903 %
+-- Animal dispersal progress: 23.030870 %
+-- Animal dispersal progress: 23.566542 %
+-- Animal dispersal progress: 24.098288 %
+-- Animal dispersal progress: 24.638500 %
+-- Animal dispersal progress: 25.143898 %
+-- Animal dispersal progress: 25.676662 %
+-- Animal dispersal progress: 26.225601 %
+-- Animal dispersal progress: 26.758978 %
+-- Animal dispersal progress: 27.261303 %
+-- Animal dispersal progress: 27.797686 %
+-- Animal dispersal progress: 28.337898 %
+-- Animal dispersal progress: 28.826033 %
+-- Animal dispersal progress: 29.385283 %
+-- Animal dispersal progress: 29.941698 %
+-- Animal dispersal progress: 30.472546 %
+-- Animal dispersal progress: 31.002422 %
+-- Animal dispersal progress: 31.553160 %
+-- Animal dispersal progress: 32.107327 %
+-- Animal dispersal progress: 32.640514 %
+-- Animal dispersal progress: 33.172970 %
+-- Animal dispersal progress: 33.636250 %
+-- Animal dispersal progress: 34.181664 %
+-- Animal dispersal progress: 34.679897 %
+-- Animal dispersal progress: 35.164173 %
+-- Animal dispersal progress: 35.645760 %
+-- Animal dispersal progress: 36.231808 %
+-- Animal dispersal progress: 36.728477 %
+-- Animal dispersal progress: 37.246269 %
+-- Animal dispersal progress: 37.761078 %
+-- Animal dispersal progress: 38.261940 %
+-- Animal dispersal progress: 38.778713 %
+-- Animal dispersal progress: 39.348087 %
+-- Animal dispersal progress: 39.874680 %
+-- Animal dispersal progress: 40.400036 %
+-- Animal dispersal progress: 40.909103 %
+-- Animal dispersal progress: 41.408421 %
+-- Animal dispersal progress: 41.929714 %
+-- Animal dispersal progress: 42.526974 %
+-- Animal dispersal progress: 43.061584 %
+-- Animal dispersal progress: 43.635166 %
+-- Animal dispersal progress: 44.204636 %
+-- Animal dispersal progress: 44.781437 %
+-- Animal dispersal progress: 45.315620 %
+-- Animal dispersal progress: 45.844269 %
+-- Animal dispersal progress: 46.355438 %
+-- Animal dispersal progress: 46.897823 %
+-- Animal dispersal progress: 47.443050 %
+-- Animal dispersal progress: 47.929226 %
+-- Animal dispersal progress: 48.415985 %
+-- Animal dispersal progress: 49.005840 %
+-- Animal dispersal progress: 49.532997 %
+-- Animal dispersal progress: 50.087475 %
+-- Animal dispersal progress: 50.595070 %
+-- Animal dispersal progress: 51.136799 %
+-- Animal dispersal progress: 51.676846 %
+-- Animal dispersal progress: 52.157433 %
+-- Animal dispersal progress: 52.644455 %
+-- Animal dispersal progress: 53.173576 %
+-- Animal dispersal progress: 53.789448 %
+-- Animal dispersal progress: 54.296009 %
+-- Animal dispersal progress: 54.856773 %
+-- Animal dispersal progress: 55.443863 %
+-- Animal dispersal progress: 56.020145 %
+-- Animal dispersal progress: 56.585400 %
+-- Animal dispersal progress: 57.161591 %
+-- Animal dispersal progress: 57.744968 %
+-- Animal dispersal progress: 58.236267 %
+-- Animal dispersal progress: 58.749256 %
+-- Animal dispersal progress: 59.277336 %
+-- Animal dispersal progress: 59.846523 %
+-- Animal dispersal progress: 60.389008 %
+-- Animal dispersal progress: 60.920258 %
+-- Animal dispersal progress: 61.444954 %
+-- Animal dispersal progress: 61.876160 %
+-- Animal dispersal progress: 62.402962 %
+-- Animal dispersal progress: 63.009235 %
+-- Animal dispersal progress: 63.537151 %
+-- Animal dispersal progress: 64.043968 %
+-- Animal dispersal progress: 64.548462 %
+-- Animal dispersal progress: 65.077751 %
+-- Animal dispersal progress: 65.635139 %
+-- Animal dispersal progress: 66.172577 %
+-- Animal dispersal progress: 66.699547 %
+-- Animal dispersal progress: 67.264999 %
+-- Animal dispersal progress: 67.744186 %
+-- Animal dispersal progress: 68.281616 %
+-- Animal dispersal progress: 68.830696 %
+-- Animal dispersal progress: 69.324028 %
+-- Animal dispersal progress: 69.821136 %
+-- Animal dispersal progress: 70.328178 %
+-- Animal dispersal progress: 70.851341 %
+-- Animal dispersal progress: 71.372475 %
+-- Animal dispersal progress: 71.912331 %
+-- Animal dispersal progress: 72.464607 %
+-- Animal dispersal progress: 72.895813 %
+-- Animal dispersal progress: 73.393478 %
+-- Animal dispersal progress: 73.918129 %
+-- Animal dispersal progress: 74.405998 %
+-- Animal dispersal progress: 74.912842 %
+-- Animal dispersal progress: 75.438202 %
+-- Animal dispersal progress: 75.924446 %
+-- Animal dispersal progress: 76.438805 %
+-- Animal dispersal progress: 77.045006 %
+-- Animal dispersal progress: 77.536285 %
+-- Animal dispersal progress: 78.095932 %
+-- Animal dispersal progress: 78.563614 %
+-- Animal dispersal progress: 79.120049 %
+-- Animal dispersal progress: 79.653877 %
+-- Animal dispersal progress: 80.193405 %
+-- Animal dispersal progress: 80.673737 %
+-- Animal dispersal progress: 81.188187 %
+-- Animal dispersal progress: 81.728874 %
+-- Animal dispersal progress: 82.322495 %
+-- Animal dispersal progress: 82.834183 %
+-- Animal dispersal progress: 83.344078 %
+-- Animal dispersal progress: 83.869789 %
+-- Animal dispersal progress: 84.414284 %
+-- Animal dispersal progress: 84.895729 %
+-- Animal dispersal progress: 85.335068 %
+-- Animal dispersal progress: 85.837273 %
+-- Animal dispersal progress: 86.333466 %
+-- Animal dispersal progress: 86.834633 %
+-- Animal dispersal progress: 87.344994 %
+-- Animal dispersal progress: 87.901772 %
+-- Animal dispersal progress: 88.361801 %
+-- Animal dispersal progress: 88.952965 %
+-- Animal dispersal progress: 89.490616 %
+-- Animal dispersal progress: 90.020355 %
+-- Animal dispersal progress: 90.558273 %
+-- Animal dispersal progress: 91.072449 %
+-- Animal dispersal progress: 91.601784 %
+-- Animal dispersal progress: 92.183197 %
+-- Animal dispersal progress: 92.730240 %
+-- Animal dispersal progress: 93.245598 %
+-- Animal dispersal progress: 93.749176 %
+-- Animal dispersal progress: 94.266586 %
+-- Animal dispersal progress: 94.734451 %
+-- Animal dispersal progress: 95.249855 %
+-- Animal dispersal progress: 95.700531 %
+-- Animal dispersal progress: 96.186607 %
+-- Animal dispersal progress: 96.705177 %
+-- Animal dispersal progress: 97.219917 %
+-- Animal dispersal progress: 97.749512 %
+-- Animal dispersal progress: 98.276764 %
+-- Animal dispersal progress: 98.863289 %
+-- Animal dispersal progress: 99.390213 %
+-- Animal dispersal progress: 99.942009 %
+-- Number of iterations spent dispersing fruits: 114071
+-- Dispersing 4 228 147 animal seeds took 14.654000 seconds. 
+-- Recruitment of 24 235 trees took 0.077000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 1400 
+-- Number of trees dead due to background mortality: 4700 
+Tree cover: 0.743120, Number of trees: 352 535 
+
+Time: 5
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.033000 seconds. 
+-- Animal dispersal progress: 0.520947 %
+-- Animal dispersal progress: 0.994404 %
+-- Animal dispersal progress: 1.555505 %
+-- Animal dispersal progress: 2.070962 %
+-- Animal dispersal progress: 2.617655 %
+-- Animal dispersal progress: 3.199492 %
+-- Animal dispersal progress: 3.692463 %
+-- Animal dispersal progress: 4.223047 %
+-- Animal dispersal progress: 4.773408 %
+-- Animal dispersal progress: 5.263071 %
+-- Animal dispersal progress: 5.732141 %
+-- Animal dispersal progress: 6.214204 %
+-- Animal dispersal progress: 6.791655 %
+-- Animal dispersal progress: 7.243608 %
+-- Animal dispersal progress: 7.754079 %
+-- Animal dispersal progress: 8.215143 %
+-- Animal dispersal progress: 8.792761 %
+-- Animal dispersal progress: 9.329865 %
+-- Animal dispersal progress: 9.890102 %
+-- Animal dispersal progress: 10.493395 %
+-- Animal dispersal progress: 11.048503 %
+-- Animal dispersal progress: 11.525388 %
+-- Animal dispersal progress: 12.073328 %
+-- Animal dispersal progress: 12.639727 %
+-- Animal dispersal progress: 13.159019 %
+-- Animal dispersal progress: 13.696075 %
+-- Animal dispersal progress: 14.238910 %
+-- Animal dispersal progress: 14.794688 %
+-- Animal dispersal progress: 15.363796 %
+-- Animal dispersal progress: 15.963901 %
+-- Animal dispersal progress: 16.470463 %
+-- Animal dispersal progress: 16.985106 %
+-- Animal dispersal progress: 17.471651 %
+-- Animal dispersal progress: 17.990152 %
+-- Animal dispersal progress: 18.585798 %
+-- Animal dispersal progress: 19.083733 %
+-- Animal dispersal progress: 19.583151 %
+-- Animal dispersal progress: 20.139074 %
+-- Animal dispersal progress: 20.669538 %
+-- Animal dispersal progress: 21.195208 %
+-- Animal dispersal progress: 21.716587 %
+-- Animal dispersal progress: 22.266275 %
+-- Animal dispersal progress: 22.746925 %
+-- Animal dispersal progress: 23.257586 %
+-- Animal dispersal progress: 23.811689 %
+-- Animal dispersal progress: 24.318300 %
+-- Animal dispersal progress: 24.882277 %
+-- Animal dispersal progress: 25.393970 %
+-- Animal dispersal progress: 25.936205 %
+-- Animal dispersal progress: 26.416567 %
+-- Animal dispersal progress: 26.946669 %
+-- Animal dispersal progress: 27.472197 %
+-- Animal dispersal progress: 27.976505 %
+-- Animal dispersal progress: 28.488607 %
+-- Animal dispersal progress: 29.071882 %
+-- Animal dispersal progress: 29.568521 %
+-- Animal dispersal progress: 30.127151 %
+-- Animal dispersal progress: 30.607586 %
+-- Animal dispersal progress: 31.133400 %
+-- Animal dispersal progress: 31.702721 %
+-- Animal dispersal progress: 32.239758 %
+-- Animal dispersal progress: 32.790356 %
+-- Animal dispersal progress: 33.320770 %
+-- Animal dispersal progress: 33.869911 %
+-- Animal dispersal progress: 34.411160 %
+-- Animal dispersal progress: 35.004215 %
+-- Animal dispersal progress: 35.555946 %
+-- Animal dispersal progress: 36.147469 %
+-- Animal dispersal progress: 36.670238 %
+-- Animal dispersal progress: 37.180801 %
+-- Animal dispersal progress: 37.725098 %
+-- Animal dispersal progress: 38.325081 %
+-- Animal dispersal progress: 38.884148 %
+-- Animal dispersal progress: 39.351635 %
+-- Animal dispersal progress: 39.899742 %
+-- Animal dispersal progress: 40.459980 %
+-- Animal dispersal progress: 40.961823 %
+-- Animal dispersal progress: 41.527477 %
+-- Animal dispersal progress: 42.076397 %
+-- Animal dispersal progress: 42.620884 %
+-- Animal dispersal progress: 43.148018 %
+-- Animal dispersal progress: 43.666691 %
+-- Animal dispersal progress: 44.135757 %
+-- Animal dispersal progress: 44.583591 %
+-- Animal dispersal progress: 45.126808 %
+-- Animal dispersal progress: 45.621792 %
+-- Animal dispersal progress: 46.123894 %
+-- Animal dispersal progress: 46.675407 %
+-- Animal dispersal progress: 47.188107 %
+-- Animal dispersal progress: 47.695148 %
+-- Animal dispersal progress: 48.206554 %
+-- Animal dispersal progress: 48.750229 %
+-- Animal dispersal progress: 49.299221 %
+-- Animal dispersal progress: 49.819809 %
+-- Animal dispersal progress: 50.381752 %
+-- Animal dispersal progress: 50.905048 %
+-- Animal dispersal progress: 51.439682 %
+-- Animal dispersal progress: 51.999081 %
+-- Animal dispersal progress: 52.530239 %
+-- Animal dispersal progress: 53.044498 %
+-- Animal dispersal progress: 53.542122 %
+-- Animal dispersal progress: 54.055420 %
+-- Animal dispersal progress: 54.574760 %
+-- Animal dispersal progress: 55.091438 %
+-- Animal dispersal progress: 55.580097 %
+-- Animal dispersal progress: 56.154549 %
+-- Animal dispersal progress: 56.641621 %
+-- Animal dispersal progress: 57.229141 %
+-- Animal dispersal progress: 57.831928 %
+-- Animal dispersal progress: 58.383751 %
+-- Animal dispersal progress: 58.871693 %
+-- Animal dispersal progress: 59.405678 %
+-- Animal dispersal progress: 59.933792 %
+-- Animal dispersal progress: 60.472813 %
+-- Animal dispersal progress: 61.056473 %
+-- Animal dispersal progress: 61.558075 %
+-- Animal dispersal progress: 62.117065 %
+-- Animal dispersal progress: 62.640362 %
+-- Animal dispersal progress: 63.171329 %
+-- Animal dispersal progress: 63.703041 %
+-- Animal dispersal progress: 64.195099 %
+-- Animal dispersal progress: 64.715324 %
+-- Animal dispersal progress: 65.219398 %
+-- Animal dispersal progress: 65.754128 %
+-- Animal dispersal progress: 66.308876 %
+-- Animal dispersal progress: 66.842293 %
+-- Animal dispersal progress: 67.378578 %
+-- Animal dispersal progress: 67.878647 %
+-- Animal dispersal progress: 68.382095 %
+-- Animal dispersal progress: 68.922188 %
+-- Animal dispersal progress: 69.455849 %
+-- Animal dispersal progress: 69.991028 %
+-- Animal dispersal progress: 70.472710 %
+-- Animal dispersal progress: 70.992607 %
+-- Animal dispersal progress: 71.539391 %
+-- Animal dispersal progress: 72.056313 %
+-- Animal dispersal progress: 72.603485 %
+-- Animal dispersal progress: 73.157944 %
+-- Animal dispersal progress: 73.731483 %
+-- Animal dispersal progress: 74.298172 %
+-- Animal dispersal progress: 74.822792 %
+-- Animal dispersal progress: 75.324532 %
+-- Animal dispersal progress: 75.869164 %
+-- Animal dispersal progress: 76.309753 %
+-- Animal dispersal progress: 76.804718 %
+-- Animal dispersal progress: 77.382462 %
+-- Animal dispersal progress: 77.983116 %
+-- Animal dispersal progress: 78.486557 %
+-- Animal dispersal progress: 79.039291 %
+-- Animal dispersal progress: 79.484268 %
+-- Animal dispersal progress: 80.018379 %
+-- Animal dispersal progress: 80.609352 %
+-- Animal dispersal progress: 81.160645 %
+-- Animal dispersal progress: 81.691635 %
+-- Animal dispersal progress: 82.225334 %
+-- Animal dispersal progress: 82.783844 %
+-- Animal dispersal progress: 83.313309 %
+-- Animal dispersal progress: 83.908279 %
+-- Animal dispersal progress: 84.420601 %
+-- Animal dispersal progress: 84.946503 %
+-- Animal dispersal progress: 85.487801 %
+-- Animal dispersal progress: 86.035141 %
+-- Animal dispersal progress: 86.561867 %
+-- Animal dispersal progress: 87.100914 %
+-- Animal dispersal progress: 87.579544 %
+-- Animal dispersal progress: 88.141373 %
+-- Animal dispersal progress: 88.621132 %
+-- Animal dispersal progress: 89.218048 %
+-- Animal dispersal progress: 89.817192 %
+-- Animal dispersal progress: 90.338425 %
+-- Animal dispersal progress: 90.865509 %
+-- Animal dispersal progress: 91.431213 %
+-- Animal dispersal progress: 91.991737 %
+-- Animal dispersal progress: 92.522034 %
+-- Animal dispersal progress: 92.998589 %
+-- Animal dispersal progress: 93.558350 %
+-- Animal dispersal progress: 94.070473 %
+-- Animal dispersal progress: 94.658012 %
+-- Animal dispersal progress: 95.182602 %
+-- Animal dispersal progress: 95.712540 %
+-- Animal dispersal progress: 96.244751 %
+-- Animal dispersal progress: 96.735832 %
+-- Animal dispersal progress: 97.367676 %
+-- Animal dispersal progress: 97.915367 %
+-- Animal dispersal progress: 98.430611 %
+-- Animal dispersal progress: 98.936195 %
+-- Animal dispersal progress: 99.479774 %
+-- Number of iterations spent dispersing fruits: 112743
+-- Dispersing 4 171 443 animal seeds took 13.527000 seconds. 
+-- Recruitment of 19 448 trees took 0.043000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 2296 
+-- Number of trees dead due to background mortality: 4786 
+Tree cover: 0.738697, Number of trees: 364 901 
+
+Time: 6
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.035000 seconds. 
+-- Animal dispersal progress: 0.539096 %
+-- Animal dispersal progress: 1.052628 %
+-- Animal dispersal progress: 1.554701 %
+-- Animal dispersal progress: 2.099332 %
+-- Animal dispersal progress: 2.596477 %
+-- Animal dispersal progress: 3.057813 %
+-- Animal dispersal progress: 3.651459 %
+-- Animal dispersal progress: 4.230491 %
+-- Animal dispersal progress: 4.750772 %
+-- Animal dispersal progress: 5.243693 %
+-- Animal dispersal progress: 5.788324 %
+-- Animal dispersal progress: 6.282920 %
+-- Animal dispersal progress: 6.797277 %
+-- Animal dispersal progress: 7.349871 %
+-- Animal dispersal progress: 7.891200 %
+-- Animal dispersal progress: 8.363996 %
+-- Animal dispersal progress: 8.882431 %
+-- Animal dispersal progress: 9.398828 %
+-- Animal dispersal progress: 9.939574 %
+-- Animal dispersal progress: 10.476485 %
+-- Animal dispersal progress: 11.120142 %
+-- Animal dispersal progress: 11.623987 %
+-- Animal dispersal progress: 12.192822 %
+-- Animal dispersal progress: 12.758526 %
+-- Animal dispersal progress: 13.290436 %
+-- Animal dispersal progress: 13.757648 %
+-- Animal dispersal progress: 14.291378 %
+-- Animal dispersal progress: 14.872716 %
+-- Animal dispersal progress: 15.407441 %
+-- Animal dispersal progress: 15.994678 %
+-- Animal dispersal progress: 16.512871 %
+-- Animal dispersal progress: 17.072311 %
+-- Animal dispersal progress: 17.577055 %
+-- Animal dispersal progress: 18.125643 %
+-- Animal dispersal progress: 18.623808 %
+-- Animal dispersal progress: 19.113501 %
+-- Animal dispersal progress: 19.613413 %
+-- Animal dispersal progress: 20.170181 %
+-- Animal dispersal progress: 20.658855 %
+-- Animal dispersal progress: 21.219145 %
+-- Animal dispersal progress: 21.768606 %
+-- Animal dispersal progress: 22.317314 %
+-- Animal dispersal progress: 22.824196 %
+-- Animal dispersal progress: 23.338116 %
+-- Animal dispersal progress: 23.889301 %
+-- Animal dispersal progress: 24.410919 %
+-- Animal dispersal progress: 24.939114 %
+-- Animal dispersal progress: 25.510254 %
+-- Animal dispersal progress: 26.059233 %
+-- Animal dispersal progress: 26.531321 %
+-- Animal dispersal progress: 27.062651 %
+-- Animal dispersal progress: 27.656660 %
+-- Animal dispersal progress: 28.169147 %
+-- Animal dispersal progress: 28.725601 %
+-- Animal dispersal progress: 29.287300 %
+-- Animal dispersal progress: 29.900829 %
+-- Animal dispersal progress: 30.450436 %
+-- Animal dispersal progress: 31.049568 %
+-- Animal dispersal progress: 31.593132 %
+-- Animal dispersal progress: 32.146332 %
+-- Animal dispersal progress: 32.670204 %
+-- Animal dispersal progress: 33.198860 %
+-- Animal dispersal progress: 33.755680 %
+-- Animal dispersal progress: 34.284386 %
+-- Animal dispersal progress: 34.783474 %
+-- Animal dispersal progress: 35.295597 %
+-- Animal dispersal progress: 35.831902 %
+-- Animal dispersal progress: 36.357571 %
+-- Animal dispersal progress: 36.936749 %
+-- Animal dispersal progress: 37.601669 %
+-- Animal dispersal progress: 38.216003 %
+-- Animal dispersal progress: 38.752914 %
+-- Animal dispersal progress: 39.358212 %
+-- Animal dispersal progress: 39.889103 %
+-- Animal dispersal progress: 40.433804 %
+-- Animal dispersal progress: 41.001720 %
+-- Animal dispersal progress: 41.539551 %
+-- Animal dispersal progress: 42.066849 %
+-- Animal dispersal progress: 42.698368 %
+-- Animal dispersal progress: 43.219814 %
+-- Animal dispersal progress: 43.760998 %
+-- Animal dispersal progress: 44.266445 %
+-- Animal dispersal progress: 44.868538 %
+-- Animal dispersal progress: 45.407028 %
+-- Animal dispersal progress: 45.981373 %
+-- Animal dispersal progress: 46.451401 %
+-- Animal dispersal progress: 46.989017 %
+-- Animal dispersal progress: 47.540447 %
+-- Animal dispersal progress: 48.123894 %
+-- Animal dispersal progress: 48.653522 %
+-- Animal dispersal progress: 49.184727 %
+-- Animal dispersal progress: 49.676922 %
+-- Animal dispersal progress: 50.182415 %
+-- Animal dispersal progress: 50.736687 %
+-- Animal dispersal progress: 51.309891 %
+-- Animal dispersal progress: 51.831825 %
+-- Animal dispersal progress: 52.360653 %
+-- Animal dispersal progress: 52.942913 %
+-- Animal dispersal progress: 53.459599 %
+-- Animal dispersal progress: 54.004448 %
+-- Animal dispersal progress: 54.489914 %
+-- Animal dispersal progress: 55.045856 %
+-- Animal dispersal progress: 55.593403 %
+-- Animal dispersal progress: 56.126064 %
+-- Animal dispersal progress: 56.678925 %
+-- Animal dispersal progress: 57.218433 %
+-- Animal dispersal progress: 57.767849 %
+-- Animal dispersal progress: 58.395458 %
+-- Animal dispersal progress: 58.954681 %
+-- Animal dispersal progress: 59.462093 %
+-- Animal dispersal progress: 59.945618 %
+-- Animal dispersal progress: 60.443470 %
+-- Animal dispersal progress: 60.945347 %
+-- Animal dispersal progress: 61.493038 %
+-- Animal dispersal progress: 61.998703 %
+-- Animal dispersal progress: 62.544113 %
+-- Animal dispersal progress: 63.073399 %
+-- Animal dispersal progress: 63.630825 %
+-- Animal dispersal progress: 64.255859 %
+-- Animal dispersal progress: 64.756767 %
+-- Animal dispersal progress: 65.347137 %
+-- Animal dispersal progress: 65.887108 %
+-- Animal dispersal progress: 66.422340 %
+-- Animal dispersal progress: 66.900764 %
+-- Animal dispersal progress: 67.374130 %
+-- Animal dispersal progress: 67.897415 %
+-- Animal dispersal progress: 68.363464 %
+-- Animal dispersal progress: 68.925232 %
+-- Animal dispersal progress: 69.491127 %
+-- Animal dispersal progress: 69.995361 %
+-- Animal dispersal progress: 70.515038 %
+-- Animal dispersal progress: 71.048279 %
+-- Animal dispersal progress: 71.533722 %
+-- Animal dispersal progress: 72.143929 %
+-- Animal dispersal progress: 72.648140 %
+-- Animal dispersal progress: 73.194420 %
+-- Animal dispersal progress: 73.676537 %
+-- Animal dispersal progress: 74.247849 %
+-- Animal dispersal progress: 74.816612 %
+-- Animal dispersal progress: 75.308899 %
+-- Animal dispersal progress: 75.830933 %
+-- Animal dispersal progress: 76.336395 %
+-- Animal dispersal progress: 76.880592 %
+-- Animal dispersal progress: 77.403740 %
+-- Animal dispersal progress: 77.937637 %
+-- Animal dispersal progress: 78.427429 %
+-- Animal dispersal progress: 78.963249 %
+-- Animal dispersal progress: 79.515839 %
+-- Animal dispersal progress: 79.992691 %
+-- Animal dispersal progress: 80.497147 %
+-- Animal dispersal progress: 81.021454 %
+-- Animal dispersal progress: 81.624207 %
+-- Animal dispersal progress: 82.159882 %
+-- Animal dispersal progress: 82.674141 %
+-- Animal dispersal progress: 83.219765 %
+-- Animal dispersal progress: 83.709702 %
+-- Animal dispersal progress: 84.228111 %
+-- Animal dispersal progress: 84.779922 %
+-- Animal dispersal progress: 85.414871 %
+-- Animal dispersal progress: 85.963432 %
+-- Animal dispersal progress: 86.494637 %
+-- Animal dispersal progress: 87.048622 %
+-- Animal dispersal progress: 87.646561 %
+-- Animal dispersal progress: 88.187035 %
+-- Animal dispersal progress: 88.758545 %
+-- Animal dispersal progress: 89.275063 %
+-- Animal dispersal progress: 89.807655 %
+-- Animal dispersal progress: 90.379280 %
+-- Animal dispersal progress: 90.934006 %
+-- Animal dispersal progress: 91.491264 %
+-- Animal dispersal progress: 92.010597 %
+-- Animal dispersal progress: 92.498108 %
+-- Animal dispersal progress: 93.039291 %
+-- Animal dispersal progress: 93.552505 %
+-- Animal dispersal progress: 94.009209 %
+-- Animal dispersal progress: 94.663322 %
+-- Animal dispersal progress: 95.296928 %
+-- Animal dispersal progress: 95.879776 %
+-- Animal dispersal progress: 96.413773 %
+-- Animal dispersal progress: 96.880791 %
+-- Animal dispersal progress: 97.399178 %
+-- Animal dispersal progress: 97.931618 %
+-- Animal dispersal progress: 98.465179 %
+-- Animal dispersal progress: 99.006317 %
+-- Animal dispersal progress: 99.549614 %
+-- Number of iterations spent dispersing fruits: 111459
+-- Dispersing 4 119 120 animal seeds took 13.909000 seconds. 
+-- Recruitment of 16 533 trees took 0.035000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 4677 
+-- Number of trees dead due to background mortality: 4938 
+Tree cover: 0.756149, Number of trees: 371 819 
+
+Time: 7
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.034000 seconds. 
+-- Animal dispersal progress: 0.579889 %
+-- Animal dispersal progress: 1.120572 %
+-- Animal dispersal progress: 1.663692 %
+-- Animal dispersal progress: 2.225245 %
+-- Animal dispersal progress: 2.713089 %
+-- Animal dispersal progress: 3.268243 %
+-- Animal dispersal progress: 3.810280 %
+-- Animal dispersal progress: 4.278926 %
+-- Animal dispersal progress: 4.828815 %
+-- Animal dispersal progress: 5.344050 %
+-- Animal dispersal progress: 5.862632 %
+-- Animal dispersal progress: 6.440060 %
+-- Animal dispersal progress: 6.999694 %
+-- Animal dispersal progress: 7.538211 %
+-- Animal dispersal progress: 8.073825 %
+-- Animal dispersal progress: 8.593072 %
+-- Animal dispersal progress: 9.144732 %
+-- Animal dispersal progress: 9.695973 %
+-- Animal dispersal progress: 10.215515 %
+-- Animal dispersal progress: 10.768848 %
+-- Animal dispersal progress: 11.261860 %
+-- Animal dispersal progress: 11.804389 %
+-- Animal dispersal progress: 12.273257 %
+-- Animal dispersal progress: 12.856837 %
+-- Animal dispersal progress: 13.411894 %
+-- Animal dispersal progress: 13.971060 %
+-- Animal dispersal progress: 14.504163 %
+-- Animal dispersal progress: 15.041672 %
+-- Animal dispersal progress: 15.572092 %
+-- Animal dispersal progress: 16.149471 %
+-- Animal dispersal progress: 16.690842 %
+-- Animal dispersal progress: 17.246859 %
+-- Animal dispersal progress: 17.759239 %
+-- Animal dispersal progress: 18.267706 %
+-- Animal dispersal progress: 18.812647 %
+-- Animal dispersal progress: 19.358156 %
+-- Animal dispersal progress: 19.830790 %
+-- Animal dispersal progress: 20.344152 %
+-- Animal dispersal progress: 20.881710 %
+-- Animal dispersal progress: 21.343908 %
+-- Animal dispersal progress: 21.888260 %
+-- Animal dispersal progress: 22.387226 %
+-- Animal dispersal progress: 22.897121 %
+-- Animal dispersal progress: 23.456238 %
+-- Animal dispersal progress: 23.952915 %
+-- Animal dispersal progress: 24.482771 %
+-- Animal dispersal progress: 25.067434 %
+-- Animal dispersal progress: 25.616560 %
+-- Animal dispersal progress: 26.057690 %
+-- Animal dispersal progress: 26.597292 %
+-- Animal dispersal progress: 27.178288 %
+-- Animal dispersal progress: 27.770407 %
+-- Animal dispersal progress: 28.276979 %
+-- Animal dispersal progress: 28.805973 %
+-- Animal dispersal progress: 29.293177 %
+-- Animal dispersal progress: 29.804399 %
+-- Animal dispersal progress: 30.325617 %
+-- Animal dispersal progress: 30.834969 %
+-- Animal dispersal progress: 31.365562 %
+-- Animal dispersal progress: 31.900782 %
+-- Animal dispersal progress: 32.457882 %
+-- Animal dispersal progress: 33.013233 %
+-- Animal dispersal progress: 33.487610 %
+-- Animal dispersal progress: 33.964581 %
+-- Animal dispersal progress: 34.525490 %
+-- Animal dispersal progress: 35.119999 %
+-- Animal dispersal progress: 35.618622 %
+-- Animal dispersal progress: 36.157112 %
+-- Animal dispersal progress: 36.782288 %
+-- Animal dispersal progress: 37.298458 %
+-- Animal dispersal progress: 37.858829 %
+-- Animal dispersal progress: 38.384159 %
+-- Animal dispersal progress: 38.932396 %
+-- Animal dispersal progress: 39.414925 %
+-- Animal dispersal progress: 39.949970 %
+-- Animal dispersal progress: 40.461193 %
+-- Animal dispersal progress: 40.962673 %
+-- Animal dispersal progress: 41.506405 %
+-- Animal dispersal progress: 42.024967 %
+-- Animal dispersal progress: 42.536903 %
+-- Animal dispersal progress: 43.003628 %
+-- Animal dispersal progress: 43.479488 %
+-- Animal dispersal progress: 43.929279 %
+-- Animal dispersal progress: 44.474983 %
+-- Animal dispersal progress: 45.007027 %
+-- Animal dispersal progress: 45.533978 %
+-- Animal dispersal progress: 46.116573 %
+-- Animal dispersal progress: 46.635696 %
+-- Animal dispersal progress: 47.188538 %
+-- Animal dispersal progress: 47.713596 %
+-- Animal dispersal progress: 48.204094 %
+-- Animal dispersal progress: 48.774216 %
+-- Animal dispersal progress: 49.330235 %
+-- Animal dispersal progress: 49.845909 %
+-- Animal dispersal progress: 50.433746 %
+-- Animal dispersal progress: 50.947681 %
+-- Animal dispersal progress: 51.451614 %
+-- Animal dispersal progress: 52.007114 %
+-- Animal dispersal progress: 52.524738 %
+-- Animal dispersal progress: 53.084003 %
+-- Animal dispersal progress: 53.632046 %
+-- Animal dispersal progress: 54.173641 %
+-- Animal dispersal progress: 54.733742 %
+-- Animal dispersal progress: 55.239845 %
+-- Animal dispersal progress: 55.763668 %
+-- Animal dispersal progress: 56.228107 %
+-- Animal dispersal progress: 56.711494 %
+-- Animal dispersal progress: 57.280041 %
+-- Animal dispersal progress: 57.780361 %
+-- Animal dispersal progress: 58.335762 %
+-- Animal dispersal progress: 58.821712 %
+-- Animal dispersal progress: 59.367069 %
+-- Animal dispersal progress: 59.859440 %
+-- Animal dispersal progress: 60.391315 %
+-- Animal dispersal progress: 60.898941 %
+-- Animal dispersal progress: 61.453064 %
+-- Animal dispersal progress: 62.022125 %
+-- Animal dispersal progress: 62.515995 %
+-- Animal dispersal progress: 62.999214 %
+-- Animal dispersal progress: 63.549126 %
+-- Animal dispersal progress: 64.079102 %
+-- Animal dispersal progress: 64.609451 %
+-- Animal dispersal progress: 65.160591 %
+: 86.143135 %
+-- Animal dispersal progress: 90.375359 %
+-- Animal dispersal progress: 95.077980 %
+-- Animal dispersal progress: 99.565712 %
+-- Number of iterations spent dispersing fruits: 13255
+-- Dispersing 775 291 animal seeds took 1.685000 seconds. 
+-- Recruitment of 25 519 trees took 0.062000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 12778 
+-- Number of trees dead due to background mortality: 5915 
+Tree cover: 0.713630, Number of trees: 450 892 
+
+Time: 36
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.037000 seconds. 
+-- Animal dispersal progress: 4.463633 %
+-- Animal dispersal progress: 9.346698 %
+-- Animal dispersal progress: 14.315412 %
+-- Animal dispersal progress: 18.966248 %
+-- Animal dispersal progress: 23.512224 %
+-- Animal dispersal progress: 28.198544 %
+-- Animal dispersal progress: 32.895138 %
+-- Animal dispersal progress: 36.733906 %
+-- Animal dispersal progress: 40.924442 %
+-- Animal dispersal progress: 45.387829 %
+-- Animal dispersal progress: 49.959869 %
+-- Animal dispersal progress: 54.704426 %
+-- Animal dispersal progress: 59.399311 %
+-- Animal dispersal progress: 63.381107 %
+-- Animal dispersal progress: 67.639427 %
+-- Animal dispersal progress: 72.459846 %
+-- Animal dispersal progress: 76.776291 %
+-- Animal dispersal progress: 81.328506 %
+-- Animal dispersal progress: 86.221489 %
+-- Animal dispersal progress: 90.667610 %
+-- Animal dispersal progress: 95.178238 %
+-- Animal dispersal progress: 99.324112 %
+-- Number of iterations spent dispersing fruits: 13296
+-- Dispersing 817 294 animal seeds took 1.594000 seconds. 
+-- Recruitment of 25 128 trees took 0.049000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 12688 
+-- Number of trees dead due to background mortality: 5960 
+Tree cover: 0.718474, Number of trees: 457 372 
+
+Time: 37
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.036000 seconds. 
+-- Animal dispersal progress: 4.831369 %
+-- Animal dispersal progress: 9.256312 %
+-- Animal dispersal progress: 13.905017 %
+-- Animal dispersal progress: 18.771429 %
+-- Animal dispersal progress: 23.051193 %
+-- Animal dispersal progress: 27.591278 %
+-- Animal dispersal progress: 31.690006 %
+-- Animal dispersal progress: 35.698395 %
+-- Animal dispersal progress: 40.151279 %
+-- Animal dispersal progress: 44.356186 %
+-- Animal dispersal progress: 49.082310 %
+-- Animal dispersal progress: 54.147453 %
+-- Animal dispersal progress: 58.786377 %
+-- Animal dispersal progress: 63.023067 %
+-- Animal dispersal progress: 67.514832 %
+-- Animal dispersal progress: 72.080414 %
+-- Animal dispersal progress: 76.524452 %
+-- Animal dispersal progress: 80.991074 %
+-- Animal dispersal progress: 85.234039 %
+-- Animal dispersal progress: 89.681458 %
+-- Animal dispersal progress: 93.871353 %
+-- Animal dispersal progress: 98.156235 %
+-- Number of iterations spent dispersing fruits: 13456
+-- Dispersing 858 949 animal seeds took 1.649000 seconds. 
+-- Recruitment of 24 975 trees took 0.051000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 12764 
+-- Number of trees dead due to background mortality: 6196 
+Tree cover: 0.723054, Number of trees: 463 387 
+
+Time: 38
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.042000 seconds. 
+-- Animal dispersal progress: 4.498614 %
+-- Animal dispersal progress: 9.388668 %
+-- Animal dispersal progress: 13.732664 %
+-- Animal dispersal progress: 17.873653 %
+-- Animal dispersal progress: 22.015644 %
+-- Animal dispersal progress: 26.574993 %
+-- Animal dispersal progress: 31.577284 %
+-- Animal dispersal progress: 36.218391 %
+-- Animal dispersal progress: 40.176842 %
+-- Animal dispersal progress: 44.273449 %
+-- Animal dispersal progress: 49.054825 %
+-- Animal dispersal progress: 53.240868 %
+-- Animal dispersal progress: 57.559055 %
+-- Animal dispersal progress: 62.103722 %
+-- Animal dispersal progress: 66.214897 %
+-- Animal dispersal progress: 71.395279 %
+-- Animal dispersal progress: 75.817696 %
+-- Animal dispersal progress: 79.825867 %
+-- Animal dispersal progress: 84.235054 %
+-- Animal dispersal progress: 89.176941 %
+-- Animal dispersal progress: 93.528831 %
+-- Animal dispersal progress: 97.824562 %
+-- Number of iterations spent dispersing fruits: 13483
+-- Dispersing 898 988 animal seeds took 1.808000 seconds. 
+-- Recruitment of 25 102 trees took 0.051000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 12575 
+-- Number of trees dead due to background mortality: 6146 
+Tree cover: 0.728066, Number of trees: 469 768 
+
+Time: 39
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.040000 seconds. 
+-- Animal dispersal progress: 3.900819 %
+-- Animal dispersal progress: 8.246288 %
+-- Animal dispersal progress: 12.658044 %
+-- Animal dispersal progress: 16.304838 %
+-- Animal dispersal progress: 19.904163 %
+-- Animal dispersal progress: 23.926649 %
+-- Animal dispersal progress: 27.789515 %
+-- Animal dispersal progress: 32.041649 %
+-- Animal dispersal progress: 36.002552 %
+-- Animal dispersal progress: 40.416340 %
+-- Animal dispersal progress: 45.506458 %
+-- Animal dispersal progress: 49.881649 %
+-- Animal dispersal progress: 54.421165 %
+-- Animal dispersal progress: 58.368919 %
+-- Animal dispersal progress: 62.170521 %
+-- Animal dispersal progress: 66.680740 %
+-- Animal dispersal progress: 71.020226 %
+-- Animal dispersal progress: 74.983910 %
+-- Animal dispersal progress: 79.192528 %
+-- Animal dispersal progress: 83.110886 %
+-- Animal dispersal progress: 87.741165 %
+-- Animal dispersal progress: 91.789101 %
+-- Animal dispersal progress: 95.998154 %
+-- Number of iterations spent dispersing fruits: 14384
+-- Dispersing 935 342 animal seeds took 1.827000 seconds. 
+-- Recruitment of 25 096 trees took 0.052000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 12950 
+-- Number of trees dead due to background mortality: 6326 
+Tree cover: 0.733837, Number of trees: 475 588 
+
+Time: 40
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.041000 seconds. 
+-- Animal dispersal progress: 4.260551 %
+-- Animal dispersal progress: 8.241648 %
+-- Animal dispersal progress: 11.882276 %
+-- Animal dispersal progress: 15.789289 %
+-- Animal dispersal progress: 20.597740 %
+-- Animal dispersal progress: 24.886072 %
+-- Animal dispersal progress: 29.597292 %
+-- Animal dispersal progress: 33.827385 %
+-- Animal dispersal progress: 37.870014 %
+-- Animal dispersal progress: 42.251564 %
+-- Animal dispersal progress: 46.707302 %
+-- Animal dispersal progress: 50.796539 %
+-- Animal dispersal progress: 55.138683 %
+-- Animal dispersal progress: 59.999916 %
+-- Animal dispersal progress: 64.076599 %
+-- Animal dispersal progress: 68.386749 %
+-- Animal dispersal progress: 72.625893 %
+-- Animal dispersal progress: 76.445862 %
+-- Animal dispersal progress: 80.252769 %
+-- Animal dispersal progress: 84.467010 %
+-- Animal dispersal progress: 89.336899 %
+-- Animal dispersal progress: 93.202751 %
+-- Animal dispersal progress: 97.487686 %
+-- Number of iterations spent dispersing fruits: 14156
+-- Dispersing 971 893 animal seeds took 1.813000 seconds. 
+-- Recruitment of 24 254 trees took 0.053000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 13403 
+-- Number of trees dead due to background mortality: 6409 
+Tree cover: 0.739595, Number of trees: 480 030 
+
+Time: 41
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.043000 seconds. 
+-- Animal dispersal progress: 4.668306 %
+-- Animal dispersal progress: 8.532405 %
+-- Animal dispersal progress: 12.632712 %
+-- Animal dispersal progress: 16.840534 %
+-- Animal dispersal progress: 20.868637 %
+-- Animal dispersal progress: 24.771921 %
+-- Animal dispersal progress: 29.045084 %
+-- Animal dispersal progress: 33.122417 %
+-- Animal dispersal progress: 37.284092 %
+-- Animal dispersal progress: 41.902569 %
+-- Animal dispersal progress: 46.224171 %
+-- Animal dispersal progress: 50.318512 %
+-- Animal dispersal progress: 54.688248 %
+-- Animal dispersal progress: 59.145409 %
+-- Animal dispersal progress: 63.036655 %
+-- Animal dispersal progress: 67.056305 %
+-- Animal dispersal progress: 70.717415 %
+-- Animal dispersal progress: 75.207993 %
+-- Animal dispersal progress: 78.787041 %
+-- Animal dispersal progress: 83.181252 %
+-- Animal dispersal progress: 86.896164 %
+-- Animal dispersal progress: 91.062508 %
+-- Animal dispersal progress: 95.611267 %
+-- Number of iterations spent dispersing fruits: 14377
+-- Dispersing 1 005 461 animal seeds took 2.023000 seconds. 
+-- Recruitment of 24 405 trees took 0.059000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 13334 
+-- Number of trees dead due to background mortality: 6362 
+Tree cover: 0.745343, Number of trees: 484 739 
+
+Time: 42
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.041000 seconds. 
+-- Animal dispersal progress: 4.458184 %
+-- Animal dispersal progress: 8.423969 %
+-- Animal dispersal progress: 12.215503 %
+-- Animal dispersal progress: 16.278824 %
+-- Animal dispersal progress: 20.315254 %
+-- Animal dispersal progress: 24.284605 %
+-- Animal dispersal progress: 29.218321 %
+-- Animal dispersal progress: 33.551407 %
+-- Animal dispersal progress: 37.565865 %
+-- Animal dispersal progress: 41.556129 %
+-- Animal dispersal progress: 45.663689 %
+-- Animal dispersal progress: 49.816448 %
+-- Animal dispersal progress: 53.957737 %
+-- Animal dispersal progress: 58.046600 %
+-- Animal dispersal progress: 62.829578 %
+-- Animal dispersal progress: 67.181839 %
+-- Animal dispersal progress: 71.131821 %
+-- Animal dispersal progress: 75.014915 %
+-- Animal dispersal progress: 78.888084 %
+-- Animal dispersal progress: 83.117180 %
+-- Animal dispersal progress: 87.531311 %
+-- Animal dispersal progress: 91.922798 %
+-- Animal dispersal progress: 95.917694 %
+-- Number of iterations spent dispersing fruits: 14336
+-- Dispersing 1 037 575 animal seeds took 1.921000 seconds. 
+-- Recruitment of 24 376 trees took 0.061000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 13306 
+-- Number of trees dead due to background mortality: 6479 
+Tree cover: 0.750932, Number of trees: 489 330 
+
+Time: 43
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.046000 seconds. 
+-- Animal dispersal progress: 4.106165 %
+-- Animal dispersal progress: 8.195777 %
+-- Animal dispersal progress: 12.000909 %
+-- Animal dispersal progress: 15.310773 %
+-- Animal dispersal progress: 19.346706 %
+-- Animal dispersal progress: 23.279583 %
+-- Animal dispersal progress: 26.824923 %
+-- Animal dispersal progress: 30.669800 %
+-- Animal dispersal progress: 35.022011 %
+-- Animal dispersal progress: 39.018196 %
+-- Animal dispersal progress: 43.119125 %
+-- Animal dispersal progress: 47.309738 %
+-- Animal dispersal progress: 52.072113 %
+-- Animal dispersal progress: 56.481087 %
+-- Animal dispersal progress: 60.671886 %
+-- Animal dispersal progress: 64.909538 %
+-- Animal dispersal progress: 69.147842 %
+-- Animal dispersal progress: 73.352669 %
+-- Animal dispersal progress: 76.992928 %
+-- Animal dispersal progress: 81.758667 %
+-- Animal dispersal progress: 85.607567 %
+-- Animal dispersal progress: 89.563171 %
+-- Animal dispersal progress: 94.090912 %
+-- Animal dispersal progress: 98.368118 %
+-- Number of iterations spent dispersing fruits: 14641
+-- Dispersing 1 069 319 animal seeds took 1.978000 seconds. 
+-- Recruitment of 24 724 trees took 0.057000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 13334 
+-- Number of trees dead due to background mortality: 6517 
+Tree cover: 0.757096, Number of trees: 494 203 
+
+Time: 44
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.046000 seconds. 
+-- Animal dispersal progress: 3.946385 %
+-- Animal dispersal progress: 8.045659 %
+-- Animal dispersal progress: 12.432350 %
+-- Animal dispersal progress: 16.330561 %
+-- Animal dispersal progress: 20.107330 %
+-- Animal dispersal progress: 24.123617 %
+-- Animal dispersal progress: 28.518578 %
+-- Animal dispersal progress: 32.412334 %
+-- Animal dispersal progress: 36.631138 %
+-- Animal dispersal progress: 40.791222 %
+-- Animal dispersal progress: 44.601807 %
+-- Animal dispersal progress: 49.080486 %
+-- Animal dispersal progress: 53.507717 %
+-- Animal dispersal progress: 57.729427 %
+-- Animal dispersal progress: 61.834251 %
+-- Animal dispersal progress: 65.567482 %
+-- Animal dispersal progress: 69.946167 %
+-- Animal dispersal progress: 74.091255 %
+-- Animal dispersal progress: 77.629417 %
+-- Animal dispersal progress: 82.019844 %
+-- Animal dispersal progress: 86.338448 %
+-- Animal dispersal progress: 90.373550 %
+-- Animal dispersal progress: 94.345749 %
+-- Animal dispersal progress: 98.610367 %
+-- Number of iterations spent dispersing fruits: 14613
+-- Dispersing 1 100 146 animal seeds took 1.846000 seconds. 
+-- Recruitment of 24 350 trees took 0.056000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 13343 
+-- Number of trees dead due to background mortality: 6503 
+Tree cover: 0.763426, Number of trees: 498 707 
+
+Time: 45
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.051000 seconds. 
+-- Animal dispersal progress: 4.036248 %
+-- Animal dispersal progress: 7.631397 %
+-- Animal dispersal progress: 11.427118 %
+-- Animal dispersal progress: 15.673153 %
+-- Animal dispersal progress: 19.358931 %
+-- Animal dispersal progress: 23.281162 %
+-- Animal dispersal progress: 26.975887 %
+-- Animal dispersal progress: 30.625078 %
+-- Animal dispersal progress: 34.560421 %
+-- Animal dispersal progress: 38.296341 %
+-- Animal dispersal progress: 42.451302 %
+-- Animal dispersal progress: 45.976200 %
+-- Animal dispersal progress: 49.804787 %
+-- Animal dispersal progress: 53.821636 %
+-- Animal dispersal progress: 57.774872 %
+-- Animal dispersal progress: 62.143871 %
+-- Animal dispersal progress: 65.546249 %
+-- Animal dispersal progress: 69.749489 %
+-- Animal dispersal progress: 73.761284 %
+-- Animal dispersal progress: 77.641258 %
+-- Animal dispersal progress: 82.091675 %
+-- Animal dispersal progress: 85.413254 %
+-- Animal dispersal progress: 89.503632 %
+-- Animal dispersal progress: 93.738762 %
+-- Animal dispersal progress: 97.933594 %
+-- Number of iterations spent dispersing fruits: 15337
+-- Dispersing 1 128 771 animal seeds took 2.026000 seconds. 
+-- Recruitment of 24 677 trees took 0.057000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 13317 
+-- Number of trees dead due to background mortality: 6556 
+Tree cover: 0.769602, Number of trees: 503 511 
+
+Time: 46
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.044000 seconds. 
+-- Animal dispersal progress: 3.894267 %
+-- Animal dispersal progress: 8.101182 %
+-- Animal dispersal progress: 11.316027 %
+-- Animal dispersal progress: 15.116655 %
+-- Animal dispersal progress: 18.555092 %
+-- Animal dispersal progress: 22.729410 %
+-- Animal dispersal progress: 26.784584 %
+-- Animal dispersal progress: 30.525034 %
+-- Animal dispersal progress: 34.220093 %
+-- Animal dispersal progress: 37.878315 %
+-- Animal dispersal progress: 41.734539 %
+-- Animal dispersal progress: 45.335438 %
+-- Animal dispersal progress: 49.162956 %
+-- Animal dispersal progress: 53.351715 %
+-- Animal dispersal progress: 57.660137 %
+-- Animal dispersal progress: 61.742287 %
+-- Animal dispersal progress: 65.922478 %
+-- Animal dispersal progress: 69.714989 %
+-- Animal dispersal progress: 74.136063 %
+-- Animal dispersal progress: 78.415871 %
+-- Animal dispersal progress: 81.966537 %
+-- Animal dispersal progress: 85.819298 %
+-- Animal dispersal progress: 89.981163 %
+-- Animal dispersal progress: 94.038162 %
+-- Animal dispersal progress: 97.966667 %
+-- Number of iterations spent dispersing fruits: 15299
+-- Dispersing 1 156 572 animal seeds took 2.111000 seconds. 
+-- Recruitment of 23 912 trees took 0.189000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 13552 
+-- Number of trees dead due to background mortality: 6760 
+Tree cover: 0.775803, Number of trees: 507 111 
+
+Time: 47
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.049000 seconds. 
+-- Animal dispersal progress: 3.559409 %
+-- Animal dispersal progress: 7.271965 %
+-- Animal dispersal progress: 11.340428 %
+-- Animal dispersal progress: 15.254984 %
+-- Animal dispersal progress: 18.679754 %
+-- Animal dispersal progress: 22.251081 %
+-- Animal dispersal progress: 25.963215 %
+-- Animal dispersal progress: 29.691914 %
+-- Animal dispersal progress: 33.706116 %
+-- Animal dispersal progress: 37.568947 %
+-- Animal dispersal progress: 41.345566 %
+-- Animal dispersal progress: 45.618732 %
+-- Animal dispersal progress: 49.652882 %
+-- Animal dispersal progress: 53.292923 %
+-- Animal dispersal progress: 57.087204 %
+-- Animal dispersal progress: 60.774235 %
+-- Animal dispersal progress: 64.233070 %
+-- Animal dispersal progress: 67.920189 %
+-- Animal dispersal progress: 71.677368 %
+-- Animal dispersal progress: 75.313858 %
+-- Animal dispersal progress: 78.996582 %
+-- Animal dispersal progress: 82.529953 %
+-- Animal dispersal progress: 86.034515 %
+-- Animal dispersal progress: 89.812317 %
+-- Animal dispersal progress: 93.871231 %
+-- Animal dispersal progress: 97.651062 %
+-- Number of iterations spent dispersing fruits: 15976
+-- Dispersing 1 183 174 animal seeds took 2.001000 seconds. 
+-- Recruitment of 24 073 trees took 0.048000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 13541 
+-- Number of trees dead due to background mortality: 6648 
+Tree cover: 0.781744, Number of trees: 510 995 
+
+Time: 48
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.045000 seconds. 
+-- Animal dispersal progress: 3.897916 %
+-- Animal dispersal progress: 7.464444 %
+-- Animal dispersal progress: 10.992918 %
+-- Animal dispersal progress: 14.641010 %
+-- Animal dispersal progress: 18.530157 %
+-- Animal dispersal progress: 22.226395 %
+-- Animal dispersal progress: 25.770588 %
+-- Animal dispersal progress: 29.328428 %
+-- Animal dispersal progress: 33.127575 %
+-- Animal dispersal progress: 36.962124 %
+-- Animal dispersal progress: 40.866161 %
+-- Animal dispersal progress: 44.572987 %
+-- Animal dispersal progress: 47.803326 %
+-- Animal dispersal progress: 51.289860 %
+-- Animal dispersal progress: 54.731064 %
+-- Animal dispersal progress: 58.413486 %
+-- Animal dispersal progress: 62.258293 %
+-- Animal dispersal progress: 66.178467 %
+-- Animal dispersal progress: 69.960236 %
+-- Animal dispersal progress: 73.941040 %
+-- Animal dispersal progress: 77.989098 %
+-- Animal dispersal progress: 81.974777 %
+-- Animal dispersal progress: 85.719002 %
+-- Animal dispersal progress: 89.531792 %
+-- Animal dispersal progress: 93.125534 %
+-- Animal dispersal progress: 97.002357 %
+-- Number of iterations spent dispersing fruits: 16075
+-- Dispersing 1 208 851 animal seeds took 2.049000 seconds. 
+-- Recruitment of 24 182 trees took 0.048000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 13413 
+-- Number of trees dead due to background mortality: 6702 
+Tree cover: 0.787550, Number of trees: 515 062 
+
+Time: 49
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.047000 seconds. 
+-- Animal dispersal progress: 3.457653 %
+-- Animal dispersal progress: 6.948223 %
+-- Animal dispersal progress: 10.192856 %
+-- Animal dispersal progress: 14.106621 %
+-- Animal dispersal progress: 17.819881 %
+-- Animal dispersal progress: 21.955444 %
+-- Animal dispersal progress: 25.439837 %
+-- Animal dispersal progress: 29.316866 %
+-- Animal dispersal progress: 32.652931 %
+-- Animal dispersal progress: 36.793209 %
+-- Animal dispersal progress: 40.586769 %
+-- Animal dispersal progress: 44.394550 %
+-- Animal dispersal progress: 48.507683 %
+-- Animal dispersal progress: 52.251503 %
+-- Animal dispersal progress: 56.176483 %
+-- Animal dispersal progress: 59.589275 %
+-- Animal dispersal progress: 63.264980 %
+-- Animal dispersal progress: 66.687775 %
+-- Animal dispersal progress: 69.828697 %
+-- Animal dispersal progress: 73.785210 %
+-- Animal dispersal progress: 77.406799 %
+-- Animal dispersal progress: 80.934425 %
+-- Animal dispersal progress: 85.063728 %
+-- Animal dispersal progress: 88.506508 %
+-- Animal dispersal progress: 92.117447 %
+-- Animal dispersal progress: 95.798683 %
+-- Animal dispersal progress: 99.463348 %
+-- Number of iterations spent dispersing fruits: 16290
+-- Dispersing 1 230 401 animal seeds took 2.075000 seconds. 
+-- Recruitment of 23 358 trees took 0.048000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 13600 
+-- Number of trees dead due to background mortality: 6790 
+Tree cover: 0.793344, Number of trees: 518 030 
+
+Time: 50
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.047000 seconds. 
+-- Animal dispersal progress: 3.568587 %
+-- Animal dispersal progress: 7.140605 %
+-- Animal dispersal progress: 11.044899 %
+-- Animal dispersal progress: 14.800575 %
+-- Animal dispersal progress: 18.337076 %
+-- Animal dispersal progress: 22.450487 %
+-- Animal dispersal progress: 26.018517 %
+-- Animal dispersal progress: 29.898306 %
+-- Animal dispersal progress: 33.637539 %
+-- Animal dispersal progress: 37.013371 %
+-- Animal dispersal progress: 40.921494 %
+-- Animal dispersal progress: 44.298042 %
+-- Animal dispersal progress: 48.306339 %
+-- Animal dispersal progress: 51.825836 %
+-- Animal dispersal progress: 55.580799 %
+-- Animal dispersal progress: 59.167896 %
+-- Animal dispersal progress: 62.742554 %
+-- Animal dispersal progress: 66.522018 %
+-- Animal dispersal progress: 70.145676 %
+-- Animal dispersal progress: 74.105759 %
+-- Animal dispersal progress: 77.778427 %
+-- Animal dispersal progress: 81.562035 %
+-- Animal dispersal progress: 84.751816 %
+-- Animal dispersal progress: 88.463753 %
+-- Animal dispersal progress: 92.298851 %
+-- Animal dispersal progress: 95.975510 %
+-- Animal dispersal progress: 99.589104 %
+-- Number of iterations spent dispersing fruits: 16273
+-- Dispersing 1 252 877 animal seeds took 2.097000 seconds. 
+-- Recruitment of 23 404 trees took 0.049000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 13759 
+-- Number of trees dead due to background mortality: 6770 
+Tree cover: 0.799114, Number of trees: 520 905 
+
+Time: 51
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.051000 seconds. 
+-- Animal dispersal progress: 3.715631 %
+-- Animal dispersal progress: 7.403153 %
+-- Animal dispersal progress: 11.076346 %
+-- Animal dispersal progress: 14.752907 %
+-- Animal dispersal progress: 18.442699 %
+-- Animal dispersal progress: 21.934477 %
+-- Animal dispersal progress: 25.235441 %
+-- Animal dispersal progress: 29.011127 %
+-- Animal dispersal progress: 32.726757 %
+-- Animal dispersal progress: 36.240696 %
+-- Animal dispersal progress: 39.887894 %
+-- Animal dispersal progress: 43.395172 %
+-- Animal dispersal progress: 47.053959 %
+-- Animal dispersal progress: 50.906063 %
+-- Animal dispersal progress: 54.205311 %
+-- Animal dispersal progress: 57.542206 %
+-- Animal dispersal progress: 61.324162 %
+-- Animal dispersal progress: 65.260513 %
+-- Animal dispersal progress: 68.505730 %
+-- Animal dispersal progress: 72.012154 %
+-- Animal dispersal progress: 75.048782 %
+-- Animal dispersal progress: 78.526154 %
+-- Animal dispersal progress: 82.131699 %
+-- Animal dispersal progress: 86.096397 %
+-- Animal dispersal progress: 89.679543 %
+-- Animal dispersal progress: 93.235527 %
+-- Animal dispersal progress: 96.694260 %
+-- Number of iterations spent dispersing fruits: 16798
+-- Dispersing 1 277 172 animal seeds took 2.270000 seconds. 
+-- Recruitment of 23 578 trees took 0.053000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 13969 
+-- Number of trees dead due to background mortality: 6943 
+Tree cover: 0.804147, Number of trees: 523 571 
+
+Time: 52
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.051000 seconds. 
+-- Animal dispersal progress: 3.193012 %
+-- Animal dispersal progress: 6.717333 %
+-- Animal dispersal progress: 10.463426 %
+-- Animal dispersal progress: 13.567143 %
+-- Animal dispersal progress: 16.721436 %
+-- Animal dispersal progress: 20.195799 %
+-- Animal dispersal progress: 23.954054 %
+-- Animal dispersal progress: 27.651497 %
+-- Animal dispersal progress: 31.452244 %
+-- Animal dispersal progress: 35.010281 %
+-- Animal dispersal progress: 38.378109 %
+-- Animal dispersal progress: 41.901657 %
+-- Animal dispersal progress: 45.228611 %
+-- Animal dispersal progress: 48.699970 %
+-- Animal dispersal progress: 51.952026 %
+-- Animal dispersal progress: 55.367653 %
+-- Animal dispersal progress: 59.435432 %
+-- Animal dispersal progress: 63.539158 %
+-- Animal dispersal progress: 67.107590 %
+-- Animal dispersal progress: 70.403053 %
+-- Animal dispersal progress: 73.493080 %
+-- Animal dispersal progress: 76.846123 %
+-- Animal dispersal progress: 80.395538 %
+-- Animal dispersal progress: 84.026634 %
+-- Animal dispersal progress: 87.356499 %
+-- Animal dispersal progress: 90.895912 %
+-- Animal dispersal progress: 94.075371 %
+-- Animal dispersal progress: 97.508553 %
+-- Number of iterations spent dispersing fruits: 17239
+-- Dispersing 1 299 087 animal seeds took 2.206000 seconds. 
+-- Recruitment of 23 638 trees took 0.046000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 13892 
+-- Number of trees dead due to background mortality: 6926 
+Tree cover: 0.809571, Number of trees: 526 391 
+
+Time: 53
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.048000 seconds. 
+-- Animal dispersal progress: 3.427306 %
+-- Animal dispersal progress: 6.552739 %
+-- Animal dispersal progress: 10.193612 %
+-- Animal dispersal progress: 13.737926 %
+-- Animal dispersal progress: 16.980972 %
+-- Animal dispersal progress: 20.489841 %
+-- Animal dispersal progress: 24.164417 %
+-- Animal dispersal progress: 27.713198 %
+-- Animal dispersal progress: 31.271826 %
+-- Animal dispersal progress: 34.506542 %
+-- Animal dispersal progress: 37.591759 %
+-- Animal dispersal progress: 41.525341 %
+-- Animal dispersal progress: 45.090786 %
+-- Animal dispersal progress: 48.827839 %
+-- Animal dispersal progress: 52.335121 %
+-- Animal dispersal progress: 55.592781 %
+-- Animal dispersal progress: 59.195942 %
+-- Animal dispersal progress: 62.691559 %
+-- Animal dispersal progress: 66.314476 %
+-- Animal dispersal progress: 69.953766 %
+-- Animal dispersal progress: 73.897568 %
+-- Animal dispersal progress: 77.582596 %
+-- Animal dispersal progress: 80.980972 %
+-- Animal dispersal progress: 84.368439 %
+-- Animal dispersal progress: 87.676689 %
+-- Animal dispersal progress: 91.294617 %
+-- Animal dispersal progress: 94.570839 %
+-- Animal dispersal progress: 97.702934 %
+-- Number of iterations spent dispersing fruits: 17182
+-- Dispersing 1 320 425 animal seeds took 2.383000 seconds. 
+-- Recruitment of 23 134 trees took 0.049000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 14171 
+-- Number of trees dead due to background mortality: 6890 
+Tree cover: 0.814351, Number of trees: 528 464 
+
+Time: 54
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.051000 seconds. 
+-- Animal dispersal progress: 3.392198 %
+-- Animal dispersal progress: 6.784173 %
+-- Animal dispersal progress: 10.191427 %
+-- Animal dispersal progress: 13.942001 %
+-- Animal dispersal progress: 17.391666 %
+-- Animal dispersal progress: 20.830526 %
+-- Animal dispersal progress: 24.488226 %
+-- Animal dispersal progress: 27.862833 %
+-- Animal dispersal progress: 31.383608 %
+-- Animal dispersal progress: 34.938744 %
+-- Animal dispersal progress: 38.215561 %
+-- Animal dispersal progress: 41.441612 %
+-- Animal dispersal progress: 45.102966 %
+-- Animal dispersal progress: 48.684116 %
+-- Animal dispersal progress: 51.728745 %
+-- Animal dispersal progress: 55.100296 %
+-- Animal dispersal progress: 58.508446 %
+-- Animal dispersal progress: 61.849213 %
+-- Animal dispersal progress: 64.990814 %
+-- Animal dispersal progress: 68.366547 %
+-- Animal dispersal progress: 72.058533 %
+-- Animal dispersal progress: 75.597046 %
+-- Animal dispersal progress: 79.413513 %
+-- Animal dispersal progress: 82.902084 %
+-- Animal dispersal progress: 86.464233 %
+-- Animal dispersal progress: 89.929771 %
+-- Animal dispersal progress: 93.488182 %
+-- Animal dispersal progress: 96.945381 %
+-- Number of iterations spent dispersing fruits: 17341
+-- Dispersing 1 341 608 animal seeds took 2.362000 seconds. 
+-- Recruitment of 23 561 trees took 0.051000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 14590 
+-- Number of trees dead due to background mortality: 6844 
+Tree cover: 0.819329, Number of trees: 530 591 
+
+Time: 55
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.050000 seconds. 
+-- Animal dispersal progress: 3.433188 %
+-- Animal dispersal progress: 7.003028 %
+-- Animal dispersal progress: 10.135482 %
+-- Animal dispersal progress: 13.767689 %
+-- Animal dispersal progress: 16.923016 %
+-- Animal dispersal progress: 20.453434 %
+-- Animal dispersal progress: 24.242077 %
+-- Animal dispersal progress: 27.875534 %
+-- Animal dispersal progress: 30.630836 %
+-- Animal dispersal progress: 34.121689 %
+-- Animal dispersal progress: 37.231121 %
+-- Animal dispersal progress: 40.395420 %
+-- Animal dispersal progress: 43.966141 %
+-- Animal dispersal progress: 47.037552 %
+-- Animal dispersal progress: 50.023647 %
+-- Animal dispersal progress: 53.686371 %
+-- Animal dispersal progress: 57.034027 %
+-- Animal dispersal progress: 60.433754 %
+-- Animal dispersal progress: 63.836349 %
+-- Animal dispersal progress: 67.454285 %
+-- Animal dispersal progress: 71.084213 %
+-- Animal dispersal progress: 74.485039 %
+-- Animal dispersal progress: 77.852478 %
+-- Animal dispersal progress: 81.098198 %
+-- Animal dispersal progress: 84.518066 %
+-- Animal dispersal progress: 87.545715 %
+-- Animal dispersal progress: 91.252571 %
+-- Animal dispersal progress: 95.017899 %
+-- Animal dispersal progress: 98.508827 %
+-- Number of iterations spent dispersing fruits: 17651
+-- Dispersing 1 359 669 animal seeds took 2.305000 seconds. 
+-- Recruitment of 23 313 trees took 0.052000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 15017 
+-- Number of trees dead due to background mortality: 6832 
+Tree cover: 0.823441, Number of trees: 532 055 
+
+Time: 56
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.048000 seconds. 
+-- Animal dispersal progress: 3.230407 %
+-- Animal dispersal progress: 6.216678 %
+-- Animal dispersal progress: 9.416341 %
+-- Animal dispersal progress: 13.020241 %
+-- Animal dispersal progress: 16.356510 %
+-- Animal dispersal progress: 19.668127 %
+-- Animal dispersal progress: 22.609371 %
+-- Animal dispersal progress: 26.126839 %
+-- Animal dispersal progress: 29.262768 %
+-- Animal dispersal progress: 32.332134 %
+-- Animal dispersal progress: 35.632439 %
+-- Animal dispersal progress: 38.723846 %
+-- Animal dispersal progress: 42.132988 %
+-- Animal dispersal progress: 45.798447 %
+-- Animal dispersal progress: 49.042339 %
+-- Animal dispersal progress: 52.029556 %
+-- Animal dispersal progress: 55.298321 %
+-- Animal dispersal progress: 58.545837 %
+-- Animal dispersal progress: 61.935696 %
+-- Animal dispersal progress: 65.584984 %
+-- Animal dispersal progress: 69.341583 %
+-- Animal dispersal progress: 72.944977 %
+-- Animal dispersal progress: 76.740448 %
+-- Animal dispersal progress: 79.760429 %
+-- Animal dispersal progress: 82.912598 %
+-- Animal dispersal progress: 86.332397 %
+-- Animal dispersal progress: 89.727043 %
+-- Animal dispersal progress: 93.442238 %
+-- Animal dispersal progress: 97.043961 %
+-- Number of iterations spent dispersing fruits: 17892
+-- Dispersing 1 379 145 animal seeds took 2.264000 seconds. 
+-- Recruitment of 23 117 trees took 0.046000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 15205 
+-- Number of trees dead due to background mortality: 7015 
+Tree cover: 0.827245, Number of trees: 532 952 
+
+Time: 57
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.049000 seconds. 
+-- Animal dispersal progress: 3.359650 %
+-- Animal dispersal progress: 6.658404 %
+-- Animal dispersal progress: 10.074724 %
+-- Animal dispersal progress: 13.380427 %
+-- Animal dispersal progress: 16.847614 %
+-- Animal dispersal progress: 20.345465 %
+-- Animal dispersal progress: 23.765654 %
+-- Animal dispersal progress: 26.731266 %
+-- Animal dispersal progress: 29.849691 %
+-- Animal dispersal progress: 33.128960 %
+-- Animal dispersal progress: 36.439747 %
+-- Animal dispersal progress: 39.537113 %
+-- Animal dispersal progress: 43.199814 %
+-- Animal dispersal progress: 46.497562 %
+-- Animal dispersal progress: 50.029945 %
+-- Animal dispersal progress: 53.148014 %
+-- Animal dispersal progress: 56.436234 %
+-- Animal dispersal progress: 59.608036 %
+-- Animal dispersal progress: 63.193649 %
+-- Animal dispersal progress: 66.575729 %
+-- Animal dispersal progress: 69.839951 %
+-- Animal dispersal progress: 72.735207 %
+-- Animal dispersal progress: 76.409943 %
+-- Animal dispersal progress: 79.652962 %
+-- Animal dispersal progress: 83.013184 %
+-- Animal dispersal progress: 86.380501 %
+-- Animal dispersal progress: 89.726036 %
+-- Animal dispersal progress: 93.397842 %
+-- Animal dispersal progress: 96.675957 %
+-- Animal dispersal progress: 99.907860 %
+-- Number of iterations spent dispersing fruits: 18021
+-- Dispersing 1 395 800 animal seeds took 2.402000 seconds. 
+-- Recruitment of 23 747 trees took 0.048000 seconds. 
+-- Fires: 0, Topkills: 0, Kills: 0 
+-- Fraction of domain burned: 0.00, Area burned: 0.00e+00 / 9.22e+05 m^2 
+-- No trees dead due to light limitation: 15504 
+-- Number of trees dead due to background mortality: 7079 
+Tree cover: 0.831261, Number of trees: 534 116 
+
+Time: 58
+-- Dispersing 0 wind-dispersed seeds and initializing 0 fruits took 0.048000 seconds. 
+-- Animal dispersal progress: 3.118351 %
+-- Animal dispersal progress: 6.689928 %
+-- Animal dispersal progress: 9.901001 %
+-- Animal dispersal progress: 13.201616 %
+-- Animal dispersal progress: 16.492699 %

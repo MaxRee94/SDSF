@@ -70,8 +70,8 @@ public:
 		return _no_fruits > 0;
 	}
 	void clear() {
-		fruits.clear();
-		fruit_types.clear();
+		if (!fruits.empty()) fruits.clear();
+		if (!fruit_types.empty()) fruit_types.clear();
 		_no_fruits = 0;
 	}
 	bool get(Fruit &fruit, int tree_id = -1) {

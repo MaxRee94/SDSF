@@ -155,7 +155,7 @@ public:
 		grid.kill_tree_domain(tree, false);
 		population.remove(tree);
 	}
-	void set_cover_from_image(float* image, int img_width, int img_height, float target_cover = -1) {
+	void set_cover_from_image(shared_ptr<float[]> image, int img_width, int img_height, float target_cover = -1) {
 		float pixel_size = grid.width_r / (float)img_width;
 		int no_gridcells_along_x_per_pixel = round(grid.width_r / img_width);
 		pair<int, int> bb = pair<int, int>(no_gridcells_along_x_per_pixel, no_gridcells_along_x_per_pixel);
@@ -202,7 +202,6 @@ public:
 			}
 		}
 		printf("Final tree cover: %f\n", grid.tree_cover);
-		probmodel.free();
 		repopulate_grid(0);
 		printf("Finished setting tree cover from image.\n");
 	}

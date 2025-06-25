@@ -5,12 +5,15 @@
 class Dynamics {
 public:
 	Dynamics() = default;
+	Dynamics(Dynamics&&) = default;
+	Dynamics& operator=(Dynamics&&) = default;
 	Dynamics(
 		int _timestep, float _cell_width, float _self_ignition_factor, float _rainfall, float _seed_bearing_threshold,
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
 		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_dbh, float _saturation_threshold, float _fire_resistance_argmin,
 		float _fire_resistance_argmax, float _fire_resistance_stretch, float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
-		int _resource_grid_width, float _mutation_rate, float _STR, int _verbosity, int random_seed, int firefreq_random_seed, float __enforce_no_recruits
+		int _resource_grid_width, float _mutation_rate, float _STR, int _verbosity, int random_seed, int firefreq_random_seed, float __enforce_no_recruits,
+		int _animal_group_size
 	) :
 		timestep(_timestep), cell_width(_cell_width), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_max_dbh * _seed_bearing_threshold),
@@ -21,7 +24,8 @@ public:
 		max_dbh(_max_dbh), seedling_discard_dbh(0.05 * _max_dbh), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold),
 		fire_resistance_argmin(_fire_resistance_argmin), fire_resistance_argmax(_fire_resistance_argmax), fire_resistance_stretch(_fire_resistance_stretch),
 		background_mortality(_background_mortality), strategy_distribution_params(_strategy_distribution_params),
-		resource_grid_width(_resource_grid_width), mutation_rate(_mutation_rate), STR(_STR), _enforce_no_recruits(__enforce_no_recruits)
+		resource_grid_width(_resource_grid_width), mutation_rate(_mutation_rate), STR(_STR), _enforce_no_recruits(__enforce_no_recruits), 
+		animal_group_size(_animal_group_size)
 	{
 		time = 0;
 		help::init_RNG(random_seed);
@@ -38,7 +42,7 @@ public:
 		neighbor_offsets = state.grid.neighbor_offsets;
 		pop = &state.population;
 		grid = &state.grid;
-		fire_free_interval_averages = new float[grid->no_cells];
+		fire_free_interval_averages = make_shared<float[]>(grid->no_cells);
 		for (int i = 0; i < grid->no_cells; i++) fire_free_interval_averages[i] = 0;
 	}
 	bool invalid_tree_ids() {
@@ -95,19 +99,16 @@ public:
 		if (verbosity == 2) for (auto& [id, tree] : pop->members) if (id % 500 == 0) printf("Radius of tree %i : %f \n", id, tree.radius);
 	}
 	void free() {
-		resource_grid.free();
-		grid->free();
 		pop->free();
 	}
 	void update_firefree_interval_averages() {
-		float* fire_free_intervals = get_firefree_intervals("current_iteration");
+		shared_ptr<float[]> fire_free_intervals = get_firefree_intervals("current_iteration");
 		for (int i = 0; i < grid->no_cells; i++) {
 			if (grid->distribution[i].state == 1) continue; // Skip forest cells
 			float cur_interval = fire_free_intervals[i];
 			float avg_interval = fire_free_interval_averages[i];
 			fire_free_interval_averages[i] = (avg_interval * ((float)time - 1) + cur_interval) / (float)time;
 		}
-		delete[] fire_free_intervals;
 	}
 	void grow() {
 		vector<int> tree_deletion_schedule = {};
@@ -138,7 +139,7 @@ public:
 	void set_global_animal_kernel(map<string, map<string, float>>& animal_kernel_params) {
 		global_kernels["animal"] = Kernel(1, "animal");
 		init_resource_grid(animal_kernel_params);
-		animal_dispersal.animals = Animals(& state, animal_kernel_params);
+		animal_dispersal.animals = Animals(& state, animal_kernel_params, animal_group_size);
 		animal_dispersal.animals.initialize_population();
 		pop->add_kernel("animal", global_kernels["animal"]);
 		cout << "Global kernel created (Dispersal by animals). \n";
@@ -155,7 +156,9 @@ public:
 		float resource_grid_cell_width = grid->width_r / (float)resource_grid_width;
 		vector<string> species = {};
 		for (auto& [_species, _] : animal_kernel_params) species.push_back(_species);
+		if (resource_grid.selection_probabilities.probabilities != nullptr) printf("not nullptr");
 		resource_grid = ResourceGrid(&state, resource_grid_width, resource_grid_cell_width, species, animal_kernel_params);
+		printf("resource grid's probmodel obj id: %i \n", resource_grid.selection_probabilities.id);
 	}
 	bool global_kernel_exists(string type) {
 		return global_kernels.find(type) != global_kernels.end();
@@ -199,7 +202,6 @@ public:
 			// Add fruit crop or disperse seeds, depending on dispersal vector type
 			if (pop->get_kernel(id)->type == "animal") {
 				animal_seeds_dispersed += crop->no_seeds;
-				resource_grid.total_no_fruits += crop->fruit_abundance;
 				resource_grid.has_fruits = true;
 			}
 			else if (pop->get_kernel(id)->type == "wind") {
@@ -305,7 +307,7 @@ public:
 		}
 		printf("-- Number of trees dead due to background mortality: %i \n", tree_deletion_schedule.size());
 	}
-	int* get_resource_grid_colors(string species, string type) {
+	shared_ptr<int[]> get_resource_grid_colors(string species, string type) {
 		return resource_grid.get_color_distribution(species, type);
 	}
 	int get_no_fires() {
@@ -444,9 +446,9 @@ public:
 		}
 		return pair<int, int>(no_ash_cells, no_grassy_ash_cells);
 	}
-	float* get_firefree_intervals(string type = "current_iteration") {
+	shared_ptr<float[]> get_firefree_intervals(string type = "current_iteration") {
 		if (type == "current_iteration") {
-			float* intervals = new float[grid->no_cells];
+			shared_ptr<float[]> intervals = make_shared<float[]>(grid->no_cells);
 			for (int i = 0; i < grid->no_cells; i++) {
 				if (grid->distribution[i].state == 1) continue; // Skip forest cells
 				float interval = time + 1 - grid->distribution[i].time_last_fire;
@@ -459,7 +461,7 @@ public:
 		}
 	}
 	float unsuppressed_flammability = 0;
-	float* fire_free_interval_averages = 0;
+	shared_ptr<float[]> fire_free_interval_averages;
 	float min_suppressed_flammability = 0;
 	float max_suppressed_flammability = 0;
 	float self_ignition_factor = 0;
@@ -496,6 +498,7 @@ public:
 	int verbosity = 0;
 	int seeds_produced = 0;
 	int resource_grid_width = 0;
+	int animal_group_size = 0;
 	State state;
 	Population* pop = 0;
 	Grid* grid = 0;
@@ -504,7 +507,7 @@ public:
 	AnimalDispersal animal_dispersal;
 	default_random_engine random_generator;
 	ResourceGrid resource_grid;
-	pair<int, int>* neighbor_offsets = 0;
+	shared_ptr<pair<int, int>[]> neighbor_offsets = 0;
 	map<string, Kernel> global_kernels;
 	map<string, map<string, float>> strategy_distribution_params;
 	Animals animals;

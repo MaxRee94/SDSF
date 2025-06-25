@@ -275,7 +275,7 @@ public:
 	}
 	float compute_crown_area() {
 		return 0.551f * pow(dbh, 1.28f);	// Crown area in m^2. y = b x^a. Parameters of a and b are averages of fits for 5 trees presented in Blanchard et al (2015),
-											// page 1957 (explains the model in "Fitting tree allometries"), and table 4 (shows regression results).
+											// page 1957 (explains the model in "Fitting allometries"), and table 4 (shows regression results).
 	}
 	float get_LAI() {
 		float leaf_area = get_leaf_area();
@@ -489,7 +489,7 @@ public:
 		return removed;
 	}
 	bool delete_kernel(int id) {
-		if (get_kernel(id)->type == "wind") delete[] kernels_individual[id].cdf;
+		//if (get_kernel(id)->type == "wind") delete[] kernels_individual[id].cdf;
 		return kernels_individual.erase(id);
 	}
 	bool is_population_member(Tree* tree) {
