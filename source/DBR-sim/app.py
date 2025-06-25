@@ -16,6 +16,7 @@ import visualization as vis
 import file_handling as io
 from helpers import *
 from config import *
+import controllable_pattern_generator as cpg
 
 sys.path.append(BUILD_DIR)
 #from x64.Debug import dbr_cpp as cpp
@@ -101,15 +102,16 @@ def init(
     multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
     initial_pattern_image=None, mutation_rate=None, STR=None,
     batch_parameters=None, growth_rate_multiplier_params=None,
-    random_seed=None, random_seed_firefreq=None, enforce_no_recruits=None, animal_group_size=None, **user_args
+    random_seed=None, random_seed_firefreq=None, enforce_no_recruits=None, animal_group_size=None, report_state=None,
+    timelimit=None, test=None, csv_path=None, max_timesteps=None, termination_conditions=None, patch_width=None,
+    noise_octaves=None,
+    **ctrl_pattern_generator_params
     ):
     
     # Set random seed for fire frequency probability distribution. If -999 is given, a random seed will be generated. Otherwise, the given seed will be used.
     if random_seed_firefreq == -999:
         random_seed_firefreq = random.randint(0, 1000000)
         print("Generated random seed for fire frequency probability distribution: ", random_seed_firefreq)
-
-    
 
     # Initialize dynamics object and state
     print("Animal group size:", animal_group_size)
@@ -128,20 +130,28 @@ def init(
     dynamics, animal_species = set_dispersal_kernel(dynamics, dispersal_mode, multi_disperser_params)
     
     # Set initial tree cover
+    print("Initial pattern image:", initial_pattern_image)
     if initial_pattern_image == "none":
         dynamics.state.set_tree_cover(treecover)
-    else:
+    elif initial_pattern_image == "ctrl":
+        path = f"{CONTROLLED_PATTERN_DIR}/" + initial_pattern_image + ".png"
+        img, positions, radii, stripe_metadata = cpg.create_image(**ctrl_pattern_generator_params)
+        cv2.imwrite(path, img)
+        print("Generated controlled pattern image at ", path)
+    elif initial_pattern_image == "perlin_noise":
         path = f"{DATA_IN_DIR}/state patterns/" + initial_pattern_image
         if "perlin_noise" == initial_pattern_image:
             print("Setting tree cover using perlin noise function...")
             path = f"{PERLIN_NOISE_DIR}/" + initial_pattern_image + ".png"
-            noise_frequency = 5.0 / user_args["patch_width"] # Convert patch width to noise frequency
+            noise_frequency = 5.0 / patch_width # Convert patch width to noise frequency
             noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
             vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=user_args["noise_octaves"])
-        else:
-            print("Setting tree cover from image...")
+    else:
+        print("Setting tree cover from image...")
+    
+    if initial_pattern_image != "none":
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        print("Path perlin noise image: ", path)
+        print(f"Path of the generated {initial_pattern_image} pattern image: ", path) if initial_pattern_image in ["ctrl", "perlin_noise"] else None
         if img is None and initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
             print("Image not found. Generating new one...")
             vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=user_args["noise_octaves"])
@@ -155,12 +165,12 @@ def init(
                 time.sleep(1) # Wait for the image to be generated before trying to load it again
                 img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         
-        if not "thresholded.png" in path:
+        if ("perlin_noise" in path) and (not "thresholded.png" in path):
             img = vis.get_thresholded_image(img, treecover * img.shape[0] * img.shape[0] * 255 )
             cv2.imwrite(path.replace(".png", "_thresholded.png"), img)
  
         img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
-        print("created image. Setting cover...")
+        print("Created image. Setting cover...")
         dynamics.state.set_cover_from_image(img / 255, -1)
     dynamics.state.repopulate_grid(0)
     
