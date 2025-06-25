@@ -28,22 +28,23 @@ def apply_jitter(positions, image_size, mean_distance, cv_distance):
 
     return jittered
 
-def generate_disk(center, base_radius, amp1=0, wave1=1, amp2=0, wave2=2, resolution=360):
+def generate_disk(center, base_radius, amp1=0, wave1=1, amp2=0, wave2=2, rotate_randomly=True, resolution=360):
     angles = np.linspace(0, 2 * np.pi, resolution, endpoint=False)
-    if wave2 <= wave1 and amp2 != 0:
-        raise ValueError("Second sine wave wavelength must be shorter than the first.")
-    r = base_radius + amp1 * np.sin(wave1 * angles + random.uniform(0, 2*math.pi)) + amp2 * np.sin(wave2 * angles + random.uniform(0, 2*math.pi))
+    rotational_offset = 0
+    if rotate_randomly:
+        rotational_offset = random.uniform(0, 2*math.pi)
+    r = base_radius + amp1 * np.sin(wave1 * angles + rotational_offset) + amp2 * np.sin(wave2 * angles + rotational_offset)
     x = center[0] + r * np.cos(angles)
     y = center[1] + r * np.sin(angles)
     return np.stack((x, y), axis=-1).astype(np.int32)
 
-def draw_disk(img, center, radius, amp1, wave1, amp2, wave2):
-    contour = generate_disk(center, radius, amp1, wave1, amp2, wave2)
+def draw_disk(img, center, radius, amp1, wave1, amp2, wave2, rotate_randomly):
+    contour = generate_disk(center, radius, amp1, wave1, amp2, wave2, rotate_randomly)
     cv2.fillPoly(img, [contour], 255)
 
-def draw_stripe(img, center1, center2, radius):
-    disk1 = generate_disk(center1, radius)
-    disk2 = generate_disk(center2, radius)
+def draw_stripe(img, center1, center2, radius, rotate_randomly):
+    disk1 = generate_disk(center1, radius, rotate_randomly=rotate_randomly)
+    disk2 = generate_disk(center2, radius, rotate_randomly=rotate_randomly)
     points = np.vstack([disk1, disk2])
     hull = ConvexHull(points)
     hull_points = points[hull.vertices]
@@ -182,7 +183,7 @@ def export_metadata(positions, radii, parameters, stripe_metadata=None, output_d
 
     if stripe_metadata:
         df_stripes = pd.DataFrame(stripe_metadata)
-        df_stripes.to_csv(os.path.join("output_dir", "stripe_metadata.csv"), index=False)
+        df_stripes.to_csv(os.path.join(OUTPUT_DIR, "stripe_metadata.csv"), index=False)
 
 def draw_sinusoidal_stripe(img, p1, p2, radius, amplitude, wavelength, n_points=100):
     """
@@ -231,7 +232,8 @@ def create_image(
     sin_stripe=False,
     sin_stripe_amp=10,
     sin_stripe_wavelength=100,
-    grid_type="hex"
+    grid_type="hex",
+    rotate_randomly=True
 ):
     
     if grid_type == "hex":
@@ -239,14 +241,14 @@ def create_image(
             original_distance = mean_distance
             mean_distance = adjust_mean_distance_for_uniform_hex_grid(image_size, mean_distance)
             if not math.isclose(original_distance, mean_distance, abs_tol=1):
-                raise RuntimeError(f"Mean_distance {original_distance:.2f} needs to be changed to {mean_distance-0.5} to have a perfect hex grid.")
+                raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {mean_distance-0.5} to have a perfect hex grid.")
         base_positions = generate_hex_grid_with_filter(image_size, mean_distance)
     elif grid_type == "square":
         if enforce_distance_uniformity:
             original_distance = mean_distance
             mean_distance = adjust_mean_distance_for_uniform_square_grid(image_size, mean_distance)
             if not math.isclose(original_distance, mean_distance, abs_tol=1):
-                raise RuntimeError(f"Mean_distance {original_distance:.2f} needs to be changed to {mean_distance:.2f} to have a perfect square grid.")
+                raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {mean_distance:.2f} to have a perfect square grid.")
         base_positions = generate_square_grid(image_size, mean_distance)
     else:
         raise ValueError("grid_type must be 'hex' or 'square'")
@@ -264,7 +266,7 @@ def create_image(
                   (image_size[0], -image_size[1]), (-image_size[0], image_size[1])]
         for dx, dy in shifts:
             draw_center = (int(x + dx), int(y + dy))
-            draw_disk(img, draw_center, radius, sine_amp1, sine_wave1, sine_amp2, sine_wave2)
+            draw_disk(img, draw_center, radius, sine_amp1, sine_wave1, sine_amp2, sine_wave2, rotate_randomly)
 
     stripe_metadata = []
     if draw_stripes:
@@ -279,7 +281,7 @@ def create_image(
                     wavelength=sin_stripe_wavelength
                 )
             else:
-                draw_stripe(img, p1, p2, mean_radius)
+                draw_stripe(img, p1, p2, mean_radius, rotate_randomly)
 
 
     return img, positions, radii, stripe_metadata
@@ -346,23 +348,24 @@ def plot_periodic_neighbor_distances(positions, image_size, mean_distance, k=6):
 if __name__ == "__main__":
     params = {
         "image_size": (1000, 1000),
-        "mean_radius": 80,
+        "mean_radius": 100,
         "cv_radius": 0,
-        "mean_distance": 288,
+        "mean_distance": 333,
         "cv_distance": 0,
-        "sine_amp1": 10,
+        "sine_amp1": 30,
         "sine_wave1": 6,
         "sine_amp2": 0,
-        "sine_wave2": 12,
+        "sine_wave2": 40,
         "draw_stripes": False,
         "stripe_angle_deg": 30,
         "stripe_mean_length": 200,
         "stripe_std_length": 15,
-        "sin_stripe": True,
-        "sin_stripe_amp": 15,
+        "sin_stripe": False,
+        "sin_stripe_amp": 20,
         "sin_stripe_wavelength": 80,
         "enforce_distance_uniformity": True,
-        "grid_type": "hex"
+        "grid_type": "square",
+        "rotate_randomly": True
     }
 
     img, positions, radii, stripe_metadata = create_image(**params)
