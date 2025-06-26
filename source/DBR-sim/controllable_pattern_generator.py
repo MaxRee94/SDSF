@@ -8,9 +8,30 @@ import json
 import math
 import os
 import random
+from scipy.optimize import newton
 
 
 OUTPUT_DIR = r"F:\Development\DBR-sim\data_out\pattern_metadata" # TODO: Modify to use default defined in config.py.
+
+def correct_radius_for_area(base_radius, amp1, amp2):
+    """
+    Adjust radius so that the modulated disk has the same surface area as a smooth circle
+    with base_radius. Assumes sine modulation is radial.
+    """
+    if amp1 == 0 and amp2 == 0:
+        return base_radius
+
+    def area_difference(r_mod):
+        correction = 1 + 0.5 * (amp1 / r_mod) ** 2 + 0.5 * (amp2 / r_mod) ** 2
+        return r_mod ** 2 * correction - base_radius ** 2
+
+    try:
+        r_corrected = newton(area_difference, base_radius * 0.9, maxiter=100)
+    except RuntimeError:
+        r_corrected = base_radius  # fallback
+
+    return r_corrected
+
 
 def apply_jitter(positions, image_size, mean_distance, cv_distance):
     """
@@ -266,6 +287,7 @@ def create_image(
 
     # Draw disks with periodic wrap
     for i, (center, radius) in enumerate(zip(positions, radii)):
+        radius = correct_radius_for_area(radius, sine_amp1, sine_amp2)
         x, y = center
         shifts = [(0, 0), (image_size[0], 0), (-image_size[0], 0),
                   (0, image_size[1]), (0, -image_size[1]),
@@ -355,11 +377,11 @@ def plot_periodic_neighbor_distances(positions, image_size, mean_distance, k=6):
 if __name__ == "__main__":
     params = {
         "image_size": (1000, 1000),
-        "mean_radius": 100,
+        "mean_radius": 120,
         "cv_radius": 0,
         "mean_distance": 333,
         "cv_distance": 0,
-        "sine_amp1": 30,
+        "sine_amp1": 81.6,
         "sine_wave1": 6,
         "sine_amp2": 0,
         "sine_wave2": 40,
