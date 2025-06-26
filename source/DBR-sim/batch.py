@@ -32,9 +32,12 @@ def get_next_control_value(i, control_variable, control_value, control_range, pr
     return control_value
 
 
-def get_singlerun_name(batch_type, sim_name, control_value, csv_parent_dir, secondary_variable=None, secondary_value=None, process_index=None, no_runs_for_current_parameter_set=None):
+def get_singlerun_name(batch_type, sim_name, control_value, csv_parent_dir, secondary_variable=None, secondary_value=None, process_index=None, no_runs_for_current_parameter_set=None, rerun_idx=None):
     if batch_type == "range" or batch_type == "constant":
-        singlerun_name = f"{sim_name}={str(control_value)}_process_{str(process_index)}_run_{str(no_runs_for_current_parameter_set)}"
+        if secondary_variable:
+            singlerun_name = f"{sim_name}={str(control_value)}_process_{str(process_index)}_2nd_var({secondary_variable})={str(secondary_value)}_run_{str(rerun_idx+1)}" 
+        else:
+            singlerun_name = f"{sim_name}={str(control_value)}_process_{str(process_index)}_run_{str(rerun_idx+1)}"
         print(f"\n ------- Beginning simulation with {singlerun_name} ------- \n")
         singlerun_csv_path = csv_parent_dir + "/" + singlerun_name + ".csv"
         singlerun_image_path = singlerun_csv_path.replace(".csv", ".png")
@@ -49,14 +52,17 @@ def get_singlerun_name(batch_type, sim_name, control_value, csv_parent_dir, seco
 
 def execute_single_run(
         params, control_variable, control_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict,
-        extra_parameters, dependent_var, opti_mode, statistic, batch_type, init_csv, secondary_variable=None, secondary_value=None, export_to_parent_csv=True,
-        no_runs_for_current_parameter_set=None
+        extra_parameters, dependent_var, opti_mode, statistic, batch_type, init_csv, export_to_parent_csv=True,
+        secondary_variable=None, secondary_value=None, no_runs_for_current_parameter_set=None, rerun_idx=None
     ):
     
     params[control_variable] = control_value
+    if secondary_variable:
+        params[secondary_variable] = secondary_value
+    print("rerun idx:", rerun_idx)
     singlerun_name, singlerun_csv_path, singlerun_image_path = get_singlerun_name(
         batch_type, sim_name, control_value, csv_parent_dir, secondary_variable=secondary_variable, secondary_value=secondary_value, process_index=process_index,
-        no_runs_for_current_parameter_set=no_runs_for_current_parameter_set
+        no_runs_for_current_parameter_set=no_runs_for_current_parameter_set, rerun_idx=rerun_idx
     )
     params["csv_path"] = singlerun_csv_path
     if "->" in control_variable:
@@ -261,6 +267,30 @@ def execute_saddle_search(
     return best_secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev
 
 
+def get_secondary_value_if_applicable(secondary_variable, secondary_range):
+    if secondary_variable is None:
+        yield None
+        return
+    else:
+        secondary_control_value = secondary_range[0]
+        while secondary_control_value <= secondary_range[2]:
+            yield secondary_control_value
+            secondary_control_value += secondary_range[1] # New value is old value + step size
+
+
+def yield_rerun_idx_if_not_saddle_search(batch_type, no_reruns):
+    if batch_type == "saddle_search":
+        yield None
+        return
+    else:
+        if no_reruns == 0 or no_reruns == 1:
+            yield 0
+            return
+        else:
+            for rerun_idx in range(no_reruns):
+                yield rerun_idx
+
+            
 def iterate_across_range(params, control_variable, control_range, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict,
                         extra_parameters, batch_type, dependent_var, opti_mode, statistic, secondary_variable, secondary_range, attempts=None):
     init_csv = True
@@ -268,55 +298,64 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
     time_budget_per_run = 60 * 60
     no_runs_for_current_parameter_set = 0
     params["report_state"] = "False"
-    control_value = control_range[0] + process_index * (control_range[2] / (no_processes) )
+    control_value_minimum = control_range[0] + process_index * (control_range[2] / (no_processes) )
+    control_value = control_value_minimum
     params_json_path = csv_parent_dir + "/parameters.json"
     with open(params_json_path, "w") as params_json_file:
         json.dump(params, params_json_file)
-    while (control_value < control_range[1]) or (batch_type == "constant"):       
-        run_starttime = time.time()
-        if (batch_type == "range" or batch_type == "constant"):
-            # Run the simulation and append its results to the total results csv
-            dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_single_run(
-                params, control_variable, control_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
-                dependent_var, opti_mode, statistic, batch_type, init_csv, no_runs_for_current_parameter_set=no_runs_for_current_parameter_set
-            )
-            _io.export_state(
-                dynamics, total_results_csv, init_csv, initial_no_dispersals=initial_no_dispersals, control_variable=control_variable, control_value=control_value,
-                tree_cover_slope=tree_cover_slope, extra_parameters=str(extra_parameters)
-            )
-        elif (batch_type == "saddle_search"):
-            secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, guess_result, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_saddle_search(
-                params, control_variable, control_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
-                dependent_var, opti_mode, statistic, secondary_variable, secondary_range, attempts
-            )
-            _io.export_state(
-                dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value,
-                tree_cover_slope=tree_cover_slope, extra_parameters=str(extra_parameters), secondary_variable=secondary_variable, secondary_value=secondary_value,
-                dependent_var=dependent_var, dependent_val=guess_result, dependent_result_range_stdev=dependent_result_range_stdev
-            )
-        else:
-            raise RuntimeError("Invalid batch type '{}'. Exiting..".format(batch_type))
         
-        init_csv = False
+    for rerun_idx in yield_rerun_idx_if_not_saddle_search(batch_type, no_reruns):
+        control_value = control_value_minimum
+        print("\n\n\n\n ------- Received rerun index: ", rerun_idx, "for batch type: ", batch_type, "and no_reruns: ", no_reruns)
+        while (control_value < control_range[1]) or (batch_type == "constant"):    
+            print("\n\n\n\n---new control val:", control_value)
+            run_starttime = time.time()
+            if (batch_type == "range" or batch_type == "constant"):
+                for secondary_value in get_secondary_value_if_applicable(secondary_variable, secondary_range):
+                    # Run the simulation and append its results to the total results csv
+                    dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_single_run(
+                        params, control_variable, control_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, 
+                        extra_parameters, dependent_var, opti_mode, statistic, batch_type, init_csv, secondary_variable=secondary_variable, secondary_value=secondary_value, 
+                        no_runs_for_current_parameter_set=1, rerun_idx=rerun_idx
+                    )
+                    
+                    _io.export_state(
+                        dynamics, total_results_csv, init_csv, initial_no_dispersals=initial_no_dispersals, control_variable=control_variable, control_value=control_value,
+                        tree_cover_slope=tree_cover_slope, secondary_variable=secondary_variable, secondary_value=secondary_value, extra_parameters=str(extra_parameters)
+                    )
+            elif (batch_type == "saddle_search"):
+                secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, guess_result, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_saddle_search(
+                    params, control_variable, control_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
+                    dependent_var, opti_mode, statistic, secondary_variable, secondary_range, attempts
+                )
+                _io.export_state(
+                    dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value,
+                    tree_cover_slope=tree_cover_slope, extra_parameters=str(extra_parameters), secondary_variable=secondary_variable, secondary_value=secondary_value,
+                    dependent_var=dependent_var, dependent_val=guess_result, dependent_result_range_stdev=dependent_result_range_stdev
+                )
+            else:
+                raise RuntimeError("Invalid batch type '{}'. Exiting..".format(batch_type))
+        
+            init_csv = False
 
-        # Get a color image representation of the final state
-        img = vis.get_image_from_grid(dynamics.state.grid, True, color_dict)
-        vis.save_image(img, singlerun_image_path, get_max(dynamics.state.grid.width, 1000))
+            # Get a color image representation of the final state
+            img = vis.get_image_from_grid(dynamics.state.grid, True, color_dict)
+            vis.save_image(img, singlerun_image_path, get_max(dynamics.state.grid.width, 1000))
         
-        # Get the next control value
-        no_runs_for_current_parameter_set += 1
-        if batch_type != "constant" and (batch_type == "saddle_search" or no_runs_for_current_parameter_set >= no_reruns):
-            no_runs_for_current_parameter_set = 0
-            control_value = get_next_control_value(i, control_variable, control_value, control_range, process_index, no_processes, dynamics, largest_absolute_slope)
-        i += no_runs_for_current_parameter_set == 0
+            # Get the next control value
+            no_runs_for_current_parameter_set += 1
+            if batch_type != "constant" and (batch_type in ["saddle_search", "range"]):
+                no_runs_for_current_parameter_set = 0
+                control_value = get_next_control_value(i, control_variable, control_value, control_range, process_index, no_processes, dynamics, largest_absolute_slope)
+            i += no_runs_for_current_parameter_set == 0
  
-        # Free memory
-        dynamics.free()
-        init_csv = False
+            # Free memory
+            dynamics.free()
+            init_csv = False
         
-        # If the batch type is constant, we terminate when we've performed a number of simulations equal to 'no_reruns'
-        if batch_type == "constant" and no_runs_for_current_parameter_set > no_reruns:
-            break
+            # If the batch type is constant, we terminate when we've performed a number of simulations equal to 'no_reruns'
+            if batch_type == "constant" and no_runs_for_current_parameter_set > no_reruns:
+                break
     
     print("Batch complete. Exiting..")
 
@@ -387,7 +426,8 @@ def main(
     total_results_csv = csv_parent_dir + "/{}_results.csv".format(csv_parent_dir.split("state data/")[1])
         
     iterate_across_range(params, control_variable, control_range, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, 
-                         color_dict, extra_parameters, batch_type, dependent_var, opti_mode, statistic, secondary_variable, secondary_range, attempts=attempts)
+                         color_dict, extra_parameters, batch_type, dependent_var, opti_mode, statistic, secondary_variable, secondary_range, 
+                         attempts=attempts)
     
         
 
@@ -406,8 +446,8 @@ if __name__ == "__main__":
     parser.add_argument('-dvar', '--dependent_var', type=str, default="tree_cover_slope", help="Dependent variable to optimize")
     parser.add_argument('-om', '--opti_mode', type=str, default="minimize", help="Mode of optimization. Options: 'maximize', 'minimize'")
     parser.add_argument('-st', '--statistic', type=str, default="mean", help="Statistic to optimize. Options: 'max', 'min'")
-    parser.add_argument('-secvar', '--secondary_variable', type=str, default="self_ignition_factor", help="Secondary variable of saddle search")
-    parser.add_argument('-svr', '--secondary_range', type=float, nargs="*", default=[0, 2], help="Value range of the secondary variable of saddle search")
+    parser.add_argument('-secvar', '--secondary_variable', type=str, default=None, help="Secondary variable")
+    parser.add_argument('-svr', '--secondary_range', type=float, nargs="*", default=[0, 2, 2], help="Value range of the secondary variable")
     parser.add_argument('-na', '--attempts', type=str, default="5", help="Number of attempts (saddle search)")
     parser.add_argument(
         '-ep', '--extra_parameters', type=str,
