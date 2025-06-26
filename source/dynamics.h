@@ -260,7 +260,7 @@ public:
 		}
 
 		no_recruits = pop->size() - pre_recruitment_popsize;
-		if (time == 0) initial_no_effective_dispersals = no_recruits; // The number of recruits is really the number of effective dispersals, since some seedlings may be burned right after germinating.
+		if (time == 1) initial_no_effective_dispersals = no_recruits; // The number of recruits is really the number of effective dispersals, since some seedlings may be burned right after germinating.
 		timer.stop();
 		printf("-- Recruitment of %s trees took %f seconds. \n", help::readable_number(no_recruits).c_str(), timer.elapsedSeconds());
 	}
@@ -339,6 +339,8 @@ public:
 		}
 		fire_spatial_extent = ((float)no_ash_cells * grid->cell_area) / (float)no_fires;
 		no_fire_induced_deaths = popsize_before_burns - pop->size();
+		printf("no fire induced deaths (time = %i): %i \n", time, no_fire_induced_deaths);
+		printf("no fire induced topkills (time = %i): %i \n", time, no_fire_induced_topkills);
 		cout.precision(2);
 		printf(
 			"-- Fires: %i, Topkills: %s, Kills: %s \n",

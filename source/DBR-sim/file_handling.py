@@ -35,7 +35,7 @@ def export_state(
         "time", "tree cover", "slope", "population size", "#seeds produced", "fire mean spatial extent", "#top kills", "#deaths",
         "#trees[dbh 0-20%]", "#trees[dbh 20-40%]", "#trees[dbh 40-60%]", "#trees[dbh 60-80%]", "#trees[dbh 80-100%]", "extra_parameters",
         "firefree interval mean", "firefree interval stdev", "firefree interval full sim mean", "firefree interval full sim stdev", "time_spent_moving",
-        "shaded_out", "outcompeted_by_seedlings", "outcompeted_by_oldstems",
+        "shaded_out", "outcompeted_by_seedlings", "outcompeted_by_oldstems", "initial_no_dispersals",
         "recruits", "germination_attempts", "oldstem_competition_and_shading", "seedling_competition_and_shading"
     ]
     if dependent_var:
@@ -76,14 +76,15 @@ def export_state(
             "#trees[dbh 40-60%]": tree_sizes[2],
             "#trees[dbh 60-80%]": tree_sizes[3],
             "#trees[dbh 80-100%]": tree_sizes[4],
-            "#top kills": dynamics.get_no_fire_induced_topkills(),
-            "#deaths": dynamics.get_no_fire_induced_deaths(),
+            "#top kills": str(dynamics.get_no_fire_induced_topkills()),
+            "#deaths": str(dynamics.get_no_fire_induced_deaths()),
             "extra_parameters": extra_parameters,
             "firefree interval mean": firefree_interval_mean,
             "firefree interval stdev": firefree_interval_stdev,
             "firefree interval full sim mean": firefree_interval_fullsim_mean,
             "firefree interval full sim stdev": firefree_interval_fullsim_stdev,
             "recruits": str(dynamics.get_no_recruits("all")),
+            "initial_no_dispersals": str(dynamics.get_initial_no_dispersals()),
             "time_spent_moving": str(dynamics.get_fraction_time_spent_moving()),
             "shaded_out": str(dynamics.get_fraction_seedlings_dead_due_to_shade()),
             "outcompeted_by_seedlings": str(dynamics.get_fraction_seedlings_outcompeted()),

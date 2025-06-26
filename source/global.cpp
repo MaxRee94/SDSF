@@ -280,10 +280,10 @@ PYBIND11_MODULE(dbr_cpp, module) {
             return dynamics.no_fire_induced_deaths;
 		})
         .def("get_no_fire_induced_topkills", [](Dynamics& dynamics) {
-            return dynamics.no_fire_induced_deaths;
+            return dynamics.no_fire_induced_topkills;
         })
         .def("get_initial_no_dispersals", [](Dynamics& dynamics) {
-            return dynamics.no_fire_induced_deaths;
+            return dynamics.initial_no_effective_dispersals;
         })
         .def("precompute_resourcegrid_lookup_table", [](Dynamics& dynamics, string& species) {
             dynamics.resource_grid.precompute_dist_lookup_table(species);
