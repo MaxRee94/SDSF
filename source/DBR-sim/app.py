@@ -209,12 +209,12 @@ def init(
         print("animal species: ", animal_species)
         for species in animal_species:
             lookup_table, fpath = io.get_lookup_table(species, grid_width, resource_grid_width * resource_grid_width)
-            lookup_table = None # Hotfix; lookup table might lead to memory leaks (?)
+            #lookup_table = None # Hotfix; lookup table might lead to memory leaks (?)
             if lookup_table is None:
                 print(f"Lookup table file {fpath} not found. Creating new one...")
                 dynamics.precompute_resourcegrid_lookup_table(species)
-                #lookup_table = dynamics.get_resource_grid_lookup_table(species)
-                #io.export_lookup_table(lookup_table, grid_width, species)
+                lookup_table = dynamics.get_resource_grid_lookup_table(species)
+                io.export_lookup_table(lookup_table, grid_width, species)
             else:
                 print(f"Lookup table file {fpath} found. Loading...")
                 dynamics.set_resource_grid_lookup_table(lookup_table, species)
