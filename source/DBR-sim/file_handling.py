@@ -29,10 +29,10 @@ def get_firefree_interval_stats(dynamics, _type):
 
 def export_state(
         dynamics, path="", init_csv=True, control_variable=None, control_value=None, tree_cover_slope=0,
-        extra_parameters="", secondary_variable=None, secondary_value=None, dependent_var=None, dependent_val=None, initial_no_recruits=None, dependent_result_range_stdev=None
+        extra_parameters="", secondary_variable=None, secondary_value=None, dependent_var=None, dependent_val=None, initial_no_dispersals=None, dependent_result_range_stdev=None
     ):
     fieldnames = [
-        "time", "tree cover", "slope", "population size", "#seeds produced", "fire mean spatial extent",
+        "time", "tree cover", "slope", "population size", "#seeds produced", "fire mean spatial extent", "#top kills", "#deaths",
         "#trees[dbh 0-20%]", "#trees[dbh 20-40%]", "#trees[dbh 40-60%]", "#trees[dbh 60-80%]", "#trees[dbh 80-100%]", "extra_parameters",
         "firefree interval mean", "firefree interval stdev", "firefree interval full sim mean", "firefree interval full sim stdev", "time_spent_moving",
         "shaded_out", "outcompeted_by_seedlings", "outcompeted_by_oldstems",
@@ -44,8 +44,8 @@ def export_state(
         if secondary_variable == "treecover":
             secondary_variable = "initial tree cover"
         fieldnames.insert(0, secondary_variable)
-    if initial_no_recruits:
-        fieldnames.insert(-3, "initial_no_recruits")
+    if initial_no_dispersals:
+        fieldnames.insert(-3, "initial_no_dispersals")
     if control_variable:
         if control_variable == "treecover":
             control_variable = "initial tree cover"
@@ -76,6 +76,8 @@ def export_state(
             "#trees[dbh 40-60%]": tree_sizes[2],
             "#trees[dbh 60-80%]": tree_sizes[3],
             "#trees[dbh 80-100%]": tree_sizes[4],
+            "#top kills": dynamics.get_no_fire_induced_topkills(),
+            "#deaths": dynamics.get_no_fire_induced_deaths(),
             "extra_parameters": extra_parameters,
             "firefree interval mean": firefree_interval_mean,
             "firefree interval stdev": firefree_interval_stdev,
@@ -96,8 +98,8 @@ def export_state(
             result[secondary_variable] = secondary_value
         if dependent_var:
             result[dependent_var] = dependent_val
-        if initial_no_recruits:
-            result["initial_no_recruits"] = initial_no_recruits
+        if initial_no_dispersals:
+            result["initial number of dispersals"] = initial_no_dispersals
         if dependent_result_range_stdev:
             result["dependent_result_range_stdev"] = dependent_result_range_stdev
         writer.writerow(result)

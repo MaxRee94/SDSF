@@ -260,6 +260,7 @@ public:
 		}
 
 		no_recruits = pop->size() - pre_recruitment_popsize;
+		if (time == 0) initial_no_effective_dispersals = no_recruits; // The number of recruits is really the number of effective dispersals, since some seedlings may be burned right after germinating.
 		timer.stop();
 		printf("-- Recruitment of %s trees took %f seconds. \n", help::readable_number(no_recruits).c_str(), timer.elapsedSeconds());
 	}
@@ -324,7 +325,7 @@ public:
 		int no_ash_cells = 0;
 		int popsize_before_burns = pop->size();
 		int re_ignitions = 0;
-		int no_trees_topkilled = 0;
+		no_fire_induced_topkills = 0;
 		fire_spatial_extent = 0;
 		for (int i = 0; i < no_fires; i++) {
 			Cell* cell = grid->get_random_cell();
@@ -333,15 +334,15 @@ public:
 				continue;
 			}
 			no_fires++;
-			auto [_no_ash_cells, _no_grassy_ash_cells] = percolate(cell, time, no_trees_topkilled);
+			auto [_no_ash_cells, _no_grassy_ash_cells] = percolate(cell, time, no_fire_induced_topkills);
 			no_ash_cells += _no_ash_cells;
 		}
 		fire_spatial_extent = ((float)no_ash_cells * grid->cell_area) / (float)no_fires;
-		int no_trees_killed = popsize_before_burns - pop->size();
+		no_fire_induced_deaths = popsize_before_burns - pop->size();
 		cout.precision(2);
 		printf(
 			"-- Fires: %i, Topkills: %s, Kills: %s \n",
-			no_fires, help::readable_number(no_trees_topkilled).c_str(), help::readable_number(no_trees_killed).c_str()
+			no_fires, help::readable_number(no_fire_induced_topkills).c_str(), help::readable_number(no_fire_induced_deaths).c_str()
 		);
 		cout <<
 			"-- Fraction of domain burned: " << (float)no_ash_cells / (float)grid->no_cells << ", Area burned: " <<
@@ -499,6 +500,9 @@ public:
 	int seeds_produced = 0;
 	int resource_grid_width = 0;
 	int animal_group_size = 0;
+	int no_fire_induced_deaths = 0;
+	int no_fire_induced_topkills = 0;
+	int initial_no_effective_dispersals = 0;
 	State state;
 	Population* pop = 0;
 	Grid* grid = 0;

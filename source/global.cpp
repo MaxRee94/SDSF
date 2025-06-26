@@ -276,6 +276,15 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def("get_no_germination_attempts", [](Dynamics& dynamics) {
 			return dynamics.no_germination_attempts;
 		})
+        .def("get_no_fire_induced_deaths", [](Dynamics& dynamics) {
+            return dynamics.no_fire_induced_deaths;
+		})
+        .def("get_no_fire_induced_topkills", [](Dynamics& dynamics) {
+            return dynamics.no_fire_induced_deaths;
+        })
+        .def("get_initial_no_dispersals", [](Dynamics& dynamics) {
+            return dynamics.no_fire_induced_deaths;
+        })
         .def("precompute_resourcegrid_lookup_table", [](Dynamics& dynamics, string& species) {
             dynamics.resource_grid.precompute_dist_lookup_table(species);
 		});

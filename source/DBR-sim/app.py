@@ -307,7 +307,7 @@ def updateloop(dynamics, color_dicts, **user_args):
         
         # Obtain initial number of recruits
         if dynamics.time == 1:
-            initial_no_recruits = dynamics.get_no_recruits("all")
+            initial_no_dispersals = dynamics.get_initial_no_dispersals()
         
         # Track tree cover trajectory and evaluate termination conditions
         prev_tree_cover.append(dynamics.state.grid.get_tree_cover())
@@ -362,7 +362,7 @@ def updateloop(dynamics, color_dicts, **user_args):
         cv2.destroyAllWindows()
         dynamics.free()
     
-    return dynamics, slope, largest_absolute_slope, initial_no_recruits
+    return dynamics, slope, largest_absolute_slope, initial_no_dispersals
 
 
 def test_kernel():

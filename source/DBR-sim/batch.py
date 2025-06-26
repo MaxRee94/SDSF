@@ -67,10 +67,10 @@ def execute_single_run(
 
     # Run the simulation and append its results to the total results csv
     run_starttime = time.time()
-    dynamics, tree_cover_slope, largest_absolute_slope, initial_no_recruits = app.main(**params) 
+    dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals = app.main(**params) 
     print(f"\n ------- Simulation {singlerun_name} complete. -------- \n")
     
-    return dynamics, tree_cover_slope, largest_absolute_slope, initial_no_recruits, singlerun_name, singlerun_csv_path, singlerun_image_path
+    return dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path
 
 
 def execute_multiple_runs(params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
@@ -82,7 +82,7 @@ def execute_multiple_runs(params, primary_variable, primary_value, csv_parent_di
     dependent_values = []
     for i in range(no_reruns):
         print(f"Beginning run {i+1} of {no_reruns}")
-        dynamics, tree_cover_slope, largest_absolute_slope, initial_no_recruits, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_single_run(
+        dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_single_run(
             params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
             dependent_var, opti_mode, statistic, batch_type, init_csv, secondary_value=secondary_value, secondary_variable=secondary_variable, export_to_parent_csv=False
         )
@@ -110,7 +110,7 @@ def execute_multiple_runs(params, primary_variable, primary_value, csv_parent_di
 
     dependent_result_range_stdev = stats.stdev(dependent_values)
 
-    return dynamics, tree_cover_slope, largest_absolute_slope, result, initial_no_recruits, stats.stdev(dependent_values), singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev
+    return dynamics, tree_cover_slope, largest_absolute_slope, result, initial_no_dispersals, stats.stdev(dependent_values), singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev
 
 
 def interpolate_secondary_value(argmin, argmax, argmin_result, argmax_result, opti_mode):
@@ -166,11 +166,11 @@ def execute_saddle_search(
     # Perform the first two attempts
     argmin = secondary_range[0]
     argmax = secondary_range[1]
-    dynamics, tree_cover_slope, largest_absolute_slope, argmin_result, initial_no_recruits, argmin_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_multiple_runs(
+    dynamics, tree_cover_slope, largest_absolute_slope, argmin_result, initial_no_dispersals, argmin_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_multiple_runs(
         params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv,
         color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=argmin, secondary_variable=secondary_variable
     )
-    dynamics, tree_cover_slope, largest_absolute_slope, argmax_result, initial_no_recruits, argmax_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_multiple_runs(
+    dynamics, tree_cover_slope, largest_absolute_slope, argmax_result, initial_no_dispersals, argmax_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_multiple_runs(
         params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv,
         color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=argmax, secondary_variable=secondary_variable
     )
@@ -208,7 +208,7 @@ def execute_saddle_search(
     best_positive_secondary_result = argmin_result
     for i in range(no_attempts - 2):
         print("Value trajectory so far: ", secondary_value_trajectory)
-        dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, cur_initial_no_recruits, _, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_multiple_runs(
+        dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, cur_initial_no_dispersals, _, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_multiple_runs(
             params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv,
             color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=cur_secondary_value, secondary_variable=secondary_variable,
             dependent_result_range_mean=dependent_result_range_mean, dependent_result_range_stdev=dependent_result_range_stdev
@@ -242,7 +242,7 @@ def execute_saddle_search(
             if cur_secondary_value_result < best_result:
                 best_result = cur_secondary_value_result
                 best_secondary_value = cur_secondary_value
-                initial_no_recruits = cur_initial_no_recruits
+                initial_no_dispersals = cur_initial_no_dispersals
                 if (dependent_var == "tree_cover_slope"):
                     largest_absolute_slope = best_result
                     if tree_cover_slope > 0:
@@ -258,7 +258,7 @@ def execute_saddle_search(
         cur_secondary_value = _secondary_value
         
     
-    return best_secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, initial_no_recruits, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev
+    return best_secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev
 
 
 def iterate_across_range(params, control_variable, control_range, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict,
@@ -276,16 +276,16 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
         run_starttime = time.time()
         if (batch_type == "range" or batch_type == "constant"):
             # Run the simulation and append its results to the total results csv
-            dynamics, tree_cover_slope, largest_absolute_slope, initial_no_recruits, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_single_run(
+            dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_single_run(
                 params, control_variable, control_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
                 dependent_var, opti_mode, statistic, batch_type, init_csv, no_runs_for_current_parameter_set=no_runs_for_current_parameter_set
             )
             _io.export_state(
-                dynamics, total_results_csv, init_csv, initial_no_recruits=initial_no_recruits, control_variable=control_variable, control_value=control_value,
+                dynamics, total_results_csv, init_csv, initial_no_dispersals=initial_no_dispersals, control_variable=control_variable, control_value=control_value,
                 tree_cover_slope=tree_cover_slope, extra_parameters=str(extra_parameters)
             )
         elif (batch_type == "saddle_search"):
-            secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, guess_result, initial_no_recruits, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_saddle_search(
+            secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, guess_result, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_saddle_search(
                 params, control_variable, control_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
                 dependent_var, opti_mode, statistic, secondary_variable, secondary_range, attempts
             )
