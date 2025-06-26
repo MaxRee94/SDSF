@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 import random
+import controllable_pattern_generator as cpg
 from PIL import Image
 
 from helpers import *
@@ -17,6 +18,21 @@ perm += perm
 dirs = [(math.cos(a * 2.0 * math.pi / 4096),
          math.sin(a * 2.0 * math.pi / 4096))
             for a in range(4096)]
+
+
+def generate_controllable_pattern_image(initial_pattern_image, ctrl_pattern_generator_params, write=True, recursing=False):
+    path = f"{CONTROLLED_PATTERN_DIR}/" + initial_pattern_image + ".png"
+    img, positions, radii, stripe_metadata = cpg.create_image(**ctrl_pattern_generator_params)
+    cv2.imwrite(path, img)
+    print("Generated controlled pattern image at ", path)
+    if cv2.imread(path) is None:
+        print("Error: Image failed to save. Re-trying..")
+        if recursing:
+            raise RuntimeError("Initial image generation failed after re-trying.")
+        else:
+            return generate_controllable_pattern_image(path, initial_pattern_image, ctrl_pattern_generator_params, write, recursing=True)
+    return img, path
+    
 
 def reshuffle_perlin_noise():
     global perm

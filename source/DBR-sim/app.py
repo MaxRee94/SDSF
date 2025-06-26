@@ -134,10 +134,7 @@ def init(
     if initial_pattern_image == "none":
         dynamics.state.set_tree_cover(treecover)
     elif initial_pattern_image == "ctrl":
-        path = f"{CONTROLLED_PATTERN_DIR}/" + initial_pattern_image + ".png"
-        img, positions, radii, stripe_metadata = cpg.create_image(**ctrl_pattern_generator_params)
-        cv2.imwrite(path, img)
-        print("Generated controlled pattern image at ", path)
+        img, path = vis.generate_controllable_pattern_image(initial_pattern_image, ctrl_pattern_generator_params)
     elif initial_pattern_image == "perlin_noise":
         path = f"{DATA_IN_DIR}/state patterns/" + initial_pattern_image
         if "perlin_noise" == initial_pattern_image:
