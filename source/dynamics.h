@@ -326,6 +326,7 @@ public:
 		int popsize_before_burns = pop->size();
 		int re_ignitions = 0;
 		no_fire_induced_topkills = 0;
+		no_fire_induced_adult_topkills = 0;
 		fire_spatial_extent = 0;
 		for (int i = 0; i < no_fires; i++) {
 			Cell* cell = grid->get_random_cell();
@@ -334,7 +335,7 @@ public:
 				continue;
 			}
 			no_fires++;
-			auto [_no_ash_cells, _no_grassy_ash_cells] = percolate(cell, time, no_fire_induced_topkills);
+			auto [_no_ash_cells, _no_grassy_ash_cells] = percolate(cell, time, no_fire_induced_topkills, no_fire_induced_adult_topkills);
 			no_ash_cells += _no_ash_cells;
 		}
 		fire_spatial_extent = ((float)no_ash_cells * grid->cell_area) / (float)no_fires;
@@ -392,7 +393,7 @@ public:
 		grid->kill_tree_domain(tree, false);
 		pop->remove(tree);
 	}
-	void induce_tree_mortality(Cell* cell, queue<Cell*>& queue, int& no_trees_topkilled) {
+	void induce_tree_mortality(Cell* cell, queue<Cell*>& queue, int& no_trees_topkilled, int& no_fire_induced_adult_topkills) {
 		int tree_id = cell->stem.second;
 		//printf("idx: %i , no trees: %i\n", idx, cell->trees.size());
 		if (tree_id == 0) return; // If no tree stem is present in this cell, skip mortality evaluation.
@@ -409,6 +410,7 @@ public:
 		if (tree->last_mortality_check == time) return; // Skip mortality evaluation if this was already done in the current timestep.
 		if (tree_is_topkilled(tree)) {
 			no_trees_topkilled++;
+			if (tree->life_phase == 2) no_fire_induced_adult_topkills++;
 			kill_tree(tree, cell->time_last_fire, queue, cell);
 		}
 		else tree->last_mortality_check = time;
@@ -419,14 +421,14 @@ public:
 		}
 		return help::get_rand_float(0.0, 1.0) < get_cell_flammability(cell, min(t_start - cell->time_last_fire, 1));
 	}
-	inline void burn_cell(Cell* cell, float t_start, queue<Cell*>& queue, int& no_trees_topkilled) {
+	inline void burn_cell(Cell* cell, float t_start, queue<Cell*>& queue, int& no_trees_topkilled, int& no_fire_induced_adult_topkills) {
 		cell->time_last_fire = t_start;
 		grid->state_distribution[grid->pos_2_idx(cell->pos)] = -5;
-		induce_tree_mortality(cell, queue, no_trees_topkilled);
+		induce_tree_mortality(cell, queue, no_trees_topkilled, no_fire_induced_adult_topkills);
 	}
-	pair<int, int> percolate(Cell* cell, float t_start, int& no_trees_topkilled) {
+	pair<int, int> percolate(Cell* cell, float t_start, int& no_trees_topkilled, int& no_fire_induced_adult_topkills) {
 		std::queue<Cell*> queue;
-		burn_cell(cell, t_start, queue, no_trees_topkilled);
+		burn_cell(cell, t_start, queue, no_trees_topkilled, no_fire_induced_adult_topkills);
 		queue.push(cell);
 		int no_ash_cells = 1;
 		int no_grassy_ash_cells = 1;
@@ -440,7 +442,7 @@ public:
 			for (int i = 0; i < 8; i++) {
 				Cell* neighbor = grid->get_cell_at_position(cell->pos + neighbor_offsets[i]);
 				if (cell_will_ignite(neighbor, t_start)) {
-					burn_cell(neighbor, t_start, queue, no_trees_topkilled);
+					burn_cell(neighbor, t_start, queue, no_trees_topkilled, no_fire_induced_adult_topkills);
 					queue.push(neighbor);
 					no_ash_cells++;
 					if (neighbor->state == 0) no_grassy_ash_cells++;
@@ -504,6 +506,7 @@ public:
 	int animal_group_size = 0;
 	int no_fire_induced_deaths = 0;
 	int no_fire_induced_topkills = 0;
+	int no_fire_induced_adult_topkills = 0;
 	int initial_no_effective_dispersals = 0;
 	State state;
 	Population* pop = 0;

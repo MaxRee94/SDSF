@@ -282,6 +282,9 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def("get_no_fire_induced_topkills", [](Dynamics& dynamics) {
             return dynamics.no_fire_induced_topkills;
         })
+        .def("get_no_fire_induced_adult_topkills", [](Dynamics& dynamics) {
+            return dynamics.no_fire_induced_adult_topkills;
+        })
         .def("get_initial_no_dispersals", [](Dynamics& dynamics) {
             return dynamics.initial_no_effective_dispersals;
         })
