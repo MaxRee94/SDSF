@@ -6,6 +6,7 @@ Initial tree cover is varied in the range [0.1, 0.87], and the spatial domain si
 **Dispersal mode**: wind  
 **Resolution**: 1 m  
 **Spatial domain size**: 960 m  
+**Initial tree distribution**: Uniformly random  
 **Resource grid resolution**: 32m  
 **Time steps**: 100  
 **Batch mode**: saddle_search  
