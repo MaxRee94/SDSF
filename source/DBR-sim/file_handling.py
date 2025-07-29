@@ -32,7 +32,7 @@ def export_state(
         extra_parameters="", secondary_variable=None, secondary_value=None, dependent_var=None, dependent_val=None, initial_no_dispersals=None, dependent_result_range_stdev=None
     ):
     fieldnames = [
-        "time", "tree_cover", "slope", "population_size", "#seeds_produced", "fire_mean_spatial_extent", "top_kills", "adult_top_kills", "deaths",
+        "time", "tree_cover", "slope", "population_size", "#seeds_produced", "fire_mean_spatial_extent", "top_kills", "nonseedling_top_kills", "deaths",
         "trees[dbh_0-20%]", "trees[dbh_20-40%]", "trees[dbh_40-60%]", "trees[dbh_60-80%]", "trees[dbh_80-100%]", "extra_parameters",
         "firefree_interval_mean", "firefree_interval_stdev", "firefree_interval_full_sim_mean", "firefree_interval_full_sim_stdev", "time_spent_moving",
         "shaded_out", "outcompeted_by_seedlings", "outcompeted_by_oldstems", "initial_no_dispersals",
@@ -42,10 +42,10 @@ def export_state(
         fieldnames.insert(0, dependent_var)
     if secondary_variable:
         if secondary_variable == "treecover":
-            secondary_variable = "initial tree cover"
+            secondary_variable = "initial_tree_cover"
         fieldnames.insert(0, secondary_variable)
     if initial_no_dispersals:
-        fieldnames.insert(-3, "initial_no_dispersals")
+        fieldnames.insert(-3, "initial_number_of_dispersals")
     if control_variable:
         if control_variable == "treecover":
             control_variable = "initial tree cover"
@@ -87,7 +87,7 @@ def export_state(
             "initial_no_dispersals": str(dynamics.get_initial_no_dispersals()),
             "time_spent_moving": str(dynamics.get_fraction_time_spent_moving()),
             "shaded_out": str(dynamics.get_fraction_seedlings_dead_due_to_shade()),
-            "adult_top_kills": str(dynamics.get_no_fire_induced_adult_topkills()),
+            "nonseedling_top_kills": str(dynamics.get_no_fire_induced_nonseedling_topkills()),
             "outcompeted_by_seedlings": str(dynamics.get_fraction_seedlings_outcompeted()),
             "outcompeted_by_oldstems": str(dynamics.get_fraction_seedlings_outcompeted_by_older_trees()),
             "germination_attempts": str(dynamics.get_no_germination_attempts()),
@@ -101,7 +101,7 @@ def export_state(
         if dependent_var:
             result[dependent_var] = dependent_val
         if initial_no_dispersals:
-            result["initial number of dispersals"] = initial_no_dispersals
+            result["initial_number_of_dispersals"] = initial_no_dispersals
         if dependent_result_range_stdev:
             result["dependent_result_range_stdev"] = dependent_result_range_stdev
         writer.writerow(result)
