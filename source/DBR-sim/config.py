@@ -42,7 +42,7 @@ defaults = {
     "dbh_q2": 0,
     "verbosity": 0,
     "growth_rate_multiplier_params": [0.5, 0.5, 2.13],
-    "seed_bearing_threshold": 0.25, # dbh fraction at which a tree reaches half its maximum height. We assume most trees are seed bearing at this height, based on Minor and Kobe (2018), Figure 5.
+    "seed_bearing_threshold": 0.25, # dbh fraction of theoretical maximum height. We assume all trees are seed bearing beyond this height, based on Minor and Kobe (2018), Figure 5.
     "dispersal_mode": "all",
     "multi_disperser_params": f"multi_disperser_params.json",
     "dispersal_min": 0,
