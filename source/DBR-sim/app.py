@@ -154,7 +154,9 @@ def init(
             vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=user_args["noise_octaves"])
             
             img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-            time.sleep(1) # Wait for the image to be generated before trying to load it again
+            if img is None:
+                time.sleep(1)
+                img = cv2.imread(path, cv2.IMREAD_GRAYSCALE) # Wait for the image to be generated before trying to load it again
             print("Path perlin noise image: (attempt 2)", path)
             if img is None and initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
                 print("Image not found. Generating new one...")
