@@ -219,3 +219,12 @@ source/DBR-sim/.vs/DBR_Python/v17/ipch/AutoPCH/13075d2d37738811/GLOBAL.ipch
 *.blend
 *.blend1
 *.npy
+source/scripts/data analysis/plot_influence_of_sine_amp1_on_treecover.R
+source/scripts/data analysis/plot_influence_of_sine_amp1_box_and_whisker_on_recruitment.R
+source/scripts/data analysis/plot_influence_of_sine_amp1_box_and_whisker_omit_lower_sif_attempted grouping.R
+source/scripts/data analysis/plot_influence_of_sine_amp1_box_and_whisker_omit_lower_sif.R
+source/scripts/data analysis/plot_influence_of_sine_amp1_box_and_whisker.R
+source/scripts/data analysis/plot_influence_of_sine_amp1.R
+source/scripts/data analysis/.Rhistory
+source/scripts/data analysis/.RData
+source/scripts/Calculation_batch_offsets.xlsx
