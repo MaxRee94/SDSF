@@ -1,0 +1,35 @@
+Tree spatial pattern type,Bird species,Mean recruits yr^-1,Standard deviation of mean recruits yr^-1,Mean recruitment percentage (Percentage of seeds that lead to new recruits) yr^-1,Standard deviation of recruitment percentage yr^-1
+Uniform,turdus_philomelos,204511.8571,1018.770841,11.18551998,0.050997031
+Uniform,turdus_iliacus,256681.4762,945.2012443,14.00034417,0.052785514
+Uniform,turdus_merula,235051.4762,1157.207255,12.83440617,0.055699557
+Uniform,turdus_pilaris,269258.619,1288.613743,14.69895156,0.047191358
+Uniform,turdus_torquatus,201696.8095,910.7089661,11.03584161,0.040138397
+Uniform,turdus_viscivorus,204420.1429,1356.479031,11.16214277,0.053113513
+,,,,,
+"9 x 10^3 m^2 patches (""patch_width"" parameter set to 71)",turdus_philomelos,217996.5238,1088.425058,9.424014039,0.059998882
+"9 x 10^3 m^2 patches (""patch_width"" parameter set to 71)",turdus_iliacus,270038,1181.045219,11.65153015,0.070173352
+"9 x 10^3 m^2 patches (""patch_width"" parameter set to 71)",turdus_merula,252220.1905,1126.153488,10.89511695,0.061855137
+"9 x 10^3 m^2 patches (""patch_width"" parameter set to 71)",turdus_pilaris,286191.4286,1032.948741,12.39352308,0.085646142
+"9 x 10^3 m^2 patches (""patch_width"" parameter set to 71)",turdus_torquatus,217936.8571,1050.29258,9.451546427,0.058649853
+"9 x 10^3 m^2 patches (""patch_width"" parameter set to 71)",turdus_viscivorus,218624,998.8877624,9.444416132,0.049575366
+,,,,,
+"3 x 10^4 m^2 patches (""patch_width"" parameter set to 167)",turdus_philomelos,209805.381,1906.163199,8.384103665,0.08746032
+"3 x 10^4 m^2 patches (""patch_width"" parameter set to 167)",turdus_iliacus,257070.9524,1817.806147,10.26206082,0.103503566
+"3 x 10^4 m^2 patches (""patch_width"" parameter set to 167)",turdus_merula,247187.8571,1823.069606,9.845952707,0.089356911
+"3 x 10^4 m^2 patches (""patch_width"" parameter set to 167)",turdus_pilaris,282677.5714,1376.980982,11.29639045,0.080742593
+"3 x 10^4 m^2 patches (""patch_width"" parameter set to 167)",turdus_torquatus,222024.5714,948.6538117,8.839833281,0.065133113
+"3 x 10^4 m^2 patches (""patch_width"" parameter set to 167)",turdus_viscivorus,215756.8571,1365.324008,8.618634166,0.069427665
+,,,,,
+"7 x 10^4 m^2 patches (""patch_width"" parameter set to 250)",turdus_philomelos,197302.4286,4091.919861,7.640324101,0.205350883
+"7 x 10^4 m^2 patches (""patch_width"" parameter set to 250)",turdus_iliacus,237032.2381,6491.661391,9.182979994,0.276354512
+"7 x 10^4 m^2 patches (""patch_width"" parameter set to 250)",turdus_merula,234827.5238,4371.721418,9.036738509,0.186532465
+"7 x 10^4 m^2 patches (""patch_width"" parameter set to 250)",turdus_pilaris,271459.1905,3061.838517,10.45597783,0.146181313
+"7 x 10^4 m^2 patches (""patch_width"" parameter set to 250)",turdus_torquatus,221284.7619,1679.482287,8.539593161,0.08569317
+"7 x 10^4 m^2 patches (""patch_width"" parameter set to 250)",turdus_viscivorus,208427.4762,2192.623144,8.02257507,0.138691079
+,,,,,
+"2 x 10^5 m^2 patches (""patch_width"" parameter set to 500)",turdus_philomelos,132449.7143,29560.57206,4.873753331,1.136673038
+"2 x 10^5 m^2 patches (""patch_width"" parameter set to 500)",turdus_iliacus,149608.0952,25068.2852,5.476077304,0.939204349
+"2 x 10^5 m^2 patches (""patch_width"" parameter set to 500)",turdus_merula,163621.9524,26966.57033,5.980277786,1.039772137
+"2 x 10^5 m^2 patches (""patch_width"" parameter set to 500)",turdus_pilaris,209051.7143,23982.80068,7.689627408,0.967873548
+"2 x 10^5 m^2 patches (""patch_width"" parameter set to 500)",turdus_torquatus,215188.381,3434.542022,7.912649066,0.216904251
+"2 x 10^5 m^2 patches (""patch_width"" parameter set to 500)",turdus_viscivorus,175704.6667,14219.11008,6.433016078,0.608335295
