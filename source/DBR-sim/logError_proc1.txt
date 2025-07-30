@@ -1,0 +1,20 @@
+Missing operator.
+Traceback (most recent call last):
+  File "F:\Development\DBR-sim\source\DBR-sim\batch.py", line 418, in <module>
+    main(**vars(args))
+  File "F:\Development\DBR-sim\source\DBR-sim\batch.py", line 389, in main
+    iterate_across_range(params, control_variable, control_range, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv,
+  File "F:\Development\DBR-sim\source\DBR-sim\batch.py", line 279, in iterate_across_range
+    dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path = execute_single_run(
+                                                                                                                                        ^^^^^^^^^^^^^^^^^^^
+  File "F:\Development\DBR-sim\source\DBR-sim\batch.py", line 70, in execute_single_run
+    dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals = app.main(**params)
+                                                                             ^^^^^^^^^^^^^^^^^^
+  File "F:\Development\DBR-sim\source\DBR-sim\app.py", line 434, in main
+    dynamics, color_dicts = init(**user_args)
+                            ^^^^^^^^^^^^^^^^^
+  File "F:\Development\DBR-sim\source\DBR-sim\app.py", line 138, in init
+    img, positions, radii, stripe_metadata = cpg.create_image(**ctrl_pattern_generator_params)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_image() got an unexpected keyword argument 'sin1_amp'
+^C

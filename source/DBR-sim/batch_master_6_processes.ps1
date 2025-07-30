@@ -5,7 +5,5 @@ Start-Process batch_arguments.bat -ArgumentList @(2, 8)
 Start-Process batch_arguments.bat -ArgumentList @(3, 8)
 Start-Process batch_arguments.bat -ArgumentList @(4, 8)
 Start-Process batch_arguments.bat -ArgumentList @(5, 8)
-Start-Process batch_arguments.bat -ArgumentList @(6, 8)
-Start-Process batch_arguments.bat -ArgumentList @(7, 8)
 
 

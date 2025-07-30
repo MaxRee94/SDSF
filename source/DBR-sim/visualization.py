@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import time
 import random
 import controllable_pattern_generator as cpg
 from PIL import Image
@@ -20,17 +21,35 @@ dirs = [(math.cos(a * 2.0 * math.pi / 4096),
             for a in range(4096)]
 
 
+def able_to_read_and_resize_image(path):
+    try:
+        img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            return False
+        img2 = cv2.resize(img, (1000, 1000), interpolation=cv2.INTER_LINEAR)
+        return True
+    except Exception as e:
+        print(f"Error reading image {path}: {e}")
+        return False
+
+
 def generate_controllable_pattern_image(initial_pattern_image, ctrl_pattern_generator_params, write=True, recursing=False):
     path = f"{CONTROLLED_PATTERN_DIR}/" + initial_pattern_image + ".png"
     img, positions, radii, stripe_metadata = cpg.create_image(**ctrl_pattern_generator_params)
     cv2.imwrite(path, img)
+    if recursing:
+        time.sleep(1)
     print("Generated controlled pattern image at ", path)
-    if cv2.imread(path) is None:
-        print("Error: Image failed to save. Re-trying..")
+    if not able_to_read_and_resize_image(path):
+        print("Error: Image failed to save or read. Re-trying..")
+        time.sleep(1) # Wait before trying to load again
+        if able_to_read_and_resize_image(path):
+            return img, path
+
         if recursing:
             raise RuntimeError("Initial image generation failed after re-trying.")
         else:
-            return generate_controllable_pattern_image(path, initial_pattern_image, ctrl_pattern_generator_params, write, recursing=True)
+            return generate_controllable_pattern_image(initial_pattern_image, ctrl_pattern_generator_params, write, recursing=True)
     return img, path
     
 
