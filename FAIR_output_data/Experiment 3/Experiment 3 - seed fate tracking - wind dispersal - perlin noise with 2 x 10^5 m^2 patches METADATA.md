@@ -4,13 +4,21 @@ In the third experiment, we studied seedling fates under different dispersal mod
 
 All numbers are per year.
 
+
+
+\#### File creation date: 29-07-2025
+
+
+
 ## Parameter settings
+
 **Dispersal mode**: wind  
 **Resolution**: 1 m  
 **Spatial domain size**: 960 m  
 **Initial tree cover**: 0.50
-**Initial tree distribution**:  perlin_noise
-**patch_width**: 500 m
+**Initial tree distribution**:  perlin\_noise
+**patch\_width**: 500 m
 **Resource grid resolution**: 64 m  
 **Time steps**: 1
-**Batch mode**: constant  
+**Batch mode**: constant
+

@@ -4,14 +4,22 @@ In the fifth experiment, we investigated the influence of spatial pattern morpho
 
 All numbers are per year.
 
+
+
+\#### File creation date: 29-07-2025
+
+
+
 ## Parameter settings
+
 **Dispersal mode**: wind
 **Resolution**: 1 m  
 **Spatial domain size**: 960 m  
 **Initial tree cover**: 0.50
-**Initial tree distribution**:  perlin_noise
-**multi_disperser_params**: turdus_6_species_allslow.json
-**patch_width**: 500 m
+**Initial tree distribution**:  perlin\_noise
+**multi\_disperser\_params**: turdus\_6\_species\_allslow.json
+**patch\_width**: 500 m
 **Resource grid resolution**: 64 m  
 **Time steps**: 1
-**Batch mode**: constant  
+**Batch mode**: constant
+

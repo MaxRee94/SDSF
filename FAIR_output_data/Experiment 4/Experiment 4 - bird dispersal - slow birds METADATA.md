@@ -4,14 +4,22 @@ Experiment four was designed to investigate the influence of dispersal modes on 
 
 All numbers are per year.
 
+
+
+\#### File creation date: 29-07-2025
+
+
+
 ## Parameter settings
+
 **Dispersal mode**: bird
 **Resolution**: 1 m  
 **Spatial domain size**: 960 m  
 **Initial tree cover**: 0.50
 **Initial tree distribution**:  various (specified in data table)
-**multi_disperser_params**: turdus_6_species_allslow.json
-**patch_width**: various (specified in data table)
+**multi\_disperser\_params**: turdus\_6\_species\_allslow.json
+**patch\_width**: various (specified in data table)
 **Resource grid resolution**: 64 m  
 **Time steps**: 1
-**Batch mode**: constant  
+**Batch mode**: constant
+
