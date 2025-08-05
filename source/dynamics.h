@@ -327,7 +327,7 @@ public:
 		int re_ignitions = 0;
 		no_fire_induced_topkills = 0;
 		no_fire_induced_nonseedling_topkills = 0;
-		fire_spatial_extent = 0;
+		fires.clear();
 		for (int i = 0; i < no_fires; i++) {
 			Cell* cell = grid->get_random_cell();
 			if (cell->time_last_fire == time) {
@@ -337,8 +337,8 @@ public:
 			no_fires++;
 			auto [_no_ash_cells, _no_grassy_ash_cells] = percolate(cell, time, no_fire_induced_topkills, no_fire_induced_nonseedling_topkills);
 			no_ash_cells += _no_ash_cells;
+			fires.push_back((float)_no_ash_cells * grid->cell_area);
 		}
-		fire_spatial_extent = ((float)no_ash_cells * grid->cell_area) / (float)no_fires;
 		no_fire_induced_deaths = popsize_before_burns - pop->size();
 		printf("no fire induced deaths (time = %i): %i \n", time, no_fire_induced_deaths);
 		printf("no fire induced topkills (time = %i): %i \n", time, no_fire_induced_topkills);
@@ -478,7 +478,7 @@ public:
 	float max_dbh = 0;
 	float seedling_discard_dbh = 0;
 	float cell_width = 0;
-	float fire_spatial_extent = 0;
+	vector<float> fires;
 	float saturation_threshold = 0;
 	float fire_resistance_argmin = 0;
 	float fire_resistance_argmax = 0;

@@ -32,7 +32,7 @@ def export_state(
         extra_parameters="", secondary_variable=None, secondary_value=None, dependent_var=None, dependent_val=None, initial_no_dispersals=None, dependent_result_range_stdev=None
     ):
     fieldnames = [
-        "time", "tree_cover", "slope", "population_size", "#seeds_produced", "fire_mean_spatial_extent", "top_kills", "nonseedling_top_kills", "deaths",
+        "time", "tree_cover", "slope", "population_size", "#seeds_produced", "fires", "top_kills", "nonseedling_top_kills", "deaths",
         "trees[dbh_0-20%]", "trees[dbh_20-40%]", "trees[dbh_40-60%]", "trees[dbh_60-80%]", "trees[dbh_80-100%]", "extra_parameters",
         "firefree_interval_mean", "firefree_interval_stdev", "firefree_interval_full_sim_mean", "firefree_interval_full_sim_stdev", "time_spent_moving",
         "shaded_out", "outcompeted_by_seedlings", "outcompeted_by_oldstems", "initial_no_dispersals",
@@ -64,13 +64,15 @@ def export_state(
         tree_sizes = get_tree_sizes(dynamics)
         firefree_interval_mean, firefree_interval_stdev = get_firefree_interval_stats(dynamics, "current_iteration")
         firefree_interval_fullsim_mean, firefree_interval_fullsim_stdev = get_firefree_interval_stats(dynamics, "average")
+        fires = dynamics.get_fires()
+        fires = "|".join([str(fire) for fire in fires])
         result = {
             "time": str(dynamics.time),
             "tree_cover": str(dynamics.state.grid.get_tree_cover()), 
             "slope": str(tree_cover_slope),
             "population_size": str(dynamics.state.population.size()),
             "#seeds_produced": str(dynamics.seeds_produced),
-            "fire_mean_spatial_extent": str(dynamics.fire_spatial_extent),
+            "fires": fires,
             "trees[dbh_0-20%]": tree_sizes[0],
             "trees[dbh_20-40%]": tree_sizes[1],
             "trees[dbh_40-60%]": tree_sizes[2],

@@ -153,6 +153,20 @@ py::array_t<float> as_1d_numpy_array(shared_ptr<float[]> distribution, int size)
     return numpy_array;
 }
 
+py::array_t<float> as_1d_numpy_array(vector<float> distribution) {
+    constexpr size_t element_size = sizeof(float);
+    size_t shape[1]{ distribution.size() };
+    size_t strides[1]{ element_size };
+    auto numpy_array = py::array_t<float>(shape, strides);
+    auto setter = numpy_array.mutable_unchecked<1>();
+
+    for (size_t i = 0; i < numpy_array.shape(0); i++)
+    {
+        setter(i) = distribution[i];
+    }
+    return numpy_array;
+}
+
 
 PYBIND11_MODULE(dbr_cpp, module) {
     module.doc() = "DBR-cpp module (contains python extensions written in c++)";
@@ -215,9 +229,12 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)
         .def_readwrite("seeds_produced", &Dynamics::seeds_produced)
-        .def_readwrite("fire_spatial_extent", &Dynamics::fire_spatial_extent)
         .def_readwrite("max_dbh", &Dynamics::max_dbh)
         .def("init_state", &Dynamics::init_state)
+        .def("get_fires", [](Dynamics& dynamics) {
+            py::array_t<float> np_arr = as_1d_numpy_array(dynamics.fires);
+            return np_arr;
+        })
         .def("update", &Dynamics::update)
         .def("simulate_fires", &Dynamics::burn)
         .def("get_firefree_intervals", [](Dynamics& dynamics, string& type) {
