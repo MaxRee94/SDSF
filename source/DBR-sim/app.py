@@ -11,6 +11,7 @@ import json
 import scipy.stats as stats
 import random
 import math
+from types import SimpleNamespace
 
 import visualization as vis
 import file_handling as io
@@ -60,66 +61,49 @@ def set_dispersal_kernel(
     return dynamics, animal_species
 
 
-def init(
-    timestep=None, grid_width=None, cellsize=None, max_dbh=None, image_width=None,
-    treecover=None, self_ignition_factor=None, flammability=None,
-    rainfall=None, unsuppressed_flammability=None, 
-    verbosity=None, dbh_q1=None, dbh_q2=None, seed_bearing_threshold=None,
-    dispersal_mode=None, linear_diffusion_q1=None, linear_diffusion_q2=None,
-    dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, 
-    flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
-    constant_mortality=None, headless=False, wind_dispersal_params=None, animal_dispersal_params=None,
-    multi_disperser_params=None, strategy_distribution_params=None, resource_grid_width=None,
-    initial_pattern_image=None, mutation_rate=None, STR=None,
-    batch_parameters=None, growth_rate_multiplier_params=None,
-    random_seed=None, random_seed_firefreq=None, enforce_no_recruits=None, animal_group_size=None, report_state=None,
-    timelimit=None, test=None, csv_path=None, max_timesteps=None, termination_conditions=None, patch_width=None,
-    noise_octaves=None,
-    **ctrl_pattern_generator_params
-    ):
-    
+def init(user_args):
+    args = SimpleNamespace(**user_args)
+
     # Set random seed for fire frequency probability distribution. If -999 is given, a random seed will be generated. Otherwise, the given seed will be used.
-    if random_seed_firefreq == -999:
-        random_seed_firefreq = random.randint(0, 1000000)
-        print("Generated random seed for fire frequency probability distribution: ", random_seed_firefreq)
+    if args.firefreq_random_seed == -999:
+        args.firefreq_random_seed = random.randint(0, 1000000)
+        print("Generated random seed for fire frequency probability distribution: ", args.firefreq_random_seed)
 
     # Initialize dynamics object and state
-    print("Animal group size:", animal_group_size)
-    dynamics = cpp.Dynamics(
-        timestep, cellsize, self_ignition_factor, rainfall, seed_bearing_threshold,
-        growth_rate_multiplier, unsuppressed_flammability, flammability_coefficients_and_constants[0],
-        flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
-        flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
-        fire_resistance_params[1], fire_resistance_params[2], constant_mortality, strategy_distribution_params, 
-        resource_grid_width, mutation_rate, STR, verbosity, random_seed, random_seed_firefreq, enforce_no_recruits,
-        int(animal_group_size)
+    dynamics = cpp.create_dynamics(user_args)
+    dynamics.init_state(
+        args.grid_width,
+        args.dbh_q1,
+        args.dbh_q2,
+        args.growth_rate_multiplier_params[0],
+        args.growth_rate_multiplier_params[1],
+        args.growth_rate_multiplier_params[2]
     )
-    dynamics.init_state(grid_width, dbh_q1, dbh_q2, growth_rate_multiplier_params[0], growth_rate_multiplier_params[1], growth_rate_multiplier_params[2])
     
     # Set dispersal kernel
-    dynamics, animal_species = set_dispersal_kernel(dynamics, dispersal_mode, multi_disperser_params)
+    dynamics, animal_species = set_dispersal_kernel(dynamics, args.dispersal_mode, args.multi_disperser_params)
     
     # Set initial tree cover
-    print("Initial pattern image:", initial_pattern_image)
-    if initial_pattern_image == "none":
-        dynamics.state.set_tree_cover(treecover)
-    elif initial_pattern_image == "ctrl":
-        img, path = vis.generate_controllable_pattern_image(initial_pattern_image, ctrl_pattern_generator_params)
-    elif initial_pattern_image == "perlin_noise":
-        path = f"{DATA_IN_DIR}/state patterns/" + initial_pattern_image
-        if "perlin_noise" == initial_pattern_image:
+    print("Initial pattern image:", args.initial_pattern_image)
+    if args.initial_pattern_image == "none":
+        dynamics.state.set_tree_cover(args.treecover)
+    elif args.initial_pattern_image == "ctrl":
+        img, path = vis.generate_controllable_pattern_image(args.initial_pattern_image, args.ctrl_pattern_generator_params)
+    elif args.initial_pattern_image == "perlin_noise":
+        path = f"{DATA_IN_DIR}/state patterns/" + args.initial_pattern_image
+        if "perlin_noise" == args.initial_pattern_image:
             print("Setting tree cover using perlin noise function...")
-            path = f"{PERLIN_NOISE_DIR}/" + initial_pattern_image + ".png"
-            noise_frequency = 5.0 / patch_width # Convert patch width to noise frequency
+            path = f"{PERLIN_NOISE_DIR}/" + args.initial_pattern_image + ".png"
+            noise_frequency = 5.0 / args.patch_width # Convert patch width to noise frequency
             noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
             vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=user_args["noise_octaves"])
     else:
         print("Setting tree cover from image...")
     
-    if initial_pattern_image != "none":
+    if args.initial_pattern_image != "none":
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        print(f"Path of the generated {initial_pattern_image} pattern image: ", path) if initial_pattern_image in ["ctrl", "perlin_noise"] else None
-        if img is None and initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
+        print(f"Path of the generated {args.initial_pattern_image} pattern image: ", path) if args.initial_pattern_image in ["ctrl", "perlin_noise"] else None
+        if img is None and args.initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
             print("Image not found. Generating new one...")
             vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=user_args["noise_octaves"])
             
@@ -128,14 +112,14 @@ def init(
                 time.sleep(1)
                 img = cv2.imread(path, cv2.IMREAD_GRAYSCALE) # Wait for the image to be generated before trying to load it again
             print("Path perlin noise image: (attempt 2)", path)
-            if img is None and initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
+            if img is None and args.initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
                 print("Image not found. Generating new one...")
                 vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=user_args["noise_octaves"])
                 time.sleep(1) # Wait for the image to be generated before trying to load it again
                 img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         
         if ("perlin_noise" in path) and (not "thresholded.png" in path):
-            img = vis.get_thresholded_image(img, treecover * img.shape[0] * img.shape[0] * 255 )
+            img = vis.get_thresholded_image(img, args.treecover * img.shape[0] * img.shape[0] * 255 )
             cv2.imwrite(path.replace(".png", "_thresholded.png"), img)
  
         img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
@@ -158,10 +142,10 @@ def init(
     # Visualize the initial state
     collect_states = True
     print("Visualizing state at t = 0")
-    if not headless:
+    if not args.headless:
         # Get a color image representation of the initial state and show it.
         img = vis.visualize(
-        dynamics.state.grid, image_width, collect_states=collect_states,
+        dynamics.state.grid, args.image_width, collect_states=collect_states,
         color_dict=color_dict
         )
     else:
@@ -172,18 +156,18 @@ def init(
     imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
     vis.save_image(img, imagepath)
     
-    if dispersal_mode == "all" or dispersal_mode == "animal":
+    if args.dispersal_mode == "all" or args.dispersal_mode == "animal":
 
         # Export resource grid lookup table
         print("animal species: ", animal_species)
         for species in animal_species:
-            lookup_table, fpath = io.get_lookup_table(species, grid_width, resource_grid_width * resource_grid_width)
+            lookup_table, fpath = io.get_lookup_table(species, args.grid_width, args.resource_grid_width * args.resource_grid_width)
             #lookup_table = None # Hotfix; lookup table might lead to memory leaks (?)
             if lookup_table is None:
                 print(f"Lookup table file {fpath} not found. Creating new one...")
                 dynamics.precompute_resourcegrid_lookup_table(species)
                 lookup_table = dynamics.get_resource_grid_lookup_table(species)
-                io.export_lookup_table(lookup_table, grid_width, species)
+                io.export_lookup_table(lookup_table, args.grid_width, species)
             else:
                 print(f"Lookup table file {fpath} found. Loading...")
                 dynamics.set_resource_grid_lookup_table(lookup_table, species)
@@ -374,7 +358,7 @@ def main(batch_parameters=None, **user_args):
 
     user_args["patch_width"] = round(user_args["patch_width"], 2)
 
-    dynamics, color_dicts = init(**user_args)
+    dynamics, color_dicts = init(user_args)
     return updateloop(dynamics, color_dicts, **user_args)
  
 

@@ -9,20 +9,17 @@ public:
 	Dynamics& operator=(Dynamics&&) = default;
 	Dynamics(
 		int _timestep, float _cell_width, float _self_ignition_factor, float _rainfall, float _seed_bearing_threshold,
-		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
-		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_dbh, float _saturation_threshold, float _fire_resistance_argmin,
-		float _fire_resistance_argmax, float _fire_resistance_stretch, float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
+		float _growth_rate_multiplier, float _unsuppressed_flammability, float _max_dbh, float _saturation_threshold, map<string, float> fire_resistance_params,
+		float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
 		int _resource_grid_width, float _mutation_rate, float _STR, int _verbosity, int random_seed, int firefreq_random_seed, float __enforce_no_recruits,
 		int _animal_group_size
 	) :
 		timestep(_timestep), cell_width(_cell_width), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_max_dbh * _seed_bearing_threshold),
-		growth_rate_multiplier(_growth_rate_multiplier), radius_suppr_flamm_min(_max_dbh* _radius_suppr_flamm_min),
-		flamm_delta_radius((_cell_width* _min_suppressed_flammability - _cell_width * _max_suppressed_flammability) / (_max_dbh * radius_range_suppr_flamm)),
-		max_suppressed_flammability(_cell_width* _max_suppressed_flammability),
-		min_suppressed_flammability(_cell_width* _min_suppressed_flammability),
+		growth_rate_multiplier(_growth_rate_multiplier), 
 		max_dbh(_max_dbh), seedling_discard_dbh(0.05 * _max_dbh), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold),
-		fire_resistance_argmin(_fire_resistance_argmin), fire_resistance_argmax(_fire_resistance_argmax), fire_resistance_stretch(_fire_resistance_stretch),
+		fire_resistance_argmin(fire_resistance_params["argmin"]), fire_resistance_argmax(fire_resistance_params["argmax"]), 
+		fire_resistance_stretch(fire_resistance_params["stretch"]),
 		background_mortality(_background_mortality), strategy_distribution_params(_strategy_distribution_params),
 		resource_grid_width(_resource_grid_width), mutation_rate(_mutation_rate), STR(_STR), _enforce_no_recruits(__enforce_no_recruits), 
 		animal_group_size(_animal_group_size)

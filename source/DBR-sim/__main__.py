@@ -1,6 +1,7 @@
 """Parse commandline arguments."""
 
 import sys
+import json
 from argparse import ArgumentParser
 from config import ParameterConfig
 import app
@@ -31,7 +32,12 @@ def parse_cli_args():
     parser = ArgumentParser()
     add_kwargs(parser)
     kwargs = vars(parser.parse_args())
-
+    
+    # Convert JSON strings to dicts
+    for k, v in kwargs.items():
+        if type(v) == str and "{" in v:
+            kwargs[k] = json.loads(v) 
+        
     return kwargs
 
 

@@ -17,7 +17,7 @@ public:
 		size = _size;
 		distribution = new Cell[size * size];
 		no_savanna_cells = size;
-		size_r = (float)size * cellsize;
+		size_r = (float)size * cell_width;
 	}
 	void reset() {
 		for (int i = 0; i < size * size; i++) {
@@ -77,11 +77,11 @@ public:
 		set_to_forest(position_grid.second * size + position_grid.first, tree);
 	}
 	pair<int, int> get_gridbased_position(Tree* tree) {
-		return pair<int, int>(tree->position.first / cellsize, tree->position.second / cellsize);
+		return pair<int, int>(tree->position.first / cell_width, tree->position.second / cell_width);
 	}
 	int size = 1000;
 	float size_r = 0;
-	float cellsize = 1.5;
+	float cell_width = 1.5;
 	Cell* distribution = 0;
 	int* state_distribution = 0;
 	int no_savanna_cells = 0;
