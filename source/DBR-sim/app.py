@@ -88,7 +88,7 @@ def init(user_args):
     if args.initial_pattern_image == "none":
         dynamics.state.set_tree_cover(args.treecover)
     elif args.initial_pattern_image == "ctrl":
-        img, path = vis.generate_controllable_pattern_image(args.initial_pattern_image, args.ctrl_pattern_generator_params)
+        img, path = vis.generate_controllable_pattern_image(**user_args)
     elif args.initial_pattern_image == "perlin_noise":
         path = f"{DATA_IN_DIR}/state patterns/" + args.initial_pattern_image
         if "perlin_noise" == args.initial_pattern_image:

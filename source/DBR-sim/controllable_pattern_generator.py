@@ -33,13 +33,13 @@ def correct_radius_for_area(base_radius, amp1, amp2):
     return r_corrected
 
 
-def apply_jitter(positions, image_size, mean_distance, cv_distance):
+def apply_jitter(positions, output_img_size, mean_distance, cv_distance):
     """
     Applies random 2D jitter to each position with std = cv_distance * mean_distance.
     Enforces periodic boundary conditions.
     """
     stdev = mean_distance * cv_distance
-    box = np.array(image_size)
+    box = np.array(output_img_size)
     jittered = []
 
     for pos in positions:
@@ -71,12 +71,12 @@ def draw_stripe(img, center1, center2, radius, rotate_randomly):
     hull_points = points[hull.vertices]
     cv2.fillPoly(img, [hull_points], 255)
 
-def adjust_mean_distance_for_uniform_hex_grid(image_size, target_distance, max_rows=1000, max_cols=1000, tolerance=0.01):
+def adjust_mean_distance_for_uniform_hex_grid(output_img_size, target_distance, max_rows=1000, max_cols=1000, tolerance=0.01):
     """
     Adjust mean_distance so that a hexagonal grid of disks fits exactly in the image,
     with all neighbor distances within ±1% of the adjusted mean distance.
     """
-    w, h = image_size
+    w, h = output_img_size
     vertical_distance = (math.sqrt(3.0) / 2.0) * target_distance # Height of an equilateral triangle
     target_no_hexagons_along_v_axis = int(h / (vertical_distance * 2.0))  # Two rows to get a full hexagon height
     new_hexagon_height = h / target_no_hexagons_along_v_axis
@@ -84,22 +84,22 @@ def adjust_mean_distance_for_uniform_hex_grid(image_size, target_distance, max_r
 
     return new_target_distance
 
-def adjust_mean_distance_for_uniform_square_grid(image_size, target_distance, max_rows=1000, max_cols=1000, tolerance=0.01):
+def adjust_mean_distance_for_uniform_square_grid(output_img_size, target_distance, max_rows=1000, max_cols=1000, tolerance=0.01):
     """
     Adjust mean_distance so that a square grid of disks fits exactly in the image,
     with all neighbor distances within ±1% of the adjusted mean distance.
     """
-    w, h = image_size
+    w, h = output_img_size
     target_no_squares = int(w / target_distance)
     new_target_distance = w / target_no_squares
 
     return new_target_distance
 
-def generate_square_grid(image_size, mean_distance):
+def generate_square_grid(output_img_size, mean_distance):
     """
     Generates a square grid of disks without any filtering.
     """
-    w, h = image_size
+    w, h = output_img_size
     dx = dy = mean_distance
     box = np.array([w, h])
 
@@ -116,11 +116,11 @@ def generate_square_grid(image_size, mean_distance):
     return positions
 
 
-def generate_hex_grid_with_filter(image_size, mean_distance):
+def generate_hex_grid_with_filter(output_img_size, mean_distance):
     """
     Generate a hexagonal grid and remove overlaps.
     """
-    w, h = image_size
+    w, h = output_img_size
     dx = mean_distance
     dy = mean_distance * np.sqrt(3) / 2
     box = np.array([w, h])
@@ -151,7 +151,7 @@ def generate_hex_grid_with_filter(image_size, mean_distance):
 
     return filtered_positions
 
-def build_parallel_stripes(positions, image_size, stripe_angle_deg, mean_length, std_length):
+def build_parallel_stripes(positions, output_img_size, stripe_angle_deg, mean_length, std_length):
     """
     Return stripe pairs with a fixed direction and approximately fixed length.
     """
@@ -236,7 +236,7 @@ def draw_sinusoidal_stripe(img, p1, p2, radius, amplitude, wavelength, n_points=
 
 
 def create_image(
-    image_size=(1000, 1000),
+    output_img_size=(1000, 1000),
     mean_radius=30,
     cv_radius=5,
     mean_distance=200,
@@ -255,44 +255,46 @@ def create_image(
     sin_stripe_wavelength=100,
     grid_type="hex",
     rotate_randomly=True,
-    suppress_distance_warning=False
+    suppress_distance_warning=False,
+    **_
 ):
+    print("output_img_size:", output_img_size)
     
     if grid_type == "hex":
         if enforce_distance_uniformity:
             original_distance = mean_distance
-            mean_distance = adjust_mean_distance_for_uniform_hex_grid(image_size, mean_distance)
+            mean_distance = adjust_mean_distance_for_uniform_hex_grid(output_img_size, mean_distance)
             if not math.isclose(original_distance, mean_distance, abs_tol=1):
                 if suppress_distance_warning:
                     print(f"Warning: Mean_distance {original_distance:.2f} adjusted to {mean_distance:.2f} for uniform hex grid.")
                 else:
                     raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {mean_distance-0.5} to have a perfect hex grid.")
-        base_positions = generate_hex_grid_with_filter(image_size, mean_distance)
+        base_positions = generate_hex_grid_with_filter(output_img_size, mean_distance)
     elif grid_type == "square":
         if enforce_distance_uniformity:
             original_distance = mean_distance
-            mean_distance = adjust_mean_distance_for_uniform_square_grid(image_size, mean_distance)
+            mean_distance = adjust_mean_distance_for_uniform_square_grid(output_img_size, mean_distance)
             if not math.isclose(original_distance, mean_distance, abs_tol=1):
                 if suppress_distance_warning:
                     print(f"Warning: Mean_distance {original_distance:.2f} adjusted to {mean_distance:.2f} for uniform square grid.")
                 else:
                     raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {mean_distance:.2f} to have a perfect square grid.")
-        base_positions = generate_square_grid(image_size, mean_distance)
+        base_positions = generate_square_grid(output_img_size, mean_distance)
     else:
         raise ValueError("grid_type must be 'hex' or 'square'")
 
-    positions = apply_jitter(base_positions, image_size, mean_distance, cv_distance)
-    img = np.zeros(image_size, dtype=np.uint8)
+    positions = apply_jitter(base_positions, output_img_size, mean_distance, cv_distance)
+    img = np.zeros(output_img_size, dtype=np.uint8)
     radii = [max(2, np.random.normal(mean_radius, cv_radius * mean_radius)) for _ in positions]
 
     # Draw disks with periodic wrap
     for i, (center, radius) in enumerate(zip(positions, radii)):
         radius = correct_radius_for_area(radius, sine_amp1, sine_amp2)
         x, y = center
-        shifts = [(0, 0), (image_size[0], 0), (-image_size[0], 0),
-                  (0, image_size[1]), (0, -image_size[1]),
-                  (image_size[0], image_size[1]), (-image_size[0], -image_size[1]),
-                  (image_size[0], -image_size[1]), (-image_size[0], image_size[1])]
+        shifts = [(0, 0), (output_img_size[0], 0), (-output_img_size[0], 0),
+                  (0, output_img_size[1]), (0, -output_img_size[1]),
+                  (output_img_size[0], output_img_size[1]), (-output_img_size[0], -output_img_size[1]),
+                  (output_img_size[0], -output_img_size[1]), (-output_img_size[0], output_img_size[1])]
         for dx, dy in shifts:
             draw_center = (int(x + dx), int(y + dy))
             draw_disk(img, draw_center, radius, sine_amp1, sine_wave1, sine_amp2, sine_wave2, rotate_randomly)
@@ -300,7 +302,7 @@ def create_image(
     stripe_metadata = []
     if draw_stripes:
         stripe_pairs, stripe_metadata = build_parallel_stripes(
-            positions, image_size, stripe_angle_deg, stripe_mean_length, stripe_std_length
+            positions, output_img_size, stripe_angle_deg, stripe_mean_length, stripe_std_length
         )
         for p1, p2 in stripe_pairs:
             if sin_stripe:
@@ -320,11 +322,11 @@ def periodic_distance(p1, p2, box):
     delta = np.where(delta > 0.5 * np.array(box), np.array(box) - delta, delta)
     return np.sqrt((delta ** 2).sum())
 
-def plot_periodic_neighbor_distances(positions, image_size, mean_distance, k=6):
+def plot_periodic_neighbor_distances(positions, output_img_size, mean_distance, k=6):
     """
     Plot disk positions and histogram of periodic distances to k nearest neighbors.
     """
-    box = np.array(image_size)
+    box = np.array(output_img_size)
     positions = np.array(positions)
 
     # Tile image in 3x3 to account for wraparound
@@ -356,8 +358,8 @@ def plot_periodic_neighbor_distances(positions, image_size, mean_distance, k=6):
             plt.plot([p1[0], p2_corrected[0]], [p1[1], p2_corrected[1]], color='gray', alpha=0.3)
     plt.title("Disk Positions and Nearest Neighbors")
     plt.axis("equal")
-    plt.xlim(0, image_size[0])
-    plt.ylim(0, image_size[1])
+    plt.xlim(0, output_img_size[0])
+    plt.ylim(0, output_img_size[1])
 
     # Histogram
     plt.subplot(1, 2, 2)
@@ -376,7 +378,7 @@ def plot_periodic_neighbor_distances(positions, image_size, mean_distance, k=6):
 # Example usage
 if __name__ == "__main__":
     params = {
-        "image_size": (1000, 1000),
+        "output_img_size": (1000, 1000),
         "mean_radius": 120,
         "cv_radius": 0,
         "mean_distance": 333,
@@ -402,5 +404,5 @@ if __name__ == "__main__":
     cv2.imshow("Generated pattern", img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    plot_periodic_neighbor_distances(positions, params["image_size"], params["mean_distance"])
+    plot_periodic_neighbor_distances(positions, params["output_img_size"], params["mean_distance"])
 
