@@ -33,7 +33,7 @@ defaults = {
     "self_ignition_factor": 3,
     "unsuppressed_flammability": 0.5,
     "rainfall": 0.1,
-    "test": "none",
+    "tests": "none",
     "random_seed": -999,
     "random_seed_firefreq": 0,
     "termination_conditions": "all",
@@ -239,16 +239,16 @@ _parameter_config = {
             "default": defaults["rainfall"],
         },
     },
-    "test": {
+    "tests": {
         "keys": {
-            "cli": ["--test", "-test"]
+            "cli": ["--tests", "-tests"]
         },
         "settings": {
             "type": str,
             "help": (
-                "Whether or not to run tests. Possible options: 'none', 'all'."
+                "Whether or not to run unit or output tests. Possible options: 'none', 'unit_tests', 'output_tests'."
             ),
-            "default": defaults["test"],
+            "default": defaults["tests"],
         },
     },
     "dbh_q1": {
@@ -815,3 +815,12 @@ class ParameterConfig():
             (dict): The configuration associated with the name of the parameter.
         """
         return self.data[name]
+
+
+def get_all_defaults():
+    """Return all default parameters and their values.
+
+    Returns:
+        dict: A dictionary containing all default parameters and their values.
+    """
+    return defaults.copy()
