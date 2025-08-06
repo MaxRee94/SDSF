@@ -34,14 +34,29 @@ def compute_area(contour, center):
 
     return cv2.contourArea(contour.astype(np.float32))  # Use OpenCV's contour area function for accuracy
 
-def compute_area_normalization_factor(contour, center, base_radius):
+def fraction_white_pixels(img):
+    
+    # White pixel = 255 in grayscale
+    white_pixels = np.sum(img == 255)
+    total_pixels = img.size
+
+    fraction = white_pixels / total_pixels
+    return fraction
+
+def compute_area_normalization_factor(contour, center, base_radius, global_area_normalization_factor):
     area = compute_area(contour, center)
     circle_area = math.pi * base_radius * base_radius
-    cpgn.area_normalization_factor = 1.0 / math.sqrt(circle_area / area)
+    if global_area_normalization_factor is not None:
+        # Use global normalization factor if provided, to correct for small consistencies in the area of the generated pattern.
+        cpgn.area_normalization_factor = 1.0 / (math.sqrt(circle_area / (area * global_area_normalization_factor)))
+    else:
+        cpgn.area_normalization_factor = 1.0 / (math.sqrt(circle_area / area))
 
-def normalize_disk(disk, center, base_radius):
+    return cpgn.area_normalization_factor
+
+def normalize_disk(disk, center, base_radius, norm_factor):
     disk = disk - np.array(center)
-    disk = disk / cpgn.area_normalization_factor
+    disk = disk / norm_factor
     disk = disk + np.array(center)
 
     #print("circle area:", math.pi * base_radius * base_radius)
@@ -65,23 +80,28 @@ def apply_jitter(positions, image_size, mean_distance, cv_distance):
 
     return jittered
 
-def generate_disk(center, base_radius, amp1=0, wave1=1, amp2=0, wave2=2, index=None, rotate_randomly=True, resolution=360):
+def generate_disk(
+        center, base_radius, amp1=0, wave1=1, amp2=0, wave2=2, index=None, rotate_randomly=True, resolution=2000,
+        global_area_normalization_factor=None, global_rotation_offset=None
+    ):
     angles = np.linspace(0, 2 * np.pi, resolution, endpoint=False)
     rotational_offset = 0
     if rotate_randomly:
+        if global_rotation_offset is not None:
+            index *= global_rotation_offset
         random.seed(index)  # Ensure reproducibility for the same index
         rotational_offset = random.uniform(0, 2*math.pi)
     r = base_radius + amp1 * np.sin(wave1 * angles + rotational_offset) + amp2 * np.sin(wave2 * angles + rotational_offset)
     x = center[0] + r * np.cos(angles)
     y = center[1] + r * np.sin(angles)
     disk = np.stack((x, y), axis=-1).astype(np.int32)
-    if center == (0, 0):
-        compute_area_normalization_factor(disk, center, base_radius)
-    disk = normalize_disk(disk, center, base_radius)
+    norm_factor = compute_area_normalization_factor(disk, center, base_radius, global_area_normalization_factor)
+    disk = normalize_disk(disk, center, base_radius, norm_factor)
     return disk
 
-def draw_disk(img, center, radius, amp1, wave1, amp2, wave2, rotate_randomly, index):
-    contour = generate_disk(center, radius, amp1=amp1, wave1=wave1, amp2=amp2, wave2=wave2, rotate_randomly=rotate_randomly, index=index)
+def draw_disk(img, center, radius, amp1, wave1, amp2, wave2, rotate_randomly, index, global_area_normalization_factor, global_rotation_offset=None):
+    contour = generate_disk(center, radius, amp1=amp1, wave1=wave1, amp2=amp2, wave2=wave2, rotate_randomly=rotate_randomly, index=index, 
+                            global_area_normalization_factor=global_area_normalization_factor, global_rotation_offset=global_rotation_offset)
     cv2.fillPoly(img, [contour], 255)
 
 def draw_stripe(img, center1, center2, radius, rotate_randomly):
@@ -133,8 +153,6 @@ def generate_square_grid(image_size, mean_distance):
             x = i * dx
             y = j * dy
             positions.append((x % w, y % h))
-
-    print("positions:", len(positions), "out of", nx * ny, "expected")
 
     return positions
 
@@ -258,81 +276,108 @@ def draw_sinusoidal_stripe(img, p1, p2, radius, amplitude, wavelength, n_points=
     cv2.fillPoly(img, [ribbon], 255)
 
 
-def create_image(
-    image_size=(1000, 1000),
-    mean_radius=30,
-    cv_radius=5,
-    mean_distance=200,
-    cv_distance=10,
-    sine_amp1=5,
-    sine_wave1=6,
-    sine_amp2=2,
-    sine_wave2=12,
-    draw_stripes=True,
-    stripe_angle_deg=0,
-    stripe_mean_length=200,
-    enforce_distance_uniformity=True,
-    stripe_std_length=20,
-    sin_stripe=False,
-    sin_stripe_amp=10,
-    sin_stripe_wavelength=100,
-    grid_type="hex",
-    rotate_randomly=True,
-    suppress_distance_warning=False
-):
+def create_image(**kwargs):
+    args = SimpleNamespace(**kwargs)
+    args.global_rotation_offset = random.randint(0, 100000)
     
-    if grid_type == "hex":
-        if enforce_distance_uniformity:
-            original_distance = mean_distance
-            mean_distance = adjust_mean_distance_for_uniform_hex_grid(image_size, mean_distance)
-            if not math.isclose(original_distance, mean_distance, abs_tol=1):
-                if suppress_distance_warning:
-                    print(f"Warning: Mean_distance {original_distance:.2f} adjusted to {mean_distance:.2f} for uniform hex grid.")
+    if args.grid_type == "hex":
+        if args.enforce_distance_uniformity:
+            original_distance = args.mean_distance
+            args.mean_distance = adjust_mean_distance_for_uniform_hex_grid(args.image_size, args.mean_distance)
+            if not math.isclose(original_distance, args.mean_distance, abs_tol=1):
+                if args.suppress_distance_warning:
+                    print(f"Warning: Mean_distance {original_distance:.2f} adjusted to {args.mean_distance:.2f} for uniform hex grid.")
                 else:
-                    raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {mean_distance-0.5} to have a perfect hex grid.")
-        base_positions = generate_hex_grid_with_filter(image_size, mean_distance)
-    elif grid_type == "square":
-        if enforce_distance_uniformity:
-            original_distance = mean_distance
-            mean_distance = adjust_mean_distance_for_uniform_square_grid(image_size, mean_distance)
-            if not math.isclose(original_distance, mean_distance, abs_tol=1):
-                if suppress_distance_warning:
-                    print(f"Warning: Mean_distance {original_distance:.2f} adjusted to {mean_distance:.2f} for uniform square grid.")
+                    raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {args.mean_distance-0.5} to have a perfect hex grid.")
+        base_positions = generate_hex_grid_with_filter(args.image_size, args.mean_distance)
+    elif args.grid_type == "square":
+        if args.enforce_distance_uniformity:
+            original_distance = args.mean_distance
+            args.mean_distance = adjust_mean_distance_for_uniform_square_grid(args.image_size, args.mean_distance)
+            if not math.isclose(original_distance, args.mean_distance, abs_tol=1):
+                if args.suppress_distance_warning:
+                    print(f"Warning: Mean_distance {original_distance:.2f} adjusted to {args.mean_distance:.2f} for uniform square grid.")
                 else:
-                    raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {mean_distance:.2f} to have a perfect square grid.")
-        base_positions = generate_square_grid(image_size, mean_distance)
+                    raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {args.mean_distance-0.5:.2f} to have a perfect square grid.")
+        base_positions = generate_square_grid(args.image_size, args.mean_distance)
     else:
         raise ValueError("grid_type must be 'hex' or 'square'")
 
-    positions = apply_jitter(base_positions, image_size, mean_distance, cv_distance)
-    img = np.zeros(image_size, dtype=np.uint8)
-    radii = [max(2, np.random.normal(mean_radius, cv_radius * mean_radius)) for _ in positions]
+    positions = apply_jitter(base_positions, args.image_size, args.mean_distance, args.cv_distance)
+    img = np.zeros(args.image_size, dtype=np.uint8)
+    radii = [max(2, np.random.normal(args.mean_radius, args.cv_radius * args.mean_radius)) for _ in positions]
 
     # Draw disks with periodic wrap
-    shifts = [(0, 0), (output_img_size[0], 0), (0, output_img_size[1]), (output_img_size[0], output_img_size[1])]
+    shifts = [(0, 0), (args.image_size[0], 0), (0, args.image_size[1]), (args.image_size[0], args.image_size[1])]
     ids = np.random.randint(0, high=10000, size=len(positions))
     for i, (center, radius) in enumerate(zip(positions, radii)):
         x, y = center
         center += shifts[i]
         for dx, dy in shifts:
             draw_center = (int(x + dx), int(y + dy))
-            draw_disk(img, draw_center, radius, sine_amp1, sine_wave1, sine_amp2, sine_wave2, rotate_randomly, int(ids[i]))
+            draw_disk(
+                img, draw_center, radius, args.sine_amp1, args.sine_wave1, args.sine_amp2,
+                args.sine_wave2, args.rotate_randomly, int(ids[i]), args.global_area_normalization_factor,
+                global_rotation_offset = args.global_rotation_offset
+            )
 
     stripe_metadata = []
-    if draw_stripes:
+    if args.draw_stripes:
         stripe_pairs, stripe_metadata = build_parallel_stripes(
-            positions, image_size, stripe_angle_deg, stripe_mean_length, stripe_std_length
+            positions, args.image_size, args.stripe_angle_deg, args.stripe_mean_length, args.stripe_std_length
         )
         for p1, p2 in stripe_pairs:
-            if sin_stripe:
+            if args.sin_stripe:
                 draw_sinusoidal_stripe(
-                    img, p1, p2, mean_radius,
-                    amplitude=sin_stripe_amp,
-                    wavelength=sin_stripe_wavelength
+                    img, p1, p2, args.mean_radius,
+                    amplitude=args.sin_stripe_amp,
+                    wavelength=args.sin_stripe_wavelength
                 )
             else:
-                draw_stripe(img, p1, p2, mean_radius, rotate_randomly)
+                draw_stripe(img, p1, p2, args.mean_radius, args.rotate_randomly)
 
+    if args.enforce_area_constancy:
+        if args.cur_image_fraction_pixels is None and args.global_area_normalization_factor is None:
+            args.cur_image_fraction_pixels = fraction_white_pixels(img)
+
+            # Reset sine parameters to generate a circular pattern (i.e., the same pattern as 'cur_image', but without sine waves)
+            sine_amp1 = args.sine_amp1
+            sine_amp2 = args.sine_amp2
+            args.sine_amp1 = 0
+            args.sine_amp2 = 0
+
+            # Generate the circular pattern
+            img, _, _, _ = create_image(**vars(args))
+            args.circular_image_fraction_pixels = fraction_white_pixels(img)
+
+            # Reset sine parameters to original values
+            args.sine_amp1 = sine_amp1
+            args.sine_amp2 = sine_amp2
+
+            iterative_correction_factor = 0
+            args.global_area_normalization_factor = args.cur_image_fraction_pixels / args.circular_image_fraction_pixels
+            error = 1 - args.global_area_normalization_factor
+            stepsize = 20
+            best_version = (100000, iterative_correction_factor, img)
+            idx = 0
+            while abs(error) > 0.0001 and idx < 100:
+                # Generate a revised version of the pattern with the area normalization factor
+                img, positions, radii, stripe_metadata = create_image(**vars(args))
+                args.cur_image_fraction_pixels = fraction_white_pixels(img)
+
+                # Update error and iterative correction factor
+                error = 1 - args.cur_image_fraction_pixels / args.circular_image_fraction_pixels
+                _stepsize = stepsize * abs(error) * abs(error) * abs(error) # Adjust step size based on error magnitude
+                error_sign = error / max(0.00000000001, abs(error))
+                if abs(error) < best_version[0]:
+                    best_version = (abs(error), iterative_correction_factor, img, positions, radii, stripe_metadata)
+                iterative_correction_factor += error_sign * _stepsize
+                idx += 1
+
+                # Derive the next global area normalization factor
+                args.global_area_normalization_factor /= 1 + iterative_correction_factor  # Adjust based on sine amplitude (heuristic, needed because of artifacts in image generation)
+            
+            return best_version[2], best_version[3], best_version[4], best_version[5]
 
     return img, positions, radii, stripe_metadata
 
@@ -400,9 +445,9 @@ if __name__ == "__main__":
         "image_size": (1000, 1000),
         "mean_radius": 120,
         "cv_radius": 0,
-        "mean_distance": 499,
+        "mean_distance": 499.8,
         "cv_distance": 0,
-        "sine_amp1": 50,
+        "sine_amp1": 10,
         "sine_wave1": 6,
         "sine_amp2": 0,
         "sine_wave2": 0,
@@ -414,15 +459,20 @@ if __name__ == "__main__":
         "sin_stripe_amp": 20,
         "sin_stripe_wavelength": 80,
         "enforce_distance_uniformity": True,
+        "enforce_area_constancy": True,
         "grid_type": "square",
-        "rotate_randomly": True
+        "rotate_randomly": True,
+        "cur_image_fraction_pixels": None,
+        "circular_image_fraction_pixels": None,
+        "global_area_normalization_factor": None,
+        "global_rotation_offset": None
     }
 
     img, positions, radii, stripe_metadata = create_image(**params)
     export_metadata(positions, radii, params, stripe_metadata)
-    cv2.imwrite(os.path.join(OUTPUT_DIR, "generated_pattern2.png"), img)
+    cv2.imwrite(os.path.join(OUTPUT_DIR, "generated_pattern_sine10.png"), img)
     cv2.imshow("Generated pattern", img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    #plot_periodic_neighbor_distances(positions, params["output_img_size"], params["mean_distance"])
+    #plot_periodic_neighbor_distances(positions, params["image_size"], params["mean_distance"])
 
