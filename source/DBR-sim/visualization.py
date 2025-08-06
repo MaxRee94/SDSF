@@ -33,9 +33,9 @@ def able_to_read_and_resize_image(path):
         return False
 
 
-def generate_controllable_pattern_image(initial_pattern_image, ctrl_pattern_generator_params, write=True, recursing=False):
+def generate_controllable_pattern_image(initial_pattern_image, write=True, recursing=False, **kwargs):
     path = f"{CONTROLLED_PATTERN_DIR}/" + initial_pattern_image + ".png"
-    img, positions, radii, stripe_metadata = cpg.create_image(**ctrl_pattern_generator_params)
+    img, positions, radii, stripe_metadata = cpg.create_image(**kwargs)
     cv2.imwrite(path, img)
     if recursing:
         time.sleep(1)

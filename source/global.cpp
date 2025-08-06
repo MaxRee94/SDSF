@@ -167,12 +167,43 @@ py::array_t<float> as_1d_numpy_array(vector<float> distribution) {
     return numpy_array;
 }
 
+Dynamics create_dynamics(py::dict dict) {
+    auto get = [&](const std::string& key) {
+        if (!dict.contains(key)) throw std::runtime_error("Missing key: " + key);
+        return dict[key.c_str()];
+    };
+
+    return Dynamics(
+        get("timestep").cast<int>(),
+        get("cell_width").cast<float>(),
+        get("self_ignition_factor").cast<float>(),
+        get("rainfall").cast<float>(),
+        get("seed_bearing_threshold").cast<float>(),
+        get("growth_rate_multiplier").cast<float>(),
+        get("unsuppressed_flammability").cast<float>(),
+        get("max_dbh").cast<float>(),
+        get("saturation_threshold").cast<float>(),
+        get("fire_resistance_params").cast<map<string, float>>(),
+        get("background_mortality").cast<float>(),
+        get("strategy_distribution_params").cast<map<string, map<string, float>>>(),
+        get("resource_grid_width").cast<int>(),
+        get("mutation_rate").cast<float>(),
+        get("STR").cast<float>(),
+        get("verbosity").cast<int>(),
+        get("random_seed").cast<int>(),
+        get("firefreq_random_seed").cast<int>(),
+        get("enforce_no_recruits").cast<float>(),
+        get("animal_group_size").cast<int>()
+    );
+}
+
 
 PYBIND11_MODULE(dbr_cpp, module) {
     module.doc() = "DBR-cpp module (contains python extensions written in c++)";
 
     module.def("check_communication", &check_communication);
     module.def("init_RNG", &help::init_RNG);
+    module.def("create_dynamics", &create_dynamics, "Create a Dynamics object from a Python dictionary");
 
     py::class_<State>(module, "State")
         .def(py::init<>())
@@ -221,10 +252,11 @@ PYBIND11_MODULE(dbr_cpp, module) {
 
     py::class_<Dynamics>(module, "Dynamics")
         .def(py::init<>())
-        .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
-            const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
-            const float&, const map<string, map<string, float>>&, const int&, const float&, const float&, const int&, const int&, const int&,
-            const float&, const int& >())
+        //.def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
+        //    const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
+        //    const float&, const map<string, map<string, float>>&, const int&, const float&, const float&, const int&, const int&, const int&,
+        //    const float&, const int& >())
+        .def(py::init<>())
         .def_readwrite("time", &Dynamics::time)
         .def_readwrite("state", &Dynamics::state)
         .def_readwrite("timestep", &Dynamics::timestep)

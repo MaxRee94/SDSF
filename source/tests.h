@@ -11,13 +11,14 @@ public:
 		float _resource_grid_relative_size, float _mutation_rate, float _STR, int _verbosity, int grid_size, float dbh_q1, float dbh_q2, float growth_multiplier_stdev,
 		float growth_multiplier_min, float growth_multiplier_max, int random_seed, int firefreq_random_seed, float enforce_no_recruits, int animal_group_size
 	) {
-		dynamics = Dynamics(_timestep, _cell_width, _self_ignition_factor, _rainfall, _seed_bearing_threshold,
+		// TODO: Re-implement using creation from python dict (see global.cpp)
+		/*dynamics = Dynamics(_timestep, _cell_width, _self_ignition_factor, _rainfall, _seed_bearing_threshold,
 			_growth_rate_multiplier, _unsuppressed_flammability, _min_suppressed_flammability, _max_suppressed_flammability,
 			_radius_suppr_flamm_min, radius_range_suppr_flamm, _max_dbh, _saturation_threshold, _fire_resistance_argmin,
 			_fire_resistance_argmax, _fire_resistance_stretch, _background_mortality, _strategy_distribution_params,
 			_resource_grid_relative_size, _mutation_rate, _STR, _verbosity, random_seed, firefreq_random_seed, enforce_no_recruits, animal_group_size
-		);
-		dynamics.init_state(grid_size, dbh_q1, dbh_q2, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max);
+		);*/
+		//dynamics.init_state(grid_size, dbh_q1, dbh_q2, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max);
 		verbosity = _verbosity;
 	}
 	bool test_flammability(vector<string>& failed_tests) {

@@ -22,7 +22,7 @@ LEGEND_PATH = DATA_OUT_DIR + "/legends"
 defaults = {
     "grid_width": 960,
     "treecover": 0.5,
-    "cellsize": 1,
+    "cell_width": 1,
     "max_dbh": 44.3, # (Close to) Theoretical maximum due to density-dependent constraint on LAI (see 'Tree Allometric Relationships v03.xlsx' for details)
     "image_width": 1000,
     "timestep": 1,
@@ -33,9 +33,9 @@ defaults = {
     "self_ignition_factor": 3,
     "unsuppressed_flammability": 0.5,
     "rainfall": 0.1,
-    "test": "none",
+    "tests": "none",
     "random_seed": -999,
-    "random_seed_firefreq": 0,
+    "firefreq_random_seed": 0,
     "termination_conditions": "all",
     "STR": 10000, # The number of seeds produced by a tree with a dbh of 30 cm
     "dbh_q1": 1,
@@ -48,10 +48,9 @@ defaults = {
     "dispersal_min": 0,
     "dispersal_max": 300,
     "growth_rate_multiplier": 0.4,
-    "flammability_coefficients_and_constants": [0.1, 0.35, 0, 1],
     "saturation_threshold": 3,
-    "fire_resistance_params": [8.5, 50, 2.857], # See 'notes/fire_resistance_threshold_curve.xlsx' for details
-    "constant_mortality": 0.01,
+    "fire_resistance_params": "{\"argmin\": 8.5, \"argmax\": 50, \"stretch\": 2.857}", # See 'notes/fire_resistance_threshold_curve.xlsx' for details
+    "background_mortality": 0.01,
     "csv_path": "",
     "headless": False,
     "max_timesteps": 100,
@@ -131,16 +130,16 @@ _parameter_config = {
             "default": defaults["treecover"],
         },
     },
-    "cellsize": {
+    "cell_width": {
         "keys": {
-            "cli": ["--cellsize", "-cs"]
+            "cli": ["--cell_width", "-cs"]
         },
         "settings": {
             "type": float,
             "help": (
                 "The width (in meters) of each grid cell."
             ),
-            "default": defaults["cellsize"],
+            "default": defaults["cell_width"],
         },
     },
     "verbosity": {
@@ -239,16 +238,16 @@ _parameter_config = {
             "default": defaults["rainfall"],
         },
     },
-    "test": {
+    "tests": {
         "keys": {
-            "cli": ["--test", "-test"]
+            "cli": ["--tests", "-tests"]
         },
         "settings": {
             "type": str,
             "help": (
-                "Whether or not to run tests. Possible options: 'none', 'all'."
+                "Whether or not to run unit or output tests. Possible options: 'none', 'unit_tests', 'output_tests'."
             ),
-            "default": defaults["test"],
+            "default": defaults["tests"],
         },
     },
     "dbh_q1": {
@@ -311,20 +310,6 @@ _parameter_config = {
             "default": defaults["growth_rate_multiplier"],
         },
     },
-    "flammability_coefficients_and_constants": {
-        "keys": {
-            "cli": ["--flammability_coefficients_and_constants", "-fcac"]
-        },
-        "settings": {
-            "nargs": "*",
-            "type": float,
-            "help": (
-                ("Coefficients and constants [minimum_flammability, maximum_flammability, minimum_radius, dbh_range] which determine the flammability" +
-                 " function's output given the tree radius.")
-            ),
-            "default": defaults["flammability_coefficients_and_constants"],
-        },
-    },
     "saturation_threshold": {
         "keys": {
             "cli": ["--saturation_threshold", "-st"]
@@ -343,23 +328,23 @@ _parameter_config = {
         },
         "settings": {
             "nargs": "*",
-            "type": float,
+            "type": str,
             "help": (
                 ("Parameters to tree mortality sigmoid function, which takes bark thickness as input and returns survival probability.")
             ),
             "default": defaults["fire_resistance_params"],
         },
     },
-    "constant_mortality": {
+    "background_mortality": {
         "keys": {
-            "cli": ["--constant_mortality", "-cm"]
+            "cli": ["--background_mortality", "-cm"]
         },
         "settings": {
             "type": float,
             "help": (
                 "Constant background mortality rate, independent of fire risk."
             ),
-            "default": defaults["constant_mortality"],
+            "default": defaults["background_mortality"],
         },
     },
     "headless": {
@@ -517,16 +502,16 @@ _parameter_config = {
             "default": defaults["random_seed"],
         },
     },
-    "random_seed_firefreq": {
+    "firefreq_random_seed": {
         "keys": {
-            "cli": ["--random_seed_firefreq", "-rseedff"]
+            "cli": ["--firefreq_random_seed", "-rseedff"]
         },
         "settings": {
             "type": int,
             "help": (
-                "Random seed used for the fire frequency distribution. If -999 is given, a random seed will be generated on the fly. Default: {}.".format(defaults["random_seed_firefreq"])
+                "Random seed used for the fire frequency distribution. If -999 is given, a random seed will be generated on the fly. Default: {}.".format(defaults["firefreq_random_seed"])
             ),
-            "default": defaults["random_seed_firefreq"],
+            "default": defaults["firefreq_random_seed"],
         },
     },
     "enforce_no_recruits": {
@@ -815,3 +800,12 @@ class ParameterConfig():
             (dict): The configuration associated with the name of the parameter.
         """
         return self.data[name]
+
+
+def get_all_defaults():
+    """Return all default parameters and their values.
+
+    Returns:
+        dict: A dictionary containing all default parameters and their values.
+    """
+    return defaults.copy()
