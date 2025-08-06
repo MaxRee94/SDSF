@@ -356,11 +356,12 @@ def create_image(**kwargs):
 
             iterative_correction_factor = 0
             args.global_area_normalization_factor = args.cur_image_fraction_pixels / args.circular_image_fraction_pixels
-            error = 1 - args.global_area_normalization_factor
+            error = 100000
             stepsize = 20
-            best_version = (100000, iterative_correction_factor, img)
+            best_version = (100000, iterative_correction_factor, img, positions, radii, stripe_metadata)
             idx = 0
-            while abs(error) > 0.0001 and idx < 100:
+            max_iters = 100
+            while abs(error) > 0.0001 and idx < max_iters:
                 # Generate a revised version of the pattern with the area normalization factor
                 img, positions, radii, stripe_metadata = create_image(**vars(args))
                 args.cur_image_fraction_pixels = fraction_white_pixels(img)
@@ -373,10 +374,13 @@ def create_image(**kwargs):
                     best_version = (abs(error), iterative_correction_factor, img, positions, radii, stripe_metadata)
                 iterative_correction_factor += error_sign * _stepsize
                 idx += 1
+                if (idx+1) % 10 == 0:
+                    print(f"Optimizing area correction iteratively... iteration {idx+1} of max {max_iters}.")
 
                 # Derive the next global area normalization factor
                 args.global_area_normalization_factor /= 1 + iterative_correction_factor  # Adjust based on sine amplitude (heuristic, needed because of artifacts in image generation)
             
+            print("Relative deviation from target area ratio:", best_version[0])
             return best_version[2], best_version[3], best_version[4], best_version[5]
 
     return img, positions, radii, stripe_metadata
@@ -447,7 +451,7 @@ if __name__ == "__main__":
         "cv_radius": 0,
         "mean_distance": 499.8,
         "cv_distance": 0,
-        "sine_amp1": 10,
+        "sine_amp1": 80,
         "sine_wave1": 6,
         "sine_amp2": 0,
         "sine_wave2": 0,
@@ -470,7 +474,7 @@ if __name__ == "__main__":
 
     img, positions, radii, stripe_metadata = create_image(**params)
     export_metadata(positions, radii, params, stripe_metadata)
-    cv2.imwrite(os.path.join(OUTPUT_DIR, "generated_pattern_sine10.png"), img)
+    cv2.imwrite(os.path.join(OUTPUT_DIR, "generated_pattern_sine80.png"), img)
     cv2.imshow("Generated pattern", img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
