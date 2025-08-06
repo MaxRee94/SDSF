@@ -9,29 +9,45 @@ import math
 import os
 import random
 from scipy.optimize import newton
+from types import SimpleNamespace
 
 
-OUTPUT_DIR = r"F:\Development\DBR-sim\data_out\pattern_metadata" # TODO: Modify to use default defined in config.py.
 
-def correct_radius_for_area(base_radius, amp1, amp2):
+OUTPUT_DIR = r"C:\Users\6241638\Development\DBR-sim\data_out\controlled_pattern_generator" # TODO: Modify to use default defined in config.py.
+cpgn = SimpleNamespace(area_normalization_factor=None)
+
+def compute_area(contour, center):
     """
-    Adjust radius so that the modulated disk has the same surface area as a smooth circle
-    with base_radius. Assumes sine modulation is radial.
+    Calculate the area of a disk.
     """
-    if amp1 == 0 and amp2 == 0:
-        return base_radius
+    if len(contour) < 3:
+        raise ValueError("A disk must have at least 3 points")
 
-    def area_difference(r_mod):
-        correction = 1 + 0.5 * (amp1 / r_mod) ** 2 + 0.5 * (amp2 / r_mod) ** 2
-        return r_mod ** 2 * correction - base_radius ** 2
+    area = 0
+    n = len(contour)
+    c_x, c_y = center
+    for i in range(n):
+        x1, y1 = contour[i]
+        x2, y2 = contour[(i + 1) % n]  # wrap around to the first point
+        tri_area = 0.5 * abs(x1 * y2 - x1 * c_y + x2 * c_y - x2 * y1 + c_x * y1 - c_x * y2)
+        area += tri_area
 
-    try:
-        r_corrected = newton(area_difference, base_radius * 0.9, maxiter=100)
-    except RuntimeError:
-        r_corrected = base_radius  # fallback
+    return cv2.contourArea(contour.astype(np.float32))  # Use OpenCV's contour area function for accuracy
 
-    return r_corrected
+def compute_area_normalization_factor(contour, center, base_radius):
+    area = compute_area(contour, center)
+    circle_area = math.pi * base_radius * base_radius
+    cpgn.area_normalization_factor = 1.0 / math.sqrt(circle_area / area)
 
+def normalize_disk(disk, center, base_radius):
+    disk = disk - np.array(center)
+    disk = disk / cpgn.area_normalization_factor
+    disk = disk + np.array(center)
+
+    #print("circle area:", math.pi * base_radius * base_radius)
+    #print("disk area:", compute_area(disk, center))
+
+    return disk.astype(np.int32)
 
 def apply_jitter(positions, image_size, mean_distance, cv_distance):
     """
@@ -49,18 +65,23 @@ def apply_jitter(positions, image_size, mean_distance, cv_distance):
 
     return jittered
 
-def generate_disk(center, base_radius, amp1=0, wave1=1, amp2=0, wave2=2, rotate_randomly=True, resolution=360):
+def generate_disk(center, base_radius, amp1=0, wave1=1, amp2=0, wave2=2, index=None, rotate_randomly=True, resolution=360):
     angles = np.linspace(0, 2 * np.pi, resolution, endpoint=False)
     rotational_offset = 0
     if rotate_randomly:
+        random.seed(index)  # Ensure reproducibility for the same index
         rotational_offset = random.uniform(0, 2*math.pi)
     r = base_radius + amp1 * np.sin(wave1 * angles + rotational_offset) + amp2 * np.sin(wave2 * angles + rotational_offset)
     x = center[0] + r * np.cos(angles)
     y = center[1] + r * np.sin(angles)
-    return np.stack((x, y), axis=-1).astype(np.int32)
+    disk = np.stack((x, y), axis=-1).astype(np.int32)
+    if center == (0, 0):
+        compute_area_normalization_factor(disk, center, base_radius)
+    disk = normalize_disk(disk, center, base_radius)
+    return disk
 
-def draw_disk(img, center, radius, amp1, wave1, amp2, wave2, rotate_randomly):
-    contour = generate_disk(center, radius, amp1, wave1, amp2, wave2, rotate_randomly)
+def draw_disk(img, center, radius, amp1, wave1, amp2, wave2, rotate_randomly, index):
+    contour = generate_disk(center, radius, amp1=amp1, wave1=wave1, amp2=amp2, wave2=wave2, rotate_randomly=rotate_randomly, index=index)
     cv2.fillPoly(img, [contour], 255)
 
 def draw_stripe(img, center1, center2, radius, rotate_randomly):
@@ -112,6 +133,8 @@ def generate_square_grid(image_size, mean_distance):
             x = i * dx
             y = j * dy
             positions.append((x % w, y % h))
+
+    print("positions:", len(positions), "out of", nx * ny, "expected")
 
     return positions
 
@@ -286,16 +309,21 @@ def create_image(
     radii = [max(2, np.random.normal(mean_radius, cv_radius * mean_radius)) for _ in positions]
 
     # Draw disks with periodic wrap
+    shifts = [(0, 0), (output_img_size[0], 0), (0, output_img_size[1]), (output_img_size[0], output_img_size[1])]
+    ids = np.random.randint(0, high=10000, size=len(positions))
     for i, (center, radius) in enumerate(zip(positions, radii)):
-        radius = correct_radius_for_area(radius, sine_amp1, sine_amp2)
         x, y = center
+<<<<<<< Updated upstream
         shifts = [(0, 0), (image_size[0], 0), (-image_size[0], 0),
                   (0, image_size[1]), (0, -image_size[1]),
                   (image_size[0], image_size[1]), (-image_size[0], -image_size[1]),
                   (image_size[0], -image_size[1]), (-image_size[0], image_size[1])]
+=======
+        center += shifts[i]
+>>>>>>> Stashed changes
         for dx, dy in shifts:
             draw_center = (int(x + dx), int(y + dy))
-            draw_disk(img, draw_center, radius, sine_amp1, sine_wave1, sine_amp2, sine_wave2, rotate_randomly)
+            draw_disk(img, draw_center, radius, sine_amp1, sine_wave1, sine_amp2, sine_wave2, rotate_randomly, int(ids[i]))
 
     stripe_metadata = []
     if draw_stripes:
@@ -379,12 +407,12 @@ if __name__ == "__main__":
         "image_size": (1000, 1000),
         "mean_radius": 120,
         "cv_radius": 0,
-        "mean_distance": 333,
+        "mean_distance": 499,
         "cv_distance": 0,
-        "sine_amp1": 81.6,
+        "sine_amp1": 50,
         "sine_wave1": 6,
         "sine_amp2": 0,
-        "sine_wave2": 40,
+        "sine_wave2": 0,
         "draw_stripes": False,
         "stripe_angle_deg": 30,
         "stripe_mean_length": 200,
@@ -399,8 +427,13 @@ if __name__ == "__main__":
 
     img, positions, radii, stripe_metadata = create_image(**params)
     export_metadata(positions, radii, params, stripe_metadata)
+    cv2.imwrite(os.path.join(OUTPUT_DIR, "generated_pattern2.png"), img)
     cv2.imshow("Generated pattern", img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+<<<<<<< Updated upstream
     plot_periodic_neighbor_distances(positions, params["image_size"], params["mean_distance"])
+=======
+    #plot_periodic_neighbor_distances(positions, params["output_img_size"], params["mean_distance"])
+>>>>>>> Stashed changes
 
