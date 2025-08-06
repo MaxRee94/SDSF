@@ -1,0 +1,39 @@
+{
+	"linear": {
+        "q1": 1,
+        "q2": 0,
+        "dist_min": 0,
+        "dist_max": 200
+    },
+    "wind": {
+        "wspeed_gmean": 5,
+        "wspeed_stdev": 5,
+        "wind_direction": 0,
+        "wind_direction_stdev": 3600
+    },
+    "animal": {
+        "population": {
+            "density": 100,
+            "no_iterations": 100
+        },
+        "Hypothetical slow animal": {
+            "population_fraction": 1,
+            "fruitsize_pref": 0.02,
+            "gut_passage_time_shape": 1.59,
+            "gut_passage_time_scale": 13.51351,
+            "rest_time_shape": 0.849,
+            "rest_time_scale": 1.567,
+            "probability_fruit_consumption": 0.531,
+            "average_fruit_mass_consumed": 20,
+            "speed": 3.122,
+            "a_d": -4.407,
+            "b_d": -0.647,
+            "a_c": 1.082,
+            "b_c": 1.397,
+            "a_f": 16.833,
+            "b_f": 0.601,
+            "a_o": -0.073,
+            "b_o": -3.718
+        }
+    }
+}

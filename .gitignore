@@ -6,7 +6,6 @@ source/tmp/
 data_out/
 source/DBR-sim/DawnCache/
 source/DBR-sim/GPUCache/
-data_in/
 source/scripts/temp/
 *.bat
 

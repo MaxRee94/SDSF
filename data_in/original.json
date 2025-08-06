@@ -1,0 +1,36 @@
+{
+    "seed_mass_wind" : {
+        "distribution_type": 2,
+        "mean": 0.5,
+        "stdev": 0.2,
+        "min": 0.01,
+        "max": 2.5
+    },
+    "seed_mass_animal" : {
+        "distribution_type": 2,
+        "mean": 4.31,
+        "stdev": 3,
+        "min": 0.01,
+        "max": 100
+    },
+    "fruit_pulp_mass": {
+        "distribution_type": 1,
+        "q1": 1,
+        "q2": 0,
+        "min": 0,
+        "max": 30
+    },
+    "no_seeds_per_diaspore": {
+        "distribution_type": 2,
+        "mean": 1,
+        "stdev": 0,
+        "min": 1,
+        "max": 100000
+    },
+    "vector": {
+        "distribution_type": 3,
+        "probability0": 0.0,
+        "probability1": 1.0,
+        "probability2": 0.0
+    }
+}

@@ -1,0 +1,39 @@
+{
+	"linear": {
+        "q1": 1,
+        "q2": 0,
+        "dist_min": 0,
+        "dist_max": 200
+    },
+    "wind": {
+        "wspeed_gmean": 5,
+        "wspeed_stdev": 5,
+        "wind_direction": 0,
+        "wind_direction_stdev": 3600
+    },
+    "animal": {
+        "population": {
+            "density": 100,
+            "no_iterations": 100
+        },
+        "Turdus merula": {
+            "population_fraction": 1,
+            "fruitsize_pref": 0.02,
+            "gut_passage_time_shape": 0.931,
+            "gut_passage_time_scale": 25,
+            "rest_time_shape": 0.931,
+            "rest_time_scale": 2.033,
+            "probability_fruit_consumption": 0.524,
+            "average_fruit_mass_consumed": 20,
+            "speed": 6,
+            "a_d": -4.093,
+            "b_d": -0.437,
+            "a_c": 0.252,
+            "b_c": 3.278,
+            "a_f": 2.582,
+            "b_f": 0.335,
+            "a_o": -1.078,
+            "b_o": -1.752
+        }
+    }
+}
