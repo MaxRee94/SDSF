@@ -81,7 +81,7 @@ def apply_jitter(positions, image_size, mean_distance, cv_distance):
     return jittered
 
 def generate_disk(
-        center, base_radius, amp1=0, wave1=1, amp2=0, wave2=2, index=None, rotate_randomly=True, resolution=2000,
+        center, base_radius, amp1=0, wave1=1, amp2=0, wave2=2, index=None, rotate_randomly=True, resolution=360,
         global_area_normalization_factor=None, global_rotation_offset=None
     ):
     angles = np.linspace(0, 2 * np.pi, resolution, endpoint=False)
@@ -308,11 +308,13 @@ def create_image(**kwargs):
     radii = [max(2, np.random.normal(args.mean_radius, args.cv_radius * args.mean_radius)) for _ in positions]
 
     # Draw disks with periodic wrap
-    shifts = [(0, 0), (args.image_size[0], 0), (0, args.image_size[1]), (args.image_size[0], args.image_size[1])]
+    shifts = [
+        (0, 0), (args.image_size[0], 0),(0, args.image_size[1]), (args.image_size[0], args.image_size[1]), (-args.image_size[0], -args.image_size[1]),
+        (args.image_size[0], -args.image_size[1]), (-args.image_size[0], args.image_size[1])
+    ]
     ids = np.random.randint(0, high=10000, size=len(positions))
     for i, (center, radius) in enumerate(zip(positions, radii)):
         x, y = center
-        center += shifts[i]
         for dx, dy in shifts:
             draw_center = (int(x + dx), int(y + dy))
             draw_disk(
@@ -375,7 +377,7 @@ def create_image(**kwargs):
                 iterative_correction_factor += error_sign * _stepsize
                 idx += 1
                 if (idx+1) % 10 == 0:
-                    print(f"Optimizing area correction iteratively... iteration {idx+1} of max {max_iters}.")
+                    print(f"Optimizing area correction iteratively... iteration {idx+1} (maximum is {max_iters}).")
 
                 # Derive the next global area normalization factor
                 args.global_area_normalization_factor /= 1 + iterative_correction_factor  # Adjust based on sine amplitude (heuristic, needed because of artifacts in image generation)
@@ -447,11 +449,11 @@ def plot_periodic_neighbor_distances(positions, image_size, mean_distance, k=6):
 if __name__ == "__main__":
     params = {
         "image_size": (1000, 1000),
-        "mean_radius": 120,
+        "mean_radius": 50,
         "cv_radius": 0,
-        "mean_distance": 499.8,
+        "mean_distance": 200,
         "cv_distance": 0,
-        "sine_amp1": 80,
+        "sine_amp1": 35,
         "sine_wave1": 6,
         "sine_amp2": 0,
         "sine_wave2": 0,
