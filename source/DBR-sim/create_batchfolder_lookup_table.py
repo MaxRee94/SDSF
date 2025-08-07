@@ -1,11 +1,12 @@
 import json
 import os
 from argparse import ArgumentParser
+from config import *
 
 
 def get_x_new_batch_folders(x):
     batch_no = 1
-    batch_folder = "F:/Development/DBR-sim/data_out/state data/batch_1"
+    batch_folder = DATA_OUT_DIR + "/state_data/batch_000001"
     new_batch_folders = []
     while os.path.exists(batch_folder):
         batch_no += 1
@@ -32,7 +33,8 @@ if __name__ == "__main__":
     parser.add_argument('-no', '--number_of_batchfolders', type=int)
     args = parser.parse_args()
     batch_lookup_table = create_batch_lookup_table(**vars(args))
-    with open("F:/Development/DBR-sim/data_out/state data/tmp/batchfolder_lookup_table.json", "w") as lookup_table_file:
+    output_path = os.path.normpath(os.path.join(DATA_OUT_DIR, "state_data/tmp/batchfolder_lookup_table.json"))
+    with open(output_path, "w") as lookup_table_file:
         json.dump(batch_lookup_table, lookup_table_file)
     
 
