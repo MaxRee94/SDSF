@@ -11,7 +11,8 @@ if cwd.endswith("source"):
     cwd = cwd + "/DBR-sim"
 REPOSITORY_BASEDIR = os.path.dirname(os.path.dirname(cwd))
 DATA_IN_DIR = REPOSITORY_BASEDIR + "/data_in"
-DATA_OUT_DIR = REPOSITORY_BASEDIR + "/data_out"
+#DATA_OUT_DIR = REPOSITORY_BASEDIR + "/data_out"
+DATA_OUT_DIR = r"C:\Users\Max\OneDrive - Universiteit Utrecht\Documents\Data\SDSF_data_raw"
 DATA_INTERNAL_DIR = REPOSITORY_BASEDIR + "/data_internal"  
 BUILD_DIR = REPOSITORY_BASEDIR + "/build"
 PERLIN_NOISE_DIR = DATA_IN_DIR + "/state patterns/perlin_noise"
@@ -82,6 +83,11 @@ defaults = {
     "grid_type":"square",
     "rotate_randomly":False,
     "suppress_distance_warning": False,  # If True, suppresses the warning about distance uniformity in the cpg script.
+    "cur_image_fraction_pixels": None,
+    "circular_image_fraction_pixels": None,
+    "global_area_normalization_factor": None,
+    "global_rotation_offset": None,
+    "enforce_area_constancy": True
 }
 
 gui_defaults = {
@@ -312,7 +318,7 @@ _parameter_config = {
     },
     "saturation_threshold": {
         "keys": {
-            "cli": ["--saturation_threshold", "-st"]
+            "cli": ["--saturation_threshold", "-sat"]
         },
         "settings": {
             "type": float,
@@ -761,6 +767,56 @@ _parameter_config = {
             "type": bool,
             "help": "If True, no error is raised if the given mean_distance (used for generating disk patterns) is automatically changed to generate a perfect grid.",
             "default": defaults["suppress_distance_warning"],
+        }
+    },#
+    "cur_image_fraction_pixels": {
+        "keys": {
+            "cli": ["--cur_image_fraction_pixels", "-cifpx"]
+        },
+        "settings": {
+            "type": bool,
+            "help": "Internal argument for cpg script.",
+            "default": defaults["cur_image_fraction_pixels"],
+        }
+    },
+    "circular_image_fraction_pixels": {
+        "keys": {
+            "cli": ["--circular_image_fraction_pixels", "-circifpx"]
+        },
+        "settings": {
+            "type": bool,
+            "help": "Internal argument for cpg script.",
+            "default": defaults["circular_image_fraction_pixels"],
+        }
+    },
+    "global_area_normalization_factor": {
+        "keys": {
+            "cli": ["--global_area_normalization_factor", "-ganfact"]
+        },
+        "settings": {
+            "type": bool,
+            "help": "Internal argument for cpg script.",
+            "default": defaults["global_area_normalization_factor"],
+        }
+    },
+    "global_rotation_offset": {
+        "keys": {
+            "cli": ["--global_rotation_offset", "-groff"]
+        },
+        "settings": {
+            "type": bool,
+            "help": "Internal argument for cpg script.",
+            "default": defaults["global_rotation_offset"],
+        }
+    },
+    "enforce_area_constancy": {
+        "keys": {
+            "cli": ["--enforce_area_constancy", "-enacon"]
+        },
+        "settings": {
+            "type": bool,
+            "help": "Internal argument for cpg script.",
+            "default": defaults["enforce_area_constancy"],
         }
     }
 }

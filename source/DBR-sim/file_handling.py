@@ -11,7 +11,7 @@ import numpy as np
 
 
 TREE_DBH_FILE = f"{DATA_OUT_DIR}/state_reports/tree_dbh_values.json"
-EXPORT_LOCATION = r"F:/Development/DBR-sim/data_out/state data"
+EXPORT_LOCATION = os.path.join(DATA_OUT_DIR, "state_data")
 
 
 def get_tree_sizes(dynamics):
