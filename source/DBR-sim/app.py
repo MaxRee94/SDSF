@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import sys
+from tkinter import N
 
 import cv2
 import numpy as np
@@ -19,7 +20,7 @@ from helpers import *
 from config import *
 import controllable_pattern_generator as cpg
 
-sys.path.append(BUILD_DIR)
+
 #from x64.Debug import dbr_cpp as cpp
 from x64.Release import dbr_cpp as cpp
 
@@ -33,7 +34,7 @@ def set_dispersal_kernel(
         dynamics, dispersal_mode, multi_disperser_params
     ):
     animal_species = []
-    with open(os.path.join(DATA_IN_DIR, multi_disperser_params), "r") as mdp_jsonfile:
+    with open(os.path.join(cfg.DATA_IN_DIR, multi_disperser_params), "r") as mdp_jsonfile:
         multi_disperser_params = json.load(mdp_jsonfile)
     if (dispersal_mode == "linear_diffusion"):
         dynamics.set_global_linear_kernel(
@@ -92,10 +93,10 @@ def init(user_args):
     elif args.initial_pattern_image == "ctrl":
         img, path = vis.generate_controllable_pattern_image(**user_args)
     elif args.initial_pattern_image == "perlin_noise":
-        path = f"{DATA_IN_DIR}/state patterns/" + args.initial_pattern_image
+        path = f"{cfg.DATA_IN_DIR}/state patterns/" + args.initial_pattern_image
         if "perlin_noise" == args.initial_pattern_image:
             print("Setting tree cover using perlin noise function...")
-            path = f"{PERLIN_NOISE_DIR}/" + args.initial_pattern_image + ".png"
+            path = f"{cfg.PERLIN_NOISE_DIR}/" + args.initial_pattern_image + ".png"
             noise_frequency = 5.0 / args.patch_width # Convert patch width to noise frequency
             noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
             vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=user_args["noise_octaves"])
@@ -147,15 +148,15 @@ def init(user_args):
     if not args.headless:
         # Get a color image representation of the initial state and show it.
         img = vis.visualize(
-        dynamics.state.grid, args.image_width, collect_states=collect_states,
-        color_dict=color_dict
+            dynamics.state.grid, args.image_width, collect_states=collect_states,
+            color_dict=color_dict
         )
     else:
         # Get a color image representation of the initial state
         img = vis.get_image_from_grid(dynamics.state.grid, collect_states, color_dict)
    
     # Export image file
-    imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
+    imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
     vis.save_image(img, imagepath)
     
     if args.dispersal_mode == "all" or args.dispersal_mode == "animal":
@@ -195,7 +196,7 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
     if ("recruitment" in visualization_types):
         print("Saving recruitment img...") if verbose else None
         recruitment_img = vis.get_image_from_grid(dynamics.state.grid, 0, color_dicts["recruitment"])
-        imagepath_recruitment = os.path.join(DATA_OUT_DIR, "image_timeseries/recruitment/" + str(dynamics.time) + ".png")
+        imagepath_recruitment = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/recruitment/" + str(dynamics.time) + ".png")
         vis.save_image(recruitment_img, imagepath_recruitment, get_max(1000, recruitment_img.shape[0]), interpolation="none")
     
     if ("fire_freq" in visualization_types):
@@ -203,7 +204,7 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         if dynamics.time > fire_no_timesteps:
             print("Saving fire frequency img...") if verbose else None
             fire_freq_img = vis.get_fire_freq_image(fire_freq_arrays[-fire_no_timesteps:], color_dicts["fire_freq"], dynamics.state.grid.width, fire_no_timesteps)
-            imagepath_fire_freq = os.path.join(DATA_OUT_DIR, "image_timeseries/fire_frequencies/" + str(dynamics.time) + ".png")
+            imagepath_fire_freq = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fire_frequencies/" + str(dynamics.time) + ".png")
             vis.save_image(fire_freq_img, imagepath_fire_freq, get_max(1000, fire_freq_img.shape[0]))
 
     print("-- Visualizing image...") if verbose else None
@@ -218,19 +219,19 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         )
 
     print("-- Saving image...") if verbose else None
-    imagepath = os.path.join(DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
+    imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
     vis.save_image(img, imagepath, get_max(1000, img.shape[0]))
     
     if ("fuel" in visualization_types):
         print("-- Saving fuel image...") if verbose else None
         fuel_img = vis.get_image_from_grid(dynamics.state.grid, 2, color_dicts["blackwhite"])
-        imagepath_fuel = os.path.join(DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
+        imagepath_fuel = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
         vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
 
     if ("tree_LAI" in visualization_types):
         print("-- Saving tree LAI image...") if verbose else None
         tree_LAI_img = vis.get_image_from_grid(dynamics.state.grid, 1, color_dicts["blackwhite"], invert=True)
-        imagepath_fuel = os.path.join(DATA_OUT_DIR, "image_timeseries/tree_LAI/" + str(dynamics.time) + ".png")
+        imagepath_fuel = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/tree_LAI/" + str(dynamics.time) + ".png")
         vis.save_image(tree_LAI_img, imagepath_fuel, get_max(1000, tree_LAI_img.shape[0]))
 
 
@@ -295,13 +296,13 @@ def updateloop(dynamics, color_dicts, **user_args):
 
         if export_animal_resources and (user_args["dispersal_mode"] == "all" or user_args["dispersal_mode"] == "animal"):
             # Get color image representations of the resource grid from the last iteration
-            cover_path = os.path.join(DATA_OUT_DIR, "image_timeseries/cover/" + str(dynamics.time) + ".png")
-            fruits_path = os.path.join(DATA_OUT_DIR, "image_timeseries/fruits/" + str(dynamics.time) + ".png")
-            visits_path = os.path.join(DATA_OUT_DIR, "image_timeseries/visits/" + str(dynamics.time) + ".png")
-            distance_path = os.path.join(DATA_OUT_DIR, "image_timeseries/distance/" + str(dynamics.time) + ".png")
-            distance_coarse_path = os.path.join(DATA_OUT_DIR, "image_timeseries/distance_coarse/" + str(dynamics.time) + ".png")
-            k_coarse_path = os.path.join(DATA_OUT_DIR, "image_timeseries/k_coarse/" + str(dynamics.time) + ".png")
-            k_path = os.path.join(DATA_OUT_DIR, "image_timeseries/k/" + str(dynamics.time) + ".png")
+            cover_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/cover/" + str(dynamics.time) + ".png")
+            fruits_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fruits/" + str(dynamics.time) + ".png")
+            visits_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/visits/" + str(dynamics.time) + ".png")
+            distance_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/distance/" + str(dynamics.time) + ".png")
+            distance_coarse_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/distance_coarse/" + str(dynamics.time) + ".png")
+            k_coarse_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/k_coarse/" + str(dynamics.time) + ".png")
+            k_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/k/" + str(dynamics.time) + ".png")
             vis.save_resource_grid_colors(dynamics, "Turdus merula", "cover", cover_path)
             vis.save_resource_grid_colors(dynamics, "Turdus merula", "fruits", fruits_path)
             vis.save_resource_grid_colors(dynamics, "Turdus merula", "visits", visits_path)
@@ -343,7 +344,7 @@ def main(batch_parameters=None, **user_args):
     #return
 
     # Set any given batch parameters
-    with open(os.path.join(DATA_IN_DIR, user_args["strategy_distribution_params"]), "r") as sdp_jsonfile:
+    with open(os.path.join(cfg.DATA_IN_DIR, user_args["strategy_distribution_params"]), "r") as sdp_jsonfile:
         user_args["strategy_distribution_params"] = json.load(sdp_jsonfile)
     if batch_parameters:
         print("-- Setting batch parameters: ", batch_parameters)

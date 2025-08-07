@@ -7,6 +7,9 @@ data_out/
 source/DBR-sim/DawnCache/
 source/DBR-sim/GPUCache/
 source/scripts/temp/
+data_in/local_overrides/
+source/DBR-sim/env
+source/DBR-sim/env2
 *.bat
 
 # Visaul studio files

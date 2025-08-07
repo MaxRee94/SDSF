@@ -34,7 +34,7 @@ def able_to_read_and_resize_image(path):
 
 
 def generate_controllable_pattern_image(initial_pattern_image, write=True, recursing=False, **kwargs):
-    path = f"{CONTROLLED_PATTERN_DIR}/" + initial_pattern_image + ".png"
+    path = f"{cfg.CONTROLLED_PATTERN_DIR}/" + initial_pattern_image + ".png"
     img, positions, radii, stripe_metadata = cpg.create_image(**kwargs)
     cv2.imwrite(path, img)
     if recursing:
@@ -230,7 +230,7 @@ def visualize_radial_distribution_function(g_r, radii, iteration):
     plt.ylabel('g(r)', fontsize=11)
     fig.show()
     try:
-        fig.savefig(f'{DATA_OUT_DIR}/radial_distribution_function/g_r_{iteration}.png')
+        fig.savefig(f'{cfg.DATA_OUT_DIR}/radial_distribution_function/g_r_{iteration}.png')
     except:
         pass
 
@@ -245,7 +245,7 @@ def visualize_legend(distr_type="normal"):
         
     color_dict = get_color_dict(100, begin=0.2, end=0.5, distr_type=distr_type)
     img = get_image(vals, color_dict, height, width)
-    cv2.imwrite(os.path.join(LEGEND_PATH, f"Legend_{distr_type}.png"), img)
+    cv2.imwrite(os.path.join(cfg.LEGEND_PATH, f"Legend_{distr_type}.png"), img)
     cv2.imshow(f"Legend_{distr_type}", img)
     cv2.waitKey(1)
 

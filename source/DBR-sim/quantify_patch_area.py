@@ -68,7 +68,7 @@ def quantify_patch_area_distribution(patch_image, domain_width):
 
 def generate_patch_image(patch_width, treecover=0.5, i=0):
     # Generate unthresholded perlin noise image
-    path = f"{PERLIN_NOISE_DIR}/perlin_noise_for_area_quantification.png"
+    path = f"{cfg.PERLIN_NOISE_DIR}/perlin_noise_for_area_quantification.png"
     noise_frequency = 5.0 / patch_width # Convert patch width to noise frequency
     noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
     img = vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=5, write=True)

@@ -17,7 +17,7 @@ from types import SimpleNamespace
 
 
 def get_csv_parent_dir(run):
-    with open(os.path.join(config.DATA_OUT_DIR, "state_data/tmp/batchfolder_lookup_table.json"), "r") as lookup_table_file:
+    with open(os.path.join(config.cfg.DATA_OUT_DIR, "state_data/tmp/batchfolder_lookup_table.json"), "r") as lookup_table_file:
         folder_lookup_table = json.load(lookup_table_file)
 
     csv_parent_dir = folder_lookup_table[run]

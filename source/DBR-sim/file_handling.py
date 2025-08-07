@@ -10,9 +10,6 @@ from config import *
 import numpy as np
 
 
-TREE_DBH_FILE = f"{DATA_OUT_DIR}/state_reports/tree_dbh_values.json"
-EXPORT_LOCATION = os.path.join(DATA_OUT_DIR, "state_data")
-
 
 def get_tree_sizes(dynamics):
     _tree_sizes = dynamics.state.get_tree_sizes()
@@ -54,7 +51,8 @@ def export_state(
         fieldnames.insert(0, "dependent_result_range_stdev")
     if init_csv and not os.path.exists(path):
         if path == "":
-            path = os.path.join(EXPORT_LOCATION, "Simulation_" + str(datetime.datetime.now()).replace(":", "-") + ".csv")
+            print("\n\nExport location:", cfg.EXPORT_DIR)
+            path = os.path.join(cfg.EXPORT_DIR, "Simulation_" + str(datetime.datetime.now()).replace(":", "-") + ".csv")
         with open(path, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
@@ -112,14 +110,14 @@ def export_state(
 
 
 def get_lookup_table(species, width, rcg_width):
-    path = os.path.join(DATA_INTERNAL_DIR, f"lookup_table_{species}_width-{width}_rcg_width-{rcg_width}.npy")
+    path = os.path.join(cfg.DATA_INTERNAL_DIR, f"lookup_table_{species}_width-{width}_rcg_width-{rcg_width}.npy")
     if os.path.exists(path):
         return np.load(path), path
     else:
         return None, path
 
 def export_lookup_table(lookup_table, width, species):
-    path = os.path.join(DATA_INTERNAL_DIR, f"lookup_table_{species}_width-{width}_rcg_width-{lookup_table.shape[0]}.npy")
+    path = os.path.join(cfg.DATA_INTERNAL_DIR, f"lookup_table_{species}_width-{width}_rcg_width-{lookup_table.shape[0]}.npy")
     print("path: ", path)
     np.save(path, lookup_table)
 
@@ -133,18 +131,18 @@ def save_numpy_array_to_file(array, path):
 def save_state(dynamics):
     state_table = dynamics.state.get_state_table()
     time = str(dynamics.time).zfill(4)
-    save_numpy_array_to_file(state_table, f"{DATA_OUT_DIR}/tree_positions/tree_positions_iter_{time}.npy")
+    save_numpy_array_to_file(state_table, f"{cfg.DATA_OUT_DIR}/tree_positions/tree_positions_iter_{time}.npy")
 
 def load_tree_dbh_values(_time):
-    if os.path.exists(TREE_DBH_FILE):
+    if os.path.exists(cfg.TREE_DBH_FILE):
         if _time == 1:
-            os.remove(TREE_DBH_FILE)
+            os.remove(cfg.TREE_DBH_FILE)
             return {_time : {}}
     else:
         return {_time : {}}
     
      
-    with open (TREE_DBH_FILE, "r") as dbh_json_file:
+    with open (cfg.TREE_DBH_FILE, "r") as dbh_json_file:
         tree_dbh_values = json.load(dbh_json_file)
             
     tree_dbh_values[_time] = {}
@@ -152,11 +150,11 @@ def load_tree_dbh_values(_time):
     return tree_dbh_values
     
 def save_tree_dbh_values(tree_dbh_values):
-    with open(TREE_DBH_FILE, "w") as dbh_json_file:
+    with open(cfg.TREE_DBH_FILE, "w") as dbh_json_file:
         json.dump(tree_dbh_values, dbh_json_file)
 
 def update_state_report(dynamics):
-    state_report_file = f"{DATA_OUT_DIR}/state_reports/state_report.npy"
+    state_report_file = f"{cfg.DATA_OUT_DIR}/state_reports/state_report.npy"
     current_state = dynamics.state.get_state_table()
     germ_index = 3 
     death_index = germ_index + 1

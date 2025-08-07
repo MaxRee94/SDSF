@@ -57,7 +57,7 @@ def init_tests(
     print("Starting unit tests...")
 
     # Obtain strategy distribution parameters
-    with open(os.path.join(DATA_IN_DIR, strategy_distribution_params), "r") as sdp_jsonfile:
+    with open(os.path.join(cfg.DATA_IN_DIR, strategy_distribution_params), "r") as sdp_jsonfile:
         strategy_distribution_params = json.load(sdp_jsonfile)    
 
     tests = cpp.Tests(timestep, cell_width, self_ignition_factor, rainfall, seed_bearing_threshold,
