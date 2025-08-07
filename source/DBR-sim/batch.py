@@ -1,4 +1,4 @@
-
+import __main__
 import config
 import app
 from argparse import ArgumentParser
@@ -13,6 +13,7 @@ import time
 import traceback
 import json
 import statistics as stats
+from types import SimpleNamespace
 
 
 def get_csv_parent_dir(run):
@@ -399,7 +400,7 @@ def ensure_correct_arg_datatype(args):
 
 def main(
         process_index=None, control_variable=None, control_range=None, extra_parameters=None, run=0, no_processes=7, no_reruns=None, batch_type=None,
-         dependent_var=None, opti_mode=None, statistic=None, secondary_variable=None, secondary_range=None, attempts=None
+         dependent_var=None, opti_mode=None, statistic=None, secondary_variable=None, secondary_range=None, attempts=None, **params
     ):
     csv_parent_dir = get_csv_parent_dir(run)
     print("csv parent dir: ", csv_parent_dir)
@@ -411,19 +412,15 @@ def main(
         sim_name = control_variable
     color_dict = vis.get_color_dict(no_colors, begin=0.2, end=0.5)
     color_dict[0] = np.array((170, 255, 255), np.uint8)
-    params = config.defaults
     params["headless"] = True
     if extra_parameters:
         print("Extra parameters:", extra_parameters) # Example of usage: {\"verbosity\":1}
-        extra_parameters = extra_parameters.replace(",", ", ")
-        extra_parameters = extra_parameters.replace("'", "")
-        extra_parameters = json.loads(extra_parameters)
         extra_parameters = ensure_correct_arg_datatype(extra_parameters)
         for key, val in extra_parameters.items():
             params[key] = val
             print("extra parameter:", val, f"(key = {key})")
             
-    total_results_csv = csv_parent_dir + "/{}_results.csv".format(csv_parent_dir.split("state data/")[1])
+    total_results_csv = csv_parent_dir + "/{}_results.csv".format(csv_parent_dir.split("state_data/")[1])
         
     iterate_across_range(params, control_variable, control_range, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, 
                          color_dict, extra_parameters, batch_type, dependent_var, opti_mode, statistic, secondary_variable, secondary_range, 
@@ -453,7 +450,7 @@ if __name__ == "__main__":
         '-ep', '--extra_parameters', type=str,
         help=r"Json string containing key-value pairs of custom parameters. Keys should be surrounded by double quotes preceded by a backslash. Example: {\"verbosity\":1}"
     )
-    args = parser.parse_args()
+    args = SimpleNamespace(**parse_args(parser))
     try:
         main(**vars(args))
     except Exception as e:
