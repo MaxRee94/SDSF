@@ -8,11 +8,10 @@ import sys
 from types import SimpleNamespace
 
 
-# global constants
+# Define default global constants (can be overridden locally, see 'apply_local_overrides()')
 cwd = os.getcwd()
 if cwd.endswith("source"):
     cwd = cwd + "/DBR-sim"
-
 constants = {}
 constants["REPOSITORY_BASEDIR"] = os.path.dirname(os.path.dirname(cwd))
 constants["DATA_IN_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_in"
@@ -27,6 +26,31 @@ constants["TREE_DBH_FILE"] = constants["DATA_OUT_DIR"] + "/state_reports/tree_db
 constants["EXPORT_DIR"] = os.path.join(constants["DATA_OUT_DIR"], "state_data")
 
 cfg = SimpleNamespace(**constants)
+
+
+def apply_local_overrides(cfg):
+    """Apply local overrides to the global constants to allow control over the directories to which files are
+    written / from which they are read. To do this, the user can create a file called local_overrides.py in the cfg.DATA_IN_DIR.
+    """
+    override_path = cfg.DATA_IN_DIR + "/local_overrides/local_overrides.py"
+    if not os.path.exists(override_path):
+        print("No local overrides found at {}.\nContinuing with remote defaults defined in config.py.".format(override_path))
+        return cfg
+
+    # Load the local overrides module
+    spec = importlib.util.spec_from_file_location("module.name", override_path)
+    overrides = importlib.util.module_from_spec(spec)
+    sys.modules["module.name"] = overrides
+    spec.loader.exec_module(overrides)
+
+    # Run the module's function to apply local overrides
+    cfg = overrides.modify_global_constants(cfg)
+
+    return cfg
+
+
+cfg = apply_local_overrides(cfg)
+sys.path.append(cfg.BUILD_DIR)
 
 
 defaults = {
@@ -108,32 +132,6 @@ gui_defaults = {
         "default3"
     ]
 }
-
-
-def apply_local_overrides(cfg):
-    """Apply local overrides to the global constants to allow control over the directories to which files are
-    written / from which they are read. To do this, the user can create a file called local_overrides.py in the cfg.DATA_IN_DIR.
-    """
-    override_path = cfg.DATA_IN_DIR + "/local_overrides/local_overrides.py"
-    if not os.path.exists(override_path):
-        print("No local overrides found at {}.\nContinuing with remote defaults defined in config.py.".format(override_path))
-        return cfg
-
-    # Load the local overrides module
-    spec = importlib.util.spec_from_file_location("module.name", override_path)
-    overrides = importlib.util.module_from_spec(spec)
-    sys.modules["module.name"] = overrides
-    spec.loader.exec_module(overrides)
-
-    # Run the module's function to apply local overrides
-    cfg = overrides.modify_global_constants(cfg)
-
-    return cfg
-
-
-cfg = apply_local_overrides(cfg)
-sys.path.append(cfg.BUILD_DIR)
-
 
 _parameter_config = {
     "grid_width": {
