@@ -90,7 +90,11 @@ def init(user_args):
     if args.initial_pattern_image == "none":
         dynamics.state.set_tree_cover(args.treecover)
     elif args.initial_pattern_image == "ctrl":
-        img, path = vis.generate_controllable_pattern_image(**user_args)
+        img, path, benchmark_cover = vis.generate_controllable_pattern_image(**user_args)
+        # If the user has set the override_image_treecover to 2, we will use the benchmark cover value from the controllable pattern image.
+        # The benchmark cover is the cover for a version of the pattern produced using the given parameters, but with a sine amplitude set to 0 (i.e., with circular disks).
+        if args.override_image_treecover == 2:
+            args.override_image_treecover = benchmark_cover
     elif args.initial_pattern_image == "perlin_noise":
         path = f"{DATA_IN_DIR}/state patterns/" + args.initial_pattern_image
         if "perlin_noise" == args.initial_pattern_image:
@@ -126,7 +130,7 @@ def init(user_args):
  
         img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
         print("Created image. Setting cover...")
-        dynamics.state.set_cover_from_image(img / 255, -1)
+        dynamics.state.set_cover_from_image(img / 255, args.override_image_treecover)
     dynamics.state.repopulate_grid(0)
     
     # Create a color dictionary

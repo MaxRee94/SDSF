@@ -35,7 +35,7 @@ def able_to_read_and_resize_image(path):
 
 def generate_controllable_pattern_image(initial_pattern_image, write=True, recursing=False, **kwargs):
     path = f"{CONTROLLED_PATTERN_DIR}/" + initial_pattern_image + ".png"
-    img, positions, radii, stripe_metadata = cpg.create_image(**kwargs)
+    img, positions, radii, stripe_metadata, benchmark_cover = cpg.create_image(**kwargs)
     cv2.imwrite(path, img)
     if recursing:
         time.sleep(1)
@@ -50,7 +50,7 @@ def generate_controllable_pattern_image(initial_pattern_image, write=True, recur
             raise RuntimeError("Initial image generation failed after re-trying.")
         else:
             return generate_controllable_pattern_image(initial_pattern_image, ctrl_pattern_generator_params, write, recursing=True)
-    return img, path
+    return img, path, benchmark_cover
     
 
 def reshuffle_perlin_noise():
