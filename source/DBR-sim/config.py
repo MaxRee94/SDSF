@@ -3,21 +3,54 @@ import argparse
 import string
 import json
 import os
+import importlib.util
+import sys
+from types import SimpleNamespace
 
 
-# global constants
+# Define default global constants (can be overridden locally, see 'apply_local_overrides()')
 cwd = os.getcwd()
 if cwd.endswith("source"):
     cwd = cwd + "/DBR-sim"
-REPOSITORY_BASEDIR = os.path.dirname(os.path.dirname(cwd))
-DATA_IN_DIR = REPOSITORY_BASEDIR + "/data_in"
-#DATA_OUT_DIR = REPOSITORY_BASEDIR + "/data_out"
-DATA_OUT_DIR = r"C:\Users\Max\OneDrive - Universiteit Utrecht\Documents\Data\SDSF_data_raw"
-DATA_INTERNAL_DIR = REPOSITORY_BASEDIR + "/data_internal"  
-BUILD_DIR = REPOSITORY_BASEDIR + "/build"
-PERLIN_NOISE_DIR = DATA_IN_DIR + "/state patterns/perlin_noise"
-CONTROLLED_PATTERN_DIR = DATA_IN_DIR + "/state patterns/controlled_patterns"
-LEGEND_PATH = DATA_OUT_DIR + "/legends"
+constants = {}
+constants["REPOSITORY_BASEDIR"] = os.path.dirname(os.path.dirname(cwd))
+constants["DATA_IN_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_in"
+constants["DATA_OUT_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_out"
+constants["CPG_OUTPUT_DIR"] = constants["DATA_OUT_DIR"] + "/controlled_pattern_generator"
+constants["DATA_INTERNAL_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_internal"
+constants["BUILD_DIR"] = constants["REPOSITORY_BASEDIR"] + "/build"
+constants["PERLIN_NOISE_DIR"] = constants["DATA_IN_DIR"] + "/state patterns/perlin_noise"
+constants["CONTROLLED_PATTERN_DIR"] = constants["DATA_IN_DIR"] + "/state patterns/controlled_patterns"
+constants["LEGEND_PATH"] = constants["DATA_OUT_DIR"] + "/legends"
+constants["TREE_DBH_FILE"] = constants["DATA_OUT_DIR"] + "/state_reports/tree_dbh_values.json"
+constants["EXPORT_DIR"] = os.path.join(constants["DATA_OUT_DIR"], "state_data")
+
+cfg = SimpleNamespace(**constants)
+
+
+def apply_local_overrides(cfg):
+    """Apply local overrides to the global constants to allow control over the directories to which files are
+    written / from which they are read. To do this, the user can create a file called local_overrides.py in the cfg.DATA_IN_DIR.
+    """
+    override_path = cfg.DATA_IN_DIR + "/local_overrides/local_overrides.py"
+    if not os.path.exists(override_path):
+        print("No local overrides found at {}.\nContinuing with remote defaults defined in config.py.".format(override_path))
+        return cfg
+
+    # Load the local overrides module
+    spec = importlib.util.spec_from_file_location("module.name", override_path)
+    overrides = importlib.util.module_from_spec(spec)
+    sys.modules["module.name"] = overrides
+    spec.loader.exec_module(overrides)
+
+    # Run the module's function to apply local overrides
+    cfg = overrides.modify_global_constants(cfg)
+
+    return cfg
+
+
+cfg = apply_local_overrides(cfg)
+sys.path.append(cfg.BUILD_DIR)
 
 
 defaults = {
@@ -836,7 +869,6 @@ _parameter_config = {
         }
     }
 }
-
 
 class ParameterConfig():
     """Wrapper class for _parameter_config."""

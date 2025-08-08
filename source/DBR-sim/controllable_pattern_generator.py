@@ -10,10 +10,9 @@ import os
 import random
 from scipy.optimize import newton
 from types import SimpleNamespace
+from config import *
 
 
-
-OUTPUT_DIR = r"C:\Users\6241638\Development\DBR-sim\data_out\controlled_pattern_generator" # TODO: Modify to use default defined in config.py.
 cpgn = SimpleNamespace(area_normalization_factor=None)
 
 def compute_area(contour, center):
@@ -231,7 +230,7 @@ def build_parallel_stripes(positions, image_size, stripe_angle_deg, mean_length,
 
     return stripes, stripe_metadata
 
-def export_metadata(positions, radii, parameters, stripe_metadata=None, output_dir=OUTPUT_DIR):
+def export_metadata(positions, radii, parameters, stripe_metadata=None, output_dir=cfg.CPG_OUTPUT_DIR):
     os.makedirs(output_dir, exist_ok=True)
     df = pd.DataFrame({
         "x": [p[0] for p in positions],
@@ -245,7 +244,7 @@ def export_metadata(positions, radii, parameters, stripe_metadata=None, output_d
 
     if stripe_metadata:
         df_stripes = pd.DataFrame(stripe_metadata)
-        df_stripes.to_csv(os.path.join(OUTPUT_DIR, "stripe_metadata.csv"), index=False)
+        df_stripes.to_csv(os.path.join(cfg.CPG_OUTPUT_DIR, "stripe_metadata.csv"), index=False)
 
 def draw_sinusoidal_stripe(img, p1, p2, radius, amplitude, wavelength, n_points=100):
     """
@@ -480,7 +479,7 @@ if __name__ == "__main__":
 
     img, positions, radii, stripe_metadata, benchmark_cover = create_image(**params)
     export_metadata(positions, radii, params, stripe_metadata)
-    cv2.imwrite(os.path.join(OUTPUT_DIR, "generated_pattern_sine80.png"), img)
+    cv2.imwrite(os.path.join(cfg.CPG_OUTPUT_DIR, "generated_pattern_sine80.png"), img)
     cv2.imshow("Generated pattern", img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
