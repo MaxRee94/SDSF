@@ -828,7 +828,7 @@ _parameter_config = {
             "cli": ["--global_area_normalization_factor", "-ganfact"]
         },
         "settings": {
-            "type": bool,
+            "type": int,
             "help": "Internal argument for cpg script.",
             "default": defaults["global_area_normalization_factor"],
         }
@@ -838,7 +838,7 @@ _parameter_config = {
             "cli": ["--global_rotation_offset", "-groff"]
         },
         "settings": {
-            "type": bool,
+            "type": int,
             "help": "Internal argument for cpg script.",
             "default": defaults["global_rotation_offset"],
         }

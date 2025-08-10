@@ -322,7 +322,8 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
                     
                     _io.export_state(
                         dynamics, total_results_csv, init_csv, initial_no_dispersals=initial_no_dispersals, control_variable=control_variable, control_value=control_value,
-                        tree_cover_slope=tree_cover_slope, secondary_variable=secondary_variable, secondary_value=secondary_value, extra_parameters=str(extra_parameters)
+                        tree_cover_slope=tree_cover_slope, secondary_variable=secondary_variable, secondary_value=secondary_value, extra_parameters=str(extra_parameters),
+                        args=SimpleNamespace(**params)
                     )
             elif (batch_type == "saddle_search"):
                 secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, guess_result, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev = execute_saddle_search(

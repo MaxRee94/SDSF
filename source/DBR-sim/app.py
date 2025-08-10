@@ -69,7 +69,7 @@ def init(user_args):
     if args.firefreq_random_seed == -999:
         args.firefreq_random_seed = random.randint(0, 1000000)
         print("Generated random seed for fire frequency probability distribution: ", args.firefreq_random_seed)
-
+    print("Using fire frequency random seed: ", args.firefreq_random_seed)
     # Initialize dynamics object and state
     print("type:", type(user_args["fire_resistance_params"]))
     print("Initializing dynamics object with args:\n", user_args)
@@ -285,7 +285,7 @@ def updateloop(dynamics, color_dicts, **user_args):
             do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, user_args)
         
         print("-- Exporting state_data...") if verbose else None
-        csv_path = io.export_state(dynamics, csv_path, init_csv, tree_cover_slope=slope)
+        csv_path = io.export_state(dynamics, csv_path, init_csv, tree_cover_slope=slope, args=SimpleNamespace(**user_args))
         init_csv = False
         
         print("-- Saving tree positions...") if verbose else None

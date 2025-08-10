@@ -90,6 +90,8 @@ def generate_disk(
             index *= global_rotation_offset
         random.seed(index)  # Ensure reproducibility for the same index
         rotational_offset = random.uniform(0, 2*math.pi)
+    elif global_rotation_offset > 0:
+        rotational_offset = global_rotation_offset
     r = base_radius + amp1 * np.sin(wave1 * angles + rotational_offset) + amp2 * np.sin(wave2 * angles + rotational_offset)
     x = center[0] + r * np.cos(angles)
     y = center[1] + r * np.sin(angles)
