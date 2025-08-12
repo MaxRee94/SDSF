@@ -382,6 +382,7 @@ def create_image(**kwargs):
                 args.global_area_normalization_factor /= 1 + iterative_correction_factor  # Adjust based on sine amplitude (heuristic, needed because of artifacts in image generation)
             
             print("Relative deviation from target area ratio:", best_version[0])
+            print("Fraction of white pixels in generated image:", fraction_white_pixels(best_version[2]))
             return best_version[2], best_version[3], best_version[4], best_version[5]
 
     return img, positions, radii, stripe_metadata
