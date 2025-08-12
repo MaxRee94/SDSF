@@ -26,7 +26,8 @@ def get_firefree_interval_stats(dynamics, _type):
 
 def export_state(
         dynamics, path="", init_csv=True, control_variable=None, control_value=None, tree_cover_slope=0,
-        extra_parameters="", secondary_variable=None, secondary_value=None, dependent_var=None, dependent_val=None, initial_no_dispersals=None, dependent_result_range_stdev=None
+        extra_parameters="", secondary_variable=None, secondary_value=None, dependent_var=None, dependent_val=None, initial_no_dispersals=None, dependent_result_range_stdev=None,
+        args=None
     ):
     fieldnames = [
         "time", "tree_cover", "slope", "population_size", "#seeds_produced", "fires", "top_kills", "nonseedling_top_kills", "deaths",
@@ -49,6 +50,8 @@ def export_state(
         fieldnames.insert(0, control_variable)
     if dependent_result_range_stdev:
         fieldnames.insert(0, "dependent_result_range_stdev")
+    if not args.rotate_randomly:
+        fieldnames.insert(3, "global_rotation_offset")
     if init_csv and not os.path.exists(path):
         if path == "":
             print("\n\nExport location:", cfg.EXPORT_DIR)
@@ -56,6 +59,7 @@ def export_state(
         with open(path, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
+        
 
     with open(path, 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -94,6 +98,8 @@ def export_state(
             "oldstem_competition_and_shading": str(dynamics.get_fraction_cases_oldstem_competition_and_shading()),
             "seedling_competition_and_shading": str(dynamics.get_fraction_cases_seedling_competition_and_shading())
         }
+        if not args.rotate_randomly:
+            result["global_rotation_offset"] = str(args.global_rotation_offset)
         if control_variable:
             result[control_variable] = control_value
         if secondary_variable:

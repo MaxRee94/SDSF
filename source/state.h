@@ -172,12 +172,16 @@ public:
 			target_cover = integral_image_cover / (float)(img_width * img_height);
 			printf("Image cover: %f\n", target_cover);
 		}
+		else {
+			printf("Using user-provided tree cover: %f\n", target_cover);
+		}
 
 		// Set tree cover
 		int no_crowd_thinning_runs = 0;
 		int max_no_crowd_thinning_runs = 10;
 		while (grid.get_tree_cover() < target_cover) {
 			int idx = probmodel.sample();
+			if (image[idx] < 0.01f) continue; // Skip empty cells (these correspond to black pixels in the image)
 			Cell &cell = grid.distribution[idx];
 			pair<float, float> position = grid.get_real_cell_position(&cell);
 			Tree* tree = population.add(position);

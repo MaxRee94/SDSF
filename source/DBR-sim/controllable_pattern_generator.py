@@ -90,6 +90,8 @@ def generate_disk(
             index *= global_rotation_offset
         random.seed(index)  # Ensure reproducibility for the same index
         rotational_offset = random.uniform(0, 2*math.pi)
+    elif global_rotation_offset > 0:
+        rotational_offset = global_rotation_offset
     r = base_radius + amp1 * np.sin(wave1 * angles + rotational_offset) + amp2 * np.sin(wave2 * angles + rotational_offset)
     x = center[0] + r * np.cos(angles)
     y = center[1] + r * np.sin(angles)
@@ -337,6 +339,7 @@ def create_image(**kwargs):
             else:
                 draw_stripe(img, p1, p2, args.mean_radius, args.rotate_randomly)
 
+    benchmark_cover = -1 # Set default to 0, this will ensure that main program will not use the benchmark cover (instead, the fraction of white pixels will be used)
     if args.enforce_area_constancy:
         if args.cur_image_fraction_pixels is None and args.global_area_normalization_factor is None:
             args.cur_image_fraction_pixels = fraction_white_pixels(img)
@@ -348,8 +351,9 @@ def create_image(**kwargs):
             args.sine_amp2 = 0
 
             # Generate the circular pattern
-            img, _, _, _ = create_image(**vars(args))
+            img, _, _, _, _ = create_image(**vars(args))
             args.circular_image_fraction_pixels = fraction_white_pixels(img)
+            benchmark_cover = args.circular_image_fraction_pixels
 
             # Reset sine parameters to original values
             args.sine_amp1 = sine_amp1
@@ -359,12 +363,12 @@ def create_image(**kwargs):
             args.global_area_normalization_factor = args.cur_image_fraction_pixels / args.circular_image_fraction_pixels
             error = 100000
             stepsize = 20
-            best_version = (100000, iterative_correction_factor, img, positions, radii, stripe_metadata)
+            best_version = [100000, iterative_correction_factor, img, positions, radii, stripe_metadata, benchmark_cover]
             idx = 0
             max_iters = 100
             while abs(error) > 0.0001 and idx < max_iters:
                 # Generate a revised version of the pattern with the area normalization factor
-                img, positions, radii, stripe_metadata = create_image(**vars(args))
+                img, positions, radii, stripe_metadata, _ = create_image(**vars(args))
                 args.cur_image_fraction_pixels = fraction_white_pixels(img)
 
                 # Update error and iterative correction factor
@@ -372,7 +376,7 @@ def create_image(**kwargs):
                 _stepsize = stepsize * abs(error) * abs(error) * abs(error) # Adjust step size based on error magnitude
                 error_sign = error / max(0.00000000001, abs(error))
                 if abs(error) < best_version[0]:
-                    best_version = (abs(error), iterative_correction_factor, img, positions, radii, stripe_metadata)
+                    best_version = [abs(error), iterative_correction_factor, img, positions, radii, stripe_metadata, benchmark_cover]
                 iterative_correction_factor += error_sign * _stepsize
                 idx += 1
                 if (idx+1) % 10 == 0:
@@ -381,11 +385,13 @@ def create_image(**kwargs):
                 # Derive the next global area normalization factor
                 args.global_area_normalization_factor /= 1 + iterative_correction_factor  # Adjust based on sine amplitude (heuristic, needed because of artifacts in image generation)
             
-            print("Relative deviation from target area ratio:", best_version[0])
-            print("Fraction of white pixels in generated image:", fraction_white_pixels(best_version[2]))
-            return best_version[2], best_version[3], best_version[4], best_version[5]
+            best_version.pop(1)
+            print("Relative deviation from target area ratio:", best_version.pop(0))
+            print("Fraction of white pixels in generated image:", fraction_white_pixels(best_version[0]))
+            
+            return best_version
 
-    return img, positions, radii, stripe_metadata
+    return img, positions, radii, stripe_metadata, benchmark_cover
 
 def periodic_distance(p1, p2, box):
     delta = np.abs(np.array(p1) - np.array(p2))
@@ -474,7 +480,7 @@ if __name__ == "__main__":
         "global_rotation_offset": None
     }
 
-    img, positions, radii, stripe_metadata = create_image(**params)
+    img, positions, radii, stripe_metadata, benchmark_cover = create_image(**params)
     export_metadata(positions, radii, params, stripe_metadata)
     cv2.imwrite(os.path.join(cfg.CPG_OUTPUT_DIR, "generated_pattern_sine80.png"), img)
     cv2.imshow("Generated pattern", img)
