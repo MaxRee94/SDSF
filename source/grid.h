@@ -2,7 +2,6 @@
 #include "agents.h"
 #include "grid_agent.forward.h"
 
-
 class Cell {
 public:
 	Cell() = default;
@@ -270,6 +269,23 @@ public:
 };
 
 
+class ForestCluster {
+public:
+	ForestCluster() = default;
+	ForestCluster(int centr_x, int centr_y, int centr_idx, vector<int> _cells) {
+		centroid_idx = centr_idx;
+		centroid_x = centr_x;
+		centroid_y = centr_y;
+		cells = _cells;
+	};
+	vector<int> cells;
+	vector<int> centroid;
+	int centroid_idx = -1;
+	int centroid_x = -1;
+	int centroid_y = -1;
+};
+
+
 class Grid {
 public:
 	Grid() = default;
@@ -502,14 +518,21 @@ public:
 				neighbor_LAI_sum += get_tree_LAI_of_local_neighborhood(get_cell_at_position(cell->pos + neighbor_offsets[i]), false);
 			}
 			float mean_neighbor_LAI = neighbor_LAI_sum / 8.0f;
-			if (mean_neighbor_LAI > 1.0f && LAI < 0.5f) {
+			/*if (mean_neighbor_LAI > 1.0f && LAI < 0.5f) {
 				printf("Average smoothed neighbor LAI: %f, smoothed cell LAI: %f, unsmoothed cell LAI: %f, average unsmoothed neighbor LAI: %f\n",
 					mean_neighbor_LAI, LAI, cell->get_LAI(), get_cumulative_onering_LAI_for_cell(cell) / 8.0f);
-			}
+			}*/
 		}
 		
 		return LAI;
 		//return cell->get_LAI();
+	}
+	bool is_forest(float LAI) {
+		return LAI > 1.0f;
+	}
+	bool is_forest(int x, int y) {
+		Cell* cell = get_cell_at_position(pair<int, int>(x, y));
+		return is_forest(cell->get_LAI());
 	}
 	void update_grass_LAI(Cell* cell) {
 		float tree_LAI_local_neighborhood = get_tree_LAI_of_local_neighborhood(cell);
@@ -551,11 +574,15 @@ public:
 	}
 	void add_tree_to_cell(int idx, Tree* tree) {
 		distribution[idx].add_tree(tree);
-		if (distribution[idx].get_LAI() > 1.0) {
+
+		// If the cell was not previously classified as forest, check if it should be reclassified now.
+		if (is_forest(distribution[idx].get_LAI())) {
 			if (distribution[idx].state == 0) {
+				// The cell was previously classified as savanna, but is now forest. Update the counters accordingly.
 				no_savanna_cells--;
 				no_forest_cells++;
 			}
+			// Set the cell state to forest.
 			distribution[idx].state = 1;
 		}
 	}
@@ -604,6 +631,63 @@ public:
 		}
 		return cumulative_load;
 	}
+	bool valid_coordinates(int x, int y) {
+		return (x >= 0 && x < width && y >= 0 && y < width);
+	}
+	void get_forest_clusters(vector<ForestCluster> &clusters) {
+		std::vector<std::vector<bool>> visited(width, std::vector<bool>(width, false));
+
+		// Directions for 4-neighbor connectivity
+		const std::vector<std::pair<int, int>> directions = {
+			{1,0}, {-1,0}, {0,1}, {0,-1}
+		};
+
+		for (int x = 0; x < width; ++x) {
+			for (int y = 0; y < width; ++y) {
+				if (!visited[x][y] && is_forest(x, y)) {
+					// Start BFS for a new cluster
+					std::queue<std::pair<int, int>> q;
+					std::vector<int> cell_indices;
+
+					q.push({ x, y });
+					visited[x][y] = true;
+
+					long long sum_x = 0, sum_y = 0;
+					int count = 0;
+
+					while (!q.empty()) {
+						auto [cx, cy] = q.front();
+						q.pop();
+
+						// Add to cluster
+						int index = pos_2_idx(pair(cx, cy));
+						cell_indices.push_back(index);
+
+						sum_x += cx;
+						sum_y += cy;
+						count++;
+
+						// Explore neighbors
+						for (auto [dx, dy] : directions) {
+							int nx = cx + dx, ny = cy + dy;
+							if (valid_coordinates(nx, ny) && !visited[nx][ny] && is_forest(nx, ny)) {
+								visited[nx][ny] = true;
+								q.push({ nx, ny });
+							}
+						}
+					}
+
+					// Compute centroid
+					double centroid_x = static_cast<double>(sum_x) / count;
+					double centroid_y = static_cast<double>(sum_y) / count;
+					int centroid_idx = pos_2_idx(pair<int, int>(round(centroid_x), round(centroid_y)));
+
+					// Create ForestCluster
+					clusters.push_back(ForestCluster(centroid_x, centroid_y, centroid_idx, cell_indices));
+				}
+			}
+		}
+	}
 	void cap(pair<int, int> &position_grid) {
 		if (position_grid.first < 0) position_grid.first = width + (position_grid.first % width);
 		if (position_grid.second < 0) position_grid.second = width + (position_grid.second % width);
@@ -638,3 +722,4 @@ public:
 	float cell_halfdiagonal_sqrt = 0;
 	shared_ptr<pair<int, int>[]> neighbor_offsets = 0;
 };
+
