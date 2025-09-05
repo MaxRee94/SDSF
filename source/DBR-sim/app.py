@@ -288,6 +288,12 @@ def updateloop(dynamics, color_dicts, **user_args):
         csv_path = io.export_state(dynamics, csv_path, init_csv, tree_cover_slope=slope, args=SimpleNamespace(**user_args))
         init_csv = False
         
+        # WIP: Obtain forest cluster perimeters from simulation
+        clusters = dynamics.get_forest_clusters()
+        for cluster in clusters:
+            print(f"No cells in cluster {cluster['id']}: {len(cluster['cells'])}, example cell position: ({cluster['cells'][0]}), \n" +
+                  f"centroid: ({cluster['centroid'][0], cluster['centroid'][1]}, area: {cluster['area']} m^2, perimeter length: {cluster['perimeter_length']} m.")
+        
         print("-- Saving tree positions...") if verbose else None
         #io.save_state(dynamics)
         

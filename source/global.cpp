@@ -25,6 +25,30 @@ void convert_from_numpy_array(py::array_t<float>& img, shared_ptr<float[]>& cove
 	}
 }
 
+py::list convert_from_idx_pair_vector_to_position_pylist(const vector<pair<int, int>>& vec, Grid& grid) {
+    py::list pylist;
+    for (size_t j = 0; j < vec.size(); j++) {
+        pair<int, int> _pair = vec[j];
+        pair<int, int> pos_1_cpp = grid.idx_2_pos(_pair.first);
+        pair<int, int> pos_2_cpp = grid.idx_2_pos(_pair.second);
+        py::tuple pos_1 = py::make_tuple(pos_1_cpp.first, pos_1_cpp.second);
+        py::tuple pos_2 = py::make_tuple(pos_2_cpp.first, pos_2_cpp.second);
+        py::tuple neighbors = py::make_tuple(pos_1, pos_2);
+        pylist.append(neighbors);
+    }
+	return pylist;
+}
+
+py::list convert_from_idx_vector_to_position_pylist(const vector<int>& vec, Grid& grid) {
+    py::list pylist;
+    for (size_t j = 0; j < vec.size(); j++) {
+        pair<int, int> pos_cpp = grid.idx_2_pos(vec[j]);
+        py::tuple pos = py::make_tuple(pos_cpp.first, pos_cpp.second);
+        pylist.append(pos);
+    }
+    return pylist;
+}
+
 py::array_t<int> as_2d_numpy_array(int* distribution, int width) {
     constexpr size_t element_size = sizeof(int);
     size_t shape[2]{ width, width };
@@ -304,6 +328,27 @@ PYBIND11_MODULE(dbr_cpp, module) {
 			convert_from_numpy_array(lookup_table, float_array, width, height);
 			dynamics.resource_grid.set_dist_lookup_table(float_array, species);
 		})
+        .def("get_forest_clusters", [](Dynamics& dynamics) {
+            vector<ForestCluster>& _clusters = dynamics.state.grid.clusters;
+            Grid& grid = dynamics.state.grid;
+            py::list clusters;
+            for (size_t i = 0; i < _clusters.size(); i++) {
+                py::dict cluster;
+                py::list perimeter = convert_from_idx_pair_vector_to_position_pylist(_clusters[i].perimeter, dynamics.state.grid);
+                py::list cells = convert_from_idx_vector_to_position_pylist(_clusters[i].cells, dynamics.state.grid);
+				
+                // Assemble cluster info into a dictionary
+                cluster["id"] = py::int_(_clusters[i].id);
+                cluster["area"] = py::float_(_clusters[i].area);
+                cluster["cells"] = cells;
+                cluster["perimeter"] = perimeter;
+                cluster["perimeter_length"] = _clusters[i].perimeter_length;
+                cluster["centroid"] = py::make_tuple(_clusters[i].centroid_x, _clusters[i].centroid_y);
+
+                clusters.append(cluster);
+			}
+            return clusters;
+        })
         .def("get_fraction_time_spent_moving", [](Dynamics& dynamics) {
 			return dynamics.fraction_time_spent_moving;
 		})

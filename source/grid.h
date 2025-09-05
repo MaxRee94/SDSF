@@ -272,17 +272,30 @@ public:
 class ForestCluster {
 public:
 	ForestCluster() = default;
-	ForestCluster(int centr_x, int centr_y, int centr_idx, vector<int> _cells) {
+	ForestCluster(
+		int centr_x, int centr_y, int centr_idx, vector<int> _cells, vector<pair<int, int>> _perimeter,
+		float _cell_width, int _id
+	) {
 		centroid_idx = centr_idx;
 		centroid_x = centr_x;
 		centroid_y = centr_y;
 		cells = _cells;
+		perimeter = _perimeter;
+		cell_width = _cell_width;
+		id = _id;
+		perimeter_length = (float)perimeter.size() * cell_width;
+		area = cells.size() * cell_width * cell_width;
 	};
 	vector<int> cells;
+	vector<pair<int, int>> perimeter; // Indices of forest-savanna pairs on the edge of the cluster.
 	vector<int> centroid;
 	int centroid_idx = -1;
 	int centroid_x = -1;
 	int centroid_y = -1;
+	int id = -1;
+	float cell_width = 0;
+	float perimeter_length = 0;
+	float area = 0;
 };
 
 
@@ -634,7 +647,7 @@ public:
 	bool valid_coordinates(int x, int y) {
 		return (x >= 0 && x < width && y >= 0 && y < width);
 	}
-	void get_forest_clusters(vector<ForestCluster> &clusters) {
+	void get_forest_clusters() {
 		std::vector<std::vector<bool>> visited(width, std::vector<bool>(width, false));
 
 		// Directions for 4-neighbor connectivity
@@ -648,6 +661,7 @@ public:
 					// Start BFS for a new cluster
 					std::queue<std::pair<int, int>> q;
 					std::vector<int> cell_indices;
+					vector<pair<int, int>> perimeter;
 
 					q.push({ x, y });
 					visited[x][y] = true;
@@ -674,6 +688,11 @@ public:
 								visited[nx][ny] = true;
 								q.push({ nx, ny });
 							}
+							else if (valid_coordinates(nx, ny) && !is_forest(nx, ny)) {
+								// If the coordinate is valid but it is a savanna cell, we've encountered a forest-savanna edge.
+								int savanna_cell_idx = pos_2_idx(pair(nx, ny));
+								perimeter.push_back(pair<int, int>(index, savanna_cell_idx));
+							}
 						}
 					}
 
@@ -683,7 +702,7 @@ public:
 					int centroid_idx = pos_2_idx(pair<int, int>(round(centroid_x), round(centroid_y)));
 
 					// Create ForestCluster
-					clusters.push_back(ForestCluster(centroid_x, centroid_y, centroid_idx, cell_indices));
+					clusters.push_back(ForestCluster(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, clusters.size()));
 				}
 			}
 		}
@@ -720,6 +739,7 @@ public:
 	float cell_area_inv = 0;
 	float cell_area_half = 0;
 	float cell_halfdiagonal_sqrt = 0;
+	vector<ForestCluster> clusters;
 	shared_ptr<pair<int, int>[]> neighbor_offsets = 0;
 };
 
