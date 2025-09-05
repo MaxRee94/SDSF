@@ -398,8 +398,8 @@ public:
 		int y = idx / width;
 		return pair<int, int>(x, y);
 	}
-	float get_tree_cover() {
-		tree_cover = (float)no_forest_cells / (float)(no_cells);
+	double get_tree_cover() {
+		tree_cover = (double)no_forest_cells / (double)(no_cells);
 		return tree_cover;
 	}
 	Cell* get_cell_at_position(pair<int, int> pos) {

@@ -30,7 +30,7 @@ def export_state(
         args=None
     ):
     fieldnames = [
-        "time", "tree_cover", "slope", "population_size", "#seeds_produced", "fires", "top_kills", "nonseedling_top_kills", "deaths",
+        "time", "treecover", "slope", "population_size", "#seeds_produced", "fires", "top_kills", "nonseedling_top_kills", "deaths",
         "trees[dbh_0-20%]", "trees[dbh_20-40%]", "trees[dbh_40-60%]", "trees[dbh_60-80%]", "trees[dbh_80-100%]", "extra_parameters",
         "firefree_interval_mean", "firefree_interval_stdev", "firefree_interval_full_sim_mean", "firefree_interval_full_sim_stdev", "time_spent_moving",
         "shaded_out", "outcompeted_by_seedlings", "outcompeted_by_oldstems", "initial_no_dispersals",
@@ -70,7 +70,7 @@ def export_state(
         fires = "|".join([str(fire) for fire in fires])
         result = {
             "time": str(dynamics.time),
-            "tree_cover": str(dynamics.state.grid.get_tree_cover()), 
+            "treecover": str(dynamics.state.grid.get_tree_cover()), 
             "slope": str(tree_cover_slope),
             "population_size": str(dynamics.state.population.size()),
             "#seeds_produced": str(dynamics.seeds_produced),

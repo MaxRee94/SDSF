@@ -200,9 +200,14 @@ public:
 				thin_crowds(true);
 			}*/
 
-			if (population.size() % 10000 == 0) {
-				repopulate_grid(0);
-				printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
+
+			if (population.size() % 10000 == 0 || grid.get_tree_cover() > 0.9999 * target_cover) {
+				double diff_with_target = grid.get_tree_cover() - target_cover;
+				if (diff_with_target > 0.000001) {
+					grid.kill_tree_domain(tree, false); // Remove last tree if we overshot the target cover by too much.
+					printf("Overshot target cover by >0.0001%% (%f %%), removing tree with id %i.\n", diff_with_target * 100.0f, tree->id);
+				}
+				printf("Current tree cover: %f (target=%f), current population size: %i\n", grid.get_tree_cover(), target_cover, population.size());
 			}
 		}
 		printf("Final tree cover: %f\n", grid.tree_cover);
@@ -246,9 +251,6 @@ public:
 			continue;
 		}
 		printf("Final tree cover: %f\n", grid.tree_cover);
-		printf("Wind trees: %i, Animal trees: %i\n", wind_trees, animal_trees);
-		printf("First tree's strategy: \n");
-		population.get_crop(10)->strategy.print();
 
 		// Count no small trees
 		int no_small = 0;

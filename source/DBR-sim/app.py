@@ -20,10 +20,10 @@ from helpers import *
 from config import *
 import controllable_pattern_generator as cpg
 
-
 #from x64.Debug import dbr_cpp as cpp
 from x64.Release import dbr_cpp as cpp
 
+print(cpp.__file__)
 
 def unpack_control_keys(control_variable):
     control_keys = control_variable.split("->")

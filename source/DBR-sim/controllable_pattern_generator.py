@@ -47,7 +47,7 @@ def compute_area_normalization_factor(contour, center, base_radius, global_area_
     circle_area = math.pi * base_radius * base_radius
     if global_area_normalization_factor is not None:
         # Use global normalization factor if provided, to correct for small consistencies in the area of the generated pattern.
-        cpgn.area_normalization_factor = 1.0 / (math.sqrt(circle_area / (area * global_area_normalization_factor)))
+        cpgn.area_normalization_factor = 1.0 / (math.sqrt(circle_area / (area * max(1e-10, global_area_normalization_factor))))
     else:
         cpgn.area_normalization_factor = 1.0 / (math.sqrt(circle_area / area))
 
@@ -378,6 +378,7 @@ def create_image(**kwargs):
                 if abs(error) < best_version[0]:
                     best_version = [abs(error), iterative_correction_factor, img, positions, radii, stripe_metadata, benchmark_cover]
                 iterative_correction_factor += error_sign * _stepsize
+                iterative_correction_factor = max(-0.9, iterative_correction_factor)
                 idx += 1
                 if (idx+1) % 10 == 0:
                     print(f"Optimizing area correction iteratively... iteration {idx+1} (maximum is {max_iters}).")
