@@ -644,9 +644,6 @@ public:
 		}
 		return cumulative_load;
 	}
-	bool valid_coordinates(int x, int y) {
-		return (x >= 0 && x < width && y >= 0 && y < width);
-	}
 	void get_forest_clusters() {
 		std::vector<std::vector<bool>> visited(width, std::vector<bool>(width, false));
 
@@ -674,7 +671,8 @@ public:
 						q.pop();
 
 						// Add to cluster
-						int index = pos_2_idx(pair(cx, cy));
+						pair<int, int> pos(cx, cy);
+						int index = pos_2_idx(pos);
 						cell_indices.push_back(index);
 
 						sum_x += cx;
@@ -684,11 +682,18 @@ public:
 						// Explore neighbors
 						for (auto [dx, dy] : directions) {
 							int nx = cx + dx, ny = cy + dy;
-							if (valid_coordinates(nx, ny) && !visited[nx][ny] && is_forest(nx, ny)) {
+
+							// Correct for periodic boundaries
+							pair<int, int> neighbor(nx, ny);
+							cap(neighbor);
+							nx = neighbor.first;
+							ny = neighbor.second;
+
+							if (!visited[nx][ny] && is_forest(nx, ny)) {
 								visited[nx][ny] = true;
 								q.push({ nx, ny });
 							}
-							else if (valid_coordinates(nx, ny) && !is_forest(nx, ny)) {
+							else if (!is_forest(nx, ny)) {
 								// If the coordinate is valid but it is a savanna cell, we've encountered a forest-savanna edge.
 								int savanna_cell_idx = pos_2_idx(pair(nx, ny));
 								perimeter.push_back(pair<int, int>(index, savanna_cell_idx));
