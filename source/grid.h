@@ -422,6 +422,11 @@ public:
 			no_forest_cells += distribution[i].state;
 		}
 	}
+	void redo_state_assignment() {
+		for (int i = 0; i < no_cells; i++) {
+			distribution[i].state = is_forest(distribution[i].get_LAI());
+		}
+	}
 	pair<int, int> idx_2_pos(int idx) {
 		int x = idx % width;
 		int y = idx / width;
@@ -555,6 +560,8 @@ public:
 		for (int i = 0; i < no_cells; i++) {
 			update_grass_LAI(&distribution[i]);
 		}
+		redo_state_assignment();
+		redo_count();
 	}
 	void update_grass_LAIs_for_individual_tree(Tree* tree) {
 		TreeDomainIterator it(cell_width, tree);
@@ -652,9 +659,20 @@ public:
 			{1,0}, {-1,0}, {0,1}, {0,-1}
 		};
 
-		for (int x = 0; x < width; ++x) {
-			for (int y = 0; y < width; ++y) {
-				if (!visited[x][y] && is_forest(x, y)) {
+		for (int x = 0; x < width; x++) {
+			for (int y = 0; y < width; y++) {
+				if ((!visited[x][y]) && is_forest(x, y)) {
+					// DEBUGGING
+					for (int i = 0; i < clusters.size(); i++) {
+						if (clusters[i].cells.size() > 200000) {
+							printf("------ A large cluster was already found.\n");
+							int start_idx = pos_2_idx(pair<int, int>(x, y));
+							if (help::is_in(&clusters[i].cells, start_idx)) {
+								printf("------ ERROR: A large cluster was found to already contain cell (%i, %i), on which we intend to run BFS.\n", x, y);
+							}
+						}
+					}
+
 					// Start BFS for a new cluster
 					std::queue<std::pair<int, int>> q;
 					std::vector<int> cell_indices;
@@ -674,6 +692,7 @@ public:
 						pair<int, int> pos(cx, cy);
 						int index = pos_2_idx(pos);
 						cell_indices.push_back(index);
+						visited[cx][cy] = true;
 
 						sum_x += cx;
 						sum_y += cy;
@@ -686,15 +705,18 @@ public:
 							// Correct for periodic boundaries
 							pair<int, int> neighbor(nx, ny);
 							cap(neighbor);
+							/*if (neighbor.first != nx || neighbor.second != ny) {
+								printf("cap: (%i, %i) --> (%i, %i)\n", nx, ny, neighbor.first, neighbor.second);
+							}*/
 							nx = neighbor.first;
 							ny = neighbor.second;
 
-							if (!visited[nx][ny] && is_forest(nx, ny)) {
+							if ((!visited[nx][ny]) && is_forest(nx, ny)) {
 								visited[nx][ny] = true;
 								q.push({ nx, ny });
 							}
 							else if (!is_forest(nx, ny)) {
-								// If the coordinate is valid but it is a savanna cell, we've encountered a forest-savanna edge.
+								// If the neighbor is a savanna cell, we've encountered a forest-savanna edge.
 								int savanna_cell_idx = pos_2_idx(pair(nx, ny));
 								perimeter.push_back(pair<int, int>(index, savanna_cell_idx));
 							}

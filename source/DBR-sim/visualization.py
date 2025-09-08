@@ -96,6 +96,25 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
         color_dict[-5] = red
         color_dict[-6] = red
         color_dict[-7] = savanna_color
+    elif distr_type == "colored_patches":
+        color_dict[0] = savanna_color
+        color_dict[-5] = savanna_color
+        color_dict[-6] = savanna_color
+        color_dict[-7] = savanna_color
+        max_no_patches = 20
+        color_step = 255 / max_no_patches
+        for i in range(max_no_patches):
+            r_peak = max_no_patches / 6
+            g_peak = max_no_patches / 2
+            b_peak = 5 * max_no_patches / 6
+            r = ((max_no_patches / 2 - (i - r_peak)**2) * color_step) * 2
+            g = ((max_no_patches / 2 - (i - g_peak)**2) * color_step) * 2
+            b = ((max_no_patches / 2 - (i - b_peak)**2) * color_step) * 2
+            r = max(0, r)
+            g = max(0, g)
+            b = max(0, b)
+            color = np.array((r, g, b), np.uint8)
+            color_dict[-10 - i] = color
         
     return color_dict
 

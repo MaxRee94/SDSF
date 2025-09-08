@@ -121,7 +121,8 @@ defaults = {
     "circular_image_fraction_pixels": None,
     "global_area_normalization_factor": None,
     "global_rotation_offset": None,
-    "enforce_area_constancy": True
+    "enforce_area_constancy": True,
+    "colored_patches": False
 }
 
 gui_defaults = {
@@ -867,7 +868,17 @@ _parameter_config = {
             """,
             "default": defaults["override_image_treecover"],
         }
-    }
+    },
+    "colored_patches": {
+        "keys": {
+            "cli": ["--colored_patches", "-colpat"]
+        },
+        "settings": {
+            "type": bool,
+            "help": "Color each forest patch separately, so they can be visually identified.",
+            "default": defaults["colored_patches"],
+        }
+    },
 }
 
 class ParameterConfig():

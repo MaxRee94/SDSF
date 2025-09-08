@@ -177,8 +177,8 @@ public:
 		}
 
 		// Set tree cover
-		int no_crowd_thinning_runs = 0;
-		int max_no_crowd_thinning_runs = 10;
+		int no_overshoot_correction_runs = 0;
+		int max_no_overshoot_correction_runs = 10;
 		while (grid.get_tree_cover() < target_cover) {
 			int idx = probmodel.sample();
 			if (image[idx] < 0.01f) continue; // Skip empty cells (these correspond to black pixels in the image)
@@ -192,16 +192,9 @@ public:
 			}
 			grid.populate_tree_domain(tree);
 			grid.update_grass_LAIs_for_individual_tree(tree);
-			
 
-			// Thin crowds when close to target tree cover
-			/*if (grid.tree_cover > 0.95f * integral_image_cover && no_crowd_thinning_runs < max_no_crowd_thinning_runs) {
-				no_crowd_thinning_runs++;
-				thin_crowds(true);
-			}*/
-
-
-			if (population.size() % 10000 == 0 || grid.get_tree_cover() > 0.9999 * target_cover) {
+			if (no_overshoot_correction_runs < max_no_overshoot_correction_runs && (population.size() % 10000 == 0 || grid.get_tree_cover() > 0.9999 * target_cover)) {
+				no_overshoot_correction_runs++;
 				double diff_with_target = grid.get_tree_cover() - target_cover;
 				if (diff_with_target > 0.000001) {
 					grid.kill_tree_domain(tree, false); // Remove last tree if we overshot the target cover by too much.

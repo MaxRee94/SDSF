@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import sys
-from tkinter import N
+from tkinter import N, Y
 
 import cv2
 import numpy as np
@@ -140,11 +140,13 @@ def init(user_args):
     color_dict_recruitment = vis.get_color_dict(no_colors, begin=0.2, end=0.5, distr_type="recruitment")
     color_dict_fire_freq = vis.get_color_dict(10, begin=0.2, end=0.5, distr_type="fire_freq")
     color_dict_blackwhite = vis.get_color_dict(no_colors, distr_type="blackwhite")
+    color_dict_colored_patches = vis.get_color_dict(no_colors, distr_type="colored_patches")
     color_dicts = {}
     color_dicts["normal"] = color_dict
     color_dicts["recruitment"] = color_dict_recruitment
     color_dicts["fire_freq"] = color_dict_fire_freq
     color_dicts["blackwhite"] = color_dict_blackwhite
+    color_dicts["colored_patches"] = color_dict_colored_patches
     
     # Visualize the initial state
     collect_states = True
@@ -196,7 +198,7 @@ def termination_condition_satisfied(dynamics, start_time, user_args):
     return satisfied
 
 
-def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, user_args):
+def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, clusters, user_args):
     if ("recruitment" in visualization_types):
         print("Saving recruitment img...") if verbose else None
         recruitment_img = vis.get_image_from_grid(dynamics.state.grid, 0, color_dicts["recruitment"])
@@ -210,6 +212,20 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
             fire_freq_img = vis.get_fire_freq_image(fire_freq_arrays[-fire_no_timesteps:], color_dicts["fire_freq"], dynamics.state.grid.width, fire_no_timesteps)
             imagepath_fire_freq = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fire_frequencies/" + str(dynamics.time) + ".png")
             vis.save_image(fire_freq_img, imagepath_fire_freq, get_max(1000, fire_freq_img.shape[0]))
+
+    if ("colored_patches" in visualization_types):
+        # Modify color array to give patches distinct colors
+        patch_colors_indices = dynamics.state.grid.get_distribution(False)
+        for i, cluster in enumerate(clusters):
+            for cell in cluster["cells"]:
+                patch_colors_indices[cell[1]][cell[0]] = -10 - i
+
+
+        print("Saving colored patches img...") if verbose else None
+        colored_patches_img = vis.get_image(patch_colors_indices, color_dicts["colored_patches"], dynamics.state.grid.width)
+        imagepath_colored_patches = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/colored_patches/" + str(dynamics.time) + ".png")
+        vis.save_image(colored_patches_img, imagepath_colored_patches, get_max(1000, colored_patches_img.shape[0]), interpolation="none")
+
 
     print("-- Visualizing image...") if verbose else None
     if user_args["headless"]:
@@ -245,7 +261,7 @@ def updateloop(dynamics, color_dicts, **user_args):
     csv_path = user_args["csv_path"]
     visualization_types = []
     #visualization_types = ["fire_freq"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
-    visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
+    visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI", "colored_patches"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     #visualization_types = ["recruitment"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
     init_csv = True
     prev_tree_cover = [user_args["treecover"]] * 60
@@ -280,19 +296,20 @@ def updateloop(dynamics, color_dicts, **user_args):
             slope = 0
         do_terminate = termination_condition_satisfied(dynamics, start, user_args)
         
-        # Do visualizations
-        if not user_args["headless"]:
-            do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, user_args)
-        
-        print("-- Exporting state_data...") if verbose else None
-        csv_path = io.export_state(dynamics, csv_path, init_csv, tree_cover_slope=slope, args=SimpleNamespace(**user_args))
-        init_csv = False
-        
         # WIP: Obtain forest cluster perimeters from simulation
         clusters = dynamics.get_forest_clusters()
         for cluster in clusters:
             print(f"No cells in cluster {cluster['id']}: {len(cluster['cells'])}, example cell position: ({cluster['cells'][0]}), \n" +
                   f"centroid: ({cluster['centroid'][0], cluster['centroid'][1]}, area: {cluster['area']} m^2, perimeter length: {cluster['perimeter_length']} m.")
+        
+        # Do visualizations
+        if not user_args["headless"]:
+            do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, clusters, user_args)
+        
+        print("-- Exporting state_data...") if verbose else None
+        csv_path = io.export_state(dynamics, csv_path, init_csv, tree_cover_slope=slope, args=SimpleNamespace(**user_args))
+        init_csv = False
+        
         
         print("-- Saving tree positions...") if verbose else None
         #io.save_state(dynamics)
