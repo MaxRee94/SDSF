@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 import time
+import colorsys
 import random
 import controllable_pattern_generator as cpg
 from PIL import Image
@@ -59,6 +60,24 @@ def reshuffle_perlin_noise():
     random.shuffle(perm)
     perm += perm
 
+def get_most_distinct_index(existing_colors, maximum_possible_no_colors, offset):
+    dist = 1e10
+    best_dist = 0
+    best_index = offset
+    if not existing_colors:
+        return offset
+    for i in range(offset - maximum_possible_no_colors + 1, offset):
+        # Get closest distance to other color indices
+        for color in existing_colors:
+            _dist = abs(color - i)
+            if _dist < dist:
+                dist = _dist
+            #print("index: ", i, f" dist to {color}: ", dist)
+        if dist > best_dist:
+            best_dist = dist
+            best_index = i
+        dist = 1e10
+    return best_index
 
 def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
     color_dict = {}
@@ -101,8 +120,14 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
         color_dict[-5] = savanna_color
         color_dict[-6] = savanna_color
         color_dict[-7] = savanna_color
-        max_no_patches = 20
+        max_no_patches = 100
         color_step = 255 / max_no_patches
+
+        # Other way to generate color range
+        HSV_tuples = [(x*1.0/max_no_patches, 0.5, 0.5) for x in range(max_no_patches)]
+        RGB_tuples = map(lambda x: colorsys.hsv_to_rgb(*x), HSV_tuples)
+        RGB_tuples = list(RGB_tuples)
+
         for i in range(max_no_patches):
             r_peak = 0
             g_peak = max_no_patches / 3
@@ -124,7 +149,7 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
             
             print("color: ", color)
             
-            color_dict[-10 - i] = color
+            color_dict[-10 - i] = RGB_tuples[i]
         
     return color_dict
 

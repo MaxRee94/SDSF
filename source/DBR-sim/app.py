@@ -198,7 +198,7 @@ def termination_condition_satisfied(dynamics, start_time, user_args):
     return satisfied
 
 
-def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, clusters, user_args):
+def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, clusters, cluster_color_ids, user_args):
     if ("recruitment" in visualization_types):
         print("Saving recruitment img...") if verbose else None
         recruitment_img = vis.get_image_from_grid(dynamics.state.grid, 0, color_dicts["recruitment"])
@@ -217,10 +217,19 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         # Modify color array to give patches distinct colors
         patch_colors_indices = dynamics.state.grid.get_distribution(False)
         for i, cluster in enumerate(clusters):
+            if cluster["area"] < 50: # Only consider clusters > 50 m^2
+                continue
+            cluster_id = cluster["id"]
+            print("--- cluster_color_ids", cluster_color_ids)
+            if not cluster_color_ids.get(str(cluster_id)):
+                print("col offset:", vis.get_most_distinct_index(list(cluster_color_ids.values()), 100, -10))
+                color_idx = vis.get_most_distinct_index(list(cluster_color_ids.values()), 100, -10)
+                cluster_color_ids[str(cluster_id)] = color_idx # Assign a new color index to the cluster
+            cluster_color_id = cluster_color_ids[str(cluster_id)]
             for cell in cluster["cells"]:
-                patch_colors_indices[cell[1]][cell[0]] = -10 - i
+                patch_colors_indices[cell[1]][cell[0]] = cluster_color_id
 
-
+        
         print("Saving colored patches img...") if verbose else None
         colored_patches_img = vis.get_image(patch_colors_indices, color_dicts["colored_patches"], dynamics.state.grid.width)
         imagepath_colored_patches = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/colored_patches/" + str(dynamics.time) + ".png")
@@ -270,6 +279,7 @@ def updateloop(dynamics, color_dicts, **user_args):
     export_animal_resources = False
     collect_states = 1
     fire_no_timesteps = 1
+    cluster_colors = {}
     verbose = user_args["verbosity"]
     fire_freq_arrays = []
     color_dict_fire_freq = vis.get_color_dict(fire_no_timesteps, begin=0.2, end=0.5, distr_type="fire_freq")
@@ -304,7 +314,7 @@ def updateloop(dynamics, color_dicts, **user_args):
         
         # Do visualizations
         if not user_args["headless"]:
-            do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, clusters, user_args)
+            do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, clusters, cluster_colors, user_args)
         
         print("-- Exporting state_data...") if verbose else None
         csv_path = io.export_state(dynamics, csv_path, init_csv, tree_cover_slope=slope, args=SimpleNamespace(**user_args))

@@ -78,8 +78,9 @@ public:
 		if (verbosity > 0) printf("Induced background mortality. Repopulating grid...\n");
 
 		// WIP: Obtain forest clusters, report their sizes, their perimeter lengths, and the sizes of the neighboring savanna areas.
-		state.grid.get_forest_clusters();
 		vector<ForestCluster>& clusters = state.grid.clusters;
+		clusters.clear(); // Temporary: Find clusters from scratch every iteration.
+		state.grid.get_forest_clusters();
 		for (int i = 0; i < state.grid.clusters.size(); i++) {
 			if (verbosity > 0) {
 				printf("Cluster with centroid (%i, %i): No cells: %i, Perimeter length: %f \n", 
