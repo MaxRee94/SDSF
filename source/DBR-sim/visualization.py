@@ -104,16 +104,26 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
         max_no_patches = 20
         color_step = 255 / max_no_patches
         for i in range(max_no_patches):
-            r_peak = max_no_patches / 6
-            g_peak = max_no_patches / 2
-            b_peak = 5 * max_no_patches / 6
-            r = ((max_no_patches / 2 - (i - r_peak)**2) * color_step) * 2
-            g = ((max_no_patches / 2 - (i - g_peak)**2) * color_step) * 2
-            b = ((max_no_patches / 2 - (i - b_peak)**2) * color_step) * 2
+            r_peak = 0
+            g_peak = max_no_patches / 3
+            b_peak = max_no_patches
+            r = ((max_no_patches / 2 - ((i - r_peak)/3)**2) * color_step) * 2
+            g = ((max_no_patches / 2 - ((i - g_peak)/4)**2) * color_step)
+            b = ((max_no_patches / 2 - ((i - b_peak)/3)**2) * color_step) * 2
             r = max(0, r)
             g = max(0, g)
             b = max(0, b)
             color = np.array((r, g, b), np.uint8)
+            
+            # Normalize color to an integral of 500
+            integral = r + g + b
+            print("float color: ", color)
+            print("intermediate color: ", color.astype(np.float32) / float(integral))
+            color = (color.astype(np.float32) / float(integral)) * 500.0
+            color = np.minimum(color, np.array((255, 255, 255), np.uint8)).astype(np.uint8) # Cap each value at 255
+            
+            print("color: ", color)
+            
             color_dict[-10 - i] = color
         
     return color_dict
