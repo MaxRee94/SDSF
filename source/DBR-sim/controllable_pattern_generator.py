@@ -277,9 +277,27 @@ def draw_sinusoidal_stripe(img, p1, p2, radius, amplitude, wavelength, n_points=
     cv2.fillPoly(img, [ribbon], 255)
 
 
+def adjust_args_to_gridwidth(args):
+    args.mean_radius = (args.mean_radius / args.grid_width) * 1000.0
+    args.cv_radius = (args.cv_radius / args.grid_width) * 1000.0
+    args.mean_distance = (args.mean_distance / args.grid_width) * 1000.0
+    args.cv_distance = (args.cv_distance / args.grid_width) * 1000.0
+    args.sine_amp1 = (args.sine_amp1 / args.grid_width) * 1000.0
+    args.sine_amp2 = (args.sine_amp2 / args.grid_width) * 1000.0
+    print("mean radius: ", args.mean_radius)
+    print("cv_radius: ", args.cv_radius)
+    print("mean_distance: ", args.mean_distance)
+    print("cv_distance: ", args.cv_distance)
+    print("sine_amp1: ", args.sine_amp1)
+    print("sine_amp2: ", args.sine_amp2)
+    return args
+
+
 def create_image(**kwargs):
     args = SimpleNamespace(**kwargs)
     args.global_rotation_offset = random.randint(0, 100000)
+    if not kwargs.get("recursive_call"):
+        args = adjust_args_to_gridwidth(args)
     
     if args.grid_type == "hex":
         if args.enforce_distance_uniformity:
@@ -351,6 +369,7 @@ def create_image(**kwargs):
             args.sine_amp2 = 0
 
             # Generate the circular pattern
+            args.recursive_call=True
             img, _, _, _, _ = create_image(**vars(args))
             args.circular_image_fraction_pixels = fraction_white_pixels(img)
             benchmark_cover = args.circular_image_fraction_pixels
@@ -456,6 +475,7 @@ def plot_periodic_neighbor_distances(positions, image_size, mean_distance, k=6):
 if __name__ == "__main__":
     params = {
         "image_size": (1000, 1000),
+        "grid_width": 1000,
         "mean_radius": 50,
         "cv_radius": 0,
         "mean_distance": 200,
