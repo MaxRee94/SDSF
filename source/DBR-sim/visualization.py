@@ -60,6 +60,14 @@ def reshuffle_perlin_noise():
     random.shuffle(perm)
     perm += perm
 
+def number_to_rgb(n: int, i: int) -> tuple[int, int, int]:
+    # Normalize i to [0,1]
+    hue = i / float(n) 
+    # Use full saturation and brightness
+    r, g, b = colorsys.hsv_to_rgb(hue, 1, 1)
+    # Scale to 0–255
+    return int(r * 255), int(g * 255), int(b * 255)
+
 def get_most_distinct_index(existing_colors, maximum_possible_no_colors, offset):
     dist = 1e10
     best_dist = 0
@@ -121,35 +129,9 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
         color_dict[-6] = savanna_color
         color_dict[-7] = savanna_color
         max_no_patches = 100
-        color_step = 255 / max_no_patches
 
-        # Other way to generate color range
-        HSV_tuples = [(x*1.0/max_no_patches, 0.5, 0.5) for x in range(max_no_patches)]
-        RGB_tuples = map(lambda x: colorsys.hsv_to_rgb(*x), HSV_tuples)
-        RGB_tuples = list(RGB_tuples)
-
-        for i in range(max_no_patches):
-            r_peak = 0
-            g_peak = max_no_patches / 3
-            b_peak = max_no_patches
-            r = ((max_no_patches / 2 - ((i - r_peak)/3)**2) * color_step) * 2
-            g = ((max_no_patches / 2 - ((i - g_peak)/4)**2) * color_step)
-            b = ((max_no_patches / 2 - ((i - b_peak)/3)**2) * color_step) * 2
-            r = max(0, r)
-            g = max(0, g)
-            b = max(0, b)
-            color = np.array((r, g, b), np.uint8)
-            
-            # Normalize color to an integral of 500
-            integral = r + g + b
-            print("float color: ", color)
-            print("intermediate color: ", color.astype(np.float32) / float(integral))
-            color = (color.astype(np.float32) / float(integral)) * 500.0
-            color = np.minimum(color, np.array((255, 255, 255), np.uint8)).astype(np.uint8) # Cap each value at 255
-            
-            print("color: ", color)
-            
-            color_dict[-10 - i] = RGB_tuples[i]
+        for i in range(max_no_patches):         
+            color_dict[-10 - i] = number_to_rgb(max_no_patches, i)
         
     return color_dict
 

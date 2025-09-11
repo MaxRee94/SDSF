@@ -662,16 +662,16 @@ public:
 		for (int x = 0; x < width; x++) {
 			for (int y = 0; y < width; y++) {
 				if ((!visited[x][y]) && is_forest(x, y)) {
-					// DEBUGGING
-					for (int i = 0; i < clusters.size(); i++) {
-						if (clusters[i].cells.size() > 200000) {
-							printf("------ A large cluster was already found.\n");
-							int start_idx = pos_2_idx(pair<int, int>(x, y));
-							if (help::is_in(&clusters[i].cells, start_idx)) {
-								printf("------ ERROR: A large cluster was found to already contain cell (%i, %i), on which we intend to run BFS.\n", x, y);
-							}
-						}
-					}
+					//// DEBUGGING
+					//for (int i = 0; i < clusters.size(); i++) {
+					//	if (clusters[i].cells.size() > 200000) {
+					//		printf("------ A large cluster was already found.\n");
+					//		int start_idx = pos_2_idx(pair<int, int>(x, y));
+					//		if (help::is_in(&clusters[i].cells, start_idx)) {
+					//			printf("------ ERROR: A large cluster was found to already contain cell (%i, %i), on which we intend to run BFS.\n", x, y);
+					//		}
+					//	}
+					//}
 
 					// Start BFS for a new cluster
 					std::queue<std::pair<int, int>> q;

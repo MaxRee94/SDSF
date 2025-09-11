@@ -214,23 +214,21 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
             vis.save_image(fire_freq_img, imagepath_fire_freq, get_max(1000, fire_freq_img.shape[0]))
 
     if ("colored_patches" in visualization_types):
+        print("Creating colored patches image...") if verbose else None
         # Modify color array to give patches distinct colors
         patch_colors_indices = dynamics.state.grid.get_distribution(False)
         for i, cluster in enumerate(clusters):
             if cluster["area"] < 50: # Only consider clusters > 50 m^2
                 continue
             cluster_id = cluster["id"]
-            print("--- cluster_color_ids", cluster_color_ids)
             if not cluster_color_ids.get(str(cluster_id)):
-                print("col offset:", vis.get_most_distinct_index(list(cluster_color_ids.values()), 100, -10))
-                color_idx = vis.get_most_distinct_index(list(cluster_color_ids.values()), 100, -10)
+                color_idx = -10 - random.randint(0, 99)
                 cluster_color_ids[str(cluster_id)] = color_idx # Assign a new color index to the cluster
             cluster_color_id = cluster_color_ids[str(cluster_id)]
             for cell in cluster["cells"]:
                 patch_colors_indices[cell[1]][cell[0]] = cluster_color_id
 
         
-        print("Saving colored patches img...") if verbose else None
         colored_patches_img = vis.get_image(patch_colors_indices, color_dicts["colored_patches"], dynamics.state.grid.width)
         imagepath_colored_patches = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/colored_patches/" + str(dynamics.time) + ".png")
         vis.save_image(colored_patches_img, imagepath_colored_patches, get_max(1000, colored_patches_img.shape[0]), interpolation="none")
@@ -308,9 +306,10 @@ def updateloop(dynamics, color_dicts, **user_args):
         
         # WIP: Obtain forest cluster perimeters from simulation
         clusters = dynamics.get_forest_clusters()
-        for cluster in clusters:
-            print(f"No cells in cluster {cluster['id']}: {len(cluster['cells'])}, example cell position: ({cluster['cells'][0]}), \n" +
-                  f"centroid: ({cluster['centroid'][0], cluster['centroid'][1]}, area: {cluster['area']} m^2, perimeter length: {cluster['perimeter_length']} m.")
+        if verbose:
+            for cluster in clusters:
+                print(f"No cells in cluster {cluster['id']}: {len(cluster['cells'])}, example cell position: ({cluster['cells'][0]}), \n" +
+                    f"centroid: ({cluster['centroid'][0], cluster['centroid'][1]}, area: {cluster['area']} m^2, perimeter length: {cluster['perimeter_length']} m.")
         
         # Do visualizations
         if not user_args["headless"]:
