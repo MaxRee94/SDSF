@@ -77,17 +77,7 @@ public:
 		induce_background_mortality();
 		if (verbosity > 0) printf("Induced background mortality. Repopulating grid...\n");
 
-		// WIP: Obtain forest clusters, report their sizes, their perimeter lengths, and the sizes of the neighboring savanna areas.
-		vector<ForestCluster>& clusters = state.grid.clusters;
-		clusters.clear(); // Temporary: Find clusters from scratch every iteration.
-		state.grid.get_forest_clusters();
-		for (int i = 0; i < state.grid.clusters.size(); i++) {
-			if (verbosity > 0) {
-				printf("Cluster with centroid (%i, %i): No cells: %i, Perimeter length: %f \n", 
-					clusters[i].centroid_x, clusters[i].centroid_y, clusters[i].cells.size(), clusters[i].perimeter_length
-				);
-			}
-		}
+		update_forest_patch_detection();
 
 		// Do post-simulation cleanup and data reporting
 		state.repopulate_grid(verbosity);
@@ -96,6 +86,20 @@ public:
 		report_state();
 
 		update_firefree_interval_averages();
+	}
+	void update_forest_patch_detection() {
+		// Obtain forest patches, report their sizes, their perimeter lengths, and the sizes of the neighboring savanna areas.
+
+		vector<ForestPatch>& patches = state.grid.patches;
+		patches.clear(); // Temporary: Find patches from scratch every iteration.
+		state.grid.get_forest_patches();
+		for (int i = 0; i < state.grid.patches.size(); i++) {
+			if (verbosity > 0) {
+				printf("patch with centroid (%i, %i): No cells: %i, Perimeter length: %f \n",
+					patches[i].centroid_x, patches[i].centroid_y, patches[i].cells.size(), patches[i].perimeter_length
+				);
+			}
+		}
 	}
 	void report_state() {
 		int grid_memory_size = 0;

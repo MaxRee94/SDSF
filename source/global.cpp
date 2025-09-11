@@ -328,26 +328,26 @@ PYBIND11_MODULE(dbr_cpp, module) {
 			convert_from_numpy_array(lookup_table, float_array, width, height);
 			dynamics.resource_grid.set_dist_lookup_table(float_array, species);
 		})
-        .def("get_forest_clusters", [](Dynamics& dynamics) {
-            vector<ForestCluster>& _clusters = dynamics.state.grid.clusters;
+        .def("get_forest_patches", [](Dynamics& dynamics) {
+            vector<ForestPatch>& _patches = dynamics.state.grid.patches;
             Grid& grid = dynamics.state.grid;
-            py::list clusters;
-            for (size_t i = 0; i < _clusters.size(); i++) {
-                py::dict cluster;
-                py::list perimeter = convert_from_idx_pair_vector_to_position_pylist(_clusters[i].perimeter, dynamics.state.grid);
-                py::list cells = convert_from_idx_vector_to_position_pylist(_clusters[i].cells, dynamics.state.grid);
+            py::list patches;
+            for (size_t i = 0; i < _patches.size(); i++) {
+                py::dict patch;
+                py::list perimeter = convert_from_idx_pair_vector_to_position_pylist(_patches[i].perimeter, dynamics.state.grid);
+                py::list cells = convert_from_idx_vector_to_position_pylist(_patches[i].cells, dynamics.state.grid);
 				
-                // Assemble cluster info into a dictionary
-                cluster["id"] = py::int_(_clusters[i].id);
-                cluster["area"] = py::float_(_clusters[i].area);
-                cluster["cells"] = cells;
-                cluster["perimeter"] = perimeter;
-                cluster["perimeter_length"] = _clusters[i].perimeter_length;
-                cluster["centroid"] = py::make_tuple(_clusters[i].centroid_x, _clusters[i].centroid_y);
+                // Assemble patch info into a dictionary
+                patch["id"] = py::int_(_patches[i].id);
+                patch["area"] = py::float_(_patches[i].area);
+                patch["cells"] = cells;
+                patch["perimeter"] = perimeter;
+                patch["perimeter_length"] = _patches[i].perimeter_length;
+                patch["centroid"] = py::make_tuple(_patches[i].centroid_x, _patches[i].centroid_y);
 
-                clusters.append(cluster);
+                patches.append(patch);
 			}
-            return clusters;
+            return patches;
         })
         .def("get_fraction_time_spent_moving", [](Dynamics& dynamics) {
 			return dynamics.fraction_time_spent_moving;

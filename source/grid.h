@@ -269,10 +269,10 @@ public:
 };
 
 
-class ForestCluster {
+class ForestPatch {
 public:
-	ForestCluster() = default;
-	ForestCluster(
+	ForestPatch() = default;
+	ForestPatch(
 		int centr_x, int centr_y, int centr_idx, vector<int> _cells, vector<pair<int, int>> _perimeter,
 		float _cell_width, int _id
 	) {
@@ -287,7 +287,7 @@ public:
 		area = cells.size() * cell_width * cell_width;
 	};
 	vector<int> cells;
-	vector<pair<int, int>> perimeter; // Indices of forest-savanna pairs on the edge of the cluster.
+	vector<pair<int, int>> perimeter; // Indices of forest-savanna pairs on the edge of the patch.
 	vector<int> centroid;
 	int centroid_idx = -1;
 	int centroid_x = -1;
@@ -651,7 +651,7 @@ public:
 		}
 		return cumulative_load;
 	}
-	void get_forest_clusters() {
+	void get_forest_patches() {
 		std::vector<std::vector<bool>> visited(width, std::vector<bool>(width, false));
 
 		// Directions for 4-neighbor connectivity
@@ -663,17 +663,17 @@ public:
 			for (int y = 0; y < width; y++) {
 				if ((!visited[x][y]) && is_forest(x, y)) {
 					//// DEBUGGING
-					//for (int i = 0; i < clusters.size(); i++) {
-					//	if (clusters[i].cells.size() > 200000) {
-					//		printf("------ A large cluster was already found.\n");
+					//for (int i = 0; i < patchs.size(); i++) {
+					//	if (patches[i].cells.size() > 200000) {
+					//		printf("------ A large patch was already found.\n");
 					//		int start_idx = pos_2_idx(pair<int, int>(x, y));
-					//		if (help::is_in(&clusters[i].cells, start_idx)) {
-					//			printf("------ ERROR: A large cluster was found to already contain cell (%i, %i), on which we intend to run BFS.\n", x, y);
+					//		if (help::is_in(&patches[i].cells, start_idx)) {
+					//			printf("------ ERROR: A large patch was found to already contain cell (%i, %i), on which we intend to run BFS.\n", x, y);
 					//		}
 					//	}
 					//}
 
-					// Start BFS for a new cluster
+					// Start BFS for a new patch
 					std::queue<std::pair<int, int>> q;
 					std::vector<int> cell_indices;
 					vector<pair<int, int>> perimeter;
@@ -688,7 +688,7 @@ public:
 						auto [cx, cy] = q.front();
 						q.pop();
 
-						// Add to cluster
+						// Add to patch
 						pair<int, int> pos(cx, cy);
 						int index = pos_2_idx(pos);
 						cell_indices.push_back(index);
@@ -728,8 +728,8 @@ public:
 					double centroid_y = static_cast<double>(sum_y) / count;
 					int centroid_idx = pos_2_idx(pair<int, int>(round(centroid_x), round(centroid_y)));
 
-					// Create ForestCluster
-					clusters.push_back(ForestCluster(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, clusters.size()));
+					// Create ForestPatch
+					patches.push_back(ForestPatch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, patches.size()));
 				}
 			}
 		}
@@ -766,7 +766,7 @@ public:
 	float cell_area_inv = 0;
 	float cell_area_half = 0;
 	float cell_halfdiagonal_sqrt = 0;
-	vector<ForestCluster> clusters;
+	vector<ForestPatch> patches;
 	shared_ptr<pair<int, int>[]> neighbor_offsets = 0;
 };
 
