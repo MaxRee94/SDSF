@@ -317,7 +317,7 @@ def updateloop(dynamics, color_dicts, **user_args):
         do_terminate = termination_condition_satisfied(dynamics, start, user_args)
         
         # WIP: Obtain forest patch perimeters from simulation
-        patches = dynamics.get_forest_patches()
+        patches = dynamics.get_patches()
         if verbose:
             for patch in patches:
                 print(f"No cells in patch {patch['id']}: {len(patch['cells'])}, example cell position: ({patch['cells'][0]}), \n" +

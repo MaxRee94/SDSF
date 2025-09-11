@@ -90,10 +90,10 @@ public:
 	void update_forest_patch_detection() {
 		// Obtain forest patches, report their sizes, their perimeter lengths, and the sizes of the neighboring savanna areas.
 
-		vector<ForestPatch>& patches = state.grid.patches;
+		vector<Patch>& patches = state.grid.forest_patches;
 		patches.clear(); // Temporary: Find patches from scratch every iteration.
-		state.grid.get_forest_patches();
-		for (int i = 0; i < state.grid.patches.size(); i++) {
+		state.grid.get_patches();
+		for (int i = 0; i < state.grid.forest_patches.size(); i++) {
 			if (verbosity > 0) {
 				printf("patch with centroid (%i, %i): No cells: %i, Perimeter length: %f \n",
 					patches[i].centroid_x, patches[i].centroid_y, patches[i].cells.size(), patches[i].perimeter_length

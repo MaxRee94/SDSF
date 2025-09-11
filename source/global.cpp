@@ -328,8 +328,8 @@ PYBIND11_MODULE(dbr_cpp, module) {
 			convert_from_numpy_array(lookup_table, float_array, width, height);
 			dynamics.resource_grid.set_dist_lookup_table(float_array, species);
 		})
-        .def("get_forest_patches", [](Dynamics& dynamics) {
-            vector<ForestPatch>& _patches = dynamics.state.grid.patches;
+        .def("get_patches", [](Dynamics& dynamics) {
+            vector<Patch>& _patches = dynamics.state.grid.forest_patches;
             Grid& grid = dynamics.state.grid;
             py::list patches;
             for (size_t i = 0; i < _patches.size(); i++) {
@@ -338,6 +338,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
                 py::list cells = convert_from_idx_vector_to_position_pylist(_patches[i].cells, dynamics.state.grid);
 				
                 // Assemble patch info into a dictionary
+				patch["type"] = py::str(_patches[i].type);
                 patch["id"] = py::int_(_patches[i].id);
                 patch["area"] = py::float_(_patches[i].area);
                 patch["cells"] = cells;

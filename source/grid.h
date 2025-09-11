@@ -269,12 +269,12 @@ public:
 };
 
 
-class ForestPatch {
+class Patch {
 public:
-	ForestPatch() = default;
-	ForestPatch(
+	Patch() = default;
+	Patch(
 		int centr_x, int centr_y, int centr_idx, vector<int> _cells, vector<pair<int, int>> _perimeter,
-		float _cell_width, int _id
+		float _cell_width, int _id, string _type
 	) {
 		centroid_idx = centr_idx;
 		centroid_x = centr_x;
@@ -283,12 +283,14 @@ public:
 		perimeter = _perimeter;
 		cell_width = _cell_width;
 		id = _id;
+		type = _type;
 		perimeter_length = (float)perimeter.size() * cell_width;
 		area = cells.size() * cell_width * cell_width;
 	};
 	vector<int> cells;
 	vector<pair<int, int>> perimeter; // Indices of forest-savanna pairs on the edge of the patch.
 	vector<int> centroid;
+	string type = "undefined"; // "forest" or "savanna"
 	int centroid_idx = -1;
 	int centroid_x = -1;
 	int centroid_y = -1;
@@ -651,85 +653,74 @@ public:
 		}
 		return cumulative_load;
 	}
-	void get_forest_patches() {
-		std::vector<std::vector<bool>> visited(width, std::vector<bool>(width, false));
+	void get_patch(vector<vector<bool>>& visited, vector<pair<int, int>>& directions, int x, int y) {
+		// Start BFS for a new patch
+		queue<pair<int, int>> q;
+		std::vector<int> cell_indices;
+		vector<pair<int, int>> perimeter;
+
+		q.push({ x, y });
+		visited[x][y] = true;
+
+		long long sum_x = 0, sum_y = 0;
+		int count = 0;
+
+		while (!q.empty()) {
+			auto [cx, cy] = q.front();
+			q.pop();
+
+			// Add to patch
+			pair<int, int> pos(cx, cy);
+			int index = pos_2_idx(pos);
+			cell_indices.push_back(index);
+			visited[cx][cy] = true;
+
+			sum_x += cx;
+			sum_y += cy;
+			count++;
+
+			// Explore neighbors
+			for (auto [dx, dy] : directions) {
+				int nx = cx + dx, ny = cy + dy;
+
+				// Correct for periodic boundaries
+				pair<int, int> neighbor(nx, ny);
+				cap(neighbor);
+				nx = neighbor.first;
+				ny = neighbor.second;
+
+				if ((!visited[nx][ny]) && is_forest(nx, ny)) {
+					visited[nx][ny] = true;
+					q.push({ nx, ny });
+				}
+				else if (!is_forest(nx, ny)) {
+					// If the neighbor is a savanna cell, we've encountered a forest-savanna edge.
+					int savanna_cell_idx = pos_2_idx(pair(nx, ny));
+					perimeter.push_back(pair<int, int>(index, savanna_cell_idx));
+				}
+			}
+		}
+
+		// Compute centroid
+		double centroid_x = static_cast<double>(sum_x) / count;
+		double centroid_y = static_cast<double>(sum_y) / count;
+		int centroid_idx = pos_2_idx(pair<int, int>(round(centroid_x), round(centroid_y)));
+
+		// Create Patch
+		forest_patches.push_back(Patch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, forest_patches.size(), "forest"));
+	}
+	void get_patches() {
+		vector<vector<bool>> visited(width, vector<bool>(width, false));
 
 		// Directions for 4-neighbor connectivity
-		const std::vector<std::pair<int, int>> directions = {
+		vector<pair<int, int>> directions = {
 			{1,0}, {-1,0}, {0,1}, {0,-1}
 		};
 
 		for (int x = 0; x < width; x++) {
 			for (int y = 0; y < width; y++) {
 				if ((!visited[x][y]) && is_forest(x, y)) {
-					//// DEBUGGING
-					//for (int i = 0; i < patchs.size(); i++) {
-					//	if (patches[i].cells.size() > 200000) {
-					//		printf("------ A large patch was already found.\n");
-					//		int start_idx = pos_2_idx(pair<int, int>(x, y));
-					//		if (help::is_in(&patches[i].cells, start_idx)) {
-					//			printf("------ ERROR: A large patch was found to already contain cell (%i, %i), on which we intend to run BFS.\n", x, y);
-					//		}
-					//	}
-					//}
-
-					// Start BFS for a new patch
-					std::queue<std::pair<int, int>> q;
-					std::vector<int> cell_indices;
-					vector<pair<int, int>> perimeter;
-
-					q.push({ x, y });
-					visited[x][y] = true;
-
-					long long sum_x = 0, sum_y = 0;
-					int count = 0;
-
-					while (!q.empty()) {
-						auto [cx, cy] = q.front();
-						q.pop();
-
-						// Add to patch
-						pair<int, int> pos(cx, cy);
-						int index = pos_2_idx(pos);
-						cell_indices.push_back(index);
-						visited[cx][cy] = true;
-
-						sum_x += cx;
-						sum_y += cy;
-						count++;
-
-						// Explore neighbors
-						for (auto [dx, dy] : directions) {
-							int nx = cx + dx, ny = cy + dy;
-
-							// Correct for periodic boundaries
-							pair<int, int> neighbor(nx, ny);
-							cap(neighbor);
-							/*if (neighbor.first != nx || neighbor.second != ny) {
-								printf("cap: (%i, %i) --> (%i, %i)\n", nx, ny, neighbor.first, neighbor.second);
-							}*/
-							nx = neighbor.first;
-							ny = neighbor.second;
-
-							if ((!visited[nx][ny]) && is_forest(nx, ny)) {
-								visited[nx][ny] = true;
-								q.push({ nx, ny });
-							}
-							else if (!is_forest(nx, ny)) {
-								// If the neighbor is a savanna cell, we've encountered a forest-savanna edge.
-								int savanna_cell_idx = pos_2_idx(pair(nx, ny));
-								perimeter.push_back(pair<int, int>(index, savanna_cell_idx));
-							}
-						}
-					}
-
-					// Compute centroid
-					double centroid_x = static_cast<double>(sum_x) / count;
-					double centroid_y = static_cast<double>(sum_y) / count;
-					int centroid_idx = pos_2_idx(pair<int, int>(round(centroid_x), round(centroid_y)));
-
-					// Create ForestPatch
-					patches.push_back(ForestPatch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, patches.size()));
+					get_patch(visited, directions, x, y);
 				}
 			}
 		}
@@ -766,7 +757,8 @@ public:
 	float cell_area_inv = 0;
 	float cell_area_half = 0;
 	float cell_halfdiagonal_sqrt = 0;
-	vector<ForestPatch> patches;
+	vector<Patch> forest_patches;
+	vector<Patch> savanna_patches;
 	shared_ptr<pair<int, int>[]> neighbor_offsets = 0;
 };
 
