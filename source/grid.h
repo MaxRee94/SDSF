@@ -653,14 +653,14 @@ public:
 		}
 		return cumulative_load;
 	}
-	void get_patch(vector<vector<bool>>& visited, vector<pair<int, int>>& directions, int x, int y) {
+	void get_patch(vector<vector<int>>& _patch_memberships, vector<pair<int, int>>& directions, int x, int y, int id, string type) {
 		// Start BFS for a new patch
 		queue<pair<int, int>> q;
 		std::vector<int> cell_indices;
 		vector<pair<int, int>> perimeter;
 
 		q.push({ x, y });
-		visited[x][y] = true;
+		_patch_memberships[x][y] = id;
 
 		long long sum_x = 0, sum_y = 0;
 		int count = 0;
@@ -673,7 +673,7 @@ public:
 			pair<int, int> pos(cx, cy);
 			int index = pos_2_idx(pos);
 			cell_indices.push_back(index);
-			visited[cx][cy] = true;
+			_patch_memberships[cx][cy] = id;
 
 			sum_x += cx;
 			sum_y += cy;
@@ -689,8 +689,8 @@ public:
 				nx = neighbor.first;
 				ny = neighbor.second;
 
-				if ((!visited[nx][ny]) && is_forest(nx, ny)) {
-					visited[nx][ny] = true;
+				if (!cell_is_visited(_patch_memberships, x, y) && is_forest(nx, ny)) {
+					_patch_memberships[nx][ny] = id;
 					q.push({ nx, ny });
 				}
 				else if (!is_forest(nx, ny)) {
@@ -707,10 +707,13 @@ public:
 		int centroid_idx = pos_2_idx(pair<int, int>(round(centroid_x), round(centroid_y)));
 
 		// Create Patch
-		forest_patches.push_back(Patch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, forest_patches.size(), "forest"));
+		forest_patches.push_back(Patch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, forest_patches.size(), type));
+	}
+	bool cell_is_visited(vector<vector<int>>& patch_memberships, int x, int y) {
+		return patch_memberships[x][y] != -1;
 	}
 	void get_patches() {
-		vector<vector<bool>> visited(width, vector<bool>(width, false));
+		vector<vector<int>> _patch_memberships(width, vector<int>(width, -1));
 
 		// Directions for 4-neighbor connectivity
 		vector<pair<int, int>> directions = {
@@ -719,8 +722,8 @@ public:
 
 		for (int x = 0; x < width; x++) {
 			for (int y = 0; y < width; y++) {
-				if ((!visited[x][y]) && is_forest(x, y)) {
-					get_patch(visited, directions, x, y);
+				if (!cell_is_visited(_patch_memberships, x, y) && is_forest(x, y)) {
+					get_patch(_patch_memberships, directions, x, y, forest_patches.size(), "forest");
 				}
 			}
 		}
@@ -759,6 +762,7 @@ public:
 	float cell_halfdiagonal_sqrt = 0;
 	vector<Patch> forest_patches;
 	vector<Patch> savanna_patches;
+	shared_ptr<int[]> patch_memberships = 0;
 	shared_ptr<pair<int, int>[]> neighbor_offsets = 0;
 };
 
