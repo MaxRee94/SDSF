@@ -315,12 +315,19 @@ public:
 		no_savanna_cells = no_cells;
 		init_grid_cells();
 		init_neighbor_offsets();
+		init_patch_memberships();
 		reset_state_distr();
 		area = no_cells * cell_width * cell_width;
 		cell_area = cell_width * cell_width;
 		cell_area_inv = 1.0f / cell_area;
 		cell_halfdiagonal_sqrt = help::get_dist(pair<float, float>(0, 0), pair<float, float>(0.5f * cell_width, 0.5f * cell_width));
-		cell_area_half = cell_area * 0.5f;
+		cell_area_half = cell_area * 0.5f;	
+	}
+	void init_patch_memberships() {
+		patch_memberships = make_shared<int[]>(no_cells);
+		for (int i = 0; i < no_cells; i++) {
+			patch_memberships[i] = -1;
+		}
 	}
 	void init_grid_cells() {
 		distribution = make_shared<Cell[]>(no_cells);
@@ -662,6 +669,8 @@ public:
 		q.push({ x, y });
 		_patch_memberships[x][y] = id;
 
+		map<int, int> no_visits_per_old_patch; // To track which patches were encountered in the previous time step.
+
 		long long sum_x = 0, sum_y = 0;
 		int count = 0;
 
@@ -674,6 +683,12 @@ public:
 			int index = pos_2_idx(pos);
 			cell_indices.push_back(index);
 			_patch_memberships[cx][cy] = id;
+
+			// Record to which patch the cell belonged in the previous time step
+			if (patch_memberships[index] != -1) { // If the value is -1, the cell was not part of a patch in the previous time step.
+				no_visits_per_old_patch[patch_memberships[index]]++;
+				//printf("no visits to old patch %i: %i\n", patch_memberships[index], no_visits_per_old_patch[patch_memberships[index]]);
+			}
 
 			sum_x += cx;
 			sum_y += cy;
@@ -689,7 +704,7 @@ public:
 				nx = neighbor.first;
 				ny = neighbor.second;
 
-				if (!cell_is_visited(_patch_memberships, x, y) && is_forest(nx, ny)) {
+				if (!cell_is_visited(_patch_memberships, nx, ny) && is_forest(nx, ny)) {
 					_patch_memberships[nx][ny] = id;
 					q.push({ nx, ny });
 				}
@@ -701,16 +716,36 @@ public:
 			}
 		}
 
+		// Determine the patch in the previous time step that contributed the most cells to this patch. Assign its ID to the new patch.
+		int most_visited_id = -1;
+		int most_visits = 0;
+		for (auto const& [old_patch_id, visits] : no_visits_per_old_patch) {
+			if (visits > most_visits) {
+				most_visits = visits;
+				most_visited_id = old_patch_id;
+			}
+		}
+		if (most_visited_id != -1) {
+			// We assign the id of the patch which in the previous time step had the greatest degree of overlap with the patch we just identified.
+			id = most_visited_id; // Overwrite the patch ID with the ID of the patch with greatest overlap.
+		}
+
 		// Compute centroid
 		double centroid_x = static_cast<double>(sum_x) / count;
 		double centroid_y = static_cast<double>(sum_y) / count;
 		int centroid_idx = pos_2_idx(pair<int, int>(round(centroid_x), round(centroid_y)));
 
+		// Update patch memberships for next time step
+		for (int cell_idx : cell_indices) {
+			patch_memberships[cell_idx] = id;
+		}
+
 		// Create Patch
-		forest_patches.push_back(Patch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, forest_patches.size(), type));
+		Patch patch = Patch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, id, type);
+		forest_patches.push_back(patch);
 	}
-	bool cell_is_visited(vector<vector<int>>& patch_memberships, int x, int y) {
-		return patch_memberships[x][y] != -1;
+	bool cell_is_visited(vector<vector<int>>& _patch_memberships, int x, int y) {
+		return _patch_memberships[x][y] != -1;
 	}
 	void get_patches() {
 		vector<vector<int>> _patch_memberships(width, vector<int>(width, -1));
@@ -762,7 +797,7 @@ public:
 	float cell_halfdiagonal_sqrt = 0;
 	vector<Patch> forest_patches;
 	vector<Patch> savanna_patches;
-	shared_ptr<int[]> patch_memberships = 0;
+	shared_ptr<int[]> patch_memberships;
 	shared_ptr<pair<int, int>[]> neighbor_offsets = 0;
 };
 
