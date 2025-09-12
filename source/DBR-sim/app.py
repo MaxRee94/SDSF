@@ -223,12 +223,12 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
                 continue
             patch_id = patch["id"]
             if not patch_color_ids.get(str(patch_id)):
-                color_idx = -10 - random.randint(0, 99)
+                #color_idx = -10 - random.randint(0, 99)
+                color_idx = vis.get_most_distinct_index(patch_color_ids.values(), 100, -10)
                 patch_color_ids[str(patch_id)] = color_idx # Assign a new color index to the patch
             patch_color_id = patch_color_ids[str(patch_id)]
             for cell in patch["cells"]:
                 patch_colors_indices[cell[1]][cell[0]] = patch_color_id
-
         
         colored_patches_img = vis.get_image(patch_colors_indices, color_dicts["colored_patches"], dynamics.state.grid.width)
         user_args["show_edges"] = True # Hardcoded for now

@@ -80,11 +80,15 @@ def get_most_distinct_index(existing_colors, maximum_possible_no_colors, offset)
             _dist = abs(color - i)
             if _dist < dist:
                 dist = _dist
-            #print("index: ", i, f" dist to {color}: ", dist)
+            # Account for periodic boundary conditions
+            wraparound_dist = abs((color - maximum_possible_no_colors) - i)
+            if wraparound_dist < dist:
+                dist = wraparound_dist
         if dist > best_dist:
             best_dist = dist
             best_index = i
         dist = 1e10
+
     return best_index
 
 def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
