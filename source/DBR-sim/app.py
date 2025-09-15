@@ -80,7 +80,8 @@ def init(user_args):
         args.dbh_q2,
         args.growth_rate_multiplier_params[0],
         args.growth_rate_multiplier_params[1],
-        args.growth_rate_multiplier_params[2]
+        args.growth_rate_multiplier_params[2],
+        args.minimum_patch_size
     )
     
     # Set dispersal kernel
@@ -218,17 +219,20 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         # Modify color array to give patches distinct colors
         patch_colors_indices = dynamics.state.grid.get_distribution(False)
         minimum_considered_patch_size = 50 # m^2
+        forest_area = 0
         for i, patch in enumerate(patches):
             if patch["area"] < minimum_considered_patch_size: # Only consider patches of a certain size
                 continue
             patch_id = patch["id"]
             if not patch_color_ids.get(str(patch_id)):
                 #color_idx = -10 - random.randint(0, 99)
-                color_idx = vis.get_most_distinct_index(patch_color_ids.values(), 100, -10)
+                color_idx = vis.get_most_distinct_index(patch_color_ids.values(), 1000, -10)
                 patch_color_ids[str(patch_id)] = color_idx # Assign a new color index to the patch
             patch_color_id = patch_color_ids[str(patch_id)]
+            forest_area += patch["area"] if patch["type"] == "forest" else 0
             for cell in patch["cells"]:
                 patch_colors_indices[cell[1]][cell[0]] = patch_color_id
+        print("cumulative forest area: ", forest_area, " m^2")
         
         colored_patches_img = vis.get_image(patch_colors_indices, color_dicts["colored_patches"], dynamics.state.grid.width)
         user_args["show_edges"] = True # Hardcoded for now
@@ -241,7 +245,7 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
                     point2 = (edge[1][0], edge[1][1])
                     if get_2d_dist(point1, point2) > 0.5*dynamics.state.grid.width:
                         continue # Skip drawing wrap-around edges for now.
-                    cv2.line(colored_patches_img, point1, point2, (0, 0, 0), 2)  # black line, thickness=2
+                    cv2.line(colored_patches_img, point1, point2, (0, 0, 0), 1)  # black line, thickness=2
         imagepath_colored_patches = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/colored_patches/" + str(dynamics.time) + ".png")
         vis.save_image(colored_patches_img, imagepath_colored_patches, get_max(1000, colored_patches_img.shape[0]), interpolation="none")
 

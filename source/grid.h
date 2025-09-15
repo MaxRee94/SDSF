@@ -274,7 +274,7 @@ public:
 	Patch() = default;
 	Patch(
 		int centr_x, int centr_y, int centr_idx, vector<int> _cells, vector<pair<int, int>> _perimeter,
-		float _cell_width, int _id, string _type
+		float _cell_width, int _id, string _type, vector<int> _neighboring_patches
 	) {
 		centroid_idx = centr_idx;
 		centroid_x = centr_x;
@@ -286,9 +286,11 @@ public:
 		type = _type;
 		perimeter_length = (float)perimeter.size() * cell_width;
 		area = cells.size() * cell_width * cell_width;
+		neighboring_patches = _neighboring_patches;
 	};
-	vector<int> cells;
 	vector<pair<int, int>> perimeter; // Indices of forest-savanna pairs on the edge of the patch.
+	vector<int> cells;
+	vector<int> neighboring_patches;
 	vector<int> centroid;
 	string type = "undefined"; // "forest" or "savanna"
 	int centroid_idx = -1;
@@ -304,7 +306,7 @@ public:
 class Grid {
 public:
 	Grid() = default;
-	Grid(int _width, float _cell_width) {
+	Grid(int _width, float _cell_width, float _minimum_patch_size) {
 		printf("\nInitializing grid with width %i and cell width %f.\n", _width, _cell_width);
 		width = _width;
 		cell_width = _cell_width;
@@ -322,7 +324,9 @@ public:
 		cell_area_inv = 1.0f / cell_area;
 		cell_halfdiagonal_sqrt = help::get_dist(pair<float, float>(0, 0), pair<float, float>(0.5f * cell_width, 0.5f * cell_width));
 		cell_area_half = cell_area * 0.5f;	
+		minimum_patch_size = _minimum_patch_size;
 	}
+	Grid(int _width, float _cell_width) : Grid(_width, _cell_width, 0) {}
 	void init_patch_memberships() {
 		patch_memberships = make_shared<int[]>(no_cells);
 		for (int i = 0; i < no_cells; i++) {
@@ -660,11 +664,12 @@ public:
 		}
 		return cumulative_load;
 	}
-	void get_patch(vector<vector<int>>& _patch_memberships, vector<pair<int, int>>& directions, int x, int y, int id, string type) {
+	int get_patch(vector<vector<int>>& _patch_memberships, vector<pair<int, int>>& directions, int x, int y, int id, string search_type) {
 		// Start BFS for a new patch
 		queue<pair<int, int>> q;
 		std::vector<int> cell_indices;
 		vector<pair<int, int>> perimeter;
+		vector<int> neighboring_savannas; // IDs of patches neighboring the forest patch we are currently identifying.
 
 		q.push({ x, y });
 		_patch_memberships[x][y] = id;
@@ -686,8 +691,14 @@ public:
 
 			// Record to which patch the cell belonged in the previous time step
 			if (patch_memberships[index] != -1) { // If the value is -1, the cell was not part of a patch in the previous time step.
-				no_visits_per_old_patch[patch_memberships[index]]++;
-				//printf("no visits to old patch %i: %i\n", patch_memberships[index], no_visits_per_old_patch[patch_memberships[index]]);
+				if ((patch_memberships[index] >= 0) && (search_type == "forest")) {
+					// If we are searching for forest patches, we only consider forest patches from the previous time step.
+					no_visits_per_old_patch[patch_memberships[index]]++;
+				}
+				else if ((patch_memberships[index] < -1) && (search_type == "savanna")) {
+					// If we are searching for savanna patches, we only consider savanna patches from the previous time step.
+					no_visits_per_old_patch[patch_memberships[index]]++;
+				}
 			}
 
 			sum_x += cx;
@@ -704,14 +715,37 @@ public:
 				nx = neighbor.first;
 				ny = neighbor.second;
 
-				if (!cell_is_visited(_patch_memberships, nx, ny) && is_forest(nx, ny)) {
-					_patch_memberships[nx][ny] = id;
-					q.push({ nx, ny });
+				if (search_type == "forest") {
+					if (is_forest(nx, ny) && !cell_is_visited(_patch_memberships, nx, ny)) {
+						// If we are searching for forest patches and the neighbor cell is part of the forest, add it to the queue.
+						_patch_memberships[nx][ny] = id;
+						q.push({ nx, ny });
+					}
+					else if (!is_forest(nx, ny)) {
+						// If we were searching through a forest patch and have encountered a savanna cell, this means we found a forest-savanna edge.
+						int savanna_cell_idx = pos_2_idx(pair(nx, ny));
+						perimeter.push_back(pair<int, int>(index, savanna_cell_idx));
+
+						int savanna_patch_id = -1;
+						if (!cell_is_visited(_patch_memberships, nx, ny)) {
+							// If the savanna cell has not yet been visited, obtain the savanna patch it belongs to (if any).
+							savanna_patch_id = get_patch(_patch_memberships, directions, nx, ny, -2 - savanna_patches.size(), "savanna");
+							//printf("Found neighboring savanna patch with ID %i.\n", savanna_patch_id);
+						}
+						if (!help::is_in(&neighboring_savannas, savanna_patch_id)) {
+							// If the savanna patch ID is not already in the list of neighboring patches, add it.
+							neighboring_savannas.push_back(savanna_patch_id);
+						}
+					}
 				}
-				else if (!is_forest(nx, ny)) {
-					// If the neighbor is a savanna cell, we've encountered a forest-savanna edge.
-					int savanna_cell_idx = pos_2_idx(pair(nx, ny));
-					perimeter.push_back(pair<int, int>(index, savanna_cell_idx));
+				if (!is_forest(nx, ny) && search_type == "savanna") {
+					if (!is_forest(nx, ny) && !cell_is_visited(_patch_memberships, nx, ny)) {
+						// If we are searching for savanna patches and the neighbor cell is part of the savanna, add it to the queue.
+						_patch_memberships[nx][ny] = id;
+						q.push({ nx, ny });
+					}
+					// If we were searching through the savanna and encounter forest, we do not obtain the perimeter, since we already
+					// do that when searching for forest patches.
 				}
 			}
 		}
@@ -740,9 +774,19 @@ public:
 			patch_memberships[cell_idx] = id;
 		}
 
-		// Create Patch
-		Patch patch = Patch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, id, type);
-		forest_patches.push_back(patch);
+		// Create patch
+		if (search_type == "forest") {
+			Patch patch = Patch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, id, search_type, neighboring_savannas);
+			forest_patches[id] = patch;
+		}
+		else {
+			vector<int> dummy_neighboring_patches;	// We do not track neighboring patches for savanna patches here. This is done
+													// when all forest patches have been identified.
+			Patch patch = Patch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, id, search_type, dummy_neighboring_patches);
+			savanna_patches[id] = patch;
+		}
+		
+		return id;
 	}
 	bool cell_is_visited(vector<vector<int>>& _patch_memberships, int x, int y) {
 		return _patch_memberships[x][y] != -1;
@@ -781,22 +825,23 @@ public:
 	}
 	int width = 0;
 	int no_cells = 0;
+	int no_savanna_cells = 0;
+	int no_forest_cells = 0;
 	float width_r = 0;
 	float tree_cover = 0;
 	float cell_width = 0;
 	float cell_width_inv = 0;
 	float cell_half_width = 0;
-	shared_ptr<Cell[]> distribution = 0;
-	shared_ptr<int[]> state_distribution = 0;
-	int no_savanna_cells = 0;
-	int no_forest_cells = 0;
 	float area = 0;
 	float cell_area = 0;
 	float cell_area_inv = 0;
 	float cell_area_half = 0;
 	float cell_halfdiagonal_sqrt = 0;
-	vector<Patch> forest_patches;
-	vector<Patch> savanna_patches;
+	float minimum_patch_size = 0;
+	map<int, Patch> forest_patches;
+	map<int, Patch> savanna_patches;
+	shared_ptr<Cell[]> distribution = 0;
+	shared_ptr<int[]> state_distribution = 0;
 	shared_ptr<int[]> patch_memberships;
 	shared_ptr<pair<int, int>[]> neighbor_offsets = 0;
 };

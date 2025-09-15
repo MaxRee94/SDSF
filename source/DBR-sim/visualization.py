@@ -132,7 +132,7 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
         color_dict[-5] = savanna_color
         color_dict[-6] = savanna_color
         color_dict[-7] = savanna_color
-        max_no_patches = 100
+        max_no_patches = 1000
 
         for i in range(max_no_patches):         
             color_dict[-10 - i] = number_to_rgb(max_no_patches, i)

@@ -233,7 +233,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&,
             const float&, const float&, map<string, map<string, float>>&, const float&,
-            const float&, const float&, const float&>())
+            const float&, const float&, const float&, const float&>())
         .def("repopulate_grid", &State::repopulate_grid)
         .def("set_tree_cover", &State::set_tree_cover)
         .def("set_cover_from_image", [](State& state, py::array_t<float>& img, float& override_image_treecover) {
@@ -329,22 +329,27 @@ PYBIND11_MODULE(dbr_cpp, module) {
 			dynamics.resource_grid.set_dist_lookup_table(float_array, species);
 		})
         .def("get_patches", [](Dynamics& dynamics) {
-            vector<Patch>& _patches = dynamics.state.grid.forest_patches;
+            map<int, Patch>& _forest_patches = dynamics.state.grid.forest_patches;
+            map<int, Patch>& _savanna_patches = dynamics.state.grid.savanna_patches;
+            map<int, Patch> _patches = {};
+			_patches.merge(_forest_patches);
+            _patches.merge(_savanna_patches);
+			printf("-- Number of savanna patches: %i \n", (int)_savanna_patches.size());
             Grid& grid = dynamics.state.grid;
             py::list patches;
-            for (size_t i = 0; i < _patches.size(); i++) {
+            for (auto const& [id, _patch] : _patches) {
                 py::dict patch;
-                py::list perimeter = convert_from_idx_pair_vector_to_position_pylist(_patches[i].perimeter, dynamics.state.grid);
-                py::list cells = convert_from_idx_vector_to_position_pylist(_patches[i].cells, dynamics.state.grid);
-				
+                py::list perimeter = convert_from_idx_pair_vector_to_position_pylist(_patch.perimeter, dynamics.state.grid);
+                py::list cells = convert_from_idx_vector_to_position_pylist(_patch.cells, dynamics.state.grid);
+
                 // Assemble patch info into a dictionary
-				patch["type"] = py::str(_patches[i].type);
-                patch["id"] = py::int_(_patches[i].id);
-                patch["area"] = py::float_(_patches[i].area);
+                patch["type"] = py::str(_patch.type);
+                patch["id"] = py::int_(_patch.id);
+                patch["area"] = py::float_(_patch.area);
                 patch["cells"] = cells;
                 patch["perimeter"] = perimeter;
-                patch["perimeter_length"] = _patches[i].perimeter_length;
-                patch["centroid"] = py::make_tuple(_patches[i].centroid_x, _patches[i].centroid_y);
+                patch["perimeter_length"] = _patch.perimeter_length;
+                patch["centroid"] = py::make_tuple(_patch.centroid_x, _patch.centroid_y);
 
                 patches.append(patch);
 			}

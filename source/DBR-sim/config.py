@@ -122,7 +122,8 @@ defaults = {
     "global_area_normalization_factor": None,
     "global_rotation_offset": None,
     "enforce_area_constancy": True,
-    "colored_patches": False
+    "colored_patches": False,
+    "minimum_patch_size":30 # Minimum size (in m^2) of patches that are retained when generating initial patterns from images. We assume 78 m^2 since this corresponds to the area of a tree with radius = 5 (the approximate maximum in our model), in line with the 30m resolution of the GFC dataset.
 }
 
 gui_defaults = {
@@ -879,6 +880,18 @@ _parameter_config = {
             "default": defaults["colored_patches"],
         }
     },
+    "minimum_patch_size": {
+        "keys": {
+            "cli": ["--minimum_patch_size", "-sps"]
+        },
+        "settings": {
+            "type": float,
+            "help": """
+                The minimum size of a patch (in m^2) that is included in calculations of patch perimeters and savanna patch areas.
+            """,
+            "default": defaults["minimum_patch_size"],
+        }
+    }
 }
 
 class ParameterConfig():
