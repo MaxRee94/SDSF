@@ -284,12 +284,6 @@ def adjust_args_to_gridwidth(args):
     args.cv_distance = (args.cv_distance / args.grid_width) * 1000.0
     args.sine_amp1 = (args.sine_amp1 / args.grid_width) * 1000.0
     args.sine_amp2 = (args.sine_amp2 / args.grid_width) * 1000.0
-    print("mean radius: ", args.mean_radius)
-    print("cv_radius: ", args.cv_radius)
-    print("mean_distance: ", args.mean_distance)
-    print("cv_distance: ", args.cv_distance)
-    print("sine_amp1: ", args.sine_amp1)
-    print("sine_amp2: ", args.sine_amp2)
     return args
 
 
