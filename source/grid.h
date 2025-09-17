@@ -290,8 +290,7 @@ public:
 		overlap_with_old_patches = _overlap_with_old_patches;
 	};
 	vector<pair<int, int>> perimeter; // Indices of forest-savanna pairs on the edge of the patch.
-	map<int, int> patch_overlaps; // Key: ID of a patch in the current time step. Value: Number of cells of each corresponding patch that overlap with the current patch.
-	map<int, int> overlap_with_old_patches;
+	map<int, int> overlap_with_old_patches; // Key: ID of a patch in the current time step. Value: Number of cells of each corresponding patch that overlap with the current patch.
 	vector<int> cells;
 	vector<int> neighboring_patches;
 	vector<int> centroid;
@@ -681,41 +680,6 @@ public:
 			}
 		}
 	}
-	int get_id_with_most_overlap(Patch& patch, int old_patch) {
-		int id = -1;
-		int most_overlap = 0;
-		for (auto [old_patch_candidate, overlap] : patch.patch_overlaps) {
-			if (!id_conflict(old_patch_candidate)) {
-				if (overlap > most_overlap) {
-					most_overlap = overlap;
-					id = old_patch_candidate;
-				}
-			}
-		}
-		return id;
-	}
-	int get_new_unique_patch_id(int current_id) {
-		// Find a patch ID that is not currently in use, within the range of the vector of patches of the same type.
-		string type = current_id >= 0 ? "forest" : "savanna";
-		int no_patches = get_no_patches_of_type(type);
-		int step_sign = type == "forest" ? 1 : -1;
-		int offset = type == "forest" ? 0 : -2;
-		for (int i = offset; abs(i) < no_patches + 1; i += step_sign) {
-			if (!id_conflict(i)) return i;
-		}
-		throw("Runtime error: Could not find new unique patch ID.\n");
-	}
-	void assign_new_patch_ID(int old_patch) {
-		Patch& patch = yield_patch_from_id(old_patch);
-		int new_id = get_id_with_most_overlap(patch, old_patch);
-		if (new_id == -1) {
-			// If no other overlapping patch without any ID conflict was found, assign a new ID.
-			new_id = get_new_unique_patch_id(old_patch);
-		}
-		for (int i = 0; i < patch.cells.size(); i++) {
-			patch.cells[i] = new_id;
-		}
-	}
 	Patch& yield_patch_from_id(int id) {
 		if (id >= 0) return forest_patches[id];
 		else return savanna_patches[-2 - id];
@@ -725,23 +689,7 @@ public:
 		else if (type == "savanna") return savanna_patches.size();
 		else throw("Runtime error: Unknown patch type '%s' in get_no_patches_of_type().\n", type.c_str());
 	}
-	bool id_conflict(int old_patch) {
-		// Check if the patch from the previous time step (old_patch) has already been assigned to another patch in the current time step.
-		if (old_patch >= 0) {
-			return forest_patches.find(old_patch) != forest_patches.end();
-		}
-		else {
-			return savanna_patches.find(old_patch) != savanna_patches.end();
-		}
-	}
-	bool overlap_is_greater_than_that_of_conflicting_patch(int overlap, int conflict_ID) {
-		Patch& conflicting_patch = yield_patch_from_id(conflict_ID);
-		if (overlap > conflicting_patch.patch_overlaps[conflict_ID]) { // conflicting_patch.patch_overlaps[conflict_ID] gives the overlap of the conflicting patch with the old patch (which has the same ID).
-			return true;
-		}
-		return false;
-	}
-	int get_patch(vector<vector<int>>& _patch_memberships, vector<pair<int, int>>& directions, int x, int y, int id, string search_type) {
+	int get_patch(vector<vector<int>>& _patch_memberships, int x, int y, int id, string search_type) {
 		// Start BFS for a new patch
 		queue<pair<int, int>> q;
 		std::vector<int> cell_indices;
@@ -799,7 +747,7 @@ public:
 						int savanna_patch_id = -1;
 						if (!cell_is_visited(_patch_memberships, nx, ny)) {
 							// If the savanna cell has not yet been visited, obtain the savanna patch it belongs to (if any).
-							savanna_patch_id = get_patch(_patch_memberships, directions, nx, ny, -2 - savanna_patches.size(), "savanna");
+							savanna_patch_id = get_patch(_patch_memberships, nx, ny, -2 - savanna_patches.size(), "savanna");
 							//printf("Found neighboring savanna patch with ID %i.\n", savanna_patch_id);
 						}
 						if (!help::is_in(&neighboring_savannas, savanna_patch_id)) {
@@ -817,27 +765,6 @@ public:
 					// If we were searching through the savanna and encounter forest, we do not obtain the perimeter, since we already
 					// do that when searching for forest patches.
 				}
-			}
-		}
-
-		// Determine the patch in the previous time step that has the greatest degree of overlap with the current patch. Assign its ID to the current patch.
-		int most_overlap = 0;
-		for (auto const& [old_patch, overlap] : overlap_with_old_patches) {
-			if (overlap > most_overlap) {
-				if (id_conflict(old_patch)) {
-					if (overlap_is_greater_than_that_of_conflicting_patch(overlap, old_patch)) {
-						// The conflicting patch has less overlap, so we steal its ID.
-						id = old_patch;
-						
-						// Give the conflicting patch a new ID.
-						assign_new_patch_ID(old_patch);
-					}
-					continue;
-				}
-
-				// If there's no ID conflict with any other patches from the current time step, we can simply assign the ID of the most overlapping patch to the current patch.
-				most_overlap = overlap;
-				id = old_patch;
 			}
 		}
 
@@ -874,21 +801,79 @@ public:
 		}
 		return all_patches;
 	}
-	void get_patches() {
-		vector<vector<int>> _patch_memberships(width, vector<int>(width, -1));
+	map<int, Patch*>& yield_all_patches_of_type(string type) {
+		if (type == "forest") return reinterpret_cast<map<int, Patch*>&>(forest_patches);
+		else if (type == "savanna") return reinterpret_cast<map<int, Patch*>&>(savanna_patches);
+		else throw("Runtime error: Unknown patch type '%s' in yield_all_patches_of_type().\n", type.c_str());
+	}
+	vector<int> get_unused_ids(vector<int>& old_patch_ids, string type) {
+		vector<int> unused_ids;
+		int step_sign = type == "forest" ? 1 : -1;
+		int offset = type == "forest" ? 0 : -2;
+		int no_patches = get_no_patches_of_type(type);
+		for (int i = offset; abs(i) < no_patches + 1; i += step_sign) {
+			if (i == -1) continue;
+			if (!help::is_in(&old_patch_ids, i)) unused_ids.push_back(i);
+		}
+		return unused_ids;
+	}
+	void update_patch_ids(vector<int>& old_patch_ids) {
+		// Update patch ids based on overlaps with patches from previous time step.
 
-		// Directions for 4-neighbor connectivity
-		vector<pair<int, int>> directions = {
-			{1,0}, {-1,0}, {0,1}, {0,-1}
-		};
+
+		// Hold a contest; whichever of the current patches has the most overlap with an old patch
+		// is assigned the old patch's id.
+		map<int, Patch*> patches_with_uncertain_ids = yield_all_patches();
+		for (int old_id : old_patch_ids) {
+			int most_overlap = 0;
+			int winner = -1;
+			for (auto& [current_id, patch] : yield_all_patches()) {
+				bool has_overlap = help::is_in(patch->overlap_with_old_patches, old_id);
+				if (has_overlap && patch->overlap_with_old_patches[old_id] > most_overlap) {
+					most_overlap = patch->overlap_with_old_patches[old_id];
+					winner = current_id;
+				}
+			}
+			if (winner != -1) {
+				// If a winner was found, assign the old patch ID to the winning patch.
+				Patch& winning_patch = yield_patch_from_id(winner);
+				winning_patch.id = old_id;
+				patches_with_uncertain_ids.erase(winner); // This patch's ID is now certain.
+			}
+		}
+		
+		// Create a list of patch IDs that were not used in the previous time step.
+		vector<int> unused_savanna_ids = get_unused_ids(old_patch_ids, "savanna");
+		vector<int> unused_forest_ids = get_unused_ids(old_patch_ids, "forest");
+
+		// For the remaining patches with uncertain IDs, we assign unused IDs.
+		for (auto& [current_id, patch] : patches_with_uncertain_ids) {
+			vector<int>& unused_ids = patch->id >= 0 ? unused_forest_ids : unused_savanna_ids;
+			int new_id = unused_ids[0];
+			unused_ids.erase(unused_ids.begin());
+		}
+	}
+	vector<int> get_old_patch_ids() {
+		vector<int> old_patch_ids;
+		for (auto [id, patch] : yield_all_patches()) {
+			old_patch_ids.push_back(patch->id);
+		}
+		return old_patch_ids;
+	}
+	void get_patches() {
+		vector<int> old_patch_ids = get_old_patch_ids();
+		vector<vector<int>> _patch_memberships(width, vector<int>(width, -1));
 
 		for (int x = 0; x < width; x++) {
 			for (int y = 0; y < width; y++) {
 				if (!cell_is_visited(_patch_memberships, x, y) && is_forest(x, y)) {
-					get_patch(_patch_memberships, directions, x, y, forest_patches.size(), "forest");
+					get_patch(_patch_memberships, x, y, forest_patches.size(), "forest");
 				}
 			}
 		}
+
+		// Update patch ids based on overlaps with patches from previous time step.
+		update_patch_ids(old_patch_ids);
 
 		// Update patch memberships for next time step
 		for (auto [id, patch] : yield_all_patches()) {
@@ -933,6 +918,9 @@ public:
 	shared_ptr<Cell[]> distribution = 0;
 	shared_ptr<int[]> state_distribution = 0;
 	shared_ptr<int[]> patch_memberships;
+	vector<pair<int, int>> directions = {
+		{1,0}, {-1,0}, {0,1}, {0,-1} // Directions for 4-neighbor connectivity
+	};
 	shared_ptr<pair<int, int>[]> neighbor_offsets = 0;
 };
 

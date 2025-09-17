@@ -122,6 +122,9 @@ namespace help {
 
 	bool is_in(std::string basestring, std::string target);
 
+	template <typename T>
+	vector<int> get_keys(map<int, T>& map);
+
 	void print_map(std::map<int, int>* map);
 
 	void print_vector(std::vector<int>* vec);

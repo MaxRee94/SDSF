@@ -90,18 +90,7 @@ public:
 	}
 	void update_forest_patch_detection() {
 		// Obtain forest patches, report their sizes, their perimeter lengths, and the sizes of the neighboring savanna areas.
-
-		map<int, Patch>& patches = state.grid.forest_patches;
-		patches.clear(); // Temporary: Find patches from scratch every iteration.
-		state.grid.savanna_patches.clear();
 		state.grid.get_patches();
-		for (int i = 0; i < state.grid.forest_patches.size(); i++) {
-			if (verbosity > 0) {
-				printf("patch with centroid (%i, %i): No cells: %i, Perimeter length: %f \n",
-					patches[i].centroid_x, patches[i].centroid_y, patches[i].cells.size(), patches[i].perimeter_length
-				);
-			}
-		}
 	}
 	void report_state() {
 		int grid_memory_size = 0;
