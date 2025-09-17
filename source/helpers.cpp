@@ -53,6 +53,10 @@ bool help::is_in(std::vector<int>* vec, int item) {
     return find(vec->begin(), vec->end(), item) != vec->end();
 }
 
+bool is_in(std::map<int, int>& map, int item) {
+	return map.find(item) != map.end();
+}
+
 // Add padding as suffix to given basestring
 std::string help::add_padding(std::string basestring, int version) {
     int padding = 4;

@@ -118,6 +118,10 @@ namespace help {
 	//Return whether the given vector <vec> contains the integer <item>
 	bool is_in(std::vector<int>* vec, int item);
 
+	bool is_in(std::map<int, int>& map, int item);
+
+	bool is_in(std::string basestring, std::string target);
+
 	void print_map(std::map<int, int>* map);
 
 	void print_vector(std::vector<int>* vec);
@@ -127,8 +131,6 @@ namespace help {
 	void print(std::string);
 
 	vector<size_t> FindAll(std::string basestring, std::string target);
-
-	bool is_in(std::string basestring, std::string target);
 
 	std::string replace_occurrences(std::string basestring, std::string toReplace, std::string replaceWith);
 
