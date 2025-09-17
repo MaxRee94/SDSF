@@ -229,6 +229,8 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
                 color_idx = vis.get_most_distinct_index(patch_color_ids.values(), 1000, -10)
                 patch_color_ids[str(patch_id)] = color_idx # Assign a new color index to the patch
             patch_color_id = patch_color_ids[str(patch_id)]
+            col=color_dicts["colored_patches"][patch_color_id]
+            print(f"Patch ID {patch_id} is associated with color {col[0], col[1], col[2]}")
             forest_area += patch["area"] if patch["type"] == "forest" else 0
             for cell in patch["cells"]:
                 patch_colors_indices[cell[1]][cell[0]] = patch_color_id
