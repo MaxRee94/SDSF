@@ -90,7 +90,8 @@ public:
 	}
 	void update_forest_patch_detection() {
 		// Obtain forest patches, report their sizes, their perimeter lengths, and the sizes of the neighboring savanna areas.
-		state.grid.get_patches();
+		if (verbosity > 0) printf("Updating forest patch detection... \n");
+		state.grid.get_patches(verbosity);
 	}
 	void report_state() {
 		int grid_memory_size = 0;

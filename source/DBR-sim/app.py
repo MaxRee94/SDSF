@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import sys
-from tkinter import N, Y
+from tkinter import E, N, Y
 
 import cv2
 import numpy as np
@@ -304,7 +304,11 @@ def updateloop(dynamics, color_dicts, **user_args):
         graphs = vis.Graphs(dynamics)
     while True:
         print("-- Starting update (calling from python)") if verbose else None
-        dynamics.update()
+        try:
+            dynamics.update()
+        except Exception as e:
+            print("Error during dynamics update:\n", e)
+            exit(1)
         print("-- Finished update") if verbose else None
         
         # Obtain initial number of recruits
