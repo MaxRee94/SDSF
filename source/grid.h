@@ -784,7 +784,6 @@ public:
 			Patch patch = Patch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, id, search_type, dummy_neighboring_patches, overlap_with_old_patches);
 			savanna_patches[id] = patch;
 		}
-
 		
 		return id;
 	}
@@ -806,28 +805,30 @@ public:
 		else if (type == "savanna") return reinterpret_cast<map<int, Patch*>&>(savanna_patches);
 		else throw("Runtime error: Unknown patch type '%s' in yield_all_patches_of_type().\n", type.c_str());
 	}
-	vector<int> get_unused_ids(vector<int>& old_patch_ids, string type) {
+	vector<int> get_unused_ids(vector<int>& used_patch_ids, string type) {
 		vector<int> unused_ids;
 		int step_sign = type == "forest" ? 1 : -1;
 		int offset = type == "forest" ? 0 : -2;
 		int no_patches = get_no_patches_of_type(type);
 		for (int i = offset; abs(i) < no_patches + abs(offset) + 1; i += step_sign) {
 			if (i == -1) continue;
-			if (!help::is_in(&old_patch_ids, i)) unused_ids.push_back(i);
+			if (!help::is_in(&used_patch_ids, i)) {
+				if (i % 20 == 0) printf("- unused id for type %s: %i\n", type.c_str(), i);
+				unused_ids.push_back(i);
+			}
 		}
 		return unused_ids;
 	}
 	void update_patch_ids(vector<int>& old_patch_ids) {
 		// Update patch ids based on overlaps with patches from previous time step.
 
-
 		// Hold a contest; whichever of the current patches has the most overlap with an old patch
 		// is assigned the old patch's id.
 		printf("yielding all patches...\n");
 		map<int, Patch*> all_patches = yield_all_patches();
 		map<int, Patch*> patches_with_uncertain_ids = all_patches;
+		vector<int> used_ids;
 		cout << to_string(savanna_patches.size() + forest_patches.size()) << " patches in total (start of function).\n";
-		cout << to_string(patches_with_uncertain_ids.size()) << " patches with uncertain ids (start of function).\n";
 		printf("Holding contest...\n");
 		for (int old_id : old_patch_ids) {
 			int most_overlap = 0;
@@ -844,34 +845,39 @@ public:
 				Patch& winning_patch = yield_patch_from_id(winner);
 				winning_patch.id = old_id;
 				patches_with_uncertain_ids.erase(winner); // This patch's ID is now certain.
+				used_ids.push_back(old_id);
 			}
+			//else printf("No winner for old patch id %i.\n", old_id);
 		}
 		printf("Contest finished. Getting unused ids...\n");
 		
 		// Create a list of patch IDs that were not used in the previous time step.
-		vector<int> unused_savanna_ids = get_unused_ids(old_patch_ids, "savanna");
-		vector<int> unused_forest_ids = get_unused_ids(old_patch_ids, "forest");
+		vector<int> unused_savanna_ids = get_unused_ids(used_ids, "savanna");
+		vector<int> unused_forest_ids = get_unused_ids(used_ids, "forest");
+		int initial_unused_savanna_ids = unused_savanna_ids.size();
+		int initial_unused_forest_ids = unused_forest_ids.size();
+		int no_uncertain_forest_ids = 0;
+		int no_uncertain_savanna_ids = 0;
+		for (auto& [current_id, patch] : patches_with_uncertain_ids) {
+			if (patch->type == "forest") no_uncertain_forest_ids++;
+			else no_uncertain_savanna_ids++;
+		}
+		printf("Number unused savanna ids: %i, Versus number of uncertain savanna ids: %i\n", initial_unused_savanna_ids, no_uncertain_savanna_ids);
+		printf("Number unused forest ids: %i, Versus number of uncertain forest ids: %i\n", initial_unused_forest_ids, no_uncertain_forest_ids);
 
 		// For the remaining patches with uncertain IDs, we assign unused IDs.
-		printf("Assign unused ids...\n");
-		printf(
-			"Number of savanna patches: %i, number of unused savanna ids: %i\n",
-			savanna_patches.size(), unused_savanna_ids.size()
-		);
-		int i = 0;
-		for (auto& [current_id, patch] : patches_with_uncertain_ids) { i++; printf("i: %i", i); };
-		cout << "\n" << to_string(i) << " savanna patches with uncertain ids.\n";
-		cout << to_string(savanna_patches.size() + forest_patches.size()) << " patches in total.\n";
+		printf("Assigning unused ids...\n");
+		cout << "\n-- " << to_string(patches_with_uncertain_ids.size()) << " patches with uncertain ids.\n";
+		cout << "\n-- " << to_string(all_patches.size()) << " patches in total.\n";
 		for (auto& [current_id, patch] : patches_with_uncertain_ids) {
-			printf("Get ref to unused ids specific to patch type...\n");
-			vector<int>& unused_ids = patch->id >= 0 ? unused_forest_ids : unused_savanna_ids;
-			printf("Get new id...\n");
+			vector<int>& unused_ids = patch->type == "forest" ? unused_forest_ids : unused_savanna_ids;
 			int new_id = unused_ids[0];
-			printf("Erase id from:\n");
-			for (auto& id : unused_ids) {
-				printf("%i ", id);
+			//printf("Erase id from:\n");
+			//for (auto& id : unused_ids) printf("%i ", id);
+			if (unused_ids.size() == 0) {
+				if (patch->id >= 0) printf("--- No more unused forest ids available. Initial number of unused forest ids: %i. Initial number of uncertain forest ids: %i \n", initial_unused_forest_ids, no_uncertain_forest_ids);
+				else printf("--- No more unused savanna ids available. Initial number of unused savanna ids: %i. Initial number of uncertain savanna ids: %i \n", initial_unused_savanna_ids, no_uncertain_savanna_ids);
 			}
-			printf("\n");
 			unused_ids.erase(unused_ids.begin());
 		}
 		printf("Finished assigning unused ids.\n");
@@ -887,6 +893,10 @@ public:
 		if (verbosity > 0) printf("Getting old patch ids...\n");
 		vector<int> old_patch_ids = get_old_patch_ids();
 		vector<vector<int>> _patch_memberships(width, vector<int>(width, -1));
+
+		// Reset patch containers
+		forest_patches.clear();
+		savanna_patches.clear();
 
 		if (verbosity > 0) printf("Getting patches...\n");
 		for (int x = 0; x < width; x++) {

@@ -329,12 +329,11 @@ PYBIND11_MODULE(dbr_cpp, module) {
 			dynamics.resource_grid.set_dist_lookup_table(float_array, species);
 		})
         .def("get_patches", [](Dynamics& dynamics) {
-            map<int, Patch>& _forest_patches = dynamics.state.grid.forest_patches;
-            map<int, Patch>& _savanna_patches = dynamics.state.grid.savanna_patches;
+            map<int, Patch> _forest_patches = dynamics.state.grid.forest_patches;
+            map<int, Patch> _savanna_patches = dynamics.state.grid.savanna_patches;
             map<int, Patch> _patches = {};
 			_patches.merge(_forest_patches);
             _patches.merge(_savanna_patches);
-			printf("-- Number of savanna patches: %i \n", (int)_savanna_patches.size());
             Grid& grid = dynamics.state.grid;
             py::list patches;
             for (auto const& [id, _patch] : _patches) {
