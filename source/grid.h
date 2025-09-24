@@ -791,7 +791,7 @@ public:
 	bool cell_is_visited(vector<vector<int>>& _patch_memberships, int x, int y) {
 		return _patch_memberships[x][y] != -1;
 	}
-	map<int, Patch*>& yield_all_patches() {
+	map<int, Patch*> yield_all_patches() {
 		map<int, Patch*> all_patches;
 		for (auto const& [id, patch] : forest_patches) {
 			all_patches[id] = &forest_patches[id];
@@ -824,12 +824,15 @@ public:
 		// Hold a contest; whichever of the current patches has the most overlap with an old patch
 		// is assigned the old patch's id.
 		printf("yielding all patches...\n");
-		map<int, Patch*> patches_with_uncertain_ids = yield_all_patches();
+		map<int, Patch*> all_patches = yield_all_patches();
+		map<int, Patch*> patches_with_uncertain_ids = all_patches;
+		cout << to_string(savanna_patches.size() + forest_patches.size()) << " patches in total (start of function).\n";
+		cout << to_string(patches_with_uncertain_ids.size()) << " patches with uncertain ids (start of function).\n";
 		printf("Holding contest...\n");
 		for (int old_id : old_patch_ids) {
 			int most_overlap = 0;
 			int winner = -1;
-			for (auto& [current_id, patch] : yield_all_patches()) {
+			for (auto& [current_id, patch] : all_patches) {
 				bool has_overlap = help::is_in(patch->overlap_with_old_patches, old_id);
 				if (has_overlap && patch->overlap_with_old_patches[old_id] > most_overlap) {
 					most_overlap = patch->overlap_with_old_patches[old_id];
@@ -856,7 +859,7 @@ public:
 			savanna_patches.size(), unused_savanna_ids.size()
 		);
 		int i = 0;
-		for (auto& [current_id, patch] : patches_with_uncertain_ids) if (current_id < -1) { i++; printf("i: %i", i); };
+		for (auto& [current_id, patch] : patches_with_uncertain_ids) { i++; printf("i: %i", i); };
 		cout << "\n" << to_string(i) << " savanna patches with uncertain ids.\n";
 		cout << to_string(savanna_patches.size() + forest_patches.size()) << " patches in total.\n";
 		for (auto& [current_id, patch] : patches_with_uncertain_ids) {
