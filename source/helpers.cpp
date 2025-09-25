@@ -354,6 +354,14 @@ void help::sort(std::map<int, double>& _map, PairSet& _set)
 }
 
 
+// Function to sort the map according
+// to value in a (key-value) pairs
+void help::sort(std::map<int, int>& _map, PairIntSet& _set)
+{
+    _set = PairIntSet(_map.begin(), _map.end());
+}
+
+
 void help::split(string basestring, string separator, vector<string>& substrings) {
     vector<size_t> occurrences = help::FindAll(basestring, separator);
     if (occurrences.size() == 0) {

@@ -680,9 +680,9 @@ public:
 			}
 		}
 	}
-	Patch& yield_patch_from_id(int id) {
-		if (id >= 0) return forest_patches[id];
-		else return savanna_patches[-2 - id];
+	Patch* yield_patch_from_id(int id) {
+		if (id >= 0) return &forest_patches[id];
+		else return &savanna_patches[-2 - id];
 	}
 	int get_no_patches_of_type(string type) {
 		if (type == "forest") return forest_patches.size();
@@ -826,7 +826,8 @@ public:
 		// is assigned the old patch's id.
 		printf("yielding all patches...\n");
 		map<int, Patch*> all_patches = yield_all_patches();
-		map<int, Patch*> patches_with_uncertain_ids = all_patches;
+		map<int, Patch*> patches_with_uncertain_ids = all_patches; // Patches that were not assigned any old ids.
+		map<int, map<int, int>> claims; // For each current patch id, store a map of old patch ids and the associated overlaps with the old patch.
 		vector<int> used_ids;
 		cout << to_string(savanna_patches.size() + forest_patches.size()) << " patches in total (start of function).\n";
 		printf("Holding contest...\n");
@@ -835,6 +836,8 @@ public:
 			int winner = -1;
 			for (auto& [current_id, patch] : all_patches) {
 				bool has_overlap = help::is_in(patch->overlap_with_old_patches, old_id);
+				int overlap = has_overlap ? patch->overlap_with_old_patches[old_id] : 0;
+
 				if (has_overlap && patch->overlap_with_old_patches[old_id] > most_overlap) {
 					most_overlap = patch->overlap_with_old_patches[old_id];
 					winner = current_id;
@@ -842,14 +845,40 @@ public:
 			}
 			if (winner != -1) {
 				// If a winner was found, assign the old patch ID to the winning patch.
-				Patch& winning_patch = yield_patch_from_id(winner);
-				winning_patch.id = old_id;
-				patches_with_uncertain_ids.erase(winner); // This patch's ID is now certain.
-				used_ids.push_back(old_id);
+				if (claims[winner].size() == 0) claims[winner] = map<int, int>();
+				claims[winner][old_id] = most_overlap;
+				printf("overlap with old patch: %i cells. ", most_overlap);
+				printf("Winner map: ");
+				for (auto [old_id, overlap] : claims[winner]) {
+					printf("old patch: %i (overlap: %i), ", old_id, overlap);
+				}
+				printf("\n");
 			}
-			//else printf("No winner for old patch id %i.\n", old_id);
 		}
-		printf("Contest finished. Getting unused ids...\n");
+		printf("Contest finished. Assigning claimed ids...\n");
+		for (auto [cur_id, overlaps_with_old_patches] : claims) {
+
+			// For the given old patch ID, find the current patch that has the biggest overlap with it.
+			PairIntSet sorted_claimants;
+			help::sort(overlaps_with_old_patches, sorted_claimants); // Sort old patches by their overlap with the current patch, in ascending order.
+			/*printf("\n Claimaints for current patch %i: \n", cur_id);
+			for (auto pair : sorted_claimants) {
+				printf("old patch: %i (overlap: %i), ", pair.first, pair.second);
+			}
+			printf("\n");*/
+			int old_id_with_biggest_overlap = (--sorted_claimants.end())->first; // "end()" points to one past the last element, so we need to decrement it once.
+			//printf("Chosen old id: %i\n", old_id_with_biggest_overlap);
+
+			// Assign the old patch ID that has the biggest overlap.
+			Patch* current_patch = yield_patch_from_id(cur_id);
+			current_patch->id = old_id_with_biggest_overlap;
+			/*printf("Assigned id: %i\n", current_patch->id);*/
+			if (help::is_in(&used_ids, old_id_with_biggest_overlap)) printf("--- Warning: Old id %i was already used. This should not happen.\n", old_id_with_biggest_overlap);
+			used_ids.push_back(old_id_with_biggest_overlap);
+			patches_with_uncertain_ids.erase(cur_id);
+			//printf("Used id: %i \n", used_ids.back());
+		}
+
 		
 		// Create a list of patch IDs that were not used in the previous time step.
 		vector<int> unused_savanna_ids = get_unused_ids(used_ids, "savanna");

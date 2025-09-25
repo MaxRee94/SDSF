@@ -45,6 +45,8 @@ struct _comparator {
 
 typedef std::set < std::pair<int, double>, _comparator> PairSet;
 
+typedef std::set < std::pair<int, int>, _comparator> PairIntSet;
+
 template <typename T, typename U>
 std::pair<T, U> operator+(const std::pair<T, U>& l, const std::pair<T, U>& r) {
 	return { l.first + r.first,l.second + r.second };
@@ -94,6 +96,8 @@ namespace help {
 	void init_RNG(int seed);
 
 	void sort(std::map<int, double>& _map, PairSet& _set);
+
+	void sort(std::map<int, int>& _map, PairIntSet& _set);
 
 	int get_key(std::map<int, int>* _map, int value);
 
