@@ -819,6 +819,29 @@ public:
 		}
 		return unused_ids;
 	}
+	void replace_patch_id(int old_id, int new_id, map<int, Patch*> local_forest_patches, map<int, Patch*> local_savanna_patches) {
+		// Replace all occurrences of old_id in patch memberships with new_id.
+		string type = old_id >= 0 ? "forest" : "savanna";
+		map<int, Patch*>& local_patches = (type == "forest") ? local_forest_patches : local_savanna_patches;
+		map<int, Patch>& patches = (type == "forest") ? forest_patches : savanna_patches;
+
+		// We obtain the patch from the (immutable) local patches map to avoid that the patch we want to obtain has already been replaced by another patch.
+		Patch* patch = local_patches[old_id];
+		patch->id = new_id;
+
+		// Update the global patches map
+		patches[new_id] = *patch;
+		if (old_id != new_id) patches.erase(old_id);
+
+		if (type == "savanna") {
+			// If we are renaming a savanna patch, we also need to update the neighboring_patches lists of all forest patches.
+			for (auto& [forest_id, forest_patch] : forest_patches) {
+				for (int& neighbor_id : forest_patch.neighboring_patches) {
+					if (neighbor_id == old_id) neighbor_id = new_id;
+				}
+			}
+		}
+	}
 	void update_patch_ids(vector<int>& old_patch_ids) {
 		// Update patch ids based on overlaps with patches from previous time step.
 
