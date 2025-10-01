@@ -682,7 +682,7 @@ public:
 	}
 	Patch* yield_patch_from_id(int id) {
 		if (id >= 0) return &forest_patches[id];
-		else return &savanna_patches[-2 - id];
+		else return &savanna_patches[id];
 	}
 	int get_no_patches_of_type(string type) {
 		if (type == "forest") return forest_patches.size();
