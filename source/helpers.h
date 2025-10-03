@@ -109,6 +109,8 @@ namespace help {
 
 	float dot(pair<float, float> &p1, pair<float, float> &p2);
 
+	vector<pair<int, int>> get_bbox(vector<pair<int, int>> positions2d);
+
 	void normalize(pair<float, float>& vec, float length);
 
 	void get_random_unit_vector(pair<float, float> &direction);
@@ -227,6 +229,9 @@ namespace help {
 
 	// Get maximum
 	double get_max(vector<double>* distribution);
+	
+	template <typename T>
+	T get_max(vector<pair<T, T>>& distribution, int index);
 
 	// Do binary search in array of floats or doubles
 	template <typename T>
@@ -248,6 +253,9 @@ namespace help {
 	// Get minimum
 	template <typename T>
 	double get_min(vector<T>* distribution);
+
+	template <typename T>
+	T get_min(vector<pair<T, T>>& distribution, int index);
 
 	// Get exponential function value
 	float exponential_function(float x, float a, float b, float c);

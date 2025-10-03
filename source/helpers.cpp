@@ -362,6 +362,15 @@ void help::sort(std::map<int, int>& _map, PairIntSet& _set)
 }
 
 
+vector<pair<int, int>> help::get_bbox(vector<pair<int, int>> positions2d) {
+    int min_x = help::get_min(positions2d, 0);
+    int min_y = help::get_min(positions2d, 1);
+    int max_x = help::get_max(positions2d, 0);
+	int max_y = help::get_max(positions2d, 1);
+    return vector<pair<int, int>>{pair<int, int>(min_x, min_y), pair<int, int>(max_x, max_y)};
+}
+
+
 void help::split(string basestring, string separator, vector<string>& substrings) {
     vector<size_t> occurrences = help::FindAll(basestring, separator);
     if (occurrences.size() == 0) {
@@ -541,7 +550,7 @@ double help::get_max(vector<double>* distribution) {
 
 template <typename T>
 double help::get_min(vector<T>* distribution) {
-    double min = INFINITY;
+    double min = 1e12;
     for (auto value : *distribution) {
         if (value < min) min = value;
     }
@@ -549,6 +558,40 @@ double help::get_min(vector<T>* distribution) {
 }
 template double help::get_min<double>(vector<double>* vec);
 template double help::get_min<float>(vector<float>* vec);
+
+
+template <typename T>
+T help::get_min(vector<pair<T, T>>& distribution, int index) {
+	T min = 1e12;
+    for (auto& value : distribution) {
+        T contained_value;
+        if (index == 0) contained_value = value.first;
+        if (index == 1) contained_value = value.second;
+        if (contained_value < min) min = contained_value;
+		//if (contained_value == 0) printf("zero found: (%i, %i)\n", value.first, value.second);
+	}
+    return min;
+}
+template double help::get_min<double>(vector<double>* vec);
+template double help::get_min<float>(vector<float>* vec);
+template double help::get_min<int>(vector<int>* vec);
+
+
+template <typename T>
+T help::get_max(vector<pair<T, T>>& distribution, int index) {
+    T max = 0;
+    for (auto& value : distribution) {
+        T contained_value;
+        if (index == 0) contained_value = value.first;
+        if (index == 1) contained_value = value.second;
+        if (contained_value > max) max = contained_value;
+    }
+    return max;
+}
+template double help::get_min<double>(vector<double>* vec);
+template double help::get_min<float>(vector<float>* vec);
+template double help::get_min<int>(vector<int>* vec);
+
 
 float help::get_dist(pair<float, float> p1, pair<float, float> p2) {
     float xdif = (p1.first - p2.first);

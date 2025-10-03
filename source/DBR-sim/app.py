@@ -214,16 +214,38 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
             imagepath_fire_freq = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fire_frequencies/" + str(dynamics.time) + ".png")
             vis.save_image(fire_freq_img, imagepath_fire_freq, get_max(1000, fire_freq_img.shape[0]))
 
+    def get_bbox(positions2d):
+        min_x = min(positions2d, key=lambda item: item[0])[0]
+        max_x = max(positions2d, key=lambda item: item[0])[0]
+        min_y = min(positions2d, key=lambda item: item[1])[1]
+        max_y = max(positions2d, key=lambda item: item[1])[1]
+        return (min_x, min_y), (max_x, max_y)
+
     if ("colored_patches" in visualization_types):
         print("Creating colored patches image...") if verbose else None
         # Modify color array to give patches distinct colors
         patch_colors_indices = dynamics.state.grid.get_distribution(False)
         minimum_considered_patch_size = 50 # m^2
         forest_area = 0
+        central_patch = -1
+        largest_central_patch = 0
         for i, patch in enumerate(patches):
             if patch["area"] < minimum_considered_patch_size: # Only consider patches of a certain size
                 continue
             patch_id = patch["id"]
+
+            # WIP
+            min_xy, max_xy = get_bbox(patch["cells"])
+
+            if patch["type"] == "forest":
+                print(f"--- Forest patch id {patch_id}, bbox: {min_xy[0], min_xy[1]}, {max_xy[0], max_xy[1]}, area: {patch['area']} m^2.")
+
+            if patch["type"] == "forest":
+                if min_xy[0] > 60 and min_xy[0] < 100 and min_xy[1] > 60 and min_xy[1] < 100 and max_xy[0] < 180 and max_xy[0] > 100 and max_xy[1] < 180 and max_xy[1] > 100:
+                    if (len(patch["cells"]) > largest_central_patch):
+                        largest_central_patch = len(patch["cells"])
+                        central_patch = patch
+
             if not patch_color_ids.get(str(patch_id)):
                 #color_idx = -10 - random.randint(0, 99)
                 color_idx = vis.get_most_distinct_index(patch_color_ids.values(), 1000, -10)
@@ -235,6 +257,13 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
             for cell in patch["cells"]:
                 patch_colors_indices[cell[1]][cell[0]] = patch_color_id
         print("cumulative forest area: ", forest_area, " m^2")
+
+        # WIP
+        if central_patch != -1:
+            print(f"---- Central forest patch found: {central_patch['id']} centroid: {central_patch['centroid'][0], central_patch['centroid'][1]}, area: {central_patch['area']} m^2, perimeter length: {central_patch['perimeter_length']} m.")
+            print("Cells in central patch: ", len(central_patch['cells']))
+        else:
+            print("----------- !! Central forest patch not found.")
         
         colored_patches_img = vis.get_image(patch_colors_indices, color_dicts["colored_patches"], dynamics.state.grid.width)
         user_args["show_edges"] = True # Hardcoded for now

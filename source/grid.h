@@ -274,7 +274,8 @@ public:
 	Patch() = default;
 	Patch(
 		int centr_x, int centr_y, int centr_idx, vector<int> _cells, vector<pair<int, int>> _perimeter,
-		float _cell_width, int _id, string _type, vector<int> _neighboring_patches, map<int, int> _overlap_with_old_patches
+		float _cell_width, int _id, string _type, vector<int> _neighboring_patches, map<int, int> _overlap_with_old_patches,
+		int grid_width
 	) {
 		centroid_idx = centr_idx;
 		centroid_x = centr_x;
@@ -288,7 +289,32 @@ public:
 		area = cells.size() * cell_width * cell_width;
 		neighboring_patches = _neighboring_patches;
 		overlap_with_old_patches = _overlap_with_old_patches;
+		compute_bb(grid_width);
 	};
+	void compute_bb(int grid_width) {
+		min_x = 1e8;
+		max_x = 0;
+		min_y = 1e8;
+		max_y = 0;
+		for (auto idx : cells) {
+			int x = idx % grid_width;
+			int y = idx / grid_width;
+			if (x < min_x) min_x = x;
+			if (x > max_x) max_x = x;
+			if (y < min_y) min_y = y;
+			if (y > max_y) max_y = y;
+		}
+	}
+	vector<pair<int, int>> get_cell_positions(int grid_width) {
+		vector<pair<int, int>> cell_positions;
+		for (auto idx : cells) {
+			int x = idx % grid_width;
+			int y = idx / grid_width;
+			pair<int, int> pos (x, y);
+			cell_positions.push_back(pos);
+		}
+		return cell_positions;
+	}
 	vector<pair<int, int>> perimeter; // Indices of forest-savanna pairs on the edge of the patch.
 	map<int, int> overlap_with_old_patches; // Key: ID of a patch in the current time step. Value: Number of cells of each corresponding patch that overlap with the current patch.
 	vector<int> cells;
@@ -302,6 +328,10 @@ public:
 	float cell_width = 0;
 	float perimeter_length = 0;
 	float area = 0;
+	int min_x = 0;
+	int max_x = 0;
+	int min_y = 0;
+	int max_y = 0;
 };
 
 
@@ -775,13 +805,13 @@ public:
 
 		// Create patch
 		if (search_type == "forest") {
-			Patch patch = Patch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, id, search_type, neighboring_savannas, overlap_with_old_patches);
+			Patch patch = Patch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, id, search_type, neighboring_savannas, overlap_with_old_patches, width);
 			forest_patches[id] = patch;
 		}
 		else {
 			vector<int> dummy_neighboring_patches;	// We do not track neighboring patches for savanna patches here. This is done
 													// when all forest patches have been identified.
-			Patch patch = Patch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, id, search_type, dummy_neighboring_patches, overlap_with_old_patches);
+			Patch patch = Patch(centroid_x, centroid_y, centroid_idx, cell_indices, perimeter, cell_width, id, search_type, dummy_neighboring_patches, overlap_with_old_patches, width);
 			savanna_patches[id] = patch;
 		}
 
@@ -814,6 +844,13 @@ public:
 		}
 		return unused_ids;
 	}
+	// WIP function (remove when done debugging):
+	bool bbox_is_central(Patch& patch) {
+		if (patch.min_x > 60 && patch.min_x < 100 && patch.min_y > 60 && patch.min_y < 100 && patch.max_x < 180 && patch.max_x > 100 && patch.max_y < 180 && patch.max_y > 100) {
+			return true;
+		}
+		return false;
+	}
 	void replace_patch_id(int old_id, int new_id, map<int, Patch>& local_forest_patches, map<int, Patch>& local_savanna_patches) {
 		// Replace all occurrences of old_id in patch memberships with new_id.
 		string type = old_id >= 0 ? "forest" : "savanna";
@@ -824,11 +861,20 @@ public:
 		Patch patch = local_patches[old_id];
 		patch.id = new_id;
 
+		// WIP: Check if the soon-to-be-overriden patch is the central forest patch. For debugging only.
+		Patch& to_be_overridden_patch = patches[new_id];
+		bool is_central_forest_patch = to_be_overridden_patch.type == "forest";
+		is_central_forest_patch = is_central_forest_patch && bbox_is_central(to_be_overridden_patch);
+		if (is_central_forest_patch) printf("Overwriting central forest patch with ID %i (size %i) with another patch (size %i).\n", new_id, patches[new_id].cells.size(), patch.cells.size());
+
 		// Update the global patches map
-		if (patches[new_id].cells.size() > 25000) printf("Overwriting largest savanna patch with ID %i (size %i) with another patch (size %i).\n", new_id, patches[new_id].cells.size(), patch.cells.size());
 		patches[new_id] = patch;
-		if (patches[new_id].cells.size() > 25000) printf("Giving largest savanna patch (size %i) a new id (%i).\n", patch.cells.size(), new_id);
 		if (old_id != new_id) patches.erase(old_id);
+
+		// WIP: Check if the overriding patch is the central forest patch. For debugging only.
+		is_central_forest_patch = patch.type == "forest";
+		is_central_forest_patch = is_central_forest_patch && bbox_is_central(patch);
+		if (is_central_forest_patch) printf("Giving central forest patch (size %i) a new id (%i).\n", patch.cells.size(), new_id);
 
 		if (type == "savanna") {
 			// If we are renaming a savanna patch, we also need to update the neighboring_patches lists of all forest patches.
@@ -895,29 +941,6 @@ public:
 
 		}
 
-		// DEBUG
-		int largest_savanna_patch = 0;
-		int largest_savanna_patch_id = -1;
-		for (auto [id, patch] : savanna_patches) {
-			if (patch.cells.size() > largest_savanna_patch) {
-				largest_savanna_patch = patch.cells.size();
-				largest_savanna_patch_id = id;
-			}
-		}
-		printf("Largest savanna patch (after assigning claimed ids): %i \n", largest_savanna_patch);
-
-		// DEBUG
-		largest_savanna_patch = 0;
-		largest_savanna_patch_id = -1;
-		for (auto [id, patch] : patches_with_uncertain_ids) {
-			if (id >= 0) continue;
-			if (patch.cells.size() > largest_savanna_patch) {
-				largest_savanna_patch = patch.cells.size();
-				largest_savanna_patch_id = id;
-			}
-		}
-		printf("Largest uncertain savanna patch (after assigning claimed ids): %i \n", largest_savanna_patch);
-
 		// Create a list of patch IDs that were not used in the previous time step.
 		vector<int> unused_savanna_ids = get_unused_ids(used_ids, "savanna", local_savanna_patches.size());
 		vector<int> unused_forest_ids = get_unused_ids(used_ids, "forest", local_forest_patches.size());
@@ -937,18 +960,8 @@ public:
 		//cout << "\n-- " << to_string(patches_with_uncertain_ids.size()) << " patches with uncertain ids.\n";
 		//cout << "\n-- " << to_string(all_patches.size()) << " patches in total.\n";
 
+		printf("-- Assigning unused ids...\n");
 		assign_unused_ids(used_ids, unused_savanna_ids, unused_forest_ids, local_forest_patches, local_savanna_patches);
-
-		// DEBUG
-		largest_savanna_patch = 0;
-		largest_savanna_patch_id = -1;
-		for (auto [id, patch] : savanna_patches) {
-			if (patch.cells.size() > largest_savanna_patch) {
-				largest_savanna_patch = patch.cells.size();
-				largest_savanna_patch_id = id;
-			}
-		}
-		printf("Largest savanna patch (after assigning unused ids): %i \n", largest_savanna_patch);
 	}
 	void assign_unused_ids(
 		vector<int>& used_ids, vector<int>& unused_savanna_ids, vector<int>& unused_forest_ids, map<int, Patch>& local_forest_patches,
@@ -961,19 +974,9 @@ public:
 			vector<int>& unused_ids = patch.type == "forest" ? unused_forest_ids : unused_savanna_ids;
 			int new_id = unused_ids[0];
 
-			if (patch.cells.size() > 25000 && patch.type == "savanna") {
-				printf("---- Assigning unused id to largest savanna patch: %i\n", new_id);
-			}
-
 			// Assign the new ID to the patch.
 			replace_patch_id(current_id, new_id, local_forest_patches, local_savanna_patches);
 
-			//printf("Erase id from:\n");
-			//for (auto& id : unused_ids) printf("%i ", id);
-			/*if (unused_ids.size() == 0) {
-				if (patch.id >= 0) printf("--- No more unused forest ids available. Initial number of unused forest ids: %i. Initial number of uncertain forest ids: %i \n", initial_unused_forest_ids, no_uncertain_forest_ids);
-				else printf("--- No more unused savanna ids available. Initial number of unused savanna ids: %i. Initial number of uncertain savanna ids: %i \n", initial_unused_savanna_ids, no_uncertain_savanna_ids);
-			}*/
 			unused_ids.erase(unused_ids.begin());
 		}
 	}
@@ -1002,20 +1005,10 @@ public:
 			}
 		}
 
-		// DEBUG
-		int largest_savanna_patch = 0;
-		int largest_savanna_patch_id = -1;
-		for (auto [id, patch] : savanna_patches) {
-			if (patch.cells.size() > largest_savanna_patch) {
-				largest_savanna_patch = patch.cells.size();
-				largest_savanna_patch_id = id;
-			}
-		}
-		printf("Largest savanna patch (before updating ids): %i \n", largest_savanna_patch);
-
 		// Update patch ids based on overlaps with patches from previous time step.
 		if (verbosity > 0) printf("Updating patch ids...\n");
 		update_patch_ids(old_patch_ids);
+
 
 		// Update patch memberships for next time step
 		if (verbosity > 0) printf("Update patch memberships for next timestep...\n");
@@ -1024,20 +1017,6 @@ public:
 				patch_memberships[cell_idx] = patch.id;
 			}
 		}
-
-		largest_savanna_patch = 0;
-		largest_savanna_patch_id = -1;
-		for (auto [id, patch] : savanna_patches) {
-			if (patch.cells.size() > largest_savanna_patch) {
-				largest_savanna_patch = patch.cells.size();
-				largest_savanna_patch_id = id;
-			}
-		}
-		printf("Largest savanna patch id: %i \n", largest_savanna_patch_id);
-		if (previous_largest_savanna_patch_id != largest_savanna_patch_id) {
-			printf("---- Largest savanna patch (%i cells) id has changed: from %i to %i \n", largest_savanna_patch, previous_largest_savanna_patch_id, largest_savanna_patch_id);
-		}
-		previous_largest_savanna_patch_id = largest_savanna_patch_id;
 	}
 	void cap(pair<int, int> &position_grid) {
 		if (position_grid.first < 0) position_grid.first = width + (position_grid.first % width);
@@ -1059,7 +1038,6 @@ public:
 	int no_cells = 0;
 	int no_savanna_cells = 0;
 	int no_forest_cells = 0;
-	int previous_largest_savanna_patch_id = -1; // TEMP
 	float width_r = 0;
 	float tree_cover = 0;
 	float cell_width = 0;
