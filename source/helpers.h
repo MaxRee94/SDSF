@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 #include <queue>
+#include <assert.h>
 #include <unordered_map>
 #include <random>
 #include <chrono>

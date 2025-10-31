@@ -961,6 +961,7 @@ public:
 		forest_patches.clear();
 		savanna_patches.clear();
 
+		// Get patches
 		if (verbosity > 0) printf("Getting patches...\n");
 		for (int x = 0; x < width; x++) {
 			for (int y = 0; y < width; y++) {
@@ -982,6 +983,34 @@ public:
 				patch_memberships[cell_idx] = patch.id;
 			}
 		}
+
+		// Perform sanity checks
+		assert(get_sum_of_patch_sizes() == no_cells);
+		assert(approx(get_tree_cover(), get_fraction_cumulative_forest_patch_size(), 0.001));
+		printf("tree cover: %f, fraction cumulative forest patch size: %f\n", get_tree_cover(), get_fraction_cumulative_forest_patch_size());
+
+	}
+	double get_fraction_cumulative_forest_patch_size() {
+		int cumulative_forest_patch_size = 0;
+		int cumulative_savanna_patch_size = 0;
+		for (auto& [id, patch] : yield_all_patches()) {
+			if (patch.type == "forest") cumulative_forest_patch_size += patch.cells.size();
+			else if (patch.type == "savanna") cumulative_savanna_patch_size += patch.cells.size();
+			else throw("Runtime error: Unknown patch type '%s' in get_fraction_cumulative_forest_patch_size().\n", patch.type.c_str());
+		}
+		assert(cumulative_forest_patch_size + cumulative_savanna_patch_size == no_cells);
+		return (double)cumulative_forest_patch_size / ((double)cumulative_savanna_patch_size + (double)cumulative_forest_patch_size);
+	}
+	int get_sum_of_patch_sizes(string type="all") {
+		int sum = 0;
+		map<int, Patch> patches;
+		if (type == "all") patches = yield_all_patches();
+		else if (type == "forest") patches = forest_patches;
+		else if (type == "savanna") patches = savanna_patches;
+		for (auto& [id, patch] : patches) {
+			sum += patch.cells.size();
+		}
+		return sum;
 	}
 	void cap(pair<int, int> &position_grid) {
 		if (position_grid.first < 0) position_grid.first = width + (position_grid.first % width);
