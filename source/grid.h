@@ -844,86 +844,19 @@ public:
 		}
 		return unused_ids;
 	}
-	// WIP function (remove when done debugging):
-	bool bbox_is_central(Patch& patch) {
-		if (patch.type == "forest" && patch.min_x > 60 && patch.min_x < 100 && patch.min_y > 60 && patch.min_y < 100 && patch.max_x < 180 && patch.max_x > 100 && patch.max_y < 180 && patch.max_y > 100) {
-			return patch.cells.size() > 2000;
-		}
-		return false;
-	}
-	void replace_patch_id(int old_id, int new_id, map<int, Patch>& local_forest_patches, map<int, Patch>& local_savanna_patches) {
-		// Replace all occurrences of old_id in patch memberships with new_id.
-		string type = old_id >= 0 ? "forest" : "savanna";
-		map<int, Patch>& local_patches = (type == "forest") ? local_forest_patches : local_savanna_patches;
-		map<int, Patch>& patches = (type == "forest") ? forest_patches : savanna_patches;
-
-		// We obtain the patch from the (immutable) local patches map to avoid that the patch we want to obtain has already been replaced by another patch.
-		Patch patch = local_patches[old_id];
-		patch.id = new_id;
-
-		bool exists_central_forest_patch = false;
-		//printf("starting replacement func: checking for central forest patch...\n");
-		for (auto& [id, _patch] : forest_patches) {
-			if (bbox_is_central(_patch)) {
-				exists_central_forest_patch = true;
-				//printf("Central forest patch still exists at start of replacement func.\n");
-			}
-		}
-
-		// WIP: Check if the soon-to-be-overriden patch is the central forest patch. For debugging only.
-		Patch& to_be_overridden_patch = patches[new_id];
-		bool is_central_forest_patch = to_be_overridden_patch.type == "forest";
-		is_central_forest_patch = is_central_forest_patch && bbox_is_central(to_be_overridden_patch);
-		if (is_central_forest_patch) printf("Overwriting central forest patch with ID %i (size %i) with another patch (size %i).\n", new_id, patches[new_id].cells.size(), patch.cells.size());
-
-		// Update the global patches map
-		patches[new_id] = patch;
-		if (old_id != new_id) patches.erase(old_id);
-
-		// WIP: Check if the overriding patch is the central forest patch. For debugging only.
-		is_central_forest_patch = patch.type == "forest";
-		is_central_forest_patch = is_central_forest_patch && bbox_is_central(patch);
-		if (is_central_forest_patch) {
-			printf("Giving central forest patch (size %i) a new id (%i).\n", patch.cells.size(), new_id);
-		}
-
-		// debugging:
-		bool exists_central_forest_patch2 = false;
-		for (auto& [id, _patch] : forest_patches) {
-			if (bbox_is_central(_patch)) {
-				exists_central_forest_patch2 = true;
-			}
-		}
-		if (exists_central_forest_patch && (!exists_central_forest_patch2)) printf("! Central forest patch no longer exists after assigning id %i to patch with original id %i and size %i\n", new_id, old_id, patch.cells.size());
-
-		if (type == "savanna") {
-			// If we are renaming a savanna patch, we also need to update the neighboring_patches lists of all forest patches.
-			for (auto& [forest_id, forest_patch] : forest_patches) {
-				for (int& neighbor_id : forest_patch.neighboring_patches) {
-					if (neighbor_id == old_id) neighbor_id = new_id;
-				}
-			}
-		}
-	}
 	map<int, Patch> get_local_patches_copy(string type) {
 		map<int, Patch>& local_patches = type == "forest" ? forest_patches : savanna_patches;
 		return local_patches;
 	}
 	void update_patch_ids(vector<int>& old_patch_ids) {
-
-		int orig_no_forest_patches = forest_patches.size();
-
-		// Update patch ids based on overlaps with patches from previous time step.
-
 		// Hold a contest; whichever of the current patches has the most overlap with an old patch
-		// is assigned the old patch's id.
+		// is considered the winner
 		map<int, Patch> all_patches = yield_all_patches();
 		map<int, Patch> patches_with_uncertain_ids = all_patches; // Patches that were not assigned any old ids.
 		map<int, Patch> local_forest_patches = get_local_patches_copy("forest");
 		map<int, Patch> local_savanna_patches = get_local_patches_copy("savanna");
 		map<int, map<int, int>> claims; // For each current patch id, store a map of old patch ids and the associated overlaps with the old patch.
 		vector<int> used_ids;
-		cout << to_string(savanna_patches.size() + forest_patches.size()) << " patches in total (start of function).\n";
 		for (int old_id : old_patch_ids) {
 			int most_overlap = 0;
 			int winner = -1;
@@ -960,16 +893,6 @@ public:
 			PairIntSet sorted_claimants;
 			help::sort(overlaps_with_old_patches, sorted_claimants); // Sort old patches by their overlap with the current patch, in ascending order.
 			int old_id_with_biggest_overlap = (--sorted_claimants.end())->first; // "end()" points to one past the last element, so we need to decrement it once.
-			
-			if (cur_id > 0 && bbox_is_central(forest_patches[cur_id])) {
-				printf("Overlap of current central patch (cur id %i, to be assigned id %i) with previous central patch (true id %i): %i cells.\n",
-					cur_id, old_id_with_biggest_overlap, prev_central_forest_patch.id, overlaps_with_old_patches[prev_central_forest_patch.id]);
-				int no_central_forest_patches = 0;
-				for (auto& [id, patch] : new_forest_patches) {
-					if (bbox_is_central(patch)) no_central_forest_patches++;
-				}
-				printf("Number of central_forest_patches: %i \n", no_central_forest_patches);
-			}
 
 			// Assign the old patch ID that has the biggest overlap.
 			//replace_patch_id(cur_id, old_id_with_biggest_overlap, local_forest_patches, local_savanna_patches);
@@ -978,17 +901,6 @@ public:
 			reassign_patch_id(cur_id, old_id_with_biggest_overlap, local_patches, new_patches);
 			used_ids.push_back(old_id_with_biggest_overlap);
 			patches_with_uncertain_ids.erase(cur_id);
-
-			if (cur_id > 0 && bbox_is_central(forest_patches[cur_id])) {
-				int _no_central_forest_patches = 0;
-				for (auto& [id, patch] : new_forest_patches) {
-					if (bbox_is_central(patch)) {
-						printf("id of added central patch: %i \n", id);
-						_no_central_forest_patches++;
-					}
-				}
-				printf("Number of central_forest_patches: %i \n", _no_central_forest_patches);
-			}
 		}
 
 		// Create a list of patch IDs that were not used in the previous time step.
@@ -1002,43 +914,14 @@ public:
 			if (patch.type == "forest") no_uncertain_forest_ids++;
 			else no_uncertain_savanna_ids++;
 		}
-		//printf("Number unused savanna ids: %i, Versus number of uncertain savanna ids: %i\n", initial_unused_savanna_ids, no_uncertain_savanna_ids);
-		//printf("Number unused forest ids: %i, Versus number of uncertain forest ids: %i\n", initial_unused_forest_ids, no_uncertain_forest_ids);
 
 		// For the remaining patches with uncertain IDs, we assign unused IDs.
-		//printf("Assigning unused ids...\n");
-		//cout << "\n-- " << to_string(patches_with_uncertain_ids.size()) << " patches with uncertain ids.\n";
-		//cout << "\n-- " << to_string(all_patches.size()) << " patches in total.\n";
-
-		for (auto& [id, patch] : new_forest_patches) {
-			if (bbox_is_central(patch)) {
-				printf("Central forest patch (id %i, prev true id %i) exists after id re-assignment. #cells: %i\n", id, prev_central_forest_patch.id, patch.cells.size());
-				prev_central_forest_patch = patch;
-				prev_central_forest_patch.id = id;
-			}
-		}
-
-		//printf("used ids before assigning unused ones:");
-		//help::print_vector(&used_ids); printf("\n");
-		printf("-- Assigning unused ids...\n");
 		assign_unused_ids(unused_savanna_ids, unused_forest_ids, new_forest_patches, new_savanna_patches, local_forest_patches, local_savanna_patches,
 			patches_with_uncertain_ids);
 
 		// Copy the lists of new patches back to the main patch containers.
 		forest_patches = new_forest_patches;
 		savanna_patches = new_savanna_patches;
-
-		bool exists_central_forest_patch = false;
-		for (auto& [id, patch] : forest_patches) {
-			if (bbox_is_central(patch)) {
-				printf("Central forest patch (id %i, prev true id %i) exists after id re-assignment. #cells: %i\n", id, prev_central_forest_patch.id, patch.cells.size());
-				exists_central_forest_patch = true;
-				prev_central_forest_patch = patch;
-				prev_central_forest_patch.id = id;
-			}
-		}
-		if (!exists_central_forest_patch) printf("! Central forest patch does not exist after id re-assignment.\n");
-		printf("old vs. new number of forest patches: %i | %i\n", orig_no_forest_patches, forest_patches.size());
 	}
 	void reassign_patch_id(int cur_id, int new_id, map<int, Patch>& local_patches, map<int, Patch>& new_patches) {
 		Patch patch_to_update = local_patches[cur_id];
@@ -1051,17 +934,11 @@ public:
 		map<int, Patch>& patches_with_uncertain_ids
 	) {
 		map<int, Patch> all_patches = yield_all_patches();
-		printf("Assigning unused ids...\n");
 		for (auto& [current_id, patch] : patches_with_uncertain_ids) {
 			vector<int>& unused_ids = patch.type == "forest" ? unused_forest_ids : unused_savanna_ids;
 			int new_id = unused_ids[0];
 
-			if (bbox_is_central(all_patches[current_id])) {
-				printf("Central forest patch in 'assign unused ids': cur id %i, will assign id %i \n", current_id, new_id);
-			}
-
 			// Assign the new ID to the patch.
-			//replace_patch_id(current_id, new_id, local_forest_patches, local_savanna_patches);
 			map<int, Patch>& local_patches = patch.type == "forest" ? local_forest_patches : local_savanna_patches;
 			map<int, Patch>& new_patches = patch.type == "forest" ? new_forest_patches : new_savanna_patches;
 			reassign_patch_id(current_id, new_id, local_patches, new_patches);
@@ -1105,9 +982,6 @@ public:
 				patch_memberships[cell_idx] = patch.id;
 			}
 		}
-
-		// WIP: debugging
-		old_forest_patches = forest_patches;
 	}
 	void cap(pair<int, int> &position_grid) {
 		if (position_grid.first < 0) position_grid.first = width + (position_grid.first % width);
@@ -1142,8 +1016,6 @@ public:
 	float minimum_patch_size = 0;
 	map<int, Patch> forest_patches;
 	map<int, Patch> savanna_patches;
-	Patch prev_central_forest_patch = Patch();
-	map<int, Patch> old_forest_patches;
 	shared_ptr<Cell[]> distribution = 0;
 	shared_ptr<int[]> state_distribution = 0;
 	shared_ptr<int[]> patch_memberships;
