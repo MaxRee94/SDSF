@@ -252,7 +252,7 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
                 patch_color_ids[str(patch_id)] = color_idx # Assign a new color index to the patch
             patch_color_id = patch_color_ids[str(patch_id)]
             col=color_dicts["colored_patches"][patch_color_id]
-            print(f"Patch ID {patch_id} is associated with color {col[0], col[1], col[2]}")
+            #print(f"Patch ID {patch_id} is associated with color {col[0], col[1], col[2]}")
             forest_area += patch["area"] if patch["type"] == "forest" else 0
             for cell in patch["cells"]:
                 patch_colors_indices[cell[1]][cell[0]] = patch_color_id
@@ -266,7 +266,7 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
             print("----------- !! Central forest patch not found.")
         
         colored_patches_img = vis.get_image(patch_colors_indices, color_dicts["colored_patches"], dynamics.state.grid.width)
-        user_args["show_edges"] = True # Hardcoded for now
+        user_args["show_edges"] = False # Hardcoded for now
         if user_args["show_edges"]:
             for patch in patches:
                 if patch["area"] < minimum_considered_patch_size: # Only consider patches of a certain size
