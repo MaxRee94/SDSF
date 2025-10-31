@@ -354,6 +354,12 @@ PYBIND11_MODULE(dbr_cpp, module) {
 			}
             return patches;
         })
+        .def("get_forest_perimeter_length", [](Dynamics& dynamics) {
+		    return dynamics.state.grid.get_forest_perimeter_length();
+        })
+        .def("get_perimeter_area_ratio", [](Dynamics& dynamics) {
+            return dynamics.state.grid.get_perimeter_area_ratio();
+        })
         .def("get_fraction_time_spent_moving", [](Dynamics& dynamics) {
 			return dynamics.fraction_time_spent_moving;
 		})

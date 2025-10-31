@@ -376,12 +376,6 @@ public:
 	}
 	void init_neighbor_offsets() {
 		neighbor_offsets = make_shared<pair<int, int>[]>(8);
-		/*neighbor_offsets = new pair<int, int>[4];
-		neighbor_offsets[0] = pair<int, int>(-1, 0);
-		neighbor_offsets[1] = pair<int, int>(0, -1);
-		neighbor_offsets[2] = pair<int, int>(1, 0);
-		neighbor_offsets[3] = pair<int, int>(0, 1);
-		return;*/
 		int q = 0;
 		for (int i = -1; i < 2; i++) {
 			for (int j = -1; j < 2; j++) {
@@ -1011,6 +1005,23 @@ public:
 			sum += patch.cells.size();
 		}
 		return sum;
+	}
+	float get_forest_perimeter_length() {
+		float total_perimeter = 0;
+		for (auto& [id, patch] : forest_patches) {
+			total_perimeter += (float)patch.perimeter.size() * cell_width;
+		}
+		return total_perimeter;
+	}
+	float get_perimeter_area_ratio() {
+		float total_perimeter = 0;
+		float total_area = 0;
+		for (auto& [id, patch] : forest_patches) {
+			total_perimeter += (float)patch.perimeter.size() * cell_width;
+			total_area += (float)patch.cells.size() * cell_area;
+		}
+		if (total_area == 0) return 0;
+		return total_perimeter / total_area;
 	}
 	void cap(pair<int, int> &position_grid) {
 		if (position_grid.first < 0) position_grid.first = width + (position_grid.first % width);
