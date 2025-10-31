@@ -982,7 +982,10 @@ public:
 			if (cur_id > 0 && bbox_is_central(forest_patches[cur_id])) {
 				int _no_central_forest_patches = 0;
 				for (auto& [id, patch] : new_forest_patches) {
-					if (bbox_is_central(patch)) _no_central_forest_patches++;
+					if (bbox_is_central(patch)) {
+						printf("id of added central patch: %i \n", id);
+						_no_central_forest_patches++;
+					}
 				}
 				printf("Number of central_forest_patches: %i \n", _no_central_forest_patches);
 			}
@@ -1007,8 +1010,19 @@ public:
 		//cout << "\n-- " << to_string(patches_with_uncertain_ids.size()) << " patches with uncertain ids.\n";
 		//cout << "\n-- " << to_string(all_patches.size()) << " patches in total.\n";
 
+		for (auto& [id, patch] : new_forest_patches) {
+			if (bbox_is_central(patch)) {
+				printf("Central forest patch (id %i, prev true id %i) exists after id re-assignment. #cells: %i\n", id, prev_central_forest_patch.id, patch.cells.size());
+				prev_central_forest_patch = patch;
+				prev_central_forest_patch.id = id;
+			}
+		}
+
+		//printf("used ids before assigning unused ones:");
+		//help::print_vector(&used_ids); printf("\n");
 		printf("-- Assigning unused ids...\n");
-		assign_unused_ids(used_ids, unused_savanna_ids, unused_forest_ids, new_forest_patches, new_savanna_patches, local_forest_patches, local_savanna_patches, patches_with_uncertain_ids);
+		assign_unused_ids(unused_savanna_ids, unused_forest_ids, new_forest_patches, new_savanna_patches, local_forest_patches, local_savanna_patches,
+			patches_with_uncertain_ids);
 
 		// Copy the lists of new patches back to the main patch containers.
 		forest_patches = new_forest_patches;
@@ -1017,7 +1031,7 @@ public:
 		bool exists_central_forest_patch = false;
 		for (auto& [id, patch] : forest_patches) {
 			if (bbox_is_central(patch)) {
-				printf("Central forest patch (id %i, prev true id %i) exists after id re-assignment.\n", id, prev_central_forest_patch.id);
+				printf("Central forest patch (id %i, prev true id %i) exists after id re-assignment. #cells: %i\n", id, prev_central_forest_patch.id, patch.cells.size());
 				exists_central_forest_patch = true;
 				prev_central_forest_patch = patch;
 				prev_central_forest_patch.id = id;
@@ -1032,17 +1046,19 @@ public:
 		new_patches[new_id] = patch_to_update;
 	}
 	void assign_unused_ids(
-		vector<int>& used_ids, vector<int>& unused_savanna_ids, vector<int>& unused_forest_ids, map<int, Patch>& new_forest_patches,
+		vector<int>& unused_savanna_ids, vector<int>& unused_forest_ids, map<int, Patch>& new_forest_patches,
 		map<int, Patch>& new_savanna_patches, map<int, Patch>& local_forest_patches, map<int, Patch>& local_savanna_patches,
-		map<int, 
+		map<int, Patch>& patches_with_uncertain_ids
 	) {
 		map<int, Patch> all_patches = yield_all_patches();
 		printf("Assigning unused ids...\n");
-		for (auto& [current_id, patch] : all_patches) {
-			if (help::is_in(&used_ids, current_id)) continue; // Skip patches that already have an old id assigned.
-
+		for (auto& [current_id, patch] : patches_with_uncertain_ids) {
 			vector<int>& unused_ids = patch.type == "forest" ? unused_forest_ids : unused_savanna_ids;
 			int new_id = unused_ids[0];
+
+			if (bbox_is_central(all_patches[current_id])) {
+				printf("Central forest patch in 'assign unused ids': cur id %i, will assign id %i \n", current_id, new_id);
+			}
 
 			// Assign the new ID to the patch.
 			//replace_patch_id(current_id, new_id, local_forest_patches, local_savanna_patches);
