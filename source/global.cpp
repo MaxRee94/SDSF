@@ -233,7 +233,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&,
             const float&, const float&, map<string, map<string, float>>&, const float&,
-            const float&, const float&, const float&, const float&>())
+            const float&, const float&, const float&, const float&, const float&>())
         .def("repopulate_grid", &State::repopulate_grid)
         .def("set_tree_cover", &State::set_tree_cover)
         .def("set_cover_from_image", [](State& state, py::array_t<float>& img, float& override_image_treecover) {

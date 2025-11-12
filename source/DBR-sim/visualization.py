@@ -93,6 +93,10 @@ def get_most_distinct_index(existing_colors, maximum_possible_no_colors, offset)
 
 def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
     color_dict = {}
+    black = np.array((0, 0, 0), np.uint8)
+    red = np.array((0, 0, 255), np.uint8)
+    white = np.array((255, 255, 255), np.uint8)
+    savanna_color = np.array((170, 255, 255), np.uint8)
     if distr_type == "normal":
         x_step = (end * no_values - begin * no_values) / no_values
         x_range = [ no_values * begin + x_step * x for x in range(no_values) ]
@@ -109,10 +113,8 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
         x_range = [ no_values * begin + x_step * x for x in range(no_values) ]
         
         color_dict = {i : np.array((round(i * 2.55), round(i * 2.55), round(i * 2.55)), np.uint8) for i in range(100)}
+        color_dict[0] = white
 
-    black = np.array((0, 0, 0), np.uint8)
-    red = np.array((0, 0, 255), np.uint8)
-    savanna_color = np.array((170, 255, 255), np.uint8)
     if distr_type == "recruitment":
         color_dict[0] = black
         color_dict[-5] = black
@@ -160,16 +162,28 @@ def get_image(img, color_dict, width, height="width"):
         new_img = np.zeros((width, height, 3), np.uint8)
         for i in range(width):
             for j in range(height):
+                if i == 62 and j == 62:
+                    print("color in middle of savanna (in 'get_image'):", color_dict[img[i, j]], ". Filling in zero gives:", color_dict[0])
                 new_img[i, j] = color_dict[img[i, j]]
+        
+        print("color after loops: ", new_img[62,62])
         img = new_img.copy()
             
     img = img.astype(np.uint8)
+    print("color after conversion: ", img[62,62])
     
     return img
 
 def get_image_from_grid(grid, collect_states, color_dict, invert=False):
     img = grid.get_distribution(collect_states)
+    if collect_states == 1:
+        print("in tree LAI recovery function...")
+        print("value in middle of savanna:", img[62, 62])
     img = get_image(img, color_dict, grid.width)
+
+    if collect_states == 1:
+        print("color:", img[62, 62])
+
     if invert:
         img = ~img
     return img
@@ -186,7 +200,7 @@ def visualize(grid, image_width=1000, collect_states=True, color_dict=False):
     
     return img
 
-def save_image(img, path, image_width = 1000, interpolation="linear"):
+def save_image(img, path, image_width = 1000, interpolation="none"):
     if interpolation == "linear":
         img_resized = cv2.resize(img, (image_width, image_width), interpolation = cv2.INTER_LINEAR)
     elif interpolation == "none":

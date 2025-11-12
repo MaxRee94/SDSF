@@ -123,7 +123,8 @@ defaults = {
     "global_rotation_offset": None,
     "enforce_area_constancy": True,
     "colored_patches": False,
-    "minimum_patch_size":30 # Minimum size (in m^2) of patches that are retained when generating initial patterns from images. We assume 78 m^2 since this corresponds to the area of a tree with radius = 5 (the approximate maximum in our model), in line with the 30m resolution of the GFC dataset.
+    "minimum_patch_size":30, # Minimum size (in m^2) of patches that are retained when generating initial patterns from images. We assume 78 m^2 since this corresponds to the area of a tree with radius = 5 (the approximate maximum in our model), in line with the 30m resolution of the GFC dataset.
+    "LAI_aggregation_radius": 5 # Radius (in m) around each cell used to aggregate tree LAI values. 
 }
 
 gui_defaults = {
@@ -890,6 +891,18 @@ _parameter_config = {
                 The minimum size of a patch (in m^2) that is included in calculations of patch perimeters and savanna patch areas.
             """,
             "default": defaults["minimum_patch_size"],
+        }
+    },
+    "LAI_aggregation_radius": {
+        "keys": {
+            "cli": ["--LAI_aggregation_radius", "-laiar"]
+        },
+        "settings": {
+            "type": float,
+            "help": """
+                This radius determines the size of the area around a grid cell x for which the mean LAI is calculated and assigned to x.
+            """,
+            "default": defaults["LAI_aggregation_radius"],
         }
     }
 }

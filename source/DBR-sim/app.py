@@ -73,6 +73,7 @@ def init(user_args):
     # Initialize dynamics object and state
     print("type:", type(user_args["fire_resistance_params"]))
     print("Initializing dynamics object with args:\n", user_args)
+    print("LAI aggregation radius:", args.LAI_aggregation_radius)
     dynamics = cpp.create_dynamics(user_args)
     dynamics.init_state(
         args.grid_width,
@@ -81,7 +82,8 @@ def init(user_args):
         args.growth_rate_multiplier_params[0],
         args.growth_rate_multiplier_params[1],
         args.growth_rate_multiplier_params[2],
-        args.minimum_patch_size
+        args.minimum_patch_size,
+        args.LAI_aggregation_radius
     )
     
     # Set dispersal kernel
@@ -282,9 +284,11 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
 
     if ("tree_LAI" in visualization_types):
         print("-- Saving tree LAI image...") if verbose else None
+        print("Before tree LAI visualization..")
         tree_LAI_img = vis.get_image_from_grid(dynamics.state.grid, 1, color_dicts["blackwhite"], invert=True)
-        imagepath_fuel = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/tree_LAI/" + str(dynamics.time) + ".png")
-        vis.save_image(tree_LAI_img, imagepath_fuel, get_max(1000, tree_LAI_img.shape[0]))
+        print("color in middle of savanna:", tree_LAI_img[62, 62])
+        imagepath_tree_LAI = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/tree_LAI/" + str(dynamics.time) + ".png")
+        vis.save_image(tree_LAI_img, imagepath_tree_LAI, get_max(1000, tree_LAI_img.shape[0]))
 
 
 def updateloop(dynamics, color_dicts, **user_args):

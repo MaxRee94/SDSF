@@ -99,6 +99,7 @@ public:
 		if (is_sapling(tree, cell_halfdiagonal_sqrt))
 			add_LAI_of_tree_sapling(tree, cell_area);
 		else LAI += tree->LAI;
+		update_grass_LAI(LAI);
 	}
 	void remove_tree(Tree* tree, float cell_area = 0, float cell_halfdiagonal_sqrt = 0) {
 		help::remove_from_vec(&trees, tree->id);
@@ -338,11 +339,12 @@ public:
 class Grid {
 public:
 	Grid() = default;
-	Grid(int _width, float _cell_width, float _minimum_patch_size) {
+	Grid(int _width, float _cell_width, float _minimum_patch_size, float _LAI_aggregation_radius) {
 		printf("\nInitializing grid with width %i and cell width %f.\n", _width, _cell_width);
 		width = _width;
 		cell_width = _cell_width;
 		cell_width_inv = 1.0f / cell_width;
+		LAI_aggregation_radius = _LAI_aggregation_radius;
 		cell_half_width = cell_width * 0.5f;
 		width_r = (float)width * cell_width;
 		no_cells = width * width;
@@ -358,7 +360,7 @@ public:
 		cell_area_half = cell_area * 0.5f;	
 		minimum_patch_size = _minimum_patch_size;
 	}
-	Grid(int _width, float _cell_width) : Grid(_width, _cell_width, 0) {}
+	Grid(int _width, float _cell_width) : Grid(_width, _cell_width, 0, 0) {}
 	void init_patch_memberships() {
 		patch_memberships = make_shared<int[]>(no_cells);
 		for (int i = 0; i < no_cells; i++) {
@@ -463,7 +465,7 @@ public:
 	}
 	void redo_state_assignment() {
 		for (int i = 0; i < no_cells; i++) {
-			distribution[i].state = is_forest(distribution[i].get_LAI());
+			distribution[i].state = is_forest(distribution[i].get_fuel_load());
 		}
 	}
 	pair<int, int> idx_2_pos(int idx) {
@@ -565,6 +567,33 @@ public:
 		return LAI_sum;
 	}
 	float get_tree_LAI_of_local_neighborhood(Cell* cell, bool debug=false) {
+		if (LAI_aggregation_radius > 0) {
+			// Use a circular neighborhood with specified radius.
+			float radius = LAI_aggregation_radius;
+			float LAI_sum = 0;
+			int no_cells_in_radius = 0;
+			int min_x = (int)(cell->pos.first - radius);
+			int max_x = (int)(cell->pos.first + radius);
+			int min_y = (int)(cell->pos.second - radius);
+			int max_y = (int)(cell->pos.second + radius);
+			pair<float, float> cell_real_pos = get_real_cell_position(cell);
+			for (int x = min_x; x <= max_x; x++) {
+				for (int y = min_y; y <= max_y; y++) {
+					pair<int, int> neighbor_pos = pair<int, int>(x, y);
+					cap(neighbor_pos);
+					pair<float, float> neighbor_real_pos = get_real_cell_position(get_cell_at_position(neighbor_pos));
+					float dist = help::get_dist(pair<float, float>(cell->pos.first, cell->pos.second), neighbor_pos);
+					if (dist <= radius) {
+						Cell* neighbor = get_cell_at_position(pair<int, int>(x, y));
+						LAI_sum += neighbor->get_LAI();
+						no_cells_in_radius++;
+					}
+				}
+			}
+			if (no_cells_in_radius == 0) return cell->get_LAI();
+			return LAI_sum / (float)no_cells_in_radius;
+		}
+
 		float LAI = get_cumulative_onering_LAI_for_cell(cell);
 		LAI += cell->get_LAI();
 		LAI /= 9.0f; // Get the average LAI of the cell and its neighbors.
@@ -584,12 +613,12 @@ public:
 		return LAI;
 		//return cell->get_LAI();
 	}
-	bool is_forest(float LAI) {
-		return LAI > 1.0f;
+	bool is_forest(float fuel_load) {
+		return fuel_load < 0.5f;
 	}
 	bool is_forest(int x, int y) {
 		Cell* cell = get_cell_at_position(pair<int, int>(x, y));
-		return is_forest(cell->get_LAI());
+		return is_forest(cell->get_fuel_load());
 	}
 	void update_grass_LAI(Cell* cell) {
 		float tree_LAI_local_neighborhood = get_tree_LAI_of_local_neighborhood(cell);
@@ -613,7 +642,9 @@ public:
 		if (collect > 0) {
 			for (int i = 0; i < no_cells; i++) {
 				if (collect == 1) {
-					if (distribution[i].state == 1) state_distribution[i] = max(99.0f - (distribution[i].get_LAI() * 19.0f), 1);
+					//if (distribution[i].state == 1) state_distribution[i] = max(99.0f - (distribution[i].get_LAI() * 19.0f), 1);
+					state_distribution[i] = max(99.0f - (distribution[i].get_LAI() * 19.0f), 1);
+					if (distribution[i].get_LAI() < 1.0f) state_distribution[i] = 0;
 				}
 				else if (collect == 2) {
 					state_distribution[i] = distribution[i].query_grass_LAI() * 33;
@@ -635,7 +666,7 @@ public:
 		distribution[idx].add_tree(tree);
 
 		// If the cell was not previously classified as forest, check if it should be reclassified now.
-		if (is_forest(distribution[idx].get_LAI())) {
+		if (is_forest(distribution[idx].get_fuel_load())) {
 			if (distribution[idx].state == 0) {
 				// The cell was previously classified as savanna, but is now forest. Update the counters accordingly.
 				no_savanna_cells--;
@@ -1054,6 +1085,7 @@ public:
 	float cell_area_half = 0;
 	float cell_halfdiagonal_sqrt = 0;
 	float minimum_patch_size = 0;
+	float LAI_aggregation_radius = 0;
 	map<int, Patch> forest_patches;
 	map<int, Patch> savanna_patches;
 	shared_ptr<Cell[]> distribution = 0;
