@@ -432,7 +432,7 @@ public:
 	}
 	pair<int, int> percolate(Cell* cell, float t_start, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills, int& no_exposures_of_adults_to_fire) {
 		std::queue<Cell*> queue;
-		burn_cell(cell, t_start, queue, no_trees_topkilled, no_fire_induced_nonseedling_topkills);
+		burn_cell(cell, t_start, queue, no_trees_topkilled, no_fire_induced_nonseedling_topkills, no_exposures_of_adults_to_fire);
 		queue.push(cell);
 		int no_ash_cells = 1;
 		int no_grassy_ash_cells = 1;
@@ -446,7 +446,7 @@ public:
 			for (int i = 0; i < 8; i++) {
 				Cell* neighbor = grid->get_cell_at_position(cell->pos + neighbor_offsets[i]);
 				if (cell_will_ignite(neighbor, t_start)) {
-					burn_cell(neighbor, t_start, queue, no_trees_topkilled, no_fire_induced_nonseedling_topkills);
+					burn_cell(neighbor, t_start, queue, no_trees_topkilled, no_fire_induced_nonseedling_topkills, no_exposures_of_adults_to_fire);
 					queue.push(neighbor);
 					no_ash_cells++;
 					if (neighbor->state == 0) no_grassy_ash_cells++;
@@ -512,6 +512,7 @@ public:
 	int no_fire_induced_topkills = 0;
 	int no_fire_induced_nonseedling_topkills = 0;
 	int initial_no_effective_dispersals = 0;
+	bool store_tree_deaths = true;
 	State state;
 	Population* pop = 0;
 	Grid* grid = 0;
