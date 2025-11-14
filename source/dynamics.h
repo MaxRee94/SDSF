@@ -334,7 +334,7 @@ public:
 		no_fire_induced_nonseedling_topkills = 0;
 		fires.clear();
 		for (int i = 0; i < no_fires; i++) {
-			Cell* cell = grid->get_random_cell();
+			Cell* cell = grid->get_random_savanna_cell();
 			if (cell->time_last_fire == time) {
 				no_fires--;
 				continue;
