@@ -78,8 +78,6 @@ public:
 		induce_background_mortality();
 		if (verbosity > 0) printf("Induced background mortality. Repopulating grid...\n");
 
-		update_forest_patch_detection();
-
 		// Do post-simulation cleanup and data reporting
 		state.repopulate_grid(verbosity);
 		if (verbosity > 1) printf("Redoing grid count... \n");
@@ -87,6 +85,7 @@ public:
 		report_state();
 
 		update_firefree_interval_averages();
+		update_forest_patch_detection();
 	}
 	void update_forest_patch_detection() {
 		// Obtain forest patches, report their sizes, their perimeter lengths, and the sizes of the neighboring savanna areas.
@@ -330,6 +329,7 @@ public:
 		int no_ash_cells = 0;
 		int popsize_before_burns = pop->size();
 		int re_ignitions = 0;
+		int no_exposures_of_adults_to_fire = 0;
 		no_fire_induced_topkills = 0;
 		no_fire_induced_nonseedling_topkills = 0;
 		fires.clear();
@@ -340,13 +340,15 @@ public:
 				continue;
 			}
 			no_fires++;
-			auto [_no_ash_cells, _no_grassy_ash_cells] = percolate(cell, time, no_fire_induced_topkills, no_fire_induced_nonseedling_topkills);
+			auto [_no_ash_cells, _no_grassy_ash_cells] = percolate(cell, time, no_fire_induced_topkills, no_fire_induced_nonseedling_topkills, no_exposures_of_adults_to_fire);
 			no_ash_cells += _no_ash_cells;
 			fires.push_back((float)_no_ash_cells * grid->cell_area);
 		}
 		no_fire_induced_deaths = popsize_before_burns - pop->size();
 		printf("no fire induced deaths (time = %i): %i \n", time, no_fire_induced_deaths);
-		printf("no fire induced topkills (time = %i): %i \n", time, no_fire_induced_topkills);
+		printf("no fire induced topkills: %i \n", time, no_fire_induced_topkills);
+		printf("no fire induced topkills of non-seedlings: %i \n", time, no_fire_induced_nonseedling_topkills);
+		printf("no exposures of adults to fire: %i \n", time, no_exposures_of_adults_to_fire);
 		cout.precision(2);
 		printf(
 			"-- Fires: %i, Topkills: %s, Kills: %s \n",
@@ -398,27 +400,24 @@ public:
 		grid->kill_tree_domain(tree, store_tree_deaths);
 		pop->remove(tree);
 	}
-	void induce_tree_mortality(Cell* cell, queue<Cell*>& queue, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills) {
+	void induce_tree_mortality(Cell* cell, queue<Cell*>& queue, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills, int& no_exposures_of_adults_to_fire) {
 		int tree_id = cell->stem.second;
-		//printf("idx: %i , no trees: %i\n", idx, cell->trees.size());
 		if (tree_id == 0) return; // If no tree stem is present in this cell, skip mortality evaluation.
 
 		Tree* tree = pop->get(tree_id);
-		vector<int> trees = cell->trees;
-		if (tree->id == -1) {
-			//printf("\n\n ------- ERROR: Tree %i has been removed from the population but is still present in cell %i, %i. \n", tree_id, cell->pos.first, cell->pos.second);
-			//printf("Trees in cell before starting this mortality loop: ");
-			//help::print_vector(&trees);
-			//bool present = state.check_grid_for_tree_presence(tree_id, 0);
-			return;
-		}
+		if (tree->life_phase == 2) no_exposures_of_adults_to_fire++;
 		if (tree->last_mortality_check == time) return; // Skip mortality evaluation if this was already done in the current timestep.
 		if (tree_is_topkilled(tree)) {
 			no_trees_topkilled++;
 			if (tree->age > -1) no_fire_induced_nonseedling_topkills++;
 			kill_tree(tree, cell->time_last_fire, queue, cell);
 		}
-		else tree->last_mortality_check = time;
+		else {
+			tree->last_mortality_check = time;
+			if (store_tree_deaths) {
+				grid->store_fire_exposure(tree);
+			}
+		}
 	}
 	inline bool cell_will_ignite(Cell* cell, float t_start) {
 		if (t_start - cell->time_last_fire < 10e-4) {
@@ -426,12 +425,12 @@ public:
 		}
 		return help::get_rand_float(0.0, 1.0) < get_cell_flammability(cell, min(t_start - cell->time_last_fire, 1));
 	}
-	inline void burn_cell(Cell* cell, float t_start, queue<Cell*>& queue, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills) {
+	inline void burn_cell(Cell* cell, float t_start, queue<Cell*>& queue, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills, int& no_exposures_of_adults_to_fire) {
 		cell->time_last_fire = t_start;
 		grid->state_distribution[grid->pos_2_idx(cell->pos)] = -5;
-		induce_tree_mortality(cell, queue, no_trees_topkilled, no_fire_induced_nonseedling_topkills);
+		induce_tree_mortality(cell, queue, no_trees_topkilled, no_fire_induced_nonseedling_topkills, no_exposures_of_adults_to_fire);
 	}
-	pair<int, int> percolate(Cell* cell, float t_start, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills) {
+	pair<int, int> percolate(Cell* cell, float t_start, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills, int& no_exposures_of_adults_to_fire) {
 		std::queue<Cell*> queue;
 		burn_cell(cell, t_start, queue, no_trees_topkilled, no_fire_induced_nonseedling_topkills);
 		queue.push(cell);

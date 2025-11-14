@@ -440,7 +440,7 @@ public:
 		while (i < fetch_attempt_limit) {
 			pair<int, int> pos = get_random_grid_position();
 			Cell* cell = get_cell_at_position(pos);
-			if (cell->state == 0) return cell;
+			if (!is_forest(cell->get_fuel_load())) return cell;
 		}
 		throw("Runtime error: Could not find savanna cell after %i attempts.\n", fetch_attempt_limit);
 	}
@@ -603,25 +603,12 @@ public:
 			if (no_cells_in_radius == 0) return cell->get_LAI();
 			return LAI_sum / (float)no_cells_in_radius;
 		}
-
-		float LAI = get_cumulative_onering_LAI_for_cell(cell);
-		LAI += cell->get_LAI();
-		LAI /= 9.0f; // Get the average LAI of the cell and its neighbors.
-		
-		if (debug) {
-			float neighbor_LAI_sum = 0;
-			for (int i = 0; i < 8; i++) {
-				neighbor_LAI_sum += get_tree_LAI_of_local_neighborhood(get_cell_at_position(cell->pos + neighbor_offsets[i]), false);
-			}
-			float mean_neighbor_LAI = neighbor_LAI_sum / 8.0f;
-			/*if (mean_neighbor_LAI > 1.0f && LAI < 0.5f) {
-				printf("Average smoothed neighbor LAI: %f, smoothed cell LAI: %f, unsmoothed cell LAI: %f, average unsmoothed neighbor LAI: %f\n",
-					mean_neighbor_LAI, LAI, cell->get_LAI(), get_cumulative_onering_LAI_for_cell(cell) / 8.0f);
-			}*/
+		else {
+			float LAI = get_cumulative_onering_LAI_for_cell(cell);
+			LAI += cell->get_LAI();
+			LAI /= 9.0f; // Get the average LAI of the cell and its neighbors.
+			return LAI;
 		}
-		
-		return LAI;
-		//return cell->get_LAI();
 	}
 	bool is_forest(float fuel_load) {
 		return fuel_load < 0.5f;
@@ -1039,7 +1026,6 @@ public:
 		// Perform sanity checks
 		assert(get_sum_of_patch_sizes() == no_cells);
 		assert(approx(get_tree_cover(), get_fraction_cumulative_forest_patch_size(), 0.001));
-		printf("tree cover: %f, fraction cumulative forest patch size: %f\n", get_tree_cover(), get_fraction_cumulative_forest_patch_size());
 
 	}
 	double get_fraction_cumulative_forest_patch_size() {
