@@ -162,7 +162,7 @@ def init(user_args):
         )
     else:
         # Get a color image representation of the initial state
-        img = vis.get_image_from_grid(dynamics.state.grid, collect_states, color_dict)
+        img = vis.get_image_from_grid(dynamics.state.grid, color_dict, collect_states=collect_states)
    
     # Export image file
     imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
@@ -204,7 +204,7 @@ def termination_condition_satisfied(dynamics, start_time, user_args):
 def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, patches, patch_color_ids, user_args):
     if ("recruitment" in visualization_types):
         print("Saving recruitment img...") if verbose else None
-        recruitment_img = vis.get_image_from_grid(dynamics.state.grid, 0, color_dicts["recruitment"])
+        recruitment_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["recruitment"], collect_states=0)
         imagepath_recruitment = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/recruitment/" + str(dynamics.time) + ".png")
         vis.save_image(recruitment_img, imagepath_recruitment, get_max(1000, recruitment_img.shape[0]), interpolation="none")
     
@@ -264,7 +264,7 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
     print("-- Visualizing image...") if verbose else None
     if user_args["headless"]:
         # Get a color image representation of the initial state
-        img = vis.get_image_from_grid(dynamics.state.grid, collect_states, color_dicts["normal"])
+        img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["normal"], collect_states=1)
     else:
         # Get a color image representation of the initial state and show it.
         img = vis.visualize(
@@ -278,27 +278,29 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
     
     if ("fuel" in visualization_types):
         print("-- Saving fuel image...") if verbose else None
-        fuel_img = vis.get_image_from_grid(dynamics.state.grid, 2, color_dicts["blackwhite"])
+        fuel_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel")
         imagepath_fuel = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
         vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
+        print("fuel done.")
 
-    if ("tree_LAI" in visualization_types):
-        print("-- Saving tree LAI image...") if verbose else None
-        print("Before tree LAI visualization..")
-        tree_LAI_img = vis.get_image_from_grid(dynamics.state.grid, 1, color_dicts["blackwhite"], invert=True)
-        print("color in middle of savanna:", tree_LAI_img[62, 62])
-        imagepath_tree_LAI = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/tree_LAI/" + str(dynamics.time) + ".png")
-        vis.save_image(tree_LAI_img, imagepath_tree_LAI, get_max(1000, tree_LAI_img.shape[0]))
+    if ("aggr_tree_LAI" in visualization_types):
+        print("-- Saving aggregated tree LAI image...") if verbose else None
+        aggr_tree_LAI_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="aggr_tree_LAI", invert=False)
+        imagepath_aggr_tree_LAI = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/aggr_tree_LAI/" + str(dynamics.time) + ".png")
+        vis.save_image(aggr_tree_LAI_img, imagepath_aggr_tree_LAI, get_max(1000, aggr_tree_LAI_img.shape[0]))
+
+    if ("fuel_penetration" in visualization_types):
+        print("-- Saving fuel penetration image...") if verbose else None
+        fuel_penetration_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel_penetration")
+        imagepath_fuel_penetration = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel_penetration/" + str(dynamics.time) + ".png")
+        vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
 
 
 def updateloop(dynamics, color_dicts, **user_args):
     start = time.time()
     print("Beginning simulation...")
     csv_path = user_args["csv_path"]
-    visualization_types = []
-    #visualization_types = ["fire_freq"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
-    visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI", "colored_patches"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
-    #visualization_types = ["recruitment"] # Options: "fire_freq", "recruitment", "fuel", "tree_LAI"
+    visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI", "aggr_tree_LAI", "colored_patches", "fuel_penetration"]
     init_csv = True
     prev_tree_cover = [user_args["treecover"]] * 60
     slope = 0

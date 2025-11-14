@@ -341,7 +341,7 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
             init_csv = False
 
             # Get a color image representation of the final state
-            img = vis.get_image_from_grid(dynamics.state.grid, True, color_dict)
+            img = vis.get_image_from_grid(dynamics.state.grid, color_dict, collect_states=1)
             vis.save_image(img, singlerun_image_path, get_max(dynamics.state.grid.width, 1000))
         
             # Get the next control value

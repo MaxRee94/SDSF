@@ -12,7 +12,7 @@ public:
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _max_dbh, float _saturation_threshold, map<string, float> fire_resistance_params,
 		float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
 		int _resource_grid_width, float _mutation_rate, float _STR, int _verbosity, int random_seed, int firefreq_random_seed, float __enforce_no_recruits,
-		int _animal_group_size
+		int _animal_group_size, bool _store_tree_deaths
 	) :
 		timestep(_timestep), cell_width(_cell_width), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_max_dbh * _seed_bearing_threshold),
@@ -22,7 +22,7 @@ public:
 		fire_resistance_stretch(fire_resistance_params["stretch"]),
 		background_mortality(_background_mortality), strategy_distribution_params(_strategy_distribution_params),
 		resource_grid_width(_resource_grid_width), mutation_rate(_mutation_rate), STR(_STR), _enforce_no_recruits(__enforce_no_recruits), 
-		animal_group_size(_animal_group_size)
+		animal_group_size(_animal_group_size), store_tree_deaths(_store_tree_deaths)
 	{
 		time = 0;
 		help::init_RNG(random_seed);
@@ -395,7 +395,7 @@ public:
 	}
 	void kill_tree(Tree* tree) {
 		if (verbosity == 2) printf("Removing tree %i ... \n", tree->id);
-		grid->kill_tree_domain(tree, false);
+		grid->kill_tree_domain(tree, store_tree_deaths);
 		pop->remove(tree);
 	}
 	void induce_tree_mortality(Cell* cell, queue<Cell*>& queue, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills) {

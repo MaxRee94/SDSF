@@ -95,6 +95,7 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
     color_dict = {}
     black = np.array((0, 0, 0), np.uint8)
     red = np.array((0, 0, 255), np.uint8)
+    purple = np.array((255, 0, 255), np.uint8)
     white = np.array((255, 255, 255), np.uint8)
     savanna_color = np.array((170, 255, 255), np.uint8)
     if distr_type == "normal":
@@ -113,13 +114,14 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
         x_range = [ no_values * begin + x_step * x for x in range(no_values) ]
         
         color_dict = {i : np.array((round(i * 2.55), round(i * 2.55), round(i * 2.55)), np.uint8) for i in range(100)}
-        color_dict[0] = white
+        color_dict[-1] = red
 
     if distr_type == "recruitment":
         color_dict[0] = black
         color_dict[-5] = black
         color_dict[-6] = black
         color_dict[-7] = np.array((150, 255, 255), np.uint8) # Recruitment
+        color_dict[-8] = black
     elif distr_type == "fire_freq":
         color_step = 255 / (no_values + 1)
         for i in range(no_values + 1):
@@ -127,16 +129,18 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
     elif distr_type == "normal":
         color_dict[0] = savanna_color
         color_dict[-5] = red
-        color_dict[-6] = red
+        color_dict[-6] = black
         color_dict[-7] = savanna_color
+        color_dict[-8] = purple
     elif distr_type == "colored_patches":
-        color_dict[0] = savanna_color
-        color_dict[-5] = savanna_color
-        color_dict[-6] = savanna_color
-        color_dict[-7] = savanna_color
-        max_no_patches = 1000
 
-        for i in range(max_no_patches):         
+        # Set all colors between -9 and 0 to savanna color; these are not to be used for patches
+        for i in range(10):
+            color_dict[-i] = savanna_color
+
+        # Now assign distinct colors for patches from -10 downwards
+        max_no_patches = 1000
+        for i in range(max_no_patches): 
             color_dict[-10 - i] = number_to_rgb(max_no_patches, i)
         
     return color_dict
@@ -162,27 +166,43 @@ def get_image(img, color_dict, width, height="width"):
         new_img = np.zeros((width, height, 3), np.uint8)
         for i in range(width):
             for j in range(height):
-                if i == 62 and j == 62:
-                    print("color in middle of savanna (in 'get_image'):", color_dict[img[i, j]], ". Filling in zero gives:", color_dict[0])
                 new_img[i, j] = color_dict[img[i, j]]
-        
-        print("color after loops: ", new_img[62,62])
         img = new_img.copy()
             
     img = img.astype(np.uint8)
-    print("color after conversion: ", img[62,62])
     
     return img
 
-def get_image_from_grid(grid, collect_states, color_dict, invert=False):
-    img = grid.get_distribution(collect_states)
-    if collect_states == 1:
-        print("in tree LAI recovery function...")
-        print("value in middle of savanna:", img[62, 62])
-    img = get_image(img, color_dict, grid.width)
+def normalize_distribution(distr, _range):
+    # Normalize the given distribution and then make it conform to the given value range.
 
-    if collect_states == 1:
-        print("color:", img[62, 62])
+    distr_min = distr.min()
+    distr_max = distr.max()
+    normalized_distr = (distr - distr_min) / (distr_max - distr_min)
+    distr = normalized_distr * (_range[1] - _range[0]) + _range[0]
+    return distr
+
+def get_image_from_grid(grid, color_dict, collect_states=None, img_type=None, invert=False):
+    if img_type:
+        if img_type == "fuel":
+            img = grid.get_fuel_distribution()
+            img = (img * 99).astype(int) # Normalize to 0-99
+        elif img_type == "aggr_tree_LAI":
+            img = grid.get_aggr_tree_LAI_distribution()
+            img = (img * 14).astype(int) # Assume max LAI is ~7, normalize to 0-99
+            img.clip(0, 99, out=img)
+        elif img_type == "fuel_penetration":
+            fuel = grid.get_fuel_distribution()
+            img = (fuel * 99).astype(int) # Normalize to 0-99
+            non_aggregated_tree_LAI = grid.get_distribution(1)
+            mask = non_aggregated_tree_LAI < 1 # Mask area considered to be savanna.
+            img[mask] = 0
+            print(f"min: {img.min()}, max: {img.max()}")
+        else:
+            raise ValueError(f"Unknown img_type: {img_type}")
+    else:
+        img = grid.get_distribution(collect_states)
+    img = get_image(img, color_dict, grid.width)
 
     if invert:
         img = ~img
@@ -195,7 +215,7 @@ def get_fire_freq_image(fire_freq_arrays, color_dict_fire_freq, grid_width, fire
     return get_image(img, color_dict_fire_freq, grid_width)
 
 def visualize(grid, image_width=1000, collect_states=True, color_dict=False):
-    img = get_image_from_grid(grid, collect_states, color_dict)    
+    img = get_image_from_grid(grid, color_dict, collect_states=collect_states)    
     visualize_image(img, image_width)
     
     return img

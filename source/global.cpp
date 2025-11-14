@@ -217,7 +217,8 @@ Dynamics create_dynamics(py::dict dict) {
         get("random_seed").cast<int>(),
         get("firefreq_random_seed").cast<int>(),
         get("enforce_no_recruits").cast<float>(),
-        get("animal_group_size").cast<int>()
+        get("animal_group_size").cast<int>(),
+		get("store_tree_deaths").cast<bool>()
     );
 }
 
@@ -269,9 +270,17 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def_readwrite("width", &Grid::width)
         .def_readwrite("width_r", &Grid::width_r)
         .def_readwrite("tree_cover", &Grid::tree_cover)
-        .def("get_distribution", [](Grid &grid, int &collect_states) {
+        .def("get_distribution", [](Grid& grid, int& collect_states) {
             shared_ptr<int[]> state_distribution = grid.get_state_distribution(collect_states);
             return as_2d_numpy_array(state_distribution, grid.width);
+        })
+        .def("get_aggr_tree_LAI_distribution", [](Grid& grid) {
+            shared_ptr<float[]> aggr_tree_LAI_distribution = grid.get_aggr_tree_LAI_distribution();
+            return as_2d_numpy_array(aggr_tree_LAI_distribution, grid.width);
+        })
+        .def("get_fuel_distribution", [](Grid& grid) {
+            shared_ptr<float[]> fuel_load_distribution = grid.get_fuel_load_distribution();
+            return as_2d_numpy_array(fuel_load_distribution, grid.width);
         });
 
     py::class_<Dynamics>(module, "Dynamics")

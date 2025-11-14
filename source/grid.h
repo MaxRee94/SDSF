@@ -137,7 +137,6 @@ public:
 				float crown_reach_overlap = crown_reach - (tree->height - neighbor->height);
 				float shade_contribution = LAI_intersection * (crown_reach_overlap / crown_reach); // Fraction of our tree's crown that is affected by the shade cast by the smaller neighbor.
 				shade += shade_contribution;
-				if (shade_contribution < 0) printf("---------------------- ERROR: shade contribution negative. Shade contribution: %f\n", shade_contribution);
 			}
 		}
 		return shade;
@@ -375,6 +374,8 @@ public:
 			distribution[i].idx = i;
 		}
 		state_distribution = make_shared<int[]>(no_cells);
+		fuel_load_distribution = make_shared<float[]>(no_cells);
+		aggr_tree_LAI_distribution = make_shared<float[]>(no_cells);
 	}
 	void init_neighbor_offsets() {
 		neighbor_offsets = make_shared<pair<int, int>[]>(8);
@@ -436,7 +437,7 @@ public:
 	Cell* get_random_savanna_cell() {
 		int i = 0;
 		int fetch_attempt_limit = 1e6;
-		while (i < 1e6) {
+		while (i < fetch_attempt_limit) {
 			pair<int, int> pos = get_random_grid_position();
 			Cell* cell = get_cell_at_position(pos);
 			if (cell->state == 0) return cell;
@@ -557,6 +558,15 @@ public:
 		queue<Cell*> dummy;
 		burn_tree_domain(tree, dummy, -1, store_tree_death_in_color_distribution, false);
 	}
+	void store_fire_exposure(Tree* tree) {
+		TreeDomainIterator it(cell_width, tree);
+		while (it.next()) {
+			if (tree->radius_spans(it.real_cell_position)) {
+				Cell* cell = get_cell_at_position(it.gb_cell_position);
+				if (state_distribution[cell->idx] > -5) state_distribution[cell->idx] = -8;
+			}
+		}
+	}
 	float get_cumulative_onering_LAI_for_cell(Cell* cell) {
 		float LAI_sum = 0;
 		for (int i = 0; i < 8; i++) {
@@ -641,7 +651,7 @@ public:
 	shared_ptr<int[]> get_state_distribution(int collect = 0) {
 		if (collect > 0) {
 			for (int i = 0; i < no_cells; i++) {
-				if (collect == 1) {
+				if (collect == 1 && state_distribution[i] >= 0) {
 					//if (distribution[i].state == 1) state_distribution[i] = max(99.0f - (distribution[i].get_LAI() * 19.0f), 1);
 					state_distribution[i] = max(99.0f - (distribution[i].get_LAI() * 19.0f), 1);
 					if (distribution[i].get_LAI() < 1.0f) state_distribution[i] = 0;
@@ -649,9 +659,26 @@ public:
 				else if (collect == 2) {
 					state_distribution[i] = distribution[i].query_grass_LAI() * 33;
 				}
+				else if (collect == 3) {
+					float neighborhood_LAI = get_tree_LAI_of_local_neighborhood(&distribution[i]);
+					state_distribution[i] = max(99.0f - (neighborhood_LAI * 19.0f), 1);
+					if (neighborhood_LAI < 1.0f) state_distribution[i] = 0;
+				}
 			}
 		}
 		return state_distribution;
+	}
+	shared_ptr<float[]> get_fuel_load_distribution() {
+		for (int i = 0; i < no_cells; i++) {
+			fuel_load_distribution[i] = distribution[i].get_fuel_load();
+		}
+		return fuel_load_distribution;
+	}
+	shared_ptr<float[]> get_aggr_tree_LAI_distribution() {
+		for (int i = 0; i < no_cells; i++) {
+			aggr_tree_LAI_distribution[i] = get_tree_LAI_of_local_neighborhood(&distribution[i]);
+		}
+		return aggr_tree_LAI_distribution;
 	}
 	void set_state_distribution(int* distr) {
 		for (int i = 0; i < no_cells; i++) {
@@ -1090,6 +1117,8 @@ public:
 	map<int, Patch> savanna_patches;
 	shared_ptr<Cell[]> distribution = 0;
 	shared_ptr<int[]> state_distribution = 0;
+	shared_ptr<float[]> fuel_load_distribution = 0;
+	shared_ptr<float[]> aggr_tree_LAI_distribution = 0;
 	shared_ptr<int[]> patch_memberships;
 	vector<pair<int, int>> directions = {
 		{1,0}, {-1,0}, {0,1}, {0,-1} // Directions for 4-neighbor connectivity
