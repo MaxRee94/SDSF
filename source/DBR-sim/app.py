@@ -228,9 +228,14 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
 
     if ("colored_patches" in visualization_types):
         print("Creating colored patches image...") if verbose else None
+
         # Modify color array to give patches distinct colors
         patch_colors_indices = dynamics.state.grid.get_distribution(False)
-        minimum_considered_patch_size = 50 # m^2
+        
+        # Sort patches so that larger patches are assigned colors first
+        patches = sorted(patches, key=lambda patch: patch["area"], reverse=True)
+
+        minimum_considered_patch_size = 0 # m^2
         forest_area = 0
         central_patch = -1
         max_no_colors = 1000
