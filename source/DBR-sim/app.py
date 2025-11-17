@@ -233,14 +233,18 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         minimum_considered_patch_size = 50 # m^2
         forest_area = 0
         central_patch = -1
+        max_no_colors = 1000
+        offset = -10
         for i, patch in enumerate(patches):
             if patch["area"] < minimum_considered_patch_size: # Only consider patches of a certain size
                 continue
             patch_id = patch["id"]
 
             if not patch_color_ids.get(str(patch_id)):
-                #color_idx = -10 - random.randint(0, 99)
-                color_idx = vis.get_most_distinct_index(patch_color_ids.values(), 1000, -10)
+                if (len(patches) > 30) and dynamics.time > 1:
+                    color_idx = vis.get_random_color_index(patch_color_ids.values(), max_no_colors, offset)
+                else:    
+                    color_idx = vis.get_most_distinct_index(patch_color_ids.values(), max_no_colors, offset)
                 patch_color_ids[str(patch_id)] = color_idx # Assign a new color index to the patch
             patch_color_id = patch_color_ids[str(patch_id)]
             col=color_dicts["colored_patches"][patch_color_id]
