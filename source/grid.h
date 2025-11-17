@@ -638,8 +638,7 @@ public:
 	shared_ptr<int[]> get_state_distribution(int collect = 0) {
 		if (collect > 0) {
 			for (int i = 0; i < no_cells; i++) {
-				if (collect == 1 && state_distribution[i] >= 0) {
-					//if (distribution[i].state == 1) state_distribution[i] = max(99.0f - (distribution[i].get_LAI() * 19.0f), 1);
+				if (collect == 1 && (state_distribution[i] >= 0) || (state_distribution[i] == -7)) { // Do not overwrite fire-affected cells (but do overwrite "recruitment"-labelled (-7) cells).
 					state_distribution[i] = max(99.0f - (distribution[i].get_LAI() * 19.0f), 1);
 					if (distribution[i].get_LAI() < 1.0f) state_distribution[i] = 0;
 				}
