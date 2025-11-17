@@ -65,8 +65,19 @@ def number_to_rgb(n: int, i: int) -> tuple[int, int, int]:
     hue = i / float(n) 
     # Use full saturation and brightness
     r, g, b = colorsys.hsv_to_rgb(hue, 1, 1)
-    # Scale to 0–255
+    # Scale to 0ï¿½255
     return int(r * 255), int(g * 255), int(b * 255)
+
+def get_random_color_index(existing_colors, max_no_colors, offset):
+    color_idx = offset - random.randint(0, max_no_colors-1)
+    if len(existing_colors) >= max_no_colors:
+        # All possible colors are taken; simply return a random one (we assume it's okay that there will be duplicates)
+        return color_idx
+
+    while color_idx in existing_colors:
+        color_idx = offset - random.randint(0, max_no_colors-1)
+
+    return color_idx
 
 def get_most_distinct_index(existing_colors, maximum_possible_no_colors, offset):
     dist = 1e10
