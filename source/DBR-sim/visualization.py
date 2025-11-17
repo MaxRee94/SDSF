@@ -98,7 +98,8 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
     purple = np.array((255, 0, 255), np.uint8)
     white = np.array((255, 255, 255), np.uint8)
     savanna_color = np.array((170, 255, 255), np.uint8)
-    if distr_type == "normal":
+
+    if distr_type == "normal" or distr_type == "normal_with_fire_effects":
         x_step = (end * no_values - begin * no_values) / no_values
         x_range = [ no_values * begin + x_step * x for x in range(no_values) ]
         
@@ -112,10 +113,8 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
     elif distr_type == "blackwhite":
         x_step = (end * no_values - begin * no_values) / no_values
         x_range = [ no_values * begin + x_step * x for x in range(no_values) ]
-        
         color_dict = {i : np.array((round(i * 2.55), round(i * 2.55), round(i * 2.55)), np.uint8) for i in range(100)}
         color_dict[-1] = red
-
     if distr_type == "recruitment":
         color_dict[0] = black
         color_dict[-5] = black
@@ -126,14 +125,19 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
         color_step = 255 / (no_values + 1)
         for i in range(no_values + 1):
             color_dict[i] = np.array((0, 0, i * color_step), np.uint8)
-    elif distr_type == "normal":
+    elif distr_type == "normal_with_fire_effects":
         color_dict[0] = savanna_color
         color_dict[-5] = red
         color_dict[-6] = black
         color_dict[-7] = savanna_color
         color_dict[-8] = purple
+    elif distr_type == "normal":
+        color_dict[0] = savanna_color
+        color_dict[-5] = savanna_color
+        color_dict[-6] = savanna_color
+        color_dict[-7] = savanna_color
+        color_dict[-8] = savanna_color
     elif distr_type == "colored_patches":
-
         # Set all colors between -9 and 0 to savanna color; these are not to be used for patches
         for i in range(10):
             color_dict[-i] = savanna_color

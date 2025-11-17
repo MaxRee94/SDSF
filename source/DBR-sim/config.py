@@ -125,7 +125,7 @@ defaults = {
     "colored_patches": False,
     "minimum_patch_size":30, # Minimum size (in m^2) of patches that are retained when generating initial patterns from images. We assume 78 m^2 since this corresponds to the area of a tree with radius = 5 (the approximate maximum in our model), in line with the 30m resolution of the GFC dataset.
     "LAI_aggregation_radius": 5, # Radius (in m) around each cell used to aggregate tree LAI values. 
-    "store_tree_deaths": False,
+    "display_fire_effects": False
 }
 
 gui_defaults = {
@@ -906,14 +906,14 @@ _parameter_config = {
             "default": defaults["LAI_aggregation_radius"],
         }
     },
-    "store_tree_deaths": {
+    "display_fire_effects": {
         "keys": {
-            "cli": ["--store_tree_deaths", "-strtd"]
+            "cli": ["--display_fire_effects", "-dispfe"]
         },
         "settings": {
             "type": bool,
-            "help": "Specify if you whish to store the areas where trees are killed in the state distribution in each iteration.",
-            "default": defaults["store_tree_deaths"],
+            "help": "Specify if you want to display fire as red pixels, burned trees as black, and fire-exposed but unburned trees as purple.",
+            "default": defaults["display_fire_effects"],
         }
     },
 }

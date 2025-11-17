@@ -12,7 +12,7 @@ public:
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _max_dbh, float _saturation_threshold, map<string, float> fire_resistance_params,
 		float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
 		int _resource_grid_width, float _mutation_rate, float _STR, int _verbosity, int random_seed, int firefreq_random_seed, float __enforce_no_recruits,
-		int _animal_group_size, bool _store_tree_deaths
+		int _animal_group_size, bool _display_fire_effects
 	) :
 		timestep(_timestep), cell_width(_cell_width), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_max_dbh * _seed_bearing_threshold),
@@ -22,7 +22,7 @@ public:
 		fire_resistance_stretch(fire_resistance_params["stretch"]),
 		background_mortality(_background_mortality), strategy_distribution_params(_strategy_distribution_params),
 		resource_grid_width(_resource_grid_width), mutation_rate(_mutation_rate), STR(_STR), _enforce_no_recruits(__enforce_no_recruits), 
-		animal_group_size(_animal_group_size), store_tree_deaths(_store_tree_deaths)
+		animal_group_size(_animal_group_size), display_fire_effects(_display_fire_effects)
 	{
 		time = 0;
 		help::init_RNG(random_seed);
@@ -160,9 +160,7 @@ public:
 		float resource_grid_cell_width = grid->width_r / (float)resource_grid_width;
 		vector<string> species = {};
 		for (auto& [_species, _] : animal_kernel_params) species.push_back(_species);
-		if (resource_grid.selection_probabilities.probabilities != nullptr) printf("not nullptr");
 		resource_grid = ResourceGrid(&state, resource_grid_width, resource_grid_cell_width, species, animal_kernel_params);
-		printf("resource grid's probmodel obj id: %i \n", resource_grid.selection_probabilities.id);
 	}
 	bool global_kernel_exists(string type) {
 		return global_kernels.find(type) != global_kernels.end();
@@ -350,7 +348,7 @@ public:
 		printf("no fire induced topkills of non-seedlings: %i \n", time, no_fire_induced_nonseedling_topkills);
 		printf("no exposures of adults to fire: %i \n", time, no_exposures_of_adults_to_fire);
 		cout.precision(2);
-		printf(
+		printf(  
 			"-- Fires: %i, Topkills: %s, Kills: %s \n",
 			no_fires, help::readable_number(no_fire_induced_topkills).c_str(), help::readable_number(no_fire_induced_deaths).c_str()
 		);
@@ -376,12 +374,12 @@ public:
 		// if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", dbh, bark_thickness, survival_probability);
 		// COMMENT: We currently assume topkill always implies death, but resprouting should also be possible. (TODO: make death dependent on fire-free interval)
 
-		if (tree->dbh < seedling_discard_dbh) return true; // We assume that seedlings with a dbh below this 'discard'-value are always killed by fire.
+		if (tree->dbh < seedling_discard_dbh) return true; // We assume that seedlings with a dbh below this 'discard'-value are always killed by fire.display_fire_effect
 		return !tree->survives_fire(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 	}
 	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue, Cell* cell) {
 		if (verbosity > 1) printf("Burning tree %i ... \n", tree->id);
-		Cell* stem_cell = grid->burn_tree_domain(tree, queue, time_last_fire, true, true, cell->idx);
+		Cell* stem_cell = grid->burn_tree_domain(tree, queue, time_last_fire, display_fire_effects, display_fire_effects, cell->idx);
 		if (tree->life_phase == 2 || tree->life_phase == 0) {
 			// A tree which has been burned once is allowed to resprout, in line with findings of Hoffmann et al. (2012).
 			tree->resprout(seed_bearing_threshold);
@@ -397,7 +395,7 @@ public:
 	}
 	void kill_tree(Tree* tree) {
 		if (verbosity == 2) printf("Removing tree %i ... \n", tree->id);
-		grid->kill_tree_domain(tree, store_tree_deaths);
+		grid->kill_tree_domain(tree, display_fire_effects);
 		pop->remove(tree);
 	}
 	void induce_tree_mortality(Cell* cell, queue<Cell*>& queue, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills, int& no_exposures_of_adults_to_fire) {
@@ -414,7 +412,7 @@ public:
 		}
 		else {
 			tree->last_mortality_check = time;
-			if (store_tree_deaths) {
+			if (display_fire_effects) {
 				grid->store_fire_exposure(tree);
 			}
 		}
@@ -427,7 +425,7 @@ public:
 	}
 	inline void burn_cell(Cell* cell, float t_start, queue<Cell*>& queue, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills, int& no_exposures_of_adults_to_fire) {
 		cell->time_last_fire = t_start;
-		grid->state_distribution[grid->pos_2_idx(cell->pos)] = -5;
+		if (display_fire_effects) grid->state_distribution[grid->pos_2_idx(cell->pos)] = -5;
 		induce_tree_mortality(cell, queue, no_trees_topkilled, no_fire_induced_nonseedling_topkills, no_exposures_of_adults_to_fire);
 	}
 	pair<int, int> percolate(Cell* cell, float t_start, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills, int& no_exposures_of_adults_to_fire) {
@@ -512,7 +510,7 @@ public:
 	int no_fire_induced_topkills = 0;
 	int no_fire_induced_nonseedling_topkills = 0;
 	int initial_no_effective_dispersals = 0;
-	bool store_tree_deaths = true;
+	bool display_fire_effects = true;
 	State state;
 	Population* pop = 0;
 	Grid* grid = 0;
