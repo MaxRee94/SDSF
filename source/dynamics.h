@@ -359,7 +359,7 @@ public:
 	}
 	float get_forest_flammability(Cell* cell, bool grass_has_recovered) {
 		float fuel_load = cell->get_fuel_load();
-		return max(0.2f, grass_has_recovered * unsuppressed_flammability * fuel_load); // We assume forest flammability is directly proportional to fuel load, though with a given minimum.
+		return max(0.1f, grass_has_recovered * unsuppressed_flammability * fuel_load); // We assume forest flammability is directly proportional to fuel load, though with a given minimum.
 	}
 	float get_savanna_flammability(bool grass_has_recovered) {
 		return grass_has_recovered * unsuppressed_flammability; // We assume grass flammability is directly proportional to fire-free interval.
