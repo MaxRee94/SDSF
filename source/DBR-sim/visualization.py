@@ -110,9 +110,7 @@ def get_color_dict(no_values, begin=0.0, end=1.0, distr_type="normal"):
                 get_max((-765/3 + (x * (2 * 255/no_values))), 0)
             ), np.uint8) for v, x in zip(range(1, no_values + 1), x_range)
         }
-    elif distr_type == "blackwhite":
-        x_step = (end * no_values - begin * no_values) / no_values
-        x_range = [ no_values * begin + x_step * x for x in range(no_values) ]
+    elif distr_type == "blackwhite":        
         color_dict = {i : np.array((round(i * 2.55), round(i * 2.55), round(i * 2.55)), np.uint8) for i in range(100)}
         color_dict[-1] = red
     if distr_type == "recruitment":
