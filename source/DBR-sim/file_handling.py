@@ -24,6 +24,23 @@ def get_firefree_interval_stats(dynamics, _type):
     return mean, stdev
 
 
+def set_heterogeneity_maps(dynamics, args):
+    """Set input maps from args if provided.
+    
+    Params:
+        dynamics (Dynamics): Dynamics object
+        args (SimpleNamespace): Parsed arguments from argparse
+    """
+    input_map_dir = f"{cfg.DATA_IN_DIR}/heterogeneity/"
+    if args.grass_carrying_capacity:
+        path = os.path.join(input_map_dir, "grass_carrying_capacity", args.grass_carrying_capacity)
+        image = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        image = cv2.resize(image, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_NEAREST)
+        dynamics.state.grid.set_grass_carrying_capacity(image)
+
+    return dynamics, args
+
+
 def export_state(
         dynamics, path="", init_csv=True, control_variable=None, control_value=None, tree_cover_slope=0,
         extra_parameters="", secondary_variable=None, secondary_value=None, dependent_var=None, dependent_val=None, initial_no_dispersals=None, dependent_result_range_stdev=None,

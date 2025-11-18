@@ -124,8 +124,9 @@ defaults = {
     "enforce_area_constancy": True,
     "colored_patches": False,
     "minimum_patch_size":30, # Minimum size (in m^2) of patches that are retained when generating initial patterns from images. We assume 78 m^2 since this corresponds to the area of a tree with radius = 5 (the approximate maximum in our model), in line with the 30m resolution of the GFC dataset.
-    "LAI_aggregation_radius": 5, # Radius (in m) around each cell used to aggregate tree LAI values. 
-    "display_fire_effects": False
+    "LAI_aggregation_radius": 3, # Radius (in m) around each cell used to aggregate tree LAI values. 
+    "display_fire_effects": False,
+    "grass_carrying_capacity": "",
 }
 
 gui_defaults = {
@@ -915,6 +916,18 @@ _parameter_config = {
             "help": "Specify if you want to display fire as red pixels, burned trees as black, and fire-exposed but unburned trees as purple.",
             "default": defaults["display_fire_effects"],
         }
+    },
+    "grass_carrying_capacity": {
+        "keys": {
+            "cli": ["--grass_carrying_capacity", "-gcarcap"]
+        },
+        "settings": {
+            "type": str,
+            "help": (
+                "Path to an image file with a (greyscale) distribution of carrying capacity."
+            ),
+            "default": defaults["grass_carrying_capacity"],
+        },
     },
 }
 

@@ -137,7 +137,8 @@ def init(user_args):
         args.LAI_aggregation_radius
     )
 
-    # Set 
+    # Set input maps
+    dynamics, args = io.set_heterogeneity_maps(dynamics, args)
     
     # Set dispersal kernel
     dynamics, animal_species = set_dispersal_kernel(dynamics, args.dispersal_mode, args.multi_disperser_params)

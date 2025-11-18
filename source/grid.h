@@ -1093,6 +1093,9 @@ public:
 		pair<int, int> position = idx_2_pos(idx);
 		return pair<float, float>((float)position.first * cell_width, (float)position.second * cell_width);
 	}
+	void set_grass_carrying_capacity(shared_ptr<float[]> distr) {
+		grass_carrying_capacity = distr;
+	}
 	int width = 0;
 	int no_cells = 0;
 	int no_savanna_cells = 0;
