@@ -234,3 +234,8 @@ source/DBR-sim/log_proc0.txt
 source/DBR-sim/log_proc1.txt
 source/DBR-sim/log_proc2.txt
 source/DBR-sim/log_proc3.txt
+data_in/state patterns/controlled_patterns/ctrl.png
+data_in/state_patterns/controlled_patterns/*
+data_in/state_patterns/perlin_noise/*
+data_in/state_patterns/*.png
+

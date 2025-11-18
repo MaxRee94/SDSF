@@ -100,7 +100,7 @@ def init(user_args):
         if args.override_image_treecover == 2:
             args.override_image_treecover = benchmark_cover
     elif args.initial_pattern_image == "perlin_noise":
-        path = f"{cfg.DATA_IN_DIR}/state patterns/" + args.initial_pattern_image
+        path = f"{cfg.DATA_IN_DIR}/state_patterns/" + args.initial_pattern_image
         if "perlin_noise" == args.initial_pattern_image:
             print("Setting tree cover using perlin noise function...")
             path = f"{cfg.PERLIN_NOISE_DIR}/" + args.initial_pattern_image + ".png"
