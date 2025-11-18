@@ -10,6 +10,7 @@ from config import *
 import numpy as np
 
 import sine_pattern_generator as spg
+import simple_noise_generator as sng
 
 
 
@@ -57,7 +58,12 @@ def set_heterogeneity_maps(dynamics, args):
             path = os.path.join(grass_carcap_dir, m_args["filename"])
             image = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         else:
-            image = spg.generate((dynamics.state.grid.width, dynamics.state.grid.width), **m_args)
+            if m_args["type"] == "sine":
+                image = spg.generate((dynamics.state.grid.width, dynamics.state.grid.width), **m_args)
+            elif m_args["type"] == "noise":
+                image = sng.generate(grid_width=dynamics.state.grid.width, **m_args)
+            else:
+                raise ValueError(f"Unknown grass carrying capacity map type: {m_args['type']}")
             cv2.imwrite(os.path.join(grass_carcap_dir, "generated_grass_carrying_capacity.png"), image)
 
         image = cv2.resize(image, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_NEAREST)
