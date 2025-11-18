@@ -8,6 +8,7 @@ public:
 	int state = 0;
 	int idx = 0;
 	float time_last_fire = 0;
+	float grass_carrying_capacity = 1.0f;
 	vector<int> trees;
 	pair<int, int> pos;
 	bool seedling_present = false;
@@ -110,7 +111,10 @@ public:
 		tree_LAI = min(3.0f, tree_LAI);			// Done to avoid re-intersecting the y=0 line at about LAI=4.3 
 												// (grass LAI would then (incorrectly) start rising again).
 		float _grass_LAI = max(0, 0.241f * (tree_LAI * tree_LAI) - 1.709f * tree_LAI + 2.899f);		// Relationship between grass- and tree LAI from 
-																									// Hoffman et al. (2012), figure 2b.									
+																									// Hoffman et al. (2012), figure 2b.		
+		
+		_grass_LAI *= grass_carrying_capacity; // Apply carrying capacity constraint.
+
 		return _grass_LAI;
 	}
 	float get_fuel_load() {
