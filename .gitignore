@@ -241,3 +241,4 @@ data_in/state_patterns/*.png
 data_in/heterogeneity/grass_carrying_capacity/*
 data_in/state_patterns/simple_patterns/*
 
+data_in/heterogeneity/heterogeneity_config.json
