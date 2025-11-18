@@ -19,6 +19,7 @@ import file_handling as io
 from helpers import *
 from config import *
 import controllable_pattern_generator as cpg
+import sine_pattern_generator as spg
 
 #from x64.Debug import dbr_cpp as cpp
 from x64.Release import dbr_cpp as cpp
@@ -82,8 +83,8 @@ def set_initial_tree_cover(dynamics, args):
             vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=args.noise_octaves)
     else:
         print("Setting tree cover from image...")
-    
-    if args.initial_pattern_image != "none":
+
+        path = f"{cfg.DATA_IN_DIR}/state_patterns/" + args.initial_pattern_image
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         print(f"Path of the generated {args.initial_pattern_image} pattern image: ", path) if args.initial_pattern_image in ["ctrl", "perlin_noise"] else None
         if img is None and args.initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
@@ -136,15 +137,17 @@ def init(user_args):
         args.minimum_patch_size,
         args.LAI_aggregation_radius
     )
-
-    # Set input maps
-    dynamics, args = io.set_heterogeneity_maps(dynamics, args)
     
     # Set dispersal kernel
     dynamics, animal_species = set_dispersal_kernel(dynamics, args.dispersal_mode, args.multi_disperser_params)
     
     # Set initial tree cover
+    print("Setting initial tree cover...") if args.verbosity > 0 else None
     dynamics, args = set_initial_tree_cover(dynamics, args)
+
+    # Set input maps
+    print("Setting heterogeneity maps...") if args.verbosity > 0 else None
+    dynamics, args = io.set_heterogeneity_maps(dynamics, args)
     
     # Create color dictionaries for visualizations
     no_colors = 100

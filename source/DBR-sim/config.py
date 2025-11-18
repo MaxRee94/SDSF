@@ -126,7 +126,7 @@ defaults = {
     "minimum_patch_size":30, # Minimum size (in m^2) of patches that are retained when generating initial patterns from images. We assume 78 m^2 since this corresponds to the area of a tree with radius = 5 (the approximate maximum in our model), in line with the 30m resolution of the GFC dataset.
     "LAI_aggregation_radius": 3, # Radius (in m) around each cell used to aggregate tree LAI values. 
     "display_fire_effects": False,
-    "grass_carrying_capacity": "",
+    "heterogeneity": "heterogeneity_config.json",
 }
 
 gui_defaults = {
@@ -917,16 +917,16 @@ _parameter_config = {
             "default": defaults["display_fire_effects"],
         }
     },
-    "grass_carrying_capacity": {
+    "heterogeneity": {
         "keys": {
-            "cli": ["--grass_carrying_capacity", "-gcarcap"]
+            "cli": ["--heterogeneity", "-hetero"]
         },
         "settings": {
             "type": str,
             "help": (
-                "Path to an image file with a (greyscale) distribution of carrying capacity."
+                'json string with (optionally) subdictionaries containing arguments per input (e.g., "\{"grass_carrying_capacity": \{"filename": "none", "sine_wavelength": 200\}\}" ).'
             ),
-            "default": defaults["grass_carrying_capacity"],
+            "default": defaults["heterogeneity"],
         },
     },
 }

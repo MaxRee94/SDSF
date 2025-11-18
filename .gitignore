@@ -239,4 +239,5 @@ data_in/state_patterns/controlled_patterns/*
 data_in/state_patterns/perlin_noise/*
 data_in/state_patterns/*.png
 data_in/heterogeneity/grass_carrying_capacity/*
+data_in/state_patterns/simple_patterns/*
 

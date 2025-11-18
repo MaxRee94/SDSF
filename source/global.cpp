@@ -12,15 +12,15 @@ void check_communication() {
     printf("Verified python->cpp communication.\n");
 }
 
-void convert_from_numpy_array(py::array_t<float>& img, shared_ptr<float[]>& cover_image, int& width, int& height) {
+void convert_from_numpy_array(py::array_t<float>& img, shared_ptr<float[]>& output_image, int& width, int& height) {
 	auto buf1 = img.request();
 	float* ptr = (float*)buf1.ptr;
 	width = buf1.shape[0];
     height = width;
-    cover_image = make_shared<float[]>(width * height);
+    output_image = make_shared<float[]>(width * height);
 	for (int x = 0; x < width; x++) {
 		for (int y = 0; y < height; y++) {
-			cover_image[y * width + x] = ptr[y * width + x];
+			output_image[y * width + x] = ptr[y * width + x];
 		}
 	}
 }

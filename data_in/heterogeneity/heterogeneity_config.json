@@ -1,0 +1,9 @@
+{
+    "grass_carrying_capacity": {
+        "filename": "",
+        "sine_type": "vertical",
+        "sine_wavelength": 300,
+        "sine_offset": 0,
+        "sine_amplitude": 127
+    }
+}

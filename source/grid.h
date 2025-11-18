@@ -8,7 +8,7 @@ public:
 	int state = 0;
 	int idx = 0;
 	float time_last_fire = 0;
-	float grass_carrying_capacity = 1.0f;
+	float grass_carrying_capacity = 0.5f;
 	vector<int> trees;
 	pair<int, int> pos;
 	bool seedling_present = false;
@@ -112,7 +112,7 @@ public:
 												// (grass LAI would then (incorrectly) start rising again).
 		float _grass_LAI = max(0, 0.241f * (tree_LAI * tree_LAI) - 1.709f * tree_LAI + 2.899f);		// Relationship between grass- and tree LAI from 
 																									// Hoffman et al. (2012), figure 2b.		
-		
+
 		_grass_LAI *= grass_carrying_capacity; // Apply carrying capacity constraint.
 
 		return _grass_LAI;
@@ -1098,7 +1098,9 @@ public:
 		return pair<float, float>((float)position.first * cell_width, (float)position.second * cell_width);
 	}
 	void set_grass_carrying_capacity(shared_ptr<float[]> distr) {
-		grass_carrying_capacity = distr;
+		for (int i = 0; i < no_cells; i++) {
+			distribution[i].grass_carrying_capacity = distr[i];
+		}
 	}
 	int width = 0;
 	int no_cells = 0;
@@ -1120,7 +1122,6 @@ public:
 	map<int, Patch> savanna_patches;
 	shared_ptr<Cell[]> distribution = 0;
 	shared_ptr<int[]> state_distribution = 0;
-	shared_ptr<float[]> grass_carrying_capacity = 0;
 	shared_ptr<float[]> fuel_load_distribution = 0;
 	shared_ptr<float[]> aggr_tree_LAI_distribution = 0;
 	shared_ptr<int[]> patch_memberships;

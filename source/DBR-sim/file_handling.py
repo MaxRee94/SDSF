@@ -9,6 +9,8 @@ import time
 from config import *
 import numpy as np
 
+import sine_pattern_generator as spg
+
 
 
 def get_tree_sizes(dynamics):
@@ -24,18 +26,42 @@ def get_firefree_interval_stats(dynamics, _type):
     return mean, stdev
 
 
+def load_json_config(file_path):
+    """Load a JSON configuration file.
+    
+    Params:
+        file_path (str): Path to the JSON file.
+        
+    Returns:
+        config (dict): Loaded configuration dictionary.
+    """
+    with open(file_path, 'r') as json_file:
+        config = json.load(json_file)
+    return config
+
+
 def set_heterogeneity_maps(dynamics, args):
     """Set input maps from args if provided.
     
     Params:
         dynamics (Dynamics): Dynamics object
-        args (SimpleNamespace): Parsed arguments from argparse
+        args(SimpleNamespace): User arguments
     """
     input_map_dir = f"{cfg.DATA_IN_DIR}/heterogeneity/"
-    if args.grass_carrying_capacity:
-        path = os.path.join(input_map_dir, "grass_carrying_capacity", args.grass_carrying_capacity)
-        image = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    json_path = os.path.join(input_map_dir, args.heterogeneity)
+    heterogeneity_map_args = load_json_config(json_path)
+    if heterogeneity_map_args.get("grass_carrying_capacity"):
+        m_args = heterogeneity_map_args["grass_carrying_capacity"]
+        grass_carcap_dir = os.path.join(input_map_dir, "grass_carrying_capacity")
+        if m_args.get("filename"):
+            path = os.path.join(grass_carcap_dir, m_args["filename"])
+            image = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        else:
+            image = spg.generate((dynamics.state.grid.width, dynamics.state.grid.width), **m_args)
+            cv2.imwrite(os.path.join(grass_carcap_dir, "generated_grass_carrying_capacity.png"), image)
+
         image = cv2.resize(image, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_NEAREST)
+        image = image / 255  # Normalize to 0-1
         dynamics.state.grid.set_grass_carrying_capacity(image)
 
     return dynamics, args
