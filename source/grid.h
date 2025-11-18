@@ -815,7 +815,8 @@ public:
 						int savanna_patch_id = -1;
 						if (!cell_is_visited(_patch_memberships, nx, ny)) {
 							// If the savanna cell has not yet been visited, obtain the savanna patch it belongs to (if any).
-							savanna_patch_id = get_patch(_patch_memberships, nx, ny, -2 - savanna_patches.size(), "savanna");
+							int initial_guess_id = -2 - savanna_patches.size(); // Temporary ID for the new savanna patch.
+							savanna_patch_id = get_patch(_patch_memberships, nx, ny, initial_guess_id, "savanna");
 							//printf("Found neighboring savanna patch with ID %i.\n", savanna_patch_id);
 						}
 						if (!help::is_in(&neighboring_savannas, savanna_patch_id)) {
@@ -936,7 +937,7 @@ public:
 			//replace_patch_id(cur_id, old_id_with_biggest_overlap, local_forest_patches, local_savanna_patches);
 			map<int, Patch>& local_patches = all_patches[cur_id].type == "forest" ? local_forest_patches : local_savanna_patches;
 			map<int, Patch>& new_patches = all_patches[cur_id].type == "forest" ? new_forest_patches : new_savanna_patches;
-			reassign_patch_id(cur_id, old_id_with_biggest_overlap, local_patches, new_patches);
+			reassign_patch_id(cur_id, old_id_with_biggest_overlap, local_patches, new_patches, new_forest_patches);
 			used_ids.push_back(old_id_with_biggest_overlap);
 			patches_with_uncertain_ids.erase(cur_id);
 		}
@@ -961,8 +962,18 @@ public:
 		forest_patches = new_forest_patches;
 		savanna_patches = new_savanna_patches;
 	}
-	void reassign_patch_id(int cur_id, int new_id, map<int, Patch>& local_patches, map<int, Patch>& new_patches) {
+	void update_forest_neighbors(map<int, Patch>& new_forest_patches, int old_neighbor_id, int new_neighbor_id) {
+		for (auto& [_, forest_patch] : new_forest_patches) {
+			for (int& neighbor_id : forest_patch.neighboring_patches) {
+				if (neighbor_id == old_neighbor_id) {
+					neighbor_id = new_neighbor_id;
+				}
+			}
+		}
+	}
+	void reassign_patch_id(int cur_id, int new_id, map<int, Patch>& local_patches, map<int, Patch>& new_patches, map<int, Patch>& new_forest_patches) {
 		Patch patch_to_update = local_patches[cur_id];
+		update_forest_neighbors(new_forest_patches, patch_to_update.id, new_id);
 		patch_to_update.id = new_id;
 		new_patches[new_id] = patch_to_update;
 	}
@@ -979,7 +990,7 @@ public:
 			// Assign the new ID to the patch.
 			map<int, Patch>& local_patches = patch.type == "forest" ? local_forest_patches : local_savanna_patches;
 			map<int, Patch>& new_patches = patch.type == "forest" ? new_forest_patches : new_savanna_patches;
-			reassign_patch_id(current_id, new_id, local_patches, new_patches);
+			reassign_patch_id(current_id, new_id, local_patches, new_patches, new_forest_patches);
 			unused_ids.erase(unused_ids.begin());
 		}
 	}
@@ -1102,6 +1113,7 @@ public:
 	map<int, Patch> savanna_patches;
 	shared_ptr<Cell[]> distribution = 0;
 	shared_ptr<int[]> state_distribution = 0;
+	shared_ptr<float[]> grass_carrying_capacity = 0;
 	shared_ptr<float[]> fuel_load_distribution = 0;
 	shared_ptr<float[]> aggr_tree_LAI_distribution = 0;
 	shared_ptr<int[]> patch_memberships;
