@@ -62,6 +62,57 @@ def set_dispersal_kernel(
     return dynamics, animal_species
 
 
+def set_initial_tree_cover(dynamics, args):
+    print("Initial pattern image:", args.initial_pattern_image)
+    if args.initial_pattern_image == "none":
+        dynamics.state.set_tree_cover(args.treecover)
+    elif args.initial_pattern_image == "ctrl":
+        img, path, benchmark_cover = vis.generate_controllable_pattern_image(**vars(args))
+        # If the user has set the override_image_treecover to 2, we will use the benchmark cover value from the controllable pattern image.
+        # The benchmark cover is the cover for a version of the pattern produced using the given parameters, but with a sine amplitude set to 0 (i.e., with circular disks).
+        if args.override_image_treecover == 2:
+            args.override_image_treecover = benchmark_cover
+    elif args.initial_pattern_image == "perlin_noise":
+        path = f"{cfg.DATA_IN_DIR}/state_patterns/" + args.initial_pattern_image
+        if "perlin_noise" == args.initial_pattern_image:
+            print("Setting tree cover using perlin noise function...")
+            path = f"{cfg.PERLIN_NOISE_DIR}/" + args.initial_pattern_image + ".png"
+            noise_frequency = 5.0 / args.patch_width # Convert patch width to noise frequency
+            noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
+            vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=args.noise_octaves)
+    else:
+        print("Setting tree cover from image...")
+    
+    if args.initial_pattern_image != "none":
+        img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        print(f"Path of the generated {args.initial_pattern_image} pattern image: ", path) if args.initial_pattern_image in ["ctrl", "perlin_noise"] else None
+        if img is None and args.initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
+            print("Image not found. Generating new one...")
+            vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=args.noise_octaves)
+            
+            img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+            if img is None:
+                time.sleep(1)
+                img = cv2.imread(path, cv2.IMREAD_GRAYSCALE) # Wait for the image to be generated before trying to load it again
+            print("Path perlin noise image: (attempt 2)", path)
+            if img is None and args.initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
+                print("Image not found. Generating new one...")
+                vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=args.noise_octaves)
+                time.sleep(1) # Wait for the image to be generated before trying to load it again
+                img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+        
+        if ("perlin_noise" in path) and (not "thresholded.png" in path):
+            img = vis.get_thresholded_image(img, args.treecover * img.shape[0] * img.shape[0] * 255 )
+            cv2.imwrite(path.replace(".png", "_thresholded.png"), img)
+ 
+        img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
+        print("Created image. Setting cover...")
+        dynamics.state.set_cover_from_image(img / 255, args.override_image_treecover)
+    dynamics.state.repopulate_grid(0)
+
+    return dynamics, args
+
+
 def init(user_args):
     args = SimpleNamespace(**user_args)
 
@@ -85,57 +136,14 @@ def init(user_args):
         args.minimum_patch_size,
         args.LAI_aggregation_radius
     )
+
+    # Set 
     
     # Set dispersal kernel
     dynamics, animal_species = set_dispersal_kernel(dynamics, args.dispersal_mode, args.multi_disperser_params)
     
     # Set initial tree cover
-    print("Initial pattern image:", args.initial_pattern_image)
-    if args.initial_pattern_image == "none":
-        dynamics.state.set_tree_cover(args.treecover)
-    elif args.initial_pattern_image == "ctrl":
-        img, path, benchmark_cover = vis.generate_controllable_pattern_image(**user_args)
-        # If the user has set the override_image_treecover to 2, we will use the benchmark cover value from the controllable pattern image.
-        # The benchmark cover is the cover for a version of the pattern produced using the given parameters, but with a sine amplitude set to 0 (i.e., with circular disks).
-        if args.override_image_treecover == 2:
-            args.override_image_treecover = benchmark_cover
-    elif args.initial_pattern_image == "perlin_noise":
-        path = f"{cfg.DATA_IN_DIR}/state_patterns/" + args.initial_pattern_image
-        if "perlin_noise" == args.initial_pattern_image:
-            print("Setting tree cover using perlin noise function...")
-            path = f"{cfg.PERLIN_NOISE_DIR}/" + args.initial_pattern_image + ".png"
-            noise_frequency = 5.0 / args.patch_width # Convert patch width to noise frequency
-            noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
-            vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=user_args["noise_octaves"])
-    else:
-        print("Setting tree cover from image...")
-    
-    if args.initial_pattern_image != "none":
-        img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        print(f"Path of the generated {args.initial_pattern_image} pattern image: ", path) if args.initial_pattern_image in ["ctrl", "perlin_noise"] else None
-        if img is None and args.initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
-            print("Image not found. Generating new one...")
-            vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=user_args["noise_octaves"])
-            
-            img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-            if img is None:
-                time.sleep(1)
-                img = cv2.imread(path, cv2.IMREAD_GRAYSCALE) # Wait for the image to be generated before trying to load it again
-            print("Path perlin noise image: (attempt 2)", path)
-            if img is None and args.initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
-                print("Image not found. Generating new one...")
-                vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=user_args["noise_octaves"])
-                time.sleep(1) # Wait for the image to be generated before trying to load it again
-                img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        
-        if ("perlin_noise" in path) and (not "thresholded.png" in path):
-            img = vis.get_thresholded_image(img, args.treecover * img.shape[0] * img.shape[0] * 255 )
-            cv2.imwrite(path.replace(".png", "_thresholded.png"), img)
- 
-        img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
-        print("Created image. Setting cover...")
-        dynamics.state.set_cover_from_image(img / 255, args.override_image_treecover)
-    dynamics.state.repopulate_grid(0)
+    dynamics, args = set_initial_tree_cover(dynamics, args)
     
     # Create color dictionaries for visualizations
     no_colors = 100
