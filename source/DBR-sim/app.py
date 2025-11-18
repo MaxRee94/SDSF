@@ -305,7 +305,6 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         fuel_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel")
         imagepath_fuel = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
         vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
-        print("fuel done.")
 
     if ("aggr_tree_LAI" in visualization_types):
         print("-- Saving aggregated tree LAI image...") if verbose else None
@@ -365,7 +364,6 @@ def updateloop(dynamics, color_dicts, **user_args):
         
         # WIP: Obtain forest patch perimeters from simulation
         patches = dynamics.get_patches()
-        print("----- Number of patches: ", len(patches)) 
         if verbose:
             for patch in patches:
                 print(f"No cells in patch {patch['id']}: {len(patch['cells'])}, example cell position: ({patch['cells'][0]}), \n" +

@@ -210,7 +210,6 @@ def get_image_from_grid(grid, color_dict, collect_states=None, img_type=None, in
             non_aggregated_tree_LAI = grid.get_distribution(1)
             mask = non_aggregated_tree_LAI < 1 # Mask area considered to be savanna.
             img[mask] = 0
-            print(f"min: {img.min()}, max: {img.max()}")
         else:
             raise ValueError(f"Unknown img_type: {img_type}")
     else:
