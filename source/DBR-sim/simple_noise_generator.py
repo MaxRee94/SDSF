@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 
-def generate(amplitude=0.3, scale=1, show=False, offset=0, grid_width=1000, **args):
+def generate(amplitude=0.3, scale=1, show=False, binary_connectivity=-1, offset=0, grid_width=1000, **args):
     """
     Generate a 1000x1000 uniform macropixel noise pattern.
 
@@ -17,7 +17,7 @@ def generate(amplitude=0.3, scale=1, show=False, offset=0, grid_width=1000, **ar
     scale : int
         Final macropixel width (and height) in pixels.
     show : bool
-        Whether to show the final 1000x1000 image.
+        Whether to show the final <grid_width> x <grid_width> image.
     """
 
     FINAL_SIZE = grid_width
@@ -26,12 +26,16 @@ def generate(amplitude=0.3, scale=1, show=False, offset=0, grid_width=1000, **ar
     macro_h = FINAL_SIZE // scale
     macro_w = FINAL_SIZE // scale
 
-    # Generate macropixel noise grid
-    noise = np.random.uniform(
-        low=0.5 - amplitude,
-        high=0.5 + amplitude,
-        size=(macro_h, macro_w)
-    ) + offset
+    # Generate macropixel noise grid. 
+    if binary_connectivity < 0:
+        noise = np.random.uniform(
+            low=0.5 - amplitude,
+            high=0.5 + amplitude,
+            size=(macro_h, macro_w)
+        ) + offset
+    else:
+        # If binary connectivity is specified, we generate binary noise with fraction of 1-pixel Expectation=binary_connectivity.
+        noise = np.random.choice([0, 1], size=(macro_h, macro_w), p=[1-binary_connectivity, binary_connectivity])
 
     # Clip to [0,1]
     noise = np.clip(noise, 0.0, 1.0)
@@ -61,5 +65,6 @@ if __name__ == "__main__":
     show = True
     grid_width = 1000
     offset = -0.5
+    binary_connectivity = 0.1
 
-    generate(amplitude=amplitude, scale=scale, show=show, grid_width=grid_width, offset=offset)
+    generate(amplitude=amplitude, scale=scale, show=show, grid_width=grid_width, offset=offset, binary_connectivity=binary_connectivity)
