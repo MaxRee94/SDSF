@@ -127,6 +127,7 @@ defaults = {
     "LAI_aggregation_radius": 3, # Radius (in m) around each cell used to aggregate tree LAI values. 
     "display_fire_effects": False,
     "heterogeneity": "heterogeneity_config.json",
+    "allow_unknown_args": False,
 }
 
 gui_defaults = {
@@ -928,6 +929,16 @@ _parameter_config = {
             ),
             "default": defaults["heterogeneity"],
         },
+    },
+    "allow_unknown_args": {
+        "keys": {
+            "cli": ["--allow_unknown_args", "-alua"]
+        },
+        "settings": {
+            "type": bool,
+            "help": "Specify if you want to pass parameters which are not in this configuration. Any parameter of the same name will be overwritten by your specified value.",
+            "default": defaults["allow_unknown_args"],
+        }
     },
 }
 

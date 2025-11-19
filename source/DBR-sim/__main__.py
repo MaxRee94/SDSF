@@ -2,7 +2,6 @@
 
 import sys
 import json
-from argparse import ArgumentParser
 from config import ParameterConfig
 import app
 from helpers import *

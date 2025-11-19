@@ -7,6 +7,7 @@ from shutil import ExecError
 import cv2
 import time
 from config import *
+import helpers
 import numpy as np
 
 import sine_pattern_generator as spg
@@ -53,6 +54,7 @@ def set_heterogeneity_maps(dynamics, args):
     heterogeneity_map_args = load_json_config(json_path)
     if heterogeneity_map_args.get("grass_carrying_capacity"):
         m_args = heterogeneity_map_args["grass_carrying_capacity"]
+        m_args = helpers.overwrite_from_global_arguments(m_args, vars(args))
         grass_carcap_dir = os.path.join(input_map_dir, "grass_carrying_capacity")
         if m_args.get("filename"):
             path = os.path.join(grass_carcap_dir, m_args["filename"])
