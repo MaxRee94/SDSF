@@ -68,11 +68,16 @@ def set_initial_tree_cover(dynamics, args):
     if args.initial_pattern_image == "none":
         dynamics.state.set_tree_cover(args.treecover)
     elif args.initial_pattern_image == "ctrl":
-        img, path, benchmark_cover = vis.generate_controllable_pattern_image(**vars(args))
+        _args = args
+        _args.grid_width = 200 # Temporarily set grid width to 200 for pattern generation
+        img, path, benchmark_cover = vis.generate_controllable_pattern_image(**vars(_args))
+        img = cv2.resize(img, (args.grid.width, args.grid.width), interpolation=cv2.INTER_NEAREST)
+        img = img / 255
         # If the user has set the override_image_treecover to 2, we will use the benchmark cover value from the controllable pattern image.
         # The benchmark cover is the cover for a version of the pattern produced using the given parameters, but with a sine amplitude set to 0 (i.e., with circular disks).
         if args.override_image_treecover == 2:
             args.override_image_treecover = benchmark_cover
+        dynamics.state.set_cover_from_image(img, args.override_image_treecover)
     elif args.initial_pattern_image == "perlin_noise":
         path = f"{cfg.DATA_IN_DIR}/state_patterns/" + args.initial_pattern_image
         if "perlin_noise" == args.initial_pattern_image:
