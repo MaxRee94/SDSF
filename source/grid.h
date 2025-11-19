@@ -2,6 +2,8 @@
 #include "agents.h"
 #include "grid_agent.forward.h"
 
+
+
 class Cell {
 public:
 	Cell() = default;
@@ -97,8 +99,7 @@ public:
 	}
 	void add_tree(Tree* tree, float cell_area = 0, float cell_halfdiagonal_sqrt = 0) {
 		trees.push_back(tree->id);
-		if (is_sapling(tree, cell_halfdiagonal_sqrt))
-			add_LAI_of_tree_sapling(tree, cell_area);
+		if (is_sapling(tree, cell_halfdiagonal_sqrt)) add_LAI_of_tree_sapling(tree, cell_area);
 		else LAI += tree->LAI;
 		update_grass_LAI(LAI);
 	}
@@ -216,6 +217,15 @@ public:
 		cell_width = _cell_width;
 		tree_center_gb = pair<float, float>(round(tree->position.first / cell_width), round(tree->position.second / cell_width));
 		radius_gb = round(tree->radius / cell_width);
+		x = tree_center_gb.first - radius_gb;
+		y = tree_center_gb.second - radius_gb;
+		y_lowbound = y;
+	}
+	TreeDomainIterator(float _cell_width, Tree* _tree, int neighborhood_radius) {
+		tree = _tree;
+		cell_width = _cell_width;
+		tree_center_gb = pair<float, float>(round(tree->position.first / cell_width), round(tree->position.second / cell_width));
+		radius_gb = round(neighborhood_radius / cell_width);
 		x = tree_center_gb.first - radius_gb;
 		y = tree_center_gb.second - radius_gb;
 		y_lowbound = y;
@@ -444,7 +454,7 @@ public:
 		while (i < fetch_attempt_limit) {
 			pair<int, int> pos = get_random_grid_position();
 			Cell* cell = get_cell_at_position(pos);
-			if (!is_forest(cell->get_fuel_load())) return cell;
+			if (!is_forest(cell)) return cell;
 		}
 		throw("Runtime error: Could not find savanna cell after %i attempts.\n", fetch_attempt_limit);
 	}
@@ -464,13 +474,13 @@ public:
 		no_savanna_cells = 0;
 		no_forest_cells = 0;
 		for (int i = 0; i < no_cells; i++) {
-			no_savanna_cells += !distribution[i].state;
-			no_forest_cells += distribution[i].state;
+			no_savanna_cells += !is_forest(&distribution[i]);
+			no_forest_cells += is_forest(&distribution[i]);
 		}
 	}
 	void redo_state_assignment() {
 		for (int i = 0; i < no_cells; i++) {
-			distribution[i].state = is_forest(distribution[i].get_fuel_load());
+			distribution[i].state = is_forest(i);
 		}
 	}
 	pair<int, int> idx_2_pos(int idx) {
@@ -495,7 +505,7 @@ public:
 		cap(center);
 		return pos_2_idx(center);
 	}
-	bool populate_tree_domain(Tree* tree) {
+	bool populate_tree_domain(Tree* tree, bool update_tree_LAI_neighborhood=false) {
 		TreeDomainIterator it(cell_width, tree);
 		while (it.next()) {
 			if (tree->crown_area < cell_area_half) break; // Do not populate cells with trees that are smaller than half the cell area.
@@ -505,6 +515,9 @@ public:
 		}
 		int center_idx = get_capped_center_idx(it.tree_center_gb);
 		distribution[center_idx].insert_stem(tree, cell_area, cell_halfdiagonal_sqrt);
+		if (update_tree_LAI_neighborhood) {
+			update_aggregated_tree_LAIs(tree);
+		}
 		return true;
 	}
 	pair<float, float> get_random_position_within_crown(
@@ -614,12 +627,21 @@ public:
 			return LAI;
 		}
 	}
-	bool is_forest(float fuel_load) {
-		return fuel_load < 0.5f;
+	bool is_forest(float neighborhood_tree_LAI) {
+		return neighborhood_tree_LAI > 1.0f;
+	}
+	bool is_forest(Cell* cell) {
+		float tree_LAI_local_neighborhood = aggr_tree_LAI_distribution[cell->idx];
+		return is_forest(tree_LAI_local_neighborhood);
+	}
+	bool is_forest(int idx) {
+		float tree_LAI_local_neighborhood = aggr_tree_LAI_distribution[idx];
+		return is_forest(tree_LAI_local_neighborhood);
 	}
 	bool is_forest(int x, int y) {
-		Cell* cell = get_cell_at_position(pair<int, int>(x, y));
-		return is_forest(cell->get_fuel_load());
+		int idx = pos_2_idx(pair<int, int>(x, y));
+		float tree_LAI_local_neighborhood = aggr_tree_LAI_distribution[idx];
+		return is_forest(tree_LAI_local_neighborhood);
 	}
 	void update_grass_LAI(Cell* cell) {
 		float tree_LAI_local_neighborhood = get_tree_LAI_of_local_neighborhood(cell);
@@ -670,6 +692,30 @@ public:
 		}
 		return aggr_tree_LAI_distribution;
 	}
+	void update_aggregated_tree_LAIs() {
+		for (int i = 0; i < no_cells; i++) {
+			aggr_tree_LAI_distribution[i] = get_tree_LAI_of_local_neighborhood(&distribution[i]);
+		}
+	}
+	void update_aggregated_tree_LAIs(Tree* tree) {
+		TreeDomainIterator it(cell_width, tree, tree->radius + LAI_aggregation_radius);
+		while (it.next()) {
+			cap(it.gb_cell_position);
+			int idx = pos_2_idx(it.gb_cell_position);
+			aggr_tree_LAI_distribution[idx] = get_tree_LAI_of_local_neighborhood(&distribution[idx]);
+
+			// If the cell was not previously classified as forest, check if it should be reclassified now.
+			if (is_forest(&distribution[idx])) {
+				if (distribution[idx].state == 0) {
+					// The cell was previously classified as savanna, but is now forest. Update the counters accordingly.
+					no_savanna_cells--;
+					no_forest_cells++;
+				}
+				// Set the cell state to forest.
+				distribution[idx].state = 1;
+			}
+		}
+	}
 	void set_state_distribution(int* distr) {
 		for (int i = 0; i < no_cells; i++) {
 			if (distr[i] >= 0 && distr[i] < 10)
@@ -681,17 +727,6 @@ public:
 	}
 	void add_tree_to_cell(int idx, Tree* tree) {
 		distribution[idx].add_tree(tree);
-
-		// If the cell was not previously classified as forest, check if it should be reclassified now.
-		if (is_forest(distribution[idx].get_fuel_load())) {
-			if (distribution[idx].state == 0) {
-				// The cell was previously classified as savanna, but is now forest. Update the counters accordingly.
-				no_savanna_cells--;
-				no_forest_cells++;
-			}
-			// Set the cell state to forest.
-			distribution[idx].state = 1;
-		}
 	}
 	void set_to_savanna(int idx, float _time_last_fire = -1) {
 		no_savanna_cells += (distribution[idx].state == 1);

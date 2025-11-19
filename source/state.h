@@ -62,6 +62,7 @@ public:
 			i++;
 		}
 		grid.update_grass_LAIs();
+		grid.update_aggregated_tree_LAIs();
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
 	float compute_shade_on_individual_tree(Tree* tree) {
@@ -191,7 +192,7 @@ public:
 				population.remove(tree->id);
 				continue;
 			}
-			grid.populate_tree_domain(tree);
+			grid.populate_tree_domain(tree, true);
 			grid.update_grass_LAIs_for_individual_tree(tree);
 
 			if (no_overshoot_correction_runs < max_no_overshoot_correction_runs && (population.size() % 10000 == 0 || grid.get_tree_cover() > 0.9999 * target_cover)) {
@@ -225,7 +226,7 @@ public:
 				continue;
 			}
 			if (tree->id == -1) population.remove(population.no_created_trees - 1); // HOTFIX: Sometimes trees are not initialized properly and need to be removed.
-			grid.populate_tree_domain(tree);
+			grid.populate_tree_domain(tree,	true);
 			if (population.get_crop(tree->id)->strategy.vector == "wind") {
 				wind_trees++;
 			}
