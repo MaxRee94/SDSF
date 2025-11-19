@@ -253,6 +253,9 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         max_no_colors = 1000
         offset = -10
         for i, patch in enumerate(patches):
+            if i > 50 and dynamics.time == 1:
+                print("Breaking patch coloring loop at patch no", i, f"for performance reasons (n.o. patches = {len(patches)}")
+                break # Limit number of patches visualized for performance reasons
             if patch["area"] < minimum_considered_patch_size: # Only consider patches of a certain size
                 continue
             patch_id = patch["id"]
