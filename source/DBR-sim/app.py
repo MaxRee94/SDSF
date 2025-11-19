@@ -71,7 +71,7 @@ def set_initial_tree_cover(dynamics, args):
         _args = args
         _args.grid_width = 200 # Temporarily set grid width to 200 for pattern generation
         img, path, benchmark_cover = vis.generate_controllable_pattern_image(**vars(_args))
-        img = cv2.resize(img, (args.grid.width, args.grid.width), interpolation=cv2.INTER_NEAREST)
+        img = cv2.resize(img, (args.grid_width, args.grid_width), interpolation=cv2.INTER_NEAREST)
         img = img / 255
         # If the user has set the override_image_treecover to 2, we will use the benchmark cover value from the controllable pattern image.
         # The benchmark cover is the cover for a version of the pattern produced using the given parameters, but with a sine amplitude set to 0 (i.e., with circular disks).
