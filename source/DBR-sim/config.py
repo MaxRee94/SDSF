@@ -128,6 +128,9 @@ defaults = {
     "display_fire_effects": False,
     "heterogeneity": "heterogeneity_config.json",
     "allow_unknown_args": False,
+    "grow": True,
+    "disperse": True,
+    "burn": True,
 }
 
 gui_defaults = {
@@ -938,6 +941,36 @@ _parameter_config = {
             "type": bool,
             "help": "Specify if you want to pass parameters which are not in this configuration. Any parameter of the same name will be overwritten by your specified value.",
             "default": defaults["allow_unknown_args"],
+        }
+    },
+    "grow": {
+        "keys": {
+            "cli": ["--grow", "-grow"]
+        },
+        "settings": {
+            "action": argparse.BooleanOptionalAction,
+            "help": "Specify whether or not the growth submodel should be enabled.",
+            "default": defaults["grow"],
+        }
+    },
+    "disperse": {
+        "keys": {
+            "cli": ["--disperse", "-disp"]
+        },
+        "settings": {
+            "action": argparse.BooleanOptionalAction,
+            "help": "Specify whether or not the dispersal submodel should be enabled.",
+            "default": defaults["disperse"],
+        }
+    },
+    "burn": {
+        "keys": {
+            "cli": ["--burn", "-burn"]
+        },
+        "settings": {
+            "action": argparse.BooleanOptionalAction,
+            "help": "Specify whether or not the fire submodel should be enabled.",
+            "default": defaults["burn"],
         }
     },
 }

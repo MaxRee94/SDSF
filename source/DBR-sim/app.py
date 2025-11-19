@@ -339,32 +339,35 @@ def do_iteration(dynamics, args):
     dynamics.state.grid.reset_state_distr()
 
     # -- DISPERSE -- #
-    t0 = time.time()
-    if args.verbosity > 0:
-        print("Beginning dispersal...")
+    if args.disperse:
+        t0 = time.time()
+        if args.verbosity > 0:
+            print("Beginning dispersal...")
 
-    if dynamics.time > 0:
-        dynamics.disperse()
+        if dynamics.time > 0:
+            dynamics.disperse()
 
-    t1 = time.time()
-    if args.verbosity > 0:
-        print(f"Dispersal took {t1 - t0:.6f} seconds. Beginning burn...")
+        t1 = time.time()
+        if args.verbosity > 0:
+            print(f"Dispersal took {t1 - t0:.6f} seconds. Beginning burn...")
 
     # -- BURN -- #
-    t0 = time.time()
-    dynamics.burn()
-    t1 = time.time()
+    if args.burn:
+        t0 = time.time()
+        dynamics.burn()
+        t1 = time.time()
 
-    if args.verbosity > 0:
-        print(f"Burns took {t1 - t0:.6f} seconds. Beginning growth...")
+        if args.verbosity > 0:
+            print(f"Burns took {t1 - t0:.6f} seconds. Beginning growth...")
 
     # -- GROW -- #
-    t0 = time.time()
-    dynamics.grow()
-    t1 = time.time()
+    if args.grow:
+        t0 = time.time()
+        dynamics.grow()
+        t1 = time.time()
 
-    if args.verbosity > 0:
-        print(f"Growth took {t1 - t0:.6f} seconds.")
+        if args.verbosity > 0:
+            print(f"Growth took {t1 - t0:.6f} seconds.")
 
     # -- BACKGROUND MORTALITY -- #
     dynamics.induce_background_mortality()
