@@ -372,7 +372,6 @@ public:
 	}
 	bool tree_is_topkilled(Tree* tree) {
 		// if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", dbh, bark_thickness, survival_probability);
-		// COMMENT: We currently assume topkill always implies death, but resprouting should also be possible. (TODO: make death dependent on fire-free interval)
 
 		if (tree->dbh < seedling_discard_dbh) return true; // We assume that seedlings with a dbh below this 'discard'-value are always killed by fire.display_fire_effect
 		return !tree->survives_fire(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);

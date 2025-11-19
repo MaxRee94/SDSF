@@ -977,7 +977,7 @@ public:
 	}
 	void reassign_patch_id(int cur_id, int new_id, map<int, Patch>& local_patches, map<int, Patch>& new_patches, map<int, Patch>& new_forest_patches) {
 		Patch patch_to_update = local_patches[cur_id];
-		update_forest_neighbors(new_forest_patches, patch_to_update.id, new_id);
+		if (patch_to_update.type == "savanna") update_forest_neighbors(new_forest_patches, patch_to_update.id, new_id);
 		patch_to_update.id = new_id;
 		new_patches[new_id] = patch_to_update;
 	}
