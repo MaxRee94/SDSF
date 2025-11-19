@@ -267,6 +267,8 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&>())
         .def("get_tree_cover", &Grid::get_tree_cover)
+		.def("reset_state_distr", &Grid::reset_state_distr)
+		.def("redo_count", &Grid::redo_count)
         .def_readwrite("width", &Grid::width)
         .def_readwrite("width_r", &Grid::width_r)
         .def_readwrite("tree_cover", &Grid::tree_cover)
@@ -410,7 +412,15 @@ PYBIND11_MODULE(dbr_cpp, module) {
         })
         .def("precompute_resourcegrid_lookup_table", [](Dynamics& dynamics, string& species) {
             dynamics.resource_grid.precompute_dist_lookup_table(species);
-		});
+		})
+        .def("disperse", &Dynamics::disperse)
+        .def("burn", &Dynamics::burn)
+        .def("grow", &Dynamics::grow)
+        .def("induce_background_mortality", &Dynamics::induce_background_mortality)
+        .def("report_state", &Dynamics::report_state)
+        .def("update_firefree_interval_averages", &Dynamics::update_firefree_interval_averages)
+        .def("update_forest_patch_detection", &Dynamics::update_forest_patch_detection)
+        ;
 
     py::class_<DiscreteProbabilityModel>(module, "DiscreteProbabilityModel")
         .def(py::init<>())

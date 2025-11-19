@@ -114,19 +114,20 @@ def set_initial_tree_cover(dynamics, args):
     return dynamics, args
 
 
-def init(user_args):
-    args = SimpleNamespace(**user_args)
+def init(args):
+
+    # Make any changes to args if needed
+    args.patch_width = round(args.patch_width, 2)
 
     # Set random seed for fire frequency probability distribution. If -999 is given, a random seed will be generated. Otherwise, the given seed will be used.
     if args.firefreq_random_seed == -999:
         args.firefreq_random_seed = random.randint(0, 1000000)
         print("Generated random seed for fire frequency probability distribution: ", args.firefreq_random_seed)
     print("Using fire frequency random seed: ", args.firefreq_random_seed)
+    
     # Initialize dynamics object and state
-    print("type:", type(user_args["fire_resistance_params"]))
-    print("Initializing dynamics object with args:\n", user_args)
     print("LAI aggregation radius:", args.LAI_aggregation_radius)
-    dynamics = cpp.create_dynamics(user_args)
+    dynamics = cpp.create_dynamics(vars(args))
     dynamics.init_state(
         args.grid_width,
         args.dbh_q1,
@@ -199,15 +200,15 @@ def init(user_args):
                 print(f"Lookup table file {fpath} found. Loading...")
                 dynamics.set_resource_grid_lookup_table(lookup_table, species)
 
-    return dynamics, color_dicts
+    return dynamics, color_dicts, args
 
 
-def termination_condition_satisfied(dynamics, start_time, user_args):
+def termination_condition_satisfied(dynamics, start_time, args):
     satisfied = False
     condition = ""
-    if (dynamics.time >= int(user_args["max_timesteps"])):
-        condition = f"Maximum number of timesteps ({user_args['max_timesteps']}) reached."
-    if (user_args["termination_conditions"] == "all" and dynamics.state.grid.get_tree_cover() > 0.93):
+    if (dynamics.time >= int(args.max_timesteps)):
+        condition = f"Maximum number of timesteps ({args.max_timesteps}) reached."
+    if (args.termination_conditions == "all" and dynamics.state.grid.get_tree_cover() > 0.93):
         condition = f"Tree cover exceeds 93%."
     satisfied = len(condition) > 0
     if satisfied:
@@ -216,7 +217,7 @@ def termination_condition_satisfied(dynamics, start_time, user_args):
     return satisfied
 
 
-def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, patches, patch_color_ids, user_args):
+def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, patches, patch_color_ids, args):
     if ("recruitment" in visualization_types):
         print("Saving recruitment img...") if verbose else None
         recruitment_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["recruitment"], collect_states=0)
@@ -276,8 +277,8 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
                 patch_colors_indices[cell[1]][cell[0]] = patch_color_id
         
         colored_patches_img = vis.get_image(patch_colors_indices, color_dicts["colored_patches"], dynamics.state.grid.width)
-        user_args["show_edges"] = False # Hardcoded for now
-        if user_args["show_edges"]:
+        args.show_edges = False # Hardcoded for now
+        if args.show_edges:
             for patch in patches:
                 if patch["area"] < minimum_considered_patch_size: # Only consider patches of a certain size
                     continue
@@ -292,13 +293,13 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
 
 
     print("-- Visualizing image...") if verbose else None
-    if user_args["headless"]:
+    if args.headless:
         # Get a color image representation of the initial state
         img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["normal"], collect_states=1)
     else:
         # Get a color image representation of the initial state and show it.
         img = vis.visualize(
-            dynamics.state.grid, user_args["image_width"], collect_states=collect_states,
+            dynamics.state.grid, args.image_width, collect_states=collect_states,
             color_dict=color_dicts["normal"]
         )
 
@@ -325,76 +326,139 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
 
 
-def updateloop(dynamics, color_dicts, **user_args):
-    start = time.time()
+def do_iteration(dynamics, args):
+    """Run a single simulation iteration."""
+
+    # -- PREPARE -- #
+    dynamics.time += 1
+    print(f"\nTime: {dynamics.time}")
+
+    if args.verbosity > 0:
+        print("Resetting state distr...")
+
+    dynamics.state.grid.reset_state_distr()
+
+    # -- DISPERSE -- #
+    t0 = time.time()
+    if args.verbosity > 0:
+        print("Beginning dispersal...")
+
+    if dynamics.time > 0:
+        dynamics.disperse()
+
+    t1 = time.time()
+    if args.verbosity > 0:
+        print(f"Dispersal took {t1 - t0:.6f} seconds. Beginning burn...")
+
+    # -- BURN -- #
+    t0 = time.time()
+    dynamics.burn()
+    t1 = time.time()
+
+    if args.verbosity > 0:
+        print(f"Burns took {t1 - t0:.6f} seconds. Beginning growth...")
+
+    # -- GROW -- #
+    t0 = time.time()
+    dynamics.grow()
+    t1 = time.time()
+
+    if args.verbosity > 0:
+        print(f"Growth took {t1 - t0:.6f} seconds.")
+
+    # -- BACKGROUND MORTALITY -- #
+    dynamics.induce_background_mortality()
+
+    if args.verbosity > 0:
+        print("Induced background mortality. Repopulating grid...")
+
+    # Post-simulation cleanup and reporting
+    dynamics.state.repopulate_grid(args.verbosity)
+
+    if args.verbosity > 1:
+        print("Redoing grid count...")
+
+    dynamics.state.grid.redo_count()
+    dynamics.report_state()
+    dynamics.update_firefree_interval_averages()
+    dynamics.update_forest_patch_detection()
+
+    return dynamics
+
+
+def updateloop(dynamics, color_dicts, args):
     print("Beginning simulation...")
-    csv_path = user_args["csv_path"]
+    start = time.time()
+    csv_path = args.csv_path
     visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI", "aggr_tree_LAI", "colored_patches", "fuel_penetration"]
     init_csv = True
-    prev_tree_cover = [user_args["treecover"]] * 60
+    prev_tree_cover = [args.treecover] * 60
     slope = 0
     largest_absolute_slope = 0
     export_animal_resources = False
     collect_states = 1
     fire_no_timesteps = 1
     patch_colors = {}
-    verbose = user_args["verbosity"]
+    verbose = args.verbosity
     fire_freq_arrays = []
     color_dict_fire_freq = vis.get_color_dict(fire_no_timesteps, begin=0.2, end=0.5, distr_type="fire_freq")
     color_dicts["fire_freq"] = color_dict_fire_freq
-    if not user_args["headless"]:
+
+    if not args.headless:
         graphs = vis.Graphs(dynamics)
+
     while True:
-        print("-- Starting update (calling from python)") if verbose else None
-        try:
-            dynamics.update()
-        except Exception as e:
-            print("Error during dynamics update:\n", e)
-            exit(1)
+        print("-- Starting iteration...") if verbose else None
+        dynamics = do_iteration(dynamics, args)
         print("-- Finished update") if verbose else None
-        
+    
         # Obtain initial number of recruits
         if dynamics.time == 1:
             initial_no_dispersals = dynamics.get_initial_no_dispersals()
-        
-        # Track tree cover trajectory and evaluate termination conditions
+    
+        # Track tree cover trajectory
         prev_tree_cover.append(dynamics.state.grid.get_tree_cover())
         if dynamics.time > 10:
-            slope = (prev_tree_cover[-1] - user_args["treecover"]) / dynamics.time
+            slope = (prev_tree_cover[-1] - args.treecover) / dynamics.time
             single_tstep_slope = prev_tree_cover[-1] - prev_tree_cover[-2]
             if abs(single_tstep_slope) > largest_absolute_slope:
                 largest_absolute_slope = abs(single_tstep_slope)
         else:
             slope = 0
-        do_terminate = termination_condition_satisfied(dynamics, start, user_args)
-        
-        # WIP: Obtain forest patch perimeters from simulation
-        patches = dynamics.get_patches()
-        if verbose:
-            for patch in patches:
-                print(f"No cells in patch {patch['id']}: {len(patch['cells'])}, example cell position: ({patch['cells'][0]}), \n" +
-                    f"centroid: ({patch['centroid'][0], patch['centroid'][1]}, area: {patch['area']} m^2, perimeter length: {patch['perimeter_length']} m.")
-        
+
+        # Track treecover trajectory
+        do_terminate = termination_condition_satisfied(dynamics, start, args)
+    
+        # Obtain patches from simulation
+        patches = dynamics.get_patches() 
+    
         # Do visualizations
-        if not user_args["headless"]:
-            do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, patches, patch_colors, user_args)
-        
+        if not args.headless:
+            do_visualizations(
+                dynamics, fire_freq_arrays, fire_no_timesteps, verbose,
+                color_dicts, collect_states, visualization_types,
+                patches, patch_colors, args
+            )
+    
         print("-- Exporting state_data...") if verbose else None
-        csv_path = io.export_state(dynamics, csv_path, init_csv, tree_cover_slope=slope, args=SimpleNamespace(**user_args))
+        csv_path = io.export_state(
+            dynamics, csv_path, init_csv,
+            tree_cover_slope=slope,
+            args=SimpleNamespace(**vars(args))
+        )
         init_csv = False
-        
-        
+
         print("-- Saving tree positions...") if verbose else None
-        #io.save_state(dynamics)
-        
-        if user_args["report_state"] == "True" or user_args["report_state"] == True:
+        # io.save_state(dynamics)
+    
+        if args.report_state == "True" or args.report_state is True:
             io.update_state_report(dynamics)
 
         print("-- Showing graphs...") if verbose else None
-        if not user_args["headless"]:
+        if not args.headless:
             graphs.update()
 
-        if export_animal_resources and (user_args["dispersal_mode"] == "all" or user_args["dispersal_mode"] == "animal"):
+        if export_animal_resources and (args.dispersal_mode == "all" or args.dispersal_mode == "animal"):
             # Get color image representations of the resource grid from the last iteration
             cover_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/cover/" + str(dynamics.time) + ".png")
             fruits_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fruits/" + str(dynamics.time) + ".png")
@@ -403,6 +467,7 @@ def updateloop(dynamics, color_dicts, **user_args):
             distance_coarse_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/distance_coarse/" + str(dynamics.time) + ".png")
             k_coarse_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/k_coarse/" + str(dynamics.time) + ".png")
             k_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/k/" + str(dynamics.time) + ".png")
+
             vis.save_resource_grid_colors(dynamics, "Turdus merula", "cover", cover_path)
             vis.save_resource_grid_colors(dynamics, "Turdus merula", "fruits", fruits_path)
             vis.save_resource_grid_colors(dynamics, "Turdus merula", "visits", visits_path)
@@ -414,10 +479,10 @@ def updateloop(dynamics, color_dicts, **user_args):
         if do_terminate:
             break
 
-    if not user_args["headless"]:
+    if not args.headless:
         cv2.destroyAllWindows()
         dynamics.free()
-    
+
     return dynamics, slope, largest_absolute_slope, initial_no_dispersals
 
 
@@ -434,8 +499,6 @@ def test_kernel():
         dist_max, windspeed_gmean, windspeed_stdev, seed_terminal_speed, abscission_height)
     )
     return
-
-
 
 
 def main(batch_parameters=None, **user_args): 
@@ -459,10 +522,9 @@ def main(batch_parameters=None, **user_args):
             idx = int(control_keys[1].split("<idx>")[1])
             user_args[control_keys[0]][idx] = batch_parameters["control_value"]
 
-    user_args["patch_width"] = round(user_args["patch_width"], 2)
-
-    dynamics, color_dicts = init(user_args)
-    return updateloop(dynamics, color_dicts, **user_args)
+    args = SimpleNamespace(**user_args)
+    dynamics, color_dicts, args = init(args)
+    return updateloop(dynamics, color_dicts, args)
  
 
 
