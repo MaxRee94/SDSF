@@ -44,7 +44,7 @@ def generate(amplitude=0.3, scale=1, show=False, binary_connectivity=-1, offset=
     img = cv2.resize(
         noise,
         (FINAL_SIZE, FINAL_SIZE),
-        interpolation=cv2.INTER_CUBIC
+        interpolation=cv2.INTER_LINEAR
     )
 
     # Convert to uint8 grayscale image
@@ -61,10 +61,10 @@ def generate(amplitude=0.3, scale=1, show=False, binary_connectivity=-1, offset=
 if __name__ == "__main__":
     # Example usage
     amplitude = 0.3   # uniform noise range is [0.2, 0.8]
-    scale = 1        # each macropixel is 50x50 pixels in the final image
+    scale = 100        # each macropixel is <scale> X <scale> pixels in the final image
     show = True
     grid_width = 1000
-    offset = -0.5
-    binary_connectivity = 0.1
+    offset = 0
+    binary_connectivity = 0.8
 
     generate(amplitude=amplitude, scale=scale, show=show, grid_width=grid_width, offset=offset, binary_connectivity=binary_connectivity)
