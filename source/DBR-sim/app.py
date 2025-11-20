@@ -4,6 +4,7 @@ from tkinter import E, N, Y
 
 import cv2
 import numpy as np
+import copy
 import time
 import os
 from pathlib import Path
@@ -68,7 +69,7 @@ def set_initial_tree_cover(dynamics, args):
     if args.initial_pattern_image == "none":
         dynamics.state.set_tree_cover(args.treecover)
     elif args.initial_pattern_image == "ctrl":
-        _args = args
+        _args = copy.copy(args)
         _args.grid_width = 200 # Temporarily set grid width to 200 for pattern generation
         img, path, benchmark_cover = vis.generate_controllable_pattern_image(**vars(_args))
         img = cv2.resize(img, (args.grid_width, args.grid_width), interpolation=cv2.INTER_NEAREST)
