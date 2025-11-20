@@ -157,6 +157,13 @@ public:
 		grid.kill_tree_domain(tree, false);
 		population.remove(tree);
 	}
+	bool sufficient_LAI(int population_size, shared_ptr<float[]> image, float integral_image_cover) {
+		if (population_size % 100 == 0) {
+			float mean_LAI_of_allowed_domain = grid.get_mean_LAI_of_allowed_domain(image, integral_image_cover);
+			if (mean_LAI_of_allowed_domain > 6.0f) return true;
+		}
+		return false;
+	}
 	void set_cover_from_image(shared_ptr<float[]> image, int img_width, int img_height, float target_cover = -1) {
 		float pixel_size = grid.width_r / (float)img_width;
 		int no_gridcells_along_x_per_pixel = round(grid.width_r / img_width);
@@ -181,7 +188,7 @@ public:
 		// Set tree cover
 		int no_overshoot_correction_runs = 0;
 		int max_no_overshoot_correction_runs = 10;
-		while (grid.get_tree_cover() < target_cover) {
+		while (grid.get_tree_cover() < target_cover || !sufficient_LAI(population.size(), image, integral_image_cover)) {
 			int idx = probmodel.sample();
 			if (image[idx] < 0.01f) continue; // Skip empty cells (these correspond to black pixels in the image)
 			Cell &cell = grid.distribution[idx];
@@ -194,12 +201,15 @@ public:
 			}
 			grid.populate_tree_domain(tree, true);
 			if (!grid.complies_with_aggr_LAI_domain(tree, image)) {
-				printf("Tree with id %i at position (%f, %f) removed due to LAI domain violation.\n", tree->id, tree->position.first, tree->position.second);
 				// Remove tree if its addition causes the grid to violate the aggregated LAI domain defined by the image.
 				grid.kill_tree_domain(tree, false);
 				population.remove(tree->id);
 			}
 			grid.update_grass_LAIs_for_individual_tree(tree);
+			if (population.size() % 10000 == 0) {
+				float mean_LAI_of_allowed_domain = grid.get_mean_LAI_of_allowed_domain(image, integral_image_cover);
+				printf("mean LAI of allowed domain: %f\n", mean_LAI_of_allowed_domain);
+			}
 
 			if (no_overshoot_correction_runs < max_no_overshoot_correction_runs && (population.size() % 10000 == 0 || grid.get_tree_cover() > 0.9999 * target_cover)) {
 				no_overshoot_correction_runs++;

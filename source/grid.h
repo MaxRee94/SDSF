@@ -505,6 +505,14 @@ public:
 		cap(center);
 		return pos_2_idx(center);
 	}
+	float get_mean_LAI_of_allowed_domain(shared_ptr<float[]> allowed_domain, float allowed_domain_integral) {
+		float mean_LAI_of_allowed_domain = 0;
+		for (int i = 0; i < no_cells; i++) {
+			if (allowed_domain[i] < 1.0f) continue;
+			mean_LAI_of_allowed_domain += aggr_tree_LAI_distribution[i];
+		}
+		return mean_LAI_of_allowed_domain / allowed_domain_integral;
+	}
 	bool complies_with_aggr_LAI_domain(Tree* tree, shared_ptr<float[]> allowed_domain) {
 		TreeDomainIterator it(cell_width, tree, tree->radius + LAI_aggregation_radius);
 		while (it.next()) {
