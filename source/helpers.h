@@ -98,6 +98,8 @@ namespace help {
 
 	void sort(std::map<int, double>& _map, PairSet& _set);
 
+	void save_image(string name, shared_ptr<float[]> image);
+
 	void sort(std::map<int, int>& _map, PairIntSet& _set);
 
 	int get_key(std::map<int, int>* _map, int value);

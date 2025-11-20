@@ -303,6 +303,12 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def_readwrite("timestep", &Dynamics::timestep)
         .def_readwrite("seeds_produced", &Dynamics::seeds_produced)
         .def_readwrite("max_dbh", &Dynamics::max_dbh)
+        .def("disperse_within_forest", [](Dynamics& dynamics, py::array_t<float>& img) {
+            shared_ptr<float[]> mask;
+            int width, height;
+            convert_from_numpy_array(img, mask, width, height);
+            dynamics.disperse_within_forest(mask);
+        })
         .def("init_state", &Dynamics::init_state)
         .def("get_fires", [](Dynamics& dynamics) {
             py::array_t<float> np_arr = as_1d_numpy_array(dynamics.fires);

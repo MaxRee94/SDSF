@@ -26,6 +26,53 @@ void help::init_RNG(int seed) {
     int z = x * 3;
 }
 
+void help::save_image(string name, shared_ptr<float[]> image) {
+    using ::std::string;
+    using ::std::ios;
+    using ::std::ofstream;
+    typedef unsigned char pixval_t;
+    auto float_to_pixval = [](float img_val) -> pixval_t {
+        int tmpval = static_cast<int>(::std::floor(256 * img_val));
+        if (tmpval < 0) {
+            return 0u;
+        }
+        else if (tmpval > 255) {
+            return 255u;
+        }
+        else {
+            return tmpval & 0xffu;
+        }
+    };
+    auto as_pgm = [](const string& name) -> string {
+        if (!((name.length() >= 4)
+            && (name.substr(name.length() - 4, 4) == ".pgm")))
+        {
+            return name + ".pgm";
+        }
+        else {
+            return name;
+        }
+    };
+
+    ofstream out(as_pgm(name), ios::binary | ios::out | ios::trunc);
+
+    out << "P5\n512 512\n255\n";
+    for (int x = 0; x < 512; ++x) {
+        for (int y = 0; y < 512; ++y) {
+            pixval_t pixval;
+            if (y > 239 || x > 239) {
+                pixval = float_to_pixval(0.0f);
+            }
+            else {
+                pixval = float_to_pixval(image[y * 240 + x]);
+            }
+            const char outpv = static_cast<const char>(pixval);
+            out.write(&outpv, 1);
+        }
+    }
+}
+
+
 float help::get_rand_float(float min, float max) {
     return min + (float)rand() * INV_RAND_MAX * (max - min);
 }

@@ -24,7 +24,6 @@ public:
 		resource_grid_width(_resource_grid_width), mutation_rate(_mutation_rate), STR(_STR), _enforce_no_recruits(__enforce_no_recruits), 
 		animal_group_size(_animal_group_size), display_fire_effects(_display_fire_effects)
 	{
-		time = 0;
 		help::init_RNG(random_seed);
 		random_generator = default_random_engine(firefreq_random_seed);
 	};
@@ -177,6 +176,51 @@ public:
 			}
 		}
 		return true;
+	}
+	void disperse_uniformly(Tree& tree, Crop* crop, shared_ptr<float[]> mask, int& no_seeds_dispersed) {
+		Disperser disperser = Disperser();
+		for (int i = 0; i < crop->no_seeds; i++) {
+			// Get random location within forest mask
+			pair<float, float> deposition_location;
+			deposition_location.first = help::get_rand_float(0, grid->width_r);
+			deposition_location.second = help::get_rand_float(0, grid->width_r);
+			int grid_idx = grid->pos_2_idx(deposition_location);
+
+			if (mask[grid_idx] < 1.0f) continue;
+
+			// Germinate seed at location
+			int dummy1 = 0; int dummy2 = 0; int dummy3 = 0; int dummy4 = 0; int dummy5 = 0;
+			disperser.germinate_seed(
+				crop, &state, deposition_location, dummy1, dummy2, dummy3,
+				no_seeds_dispersed, dummy4, dummy5
+			);
+		}
+	}
+	void disperse_within_forest(shared_ptr<float[]> mask) {
+		int pre_dispersal_popsize = pop->size();
+		Timer timer; timer.start();
+
+		printf("Visualizing image\n");
+		help::save_image("C:/Users/Max/Desktop/tmp/forest_mask.pgm", mask);
+
+		int no_seeds_dispersed = 0;
+		for (auto& [id, tree] : pop->members) {
+			// Get crop and kernel
+			if (tree.life_phase < 2) continue;
+			if (id == -1 || tree.id == -1) {
+				pop->remove(id);
+				continue;
+			}
+			Crop* crop = pop->get_crop(id);
+			if (crop->id == -1) {
+				pop->remove(id);
+				continue;
+			}
+			crop->update(tree, STR);
+
+			disperse_uniformly(tree, crop, mask, no_seeds_dispersed);
+		}
+		recruit();
 	}
 	void disperse_wind_seeds_and_init_fruits(int& no_seed_bearing_trees, int& no_wind_seedlings, int& wind_seeds_dispersed, int& animal_seeds_dispersed, int& wind_trees) {
 		int pre_dispersal_popsize = pop->size();
@@ -499,7 +543,7 @@ public:
 	int no_animal_seedlings = 0;
 	int no_recruits = 0;
 	int timestep = 0;
-	int time = 0;
+	int time = -30;
 	int pop_size = 0;
 	int verbosity = 0;
 	int seeds_produced = 0;

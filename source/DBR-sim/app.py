@@ -64,7 +64,7 @@ def set_dispersal_kernel(
     return dynamics, animal_species
 
 
-def set_initial_tree_cover(dynamics, args):
+def set_initial_tree_cover(dynamics, args, color_dicts):
     print("Initial pattern image:", args.initial_pattern_image)
     if args.initial_pattern_image == "none":
         dynamics.state.set_tree_cover(args.treecover)
@@ -117,6 +117,12 @@ def set_initial_tree_cover(dynamics, args):
         dynamics.state.set_cover_from_image(img / 255, args.override_image_treecover)
     dynamics.state.repopulate_grid(0)
 
+    if args.initial_pattern_image != "none":        
+        cv2.imshow("forest mask", img)
+        cv2.waitKey(1)
+        # If we're using an image to set tree cover, we need to do a burn-in run to stabilize forest density.
+        dynamics, args = do_burn_in(dynamics, args, img, color_dicts)
+
     return dynamics, args
 
 
@@ -148,14 +154,6 @@ def init(args):
     # Set dispersal kernel
     dynamics, animal_species = set_dispersal_kernel(dynamics, args.dispersal_mode, args.multi_disperser_params)
     
-    # Set initial tree cover
-    print("Setting initial tree cover...") if args.verbosity > 0 else None
-    dynamics, args = set_initial_tree_cover(dynamics, args)
-
-    # Set input maps
-    print("Setting heterogeneity maps...") if args.verbosity > 0 else None
-    dynamics, args = io.set_heterogeneity_maps(dynamics, args)
-    
     # Create color dictionaries for visualizations
     no_colors = 100
     if args.display_fire_effects == 1:
@@ -172,6 +170,15 @@ def init(args):
     color_dicts["fire_freq"] = color_dict_fire_freq
     color_dicts["blackwhite"] = color_dict_blackwhite
     color_dicts["colored_patches"] = color_dict_colored_patches
+    
+    # Set initial tree cover
+    print("Setting initial tree cover...") if args.verbosity > 0 else None
+    dynamics, args = set_initial_tree_cover(dynamics, args, color_dicts)
+
+    # Set input maps
+    print("Setting heterogeneity maps...") if args.verbosity > 0 else None
+    dynamics, args = io.set_heterogeneity_maps(dynamics, args)
+    
     
     # Visualize the initial state
     collect_states = True
@@ -330,6 +337,29 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         fuel_penetration_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel_penetration")
         imagepath_fuel_penetration = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel_penetration/" + str(dynamics.time) + ".png")
         vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
+
+
+def do_burn_in(dynamics, args, forest_mask, color_dicts):
+    """Perform burn-in procedure to stabilize initial forest density and demography."""
+    
+    burn_in_timesteps = abs(dynamics.time)
+    print(f"Beginning burn-in for {burn_in_timesteps} timesteps...")
+    while dynamics.time < 0:
+        print(f"Timestep: {dynamics.time})")
+        dynamics.disperse_within_forest(forest_mask)
+        dynamics.grow()
+        dynamics.induce_background_mortality()
+        dynamics.state.repopulate_grid(0)
+        dynamics.report_state()
+        
+        # Get a color image representation of the initial state and show it.
+        img = vis.visualize(
+            dynamics.state.grid, args.image_width, collect_states=1,
+            color_dict=color_dicts["normal"]
+        )
+        dynamics.time += 1
+
+    return dynamics, args
 
 
 def do_iteration(dynamics, args):
