@@ -160,7 +160,7 @@ public:
 	bool sufficient_LAI(int population_size, shared_ptr<float[]> image, float integral_image_cover) {
 		if (population_size % 100 == 0) {
 			float mean_LAI_of_allowed_domain = grid.get_mean_LAI_of_allowed_domain(image, integral_image_cover);
-			if (mean_LAI_of_allowed_domain > 6.0f) return true;
+			if (mean_LAI_of_allowed_domain > 7.0f) return true;
 		}
 		return false;
 	}
