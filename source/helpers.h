@@ -364,7 +364,6 @@ namespace help {
 			probabilities = std::make_shared<double[]>(_size);
 			cdf = std::make_shared<double[]>(_size);
 			id = rand();
-			printf("Initializing %i through non-default constructor\n", id);
 		};
 		/*~DiscreteProbabilityModel() {
 			free();

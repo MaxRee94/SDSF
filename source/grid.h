@@ -505,6 +505,19 @@ public:
 		cap(center);
 		return pos_2_idx(center);
 	}
+	bool complies_with_aggr_LAI_domain(Tree* tree, shared_ptr<float[]> allowed_domain) {
+		TreeDomainIterator it(cell_width, tree, tree->radius + LAI_aggregation_radius);
+		while (it.next()) {
+			cap(it.gb_cell_position);
+			int idx = pos_2_idx(it.gb_cell_position);
+
+			// If the aggregated LAI in this cell implies forest, check if the allowed domain permits forest here.
+			if ((aggr_tree_LAI_distribution[idx] > 1.0f) && (allowed_domain[idx] < 1.0f)) {
+				return false;
+			}
+		}
+		return true;
+	}
 	bool populate_tree_domain(Tree* tree, bool update_tree_LAI_neighborhood=false) {
 		TreeDomainIterator it(cell_width, tree);
 		while (it.next()) {

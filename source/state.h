@@ -193,6 +193,12 @@ public:
 				continue;
 			}
 			grid.populate_tree_domain(tree, true);
+			if (!grid.complies_with_aggr_LAI_domain(tree, image)) {
+				printf("Tree with id %i at position (%f, %f) removed due to LAI domain violation.\n", tree->id, tree->position.first, tree->position.second);
+				// Remove tree if its addition causes the grid to violate the aggregated LAI domain defined by the image.
+				grid.kill_tree_domain(tree, false);
+				population.remove(tree->id);
+			}
 			grid.update_grass_LAIs_for_individual_tree(tree);
 
 			if (no_overshoot_correction_runs < max_no_overshoot_correction_runs && (population.size() % 10000 == 0 || grid.get_tree_cover() > 0.9999 * target_cover)) {
