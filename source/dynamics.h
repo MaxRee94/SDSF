@@ -200,9 +200,6 @@ public:
 		int pre_dispersal_popsize = pop->size();
 		Timer timer; timer.start();
 
-		printf("Visualizing image\n");
-		help::save_image("C:/Users/Max/Desktop/tmp/forest_mask.pgm", mask);
-
 		int no_seeds_dispersed = 0;
 		for (auto& [id, tree] : pop->members) {
 			// Get crop and kernel

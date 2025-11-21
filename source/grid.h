@@ -403,7 +403,8 @@ public:
 		}
 	}
 	int pos_2_idx(pair<float, float> pos) {
-		return width * (pos.second / cell_width) + (pos.first / cell_width);
+		return width * round(pos.second / cell_width) + round(pos.first / cell_width);
+		//return width * (int)(pos.second / cell_width) + (int)(pos.first / cell_width);
 	}
 	int pos_2_idx(pair<int, int> pos) {
 		return width * pos.second + pos.first;

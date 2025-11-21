@@ -70,10 +70,15 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
         dynamics.state.set_tree_cover(args.treecover)
     elif args.initial_pattern_image == "ctrl":
         _args = copy.copy(args)
-        _args.grid_width = 200 # Temporarily set grid width to 200 for pattern generation
+        #_args.grid_width = 200 # Temporarily set grid width to 200 for pattern generation
         img, path, benchmark_cover = vis.generate_controllable_pattern_image(**vars(_args))
         img = cv2.resize(img, (args.grid_width, args.grid_width), interpolation=cv2.INTER_NEAREST)
         img = img / 255
+
+        cv2.imshow("forest mask", img)
+        cv2.waitKey(1)
+
+
         # If the user has set the override_image_treecover to 2, we will use the benchmark cover value from the controllable pattern image.
         # The benchmark cover is the cover for a version of the pattern produced using the given parameters, but with a sine amplitude set to 0 (i.e., with circular disks).
         if args.override_image_treecover == 2:
