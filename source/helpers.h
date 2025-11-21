@@ -129,6 +129,8 @@ namespace help {
 
 	bool is_in(std::map<int, int>& map, int item);
 
+	bool is_in(std::map<int, float>& map, int item);
+
 	bool is_in(std::string basestring, std::string target);
 
 	template <typename T>

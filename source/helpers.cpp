@@ -104,6 +104,10 @@ bool help::is_in(std::map<int, int>& map, int item) {
 	return map.find(item) != map.end();
 }
 
+bool help::is_in(std::map<int, float>& map, int item) {
+    return map.find(item) != map.end();
+}
+
 template <typename T>
 vector<int> help::get_keys(map<int, T>& map) {
     vector<int> keys = {};

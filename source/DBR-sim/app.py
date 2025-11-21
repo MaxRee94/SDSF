@@ -355,6 +355,7 @@ def do_burn_in(dynamics, args, forest_mask, color_dicts):
         dynamics.grow()
         dynamics.induce_background_mortality()
         dynamics.state.repopulate_grid(0)
+        dynamics.prune(forest_mask)
         dynamics.report_state()
         
         # Get a color image representation of the initial state and show it.

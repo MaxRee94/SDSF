@@ -219,6 +219,76 @@ public:
 		}
 		recruit();
 	}
+	void add_LAI_contributions_FROM_cell(map<int, float>& contributions, Cell* cell) {
+		// Add the LAI contributions from all trees in the given cell to the provided map.
+		// The LAI of trees that already contribute from other cells will be summed.
+		for (int tree_id : cell->trees) {
+			Tree* tree = pop->get(tree_id);
+			if (help::is_in(contributions, tree_id)) contributions[tree_id] += tree->LAI;
+			else contributions[tree_id] = tree->LAI;
+		}
+	}
+	map<int, float> get_LAI_contributions_TO_cell(Cell* cell) {
+		map<int, float> LAI_contributions_to_cell;
+
+		// Use a circular neighborhood with specified radius.
+		float radius = grid->LAI_aggregation_radius;
+		int no_cells_in_radius = 0;
+		int min_x = (int)(cell->pos.first - radius);
+		int max_x = (int)(cell->pos.first + radius);
+		int min_y = (int)(cell->pos.second - radius);
+		int max_y = (int)(cell->pos.second + radius);
+		pair<float, float> cell_real_pos = grid->get_real_cell_position(cell);
+		for (int x = min_x; x <= max_x; x++) {
+			for (int y = min_y; y <= max_y; y++) {
+				pair<int, int> neighbor_pos = pair<int, int>(x, y);
+				grid->cap(neighbor_pos);
+				pair<float, float> neighbor_real_pos = grid->get_real_cell_position(grid->get_cell_at_position(neighbor_pos));
+				float dist = help::get_dist(pair<float, float>(cell->pos.first, cell->pos.second), neighbor_pos);
+				if (dist <= radius) {
+					Cell* neighbor = grid->get_cell_at_position(pair<int, int>(x, y));
+					add_LAI_contributions_FROM_cell(LAI_contributions_to_cell, neighbor);
+					no_cells_in_radius++;
+				}
+			}
+		}
+		if (no_cells_in_radius == 0) {
+			add_LAI_contributions_FROM_cell(LAI_contributions_to_cell, cell);
+			return LAI_contributions_to_cell;
+		}
+		else {
+			// Compute averaged contributions and add to map + return it.
+			for (auto& [tree_id, LAI_contribution] : LAI_contributions_to_cell) {
+				LAI_contributions_to_cell[tree_id] = LAI_contribution / (float)no_cells_in_radius;
+			}
+
+			float total_LAI = 0;
+			for (auto& [_, LAI_contribution] : LAI_contributions_to_cell) {
+				total_LAI += LAI_contribution;
+			}
+			assert(help::approx(total_LAI, grid->aggr_tree_LAI_distribution[cell->idx], 0.1f));
+		}
+		return LAI_contributions_to_cell;
+	}
+	void record_LAI_contributions(shared_ptr<map<int, float>[]>& LAI_contributions) {
+		for (int i = 0; i < grid->no_cells; i++) {
+			Cell* cell = &grid->distribution[i];
+			map<int, float> LAI_contributions_to_cell = get_LAI_contributions_TO_cell(cell);
+			//LAI_contributions[cell->idx] = LAI_contributions_to_cell;
+		}
+	}
+	void prune(shared_ptr<float[]> mask) {
+		shared_ptr<map<int, float>[]> LAI_contributions = make_shared<map<int, float>[]>(grid->no_cells);
+		record_LAI_contributions(LAI_contributions);
+		for (int i = 0; i < grid->no_cells; i++) {
+			Cell* cell = &grid->distribution[i];
+			if (grid->is_forest(cell) && mask[i] < 1.0f) {
+				// Cell is forest but should be savanna according to mask. Remove trees to correct this.
+				float LAI_excess = grid->aggr_tree_LAI_distribution[cell->idx] - 1.0f;
+				//vector<int> trees_to_remove = 
+			}
+		}
+	}
 	void disperse_wind_seeds_and_init_fruits(int& no_seed_bearing_trees, int& no_wind_seedlings, int& wind_seeds_dispersed, int& animal_seeds_dispersed, int& wind_trees) {
 		int pre_dispersal_popsize = pop->size();
 		Timer timer; timer.start();

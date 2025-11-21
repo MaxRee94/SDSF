@@ -62,7 +62,7 @@ public:
 			i++;
 		}
 		grid.update_grass_LAIs();
-		grid.update_aggregated_tree_LAIs();
+		grid.update_aggr_LAIs();
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
 	float compute_shade_on_individual_tree(Tree* tree) {
@@ -203,6 +203,7 @@ public:
 			if (!grid.complies_with_aggr_LAI_domain(tree, image)) {
 				// Remove tree if its addition causes the grid to violate the aggregated LAI domain defined by the image.
 				grid.kill_tree_domain(tree, false);
+				grid.update_aggr_LAIs(tree);
 				population.remove(tree->id);
 			}
 			grid.update_grass_LAIs_for_individual_tree(tree);
