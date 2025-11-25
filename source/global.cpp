@@ -332,8 +332,8 @@ PYBIND11_MODULE(dbr_cpp, module) {
 			return no_recruits;
 		})
         .def("get_basal_area", [](Dynamics& dynamics) {
-            float no_recruits = dynamics.get_basal_area();
-            return no_recruits;
+            float basal_area = dynamics.get_basal_area();
+            return basal_area;
         })
         .def("free", &Dynamics::free)
         .def("set_global_linear_kernel", &Dynamics::set_global_linear_kernel)

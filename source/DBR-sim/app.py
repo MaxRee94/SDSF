@@ -349,6 +349,7 @@ def do_burn_in(dynamics, args, forest_mask, color_dicts):
     
     burn_in_timesteps = abs(dynamics.time)
     print(f"Beginning burn-in for {burn_in_timesteps} timesteps...")
+    init_csv = True
     while dynamics.time < 0:
         print(f"Timestep: {dynamics.time})")
         dynamics.disperse_within_forest(forest_mask)
@@ -357,6 +358,8 @@ def do_burn_in(dynamics, args, forest_mask, color_dicts):
         dynamics.state.repopulate_grid(0)
         dynamics.prune(forest_mask)
         dynamics.report_state()
+        args.csv_path = io.export_state(dynamics, path=args.csv_path, init_csv=init_csv, args=args)
+        init_csv = False
         
         # Get a color image representation of the initial state and show it.
         img = vis.visualize(
@@ -436,7 +439,7 @@ def updateloop(dynamics, color_dicts, args):
     start = time.time()
     csv_path = args.csv_path
     visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI", "aggr_tree_LAI", "colored_patches", "fuel_penetration"]
-    init_csv = True
+    init_csv = False
     prev_tree_cover = [args.treecover] * 60
     slope = 0
     largest_absolute_slope = 0
@@ -491,7 +494,6 @@ def updateloop(dynamics, color_dicts, args):
             tree_cover_slope=slope,
             args=SimpleNamespace(**vars(args))
         )
-        init_csv = False
 
         print("-- Saving tree positions...") if verbose else None
         # io.save_state(dynamics)

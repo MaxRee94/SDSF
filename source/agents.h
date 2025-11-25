@@ -210,11 +210,18 @@ public:
 		id = _id;
 		derive_allometries(seed_bearing_threshold);
 		growth_multiplier = _growth_multiplier;
-		//printf("Tree created with id: %i, radius: %f, radius_tmin1: %f, stem dbh: %f, bark thickness: %f, LAI: %f \n", id, radius, radius_tmin1, dbh, bark_thickness, LAI);
+		draw_life_expectancy();
 	};
 	bool operator==(const Tree& tree) const
 	{
 		return id == tree.id;
+	}
+	void draw_life_expectancy(bool force_redraw = false) {
+		help::NormalProbModel life_expectancy_probmodel = help::NormalProbModel(186, 138);
+		if (force_redraw) life_expectancy = -1;
+		while (life_expectancy < 0) {
+			life_expectancy = life_expectancy_probmodel.get_normal_distr_sample();
+		}
 	}
 	void resprout(float seed_bearing_threshold) {
 		life_phase = 1;
@@ -259,7 +266,7 @@ public:
 		if (LAI_shade > 5.0f) return 0.0f; // If the LAI of shading leaf cover is larger than 5, the tree is too shaded to grow.
 
 		float stem_increment = 0.3f * (1.0f - exp(-0.118 * dbh * 10.0f));	// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
-																	// Current stem dbh and increment in cm.
+																			// Current stem dbh and increment in cm.
 
 		stem_increment *= (5.0f - LAI_shade) / 5.0f;	// LAI-dependent growth reduction to introduce density dependence. Multiplication factor: ((LAI_max - LAI) / LAI_max) 
 														// From Hoffman et al (2012), Appendix 2.
@@ -296,6 +303,11 @@ public:
 		float ln_dbh = log(dbh);
 		return exp(0.865 + 0.760 * ln_dbh - 0.0340 * (ln_dbh * ln_dbh)); // From Chave et al (2014), equation 6a. Value of E obtained by calculating mean of E
 																		 // values for bistable study sites.
+	}
+	void derive_dbh_from_age_assuming_onobstructed_growth() {
+		// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
+		// Current stem dbh and increment in cm.
+		dbh = max(0, 2.5f + ((float)age - 4.0f) * 0.2); // We assume a constant growth rate of 2.0 mm for saplings older than 5 years.
 	}
 	float get_lowest_branch_height() {
 		return height * 0.4f; // We assume the tree's crown begins at 40% its height.
@@ -343,6 +355,7 @@ public:
 	float lowest_branch = 0;
 	float crown_area = 0;
 	float growth_multiplier = 1;
+	int life_expectancy = -1;
 	pair<float, float> position = pair(0, 0);
 	int id = -1;
 	int age = -1;
@@ -399,7 +412,6 @@ public:
 	) : max_dbh(_max_dbh), cellsize(_cellsize), seed_bearing_threshold(_seed_bearing_threshold)
 	{
 		strategy_generator = StrategyGenerator(strategy_parameters);
-		dbh_probability_model = help::LinearProbabilityModel(dbh_q1, dbh_q2, 0, max_dbh);
 		mutation_rate = _mutation_rate;
 		init_growth_curves();
 		growth_multiplier_distribution = ProbModel(1, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max, -1);
@@ -410,21 +422,40 @@ public:
 		};
 	}
 	Tree* add(pair<float, float> position, Strategy* _strategy = 0, float dbh = -2) {
+		// Add a new tree. If no dbh or strategy is provided, these will be randomly generated.
+
 		// Create tree
+		float growth_multiplier = help::get_rand_float(growth_multiplier_distribution.min_value, growth_multiplier_distribution.max_value);
+		Tree tree(no_created_trees + 1, position, -2, seed_bearing_threshold, resprout_growthcurve, growth_multiplier);
+		no_created_trees++;
+
+		// Set the tree's dbh
 		if (dbh == -1) dbh = max_dbh;
 		else if (dbh == -2) {
 			if (_strategy == nullptr) {
-				while (dbh <= 0)
-					dbh = dbh_probability_model.linear_sample();
+				if (tree.dbh <= 0) {
+					tree.age = tree.life_expectancy; // Start by assuming the tree is at the end of its life expectancy.
+
+					// Ensure tree's life expectancy is not lower than its current age
+					int i = 0;
+					while (tree.life_expectancy <= tree.age && i < 10) {
+						tree.draw_life_expectancy(true);
+						i++;
+					}
+					if (tree.life_expectancy <= tree.age) tree.age = tree.life_expectancy - help::get_rand_int(0, 10);
+					
+					// Derive dbh from age (age was randomly generated in Tree constructor)
+					tree.derive_dbh_from_age_assuming_onobstructed_growth();
+					tree.derive_allometries(seed_bearing_threshold);
+				}
 			}
 			else {
 				dbh = _strategy->seedling_dbh; // Growth rate determines initial dbh.
 			}
 		}
-		float growth_multiplier = help::get_rand_float(growth_multiplier_distribution.min_value, growth_multiplier_distribution.max_value);
-		Tree tree(no_created_trees + 1, position, dbh, seed_bearing_threshold, resprout_growthcurve, growth_multiplier);
+
+		// Add new member to population
 		members[tree.id] = tree;
-		no_created_trees++;
 
 		// Create strategy
 		Strategy strategy;
@@ -521,7 +552,6 @@ public:
 	unordered_map<int, Crop> crops;
 	unordered_map<string, Kernel> kernels;
 	unordered_map<int, Kernel> kernels_individual;
-	help::LinearProbabilityModel dbh_probability_model;
 	StrategyGenerator strategy_generator;
 	float max_dbh = 0;
 	float cellsize = 0;

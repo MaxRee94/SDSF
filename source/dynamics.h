@@ -432,7 +432,7 @@ public:
 	void induce_background_mortality() {
 		vector<int> tree_deletion_schedule = {};
 		for (auto& [id, tree] : pop->members) {
-			if (help::get_rand_float(0, 1) < background_mortality) {
+			if (tree.life_expectancy <= tree.age) {
 				tree_deletion_schedule.push_back(id);
 			}
 		}
