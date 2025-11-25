@@ -597,6 +597,15 @@ public:
 			return fire_free_interval_averages;
 		}
 	}
+	float get_basal_area() {
+		float basal_area = 0;
+		for (auto& [id, tree] : pop->members) {
+			basal_area += M_PI * tree.dbh * tree.dbh; // Add the cross-secitonal area of this tree's stem.
+		}
+		basal_area /= grid->get_tree_cover();
+		basal_area /= grid->area;
+		return basal_area;
+	}
 	float unsuppressed_flammability = 0;
 	shared_ptr<float[]> fire_free_interval_averages;
 	float min_suppressed_flammability = 0;
@@ -630,7 +639,7 @@ public:
 	int no_animal_seedlings = 0;
 	int no_recruits = 0;
 	int timestep = 0;
-	int time = -30;
+	int time = -1000;
 	int pop_size = 0;
 	int verbosity = 0;
 	int seeds_produced = 0;

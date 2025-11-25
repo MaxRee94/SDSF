@@ -85,7 +85,8 @@ def export_state(
         "trees[dbh_0-20%]", "trees[dbh_20-40%]", "trees[dbh_40-60%]", "trees[dbh_60-80%]", "trees[dbh_80-100%]", "extra_parameters",
         "firefree_interval_mean", "firefree_interval_stdev", "firefree_interval_full_sim_mean", "firefree_interval_full_sim_stdev", "time_spent_moving",
         "shaded_out", "outcompeted_by_seedlings", "outcompeted_by_oldstems", "initial_no_dispersals",
-        "recruits", "germination_attempts", "oldstem_competition_and_shading", "seedling_competition_and_shading", "perimeter_length", "perimeter-area_ratio"
+        "recruits", "germination_attempts", "oldstem_competition_and_shading", "seedling_competition_and_shading", "perimeter_length", "perimeter-area_ratio",
+        "basal_area"
     ]
     if dependent_var:
         fieldnames.insert(0, dependent_var)
@@ -149,7 +150,8 @@ def export_state(
             "oldstem_competition_and_shading": str(dynamics.get_fraction_cases_oldstem_competition_and_shading()),
             "seedling_competition_and_shading": str(dynamics.get_fraction_cases_seedling_competition_and_shading()),
             "perimeter-area_ratio": str(dynamics.get_perimeter_area_ratio()),
-            "perimeter_length": str(dynamics.get_forest_perimeter_length())
+            "perimeter_length": str(dynamics.get_forest_perimeter_length()),
+            "basal_area": str(dynamics.get_basal_area())
         }
         if not args.rotate_randomly:
             result["global_rotation_offset"] = str(args.global_rotation_offset)
