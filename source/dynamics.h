@@ -244,7 +244,7 @@ public:
 				pair<int, int> neighbor_pos = pair<int, int>(x, y);
 				grid->cap(neighbor_pos);
 				pair<float, float> neighbor_real_pos = grid->get_real_cell_position(grid->get_cell_at_position(neighbor_pos));
-				float dist = help::get_dist(pair<float, float>(cell->pos.first, cell->pos.second), neighbor_pos);
+				float dist = help::get_dist(cell_real_pos, neighbor_pos);
 				if (dist <= radius) {
 					Cell* neighbor = grid->get_cell_at_position(pair<int, int>(x, y));
 					add_LAI_contributions_FROM_cell(LAI_contributions_to_cell, neighbor);
@@ -262,6 +262,7 @@ public:
 				LAI_contributions_to_cell[tree_id] = LAI_contribution / (float)no_cells_in_radius;
 			}
 
+			// Compute total LAI and verify it matches the LAI stored in aggr_tree_LAI_distribution.
 			float total_LAI = 0;
 			for (auto& [_, LAI_contribution] : LAI_contributions_to_cell) {
 				total_LAI += LAI_contribution;
@@ -274,18 +275,37 @@ public:
 		for (int i = 0; i < grid->no_cells; i++) {
 			Cell* cell = &grid->distribution[i];
 			map<int, float> LAI_contributions_to_cell = get_LAI_contributions_TO_cell(cell);
-			//LAI_contributions[cell->idx] = LAI_contributions_to_cell;
+			LAI_contributions[cell->idx] = LAI_contributions_to_cell;
 		}
+	}
+	vector<int> get_trees_to_prune(float LAI_excess, map<int, float>& LAI_contributions) {
+		// Get list of trees to prune in order to reduce LAI by LAI_excess.
+		float LAI_diff = 0;
+		vector<int> trees_to_remove = {};
+		while (LAI_diff < LAI_excess) {
+			int key = help::get_random_key(LAI_contributions);
+			if (help::is_in(&trees_to_remove, key)) continue; // Tree already selected for removal.
+			LAI_diff += LAI_contributions[key];
+			if (LAI_excess > 0) trees_to_remove.push_back(key);
+		}
+		return trees_to_remove;
 	}
 	void prune(shared_ptr<float[]> mask) {
 		shared_ptr<map<int, float>[]> LAI_contributions = make_shared<map<int, float>[]>(grid->no_cells);
 		record_LAI_contributions(LAI_contributions);
+
 		for (int i = 0; i < grid->no_cells; i++) {
 			Cell* cell = &grid->distribution[i];
 			if (grid->is_forest(cell) && mask[i] < 1.0f) {
 				// Cell is forest but should be savanna according to mask. Remove trees to correct this.
 				float LAI_excess = grid->aggr_tree_LAI_distribution[cell->idx] - 1.0f;
-				//vector<int> trees_to_remove = 
+				vector<int> trees_to_remove = get_trees_to_prune(LAI_excess, LAI_contributions[cell->idx]);
+				for (int tree_id : trees_to_remove) {
+					Tree* tree = pop->get(tree_id);
+					grid->kill_tree_domain(tree, false);
+					grid->update_aggr_LAIs(tree);
+					pop->remove(tree_id);
+				}
 			}
 		}
 	}
