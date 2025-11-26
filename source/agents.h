@@ -446,13 +446,14 @@ public:
 					
 					// Derive dbh from age (age was randomly generated in Tree constructor)
 					tree.derive_dbh_from_age_assuming_onobstructed_growth();
-					tree.derive_allometries(seed_bearing_threshold);
 				}
 			}
 			else {
 				dbh = _strategy->seedling_dbh; // Growth rate determines initial dbh.
+				tree.dbh = dbh;
 			}
 		}
+		tree.derive_allometries(seed_bearing_threshold);
 
 		// Add new member to population
 		members[tree.id] = tree;
