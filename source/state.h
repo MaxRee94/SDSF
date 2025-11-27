@@ -308,6 +308,13 @@ public:
 			i++;
 		}
 	}
+	void get_tree_ages(float* tree_ages) {
+		int i = 0;
+		for (auto& [id, tree] : population.members) {
+			tree_ages[i] = tree.age;
+			i++;
+		}
+	}
 	Grid grid;
 	Population population;
 	float initial_tree_cover = 0;

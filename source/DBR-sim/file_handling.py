@@ -15,10 +15,22 @@ import simple_noise_generator as sng
 
 
 
-def get_tree_sizes(dynamics):
+def get_tree_sizes(dynamics, bins="initialize"):
     _tree_sizes = dynamics.state.get_tree_sizes()
-    counts, bins = np.histogram(_tree_sizes, bins=5)
-    return counts
+    if bins is "initialize":
+        counts, bins = np.histogram(_tree_sizes, bins=5)
+    else:
+        counts, bins = np.histogram(_tree_sizes, bins=bins)
+    return counts, bins
+
+
+def get_tree_ages(dynamics, bins="initialize"):
+    _tree_ages = dynamics.state.get_tree_ages()
+    if bins is "initialize":
+        counts, bins = np.histogram(_tree_ages, bins=5)
+    else:
+        counts, bins = np.histogram(_tree_ages, bins=bins)
+    return counts, bins
 
 
 def get_firefree_interval_stats(dynamics, _type):
@@ -82,7 +94,7 @@ def export_state(
     ):
     fieldnames = [
         "time", "treecover", "slope", "population_size", "#seeds_produced", "fires", "top_kills", "nonseedling_top_kills", "deaths",
-        "trees[dbh_0-20%]", "trees[dbh_20-40%]", "trees[dbh_40-60%]", "trees[dbh_60-80%]", "trees[dbh_80-100%]", "extra_parameters",
+        "extra_parameters", "mean tree size", "stdev tree size",
         "firefree_interval_mean", "firefree_interval_stdev", "firefree_interval_full_sim_mean", "firefree_interval_full_sim_stdev", "time_spent_moving",
         "shaded_out", "outcompeted_by_seedlings", "outcompeted_by_oldstems", "initial_no_dispersals",
         "recruits", "germination_attempts", "oldstem_competition_and_shading", "seedling_competition_and_shading", "perimeter_length", "perimeter-area_ratio",
@@ -104,6 +116,26 @@ def export_state(
         fieldnames.insert(0, "dependent_result_range_stdev")
     if not args.rotate_randomly:
         fieldnames.insert(3, "global_rotation_offset")
+
+    # Collect tree ages and sizes
+    if init_csv:
+        tree_sizes, args.treesize_bins = get_tree_sizes(dynamics, "initialize")
+        tree_ages, args.tree_age_bins = get_tree_ages(dynamics, "initialize")
+    else:
+        tree_sizes, _ = get_tree_sizes(dynamics, args.treesize_bins)
+        tree_ages, _ = get_tree_ages(dynamics, args.tree_age_bins)
+
+    treesize_bins_strings = []
+    tree_age_bins_strings = []
+    for i in range(len(args.treesize_bins)-1):
+        (size_lowb, size_highb) = (args.treesize_bins[i], args.treesize_bins[i+1])
+        (age_lowb, age_highb) = (args.treesize_bins[i], args.treesize_bins[i+1])
+        treesize_bins_strings.append("trees[dbh {0} - {1}]".format(round(size_lowb), round(size_highb)))
+        tree_age_bins_strings.append("trees[age {0} - {1}]".format(round(age_lowb), round(age_highb)))
+        fieldnames.insert(5, treesize_bins_strings[i])
+        fieldnames.insert(6+i, tree_age_bins_strings[i])
+
+    # Initialize CSV file with headers if it doesn't exist
     if init_csv and not os.path.exists(path):
         if path == "":
             print("\n\nExport location:", cfg.EXPORT_DIR)
@@ -111,11 +143,9 @@ def export_state(
         with open(path, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
-        
 
     with open(path, 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        tree_sizes = get_tree_sizes(dynamics)
         firefree_interval_mean, firefree_interval_stdev = get_firefree_interval_stats(dynamics, "current_iteration")
         firefree_interval_fullsim_mean, firefree_interval_fullsim_stdev = get_firefree_interval_stats(dynamics, "average")
         fires = dynamics.get_fires()
@@ -127,18 +157,25 @@ def export_state(
             "population_size": str(dynamics.state.population.size()),
             "#seeds_produced": str(dynamics.seeds_produced),
             "fires": fires,
-            "trees[dbh_0-20%]": tree_sizes[0],
-            "trees[dbh_20-40%]": tree_sizes[1],
-            "trees[dbh_40-60%]": tree_sizes[2],
-            "trees[dbh_60-80%]": tree_sizes[3],
-            "trees[dbh_80-100%]": tree_sizes[4],
+            treesize_bins_strings[0]: str(tree_sizes[0]),
+            treesize_bins_strings[1]: str(tree_sizes[1]),
+            treesize_bins_strings[2]: str(tree_sizes[2]),
+            treesize_bins_strings[3]: str(tree_sizes[3]),
+            treesize_bins_strings[4]: str(tree_sizes[4]),
+            tree_age_bins_strings[0]: str(tree_ages[0]),
+            tree_age_bins_strings[1]: str(tree_ages[1]),
+            tree_age_bins_strings[2]: str(tree_ages[2]),
+            tree_age_bins_strings[3]: str(tree_ages[3]),
+            tree_age_bins_strings[4]: str(tree_ages[4]),
+            "mean tree size": str(np.mean(dynamics.state.get_tree_sizes())),
+            "stdev tree size": str(np.std(dynamics.state.get_tree_sizes())),
             "top_kills": str(dynamics.get_no_fire_induced_topkills()),
             "deaths": str(dynamics.get_no_fire_induced_deaths()),
-            "extra_parameters": extra_parameters,
-            "firefree_interval_mean": firefree_interval_mean,
-            "firefree_interval_stdev": firefree_interval_stdev,
-            "firefree_interval_full_sim_mean": firefree_interval_fullsim_mean,
-            "firefree_interval_full_sim_stdev": firefree_interval_fullsim_stdev,
+            "extra_parameters": str(extra_parameters),
+            "firefree_interval_mean": str(firefree_interval_mean),
+            "firefree_interval_stdev": str(firefree_interval_stdev),
+            "firefree_interval_full_sim_mean": str(firefree_interval_fullsim_mean),
+            "firefree_interval_full_sim_stdev": str(firefree_interval_fullsim_stdev),
             "recruits": str(dynamics.get_no_recruits("all")),
             "initial_no_dispersals": str(dynamics.get_initial_no_dispersals()),
             "time_spent_moving": str(dynamics.get_fraction_time_spent_moving()),
@@ -166,8 +203,9 @@ def export_state(
         if dependent_result_range_stdev:
             result["dependent_result_range_stdev"] = dependent_result_range_stdev
         writer.writerow(result)
-        
-    return path
+    
+    args.csv_path = path
+    return args
 
 
 def get_lookup_table(species, width, rcg_width):
