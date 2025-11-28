@@ -15,21 +15,21 @@ import simple_noise_generator as sng
 
 
 
-def get_tree_sizes(dynamics, bins="initialize"):
-    _tree_sizes = dynamics.state.get_tree_sizes()
-    if bins is "initialize":
+def get_tree_sizes(dynamics, bins="initialize", args=None):
+    if type(bins) == str and bins == "initialize":
+        _tree_sizes = [i for i in range(int(args.max_dbh))]
         counts, bins = np.histogram(_tree_sizes, bins=5)
-    else:
-        counts, bins = np.histogram(_tree_sizes, bins=bins)
+    _tree_sizes = dynamics.state.get_tree_sizes()
+    counts, bins = np.histogram(_tree_sizes, bins=bins)
     return counts, bins
 
 
 def get_tree_ages(dynamics, bins="initialize"):
-    _tree_ages = dynamics.state.get_tree_ages()
-    if bins is "initialize":
+    if type(bins) == str and bins == "initialize":
+        _tree_ages = [i for i in range(400)] # Harcoded max age of 400 years for now.
         counts, bins = np.histogram(_tree_ages, bins=5)
-    else:
-        counts, bins = np.histogram(_tree_ages, bins=bins)
+    _tree_ages = dynamics.state.get_tree_ages()
+    counts, bins = np.histogram(_tree_ages, bins=bins)
     return counts, bins
 
 
@@ -119,7 +119,7 @@ def export_state(
 
     # Collect tree ages and sizes
     if init_csv:
-        tree_sizes, args.treesize_bins = get_tree_sizes(dynamics, "initialize")
+        tree_sizes, args.treesize_bins = get_tree_sizes(dynamics, "initialize", args=args)
         tree_ages, args.tree_age_bins = get_tree_ages(dynamics, "initialize")
     else:
         tree_sizes, _ = get_tree_sizes(dynamics, args.treesize_bins)
@@ -129,7 +129,7 @@ def export_state(
     tree_age_bins_strings = []
     for i in range(len(args.treesize_bins)-1):
         (size_lowb, size_highb) = (args.treesize_bins[i], args.treesize_bins[i+1])
-        (age_lowb, age_highb) = (args.treesize_bins[i], args.treesize_bins[i+1])
+        (age_lowb, age_highb) = (args.tree_age_bins[i], args.tree_age_bins[i+1])
         treesize_bins_strings.append("trees[dbh {0} - {1}]".format(round(size_lowb), round(size_highb)))
         tree_age_bins_strings.append("trees[age {0} - {1}]".format(round(age_lowb), round(age_highb)))
         fieldnames.insert(5, treesize_bins_strings[i])
