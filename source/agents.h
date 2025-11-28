@@ -217,7 +217,7 @@ public:
 		return id == tree.id;
 	}
 	void draw_life_expectancy(bool force_redraw = false) {
-		help::NormalProbModel life_expectancy_probmodel = help::NormalProbModel(186, 138);
+		help::NormalProbModel life_expectancy_probmodel = help::NormalProbModel(186, 138); // Based on Locosselli et al (2020), abstract
 		if (force_redraw) life_expectancy = -1;
 		while (life_expectancy < 0) {
 			life_expectancy = life_expectancy_probmodel.get_normal_distr_sample();
@@ -265,7 +265,7 @@ public:
 	float get_dbh_increment(float LAI_shade) {
 		if (LAI_shade > 5.0f) return 0.0f; // If the LAI of shading leaf cover is larger than 5, the tree is too shaded to grow.
 
-		float stem_increment = 0.3f * (1.0f - exp(-0.118 * dbh * 10.0f));	// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
+		float stem_increment = 0.3f * (1.0f - exp(-0.118 * dbh));	// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
 																			// Current stem dbh and increment in cm.
 
 		stem_increment *= (5.0f - LAI_shade) / 5.0f;	// LAI-dependent growth reduction to introduce density dependence. Multiplication factor: ((LAI_max - LAI) / LAI_max) 

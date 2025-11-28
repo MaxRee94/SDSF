@@ -83,7 +83,7 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
         # The benchmark cover is the cover for a version of the pattern produced using the given parameters, but with a sine amplitude set to 0 (i.e., with circular disks).
         if args.override_image_treecover == 2:
             args.override_image_treecover = benchmark_cover
-        dynamics.state.set_cover_from_image(img, args.override_image_treecover)
+        #dynamics.state.set_cover_from_image(img, args.override_image_treecover)
     elif args.initial_pattern_image == "perlin_noise":
         path = f"{cfg.DATA_IN_DIR}/state_patterns/" + args.initial_pattern_image
         if "perlin_noise" == args.initial_pattern_image:

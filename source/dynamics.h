@@ -177,9 +177,9 @@ public:
 		}
 		return true;
 	}
-	void disperse_uniformly(Tree& tree, Crop* crop, shared_ptr<float[]> mask, int& no_seeds_dispersed) {
-		Disperser disperser = Disperser();
-		for (int i = 0; i < crop->no_seeds; i++) {
+	void disperse_uniformly(shared_ptr<float[]> mask, int no_seeds_to_disperse) {
+		int i = 0;
+		while (i < no_seeds_to_disperse) {
 			// Get random location within forest mask
 			pair<float, float> deposition_location;
 			deposition_location.first = help::get_rand_float(0, grid->width_r);
@@ -188,35 +188,27 @@ public:
 
 			if (mask[grid_idx] < 1.0f) continue;
 
-			// Germinate seed at location
-			int dummy1 = 0; int dummy2 = 0; int dummy3 = 0; int dummy4 = 0; int dummy5 = 0;
-			disperser.germinate_seed(
-				crop, &state, deposition_location, dummy1, dummy2, dummy3,
-				no_seeds_dispersed, dummy4, dummy5
-			);
+			// Germinate random seed at location
+			germinate_random_seedling(deposition_location);
+
+			i++;
 		}
+	}
+	void germinate_random_seedling(pair<float, float> deposition_location) {
+		int dummy1 = 0; int dummy2 = 0; int dummy3 = 0; int dummy4 = 0; int dummy5 = 0; int dummy6 = 0;
+		Strategy strategy;
+		pop->strategy_generator.generate(strategy);
+		Seed seed = Seed(strategy, deposition_location);
+		seed.germinate_if_location_is_viable(
+			&state, dummy1, dummy2, dummy3, dummy4, dummy5, dummy6
+		);
 	}
 	void disperse_within_forest(shared_ptr<float[]> mask) {
 		int pre_dispersal_popsize = pop->size();
 		Timer timer; timer.start();
 
-		int no_seeds_dispersed = 0;
-		for (auto& [id, tree] : pop->members) {
-			// Get crop and kernel
-			if (tree.life_phase < 2) continue;
-			if (id == -1 || tree.id == -1) {
-				pop->remove(id);
-				continue;
-			}
-			Crop* crop = pop->get_crop(id);
-			if (crop->id == -1) {
-				pop->remove(id);
-				continue;
-			}
-			crop->update(tree, STR);
-
-			disperse_uniformly(tree, crop, mask, no_seeds_dispersed);
-		}
+		int no_seeds_to_disperse = 1000;
+		disperse_uniformly(mask, no_seeds_to_disperse);
 		recruit();
 	}
 	void add_LAI_contributions_FROM_cell(map<int, float>& contributions, Cell* cell) {
