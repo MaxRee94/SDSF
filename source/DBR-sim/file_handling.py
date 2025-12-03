@@ -61,28 +61,33 @@ def set_heterogeneity_maps(dynamics, args):
         dynamics (Dynamics): Dynamics object
         args(SimpleNamespace): User arguments
     """
-    input_map_dir = f"{cfg.DATA_IN_DIR}/heterogeneity/"
-    json_path = os.path.join(input_map_dir, args.heterogeneity)
+    map_root_dir = f"{cfg.DATA_IN_DIR}/heterogeneity/"
+    json_path = os.path.join(map_root_dir, args.heterogeneity)
     heterogeneity_map_args = load_json_config(json_path)
-    if heterogeneity_map_args.get("grass_carrying_capacity"):
-        m_args = heterogeneity_map_args["grass_carrying_capacity"]
+    map_types = {"grass_carrying_capacity": dynamics.state.grid.set_grass_carrying_capacity}
+    for map_type, setter_func in map_types.items():
+        m_args = heterogeneity_map_args[map_type]
         m_args = helpers.overwrite_from_global_arguments(m_args, vars(args))
-        grass_carcap_dir = os.path.join(input_map_dir, "grass_carrying_capacity")
+        map_dir = os.path.join(map_root_dir, map_type)
         if m_args.get("filename"):
-            path = os.path.join(grass_carcap_dir, m_args["filename"])
-            image = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+            impath = os.path.join(map_dir, m_args["filename"])
+            image = cv2.imread(impath, cv2.IMREAD_GRAYSCALE)
+            print(f"Read {map_type} map from image file:", impath)
         else:
             if m_args["type"] == "sine":
                 image = spg.generate((dynamics.state.grid.width, dynamics.state.grid.width), **m_args)
             elif m_args["type"] == "noise":
                 image = sng.generate(grid_width=dynamics.state.grid.width, **m_args)
             else:
-                raise ValueError(f"Unknown grass carrying capacity map type: {m_args['type']}")
-            cv2.imwrite(os.path.join(grass_carcap_dir, "generated_grass_carrying_capacity.png"), image)
+                raise ValueError(f"Unknown {map_type} pattern type: {m_args['type']}")
+            impath = os.path.join(map_dir, f"{map_type}.png")
+            cv2.imwrite(impath, image)
+            print(f"Generated {map_type} map saved to:", impath)
 
         image = cv2.resize(image, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_NEAREST)
         image = image / 255  # Normalize to 0-1
-        dynamics.state.grid.set_grass_carrying_capacity(image)
+        setter_func(image)
+        
 
     return dynamics, args
 

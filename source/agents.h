@@ -203,13 +203,13 @@ class Tree {
 public:
 	Tree() = default;
 	Tree(int _id, pair<float, float> _position, float _dbh, float seed_bearing_threshold,
-		map<int, float> _resprout_growthcurve, float _growth_multiplier
+		map<int, float> _resprout_growthcurve, float _growth_noise_multiplier
 	) :
 		position(_position), dbh(_dbh), resprout_growthcurve(_resprout_growthcurve)
 	{
 		id = _id;
 		derive_allometries(seed_bearing_threshold);
-		growth_multiplier = _growth_multiplier;
+		growth_noise_multiplier = _growth_noise_multiplier;
 		draw_life_expectancy();
 	};
 	bool operator==(const Tree& tree) const
@@ -266,10 +266,10 @@ public:
 		if (LAI_shade > 5.0f) return 0.0f; // If the LAI of shading leaf cover is larger than 5, the tree is too shaded to grow.
 
 		float stem_increment = 0.3f * (1.0f - exp(-0.118 * dbh));	// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
-																			// Current stem dbh and increment in cm.
+		// Current stem dbh and increment in cm.
 
 		stem_increment *= (5.0f - LAI_shade) / 5.0f;	// LAI-dependent growth reduction to introduce density dependence. Multiplication factor: ((LAI_max - LAI) / LAI_max) 
-														// From Hoffman et al (2012), Appendix 2.
+		// From Hoffman et al (2012), Appendix 2.
 
 
 		return stem_increment;
@@ -282,13 +282,13 @@ public:
 	}
 	float compute_crown_area() {
 		return 0.551f * pow(dbh, 1.28f);	// Crown area in m^2. y = b x^a. Parameters of a and b are averages of fits for 5 trees presented in Blanchard et al (2015),
-											// page 1957 (explains the model in "Fitting allometries"), and table 4 (shows regression results).
+		// page 1957 (explains the model in "Fitting allometries"), and table 4 (shows regression results).
 	}
 	float get_LAI() {
 		float leaf_area = get_leaf_area();
 		return leaf_area / crown_area;
 	}
-	bool survives_fire(float &fire_resistance_argmin, float &fire_resistance_argmax, float &fire_resistance_stretch) {
+	bool survives_fire(float& fire_resistance_argmin, float& fire_resistance_argmax, float& fire_resistance_stretch) {
 		float survival_probability = get_survival_probability(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 		return help::get_rand_float(0.0f, 1.0f) < survival_probability;
 	}
@@ -302,7 +302,7 @@ public:
 	float get_height() {
 		float ln_dbh = log(dbh);
 		return exp(0.865 + 0.760 * ln_dbh - 0.0340 * (ln_dbh * ln_dbh)); // From Chave et al (2014), equation 6a. Value of E obtained by calculating mean of E
-																		 // values for bistable study sites.
+		// values for bistable study sites.
 	}
 	void derive_dbh_from_age_assuming_onobstructed_growth() {
 		// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
@@ -311,31 +311,31 @@ public:
 	}
 	float get_lowest_branch_height() {
 		return height * 0.4f; // We assume the tree's crown begins at 40% its height.
-							  // TODO: Perhaps make this fraction a function of dbh for added realism.
+		// TODO: Perhaps make this fraction a function of dbh for added realism.
 	}
 	float get_AGB() {
 		float ln_dbh = log(dbh);
 		float ln_wood_specific_gravity = log(0.5f);
 		return -1.803 - 0.976f * -0.02802 + 0.976 * ln_wood_specific_gravity + 2.673f * ln_dbh - 0.0299f * (ln_dbh * ln_dbh); // From Chave et al (2014), equation 7.
 	}
-	float compute_new_dbh(float LAI_shade) {
+	float compute_new_dbh(float LAI_shade, float local_growth_multiplier) {
 		float _dbh;
 		if (dbh < 2.5f) {
 			if (life_phase == 1) {
 				_dbh = resprout_growthcurve.at(age); // Resprouts younger than 5 years (implied by dbh < 2.5) are assumed to grow according to a predefined growth curve (Hoffmann et al, 2012, supplementary information 1).
 			}
 			else {
-				_dbh = dbh + growth_multiplier * 0.25f; // Assume a constant growth rate of 2.5 mm for saplings, until they reach 2.5 cm dbh. Based on growth rate of resprouts after first 5 years (Hoffmann et al, 2012, supplementary information 1. Also see "Tree Allometric Relations.xlsx").
+				_dbh = dbh + growth_noise_multiplier * local_growth_multiplier * 0.25f; // Assume a constant growth rate of 2.5 mm for saplings, until they reach 2.5 cm dbh. Based on growth rate of resprouts after first 5 years (Hoffmann et al, 2012, supplementary information 1. Also see "Tree Allometric Relations.xlsx").
 			}
 		}
 		else {
-			_dbh = dbh + growth_multiplier * get_dbh_increment(LAI_shade);
+			_dbh = dbh + growth_noise_multiplier * local_growth_multiplier * get_dbh_increment(LAI_shade);
 		}
 		return _dbh;
 	}
-	pair<bool, bool> grow(float &seed_bearing_threshold, float LAI_shade) {
+	pair<bool, bool> grow(float& seed_bearing_threshold, float LAI_shade, float local_growth_multiplier) {
 		age++;
-		float _dbh = compute_new_dbh(LAI_shade);
+		float _dbh = compute_new_dbh(LAI_shade, local_growth_multiplier);
 		bool dies_due_to_light_limitation = is_float_equal(_dbh, dbh) && (life_phase == 0); // If the tree is not reproductive yet and is unable to grow, we assume it dies.
 		dbh = _dbh;
 		bool became_reproductive = derive_allometries(seed_bearing_threshold);
@@ -349,12 +349,11 @@ public:
 	float radius = -1;
 	float dbh = 0.1;
 	float bark_thickness = 0;
-	float shade = 0;
 	float LAI = 0;
 	float height = 0;
 	float lowest_branch = 0;
 	float crown_area = 0;
-	float growth_multiplier = 1;
+	float growth_noise_multiplier = 1;
 	int life_expectancy = -1;
 	pair<float, float> position = pair(0, 0);
 	int id = -1;

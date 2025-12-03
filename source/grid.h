@@ -36,6 +36,12 @@ public:
 	void reset_stem() {
 		stem = pair<float, int>(0, 0);
 	}
+	float get_growth_multiplier() {
+		return growth_multiplier;
+	}
+	void set_growth_multiplier(float _growth_multiplier) {
+		growth_multiplier = _growth_multiplier;
+	}
 	void update_grass_LAI(float tree_LAI_local_neighborhood) {
 		grass_LAI = compute_grass_LAI(tree_LAI_local_neighborhood);
 	}
@@ -206,6 +212,7 @@ private:
 	}
 	float LAI = 0; // Cumulative Leaf Area Index (LAI) of all trees in the cell.
 	float grass_LAI = 0;
+	float growth_multiplier = 1.0f;
 };
 
 
@@ -1147,6 +1154,11 @@ public:
 	void set_grass_carrying_capacity(shared_ptr<float[]> distr) {
 		for (int i = 0; i < no_cells; i++) {
 			distribution[i].grass_carrying_capacity = distr[i];
+		}
+	}
+	void set_local_growth_multipliers(shared_ptr<float[]> distr) {
+		for (int i = 0; i < no_cells; i++) {
+			distribution[i].set_growth_multiplier(distr[i]);
 		}
 	}
 	int width = 0;

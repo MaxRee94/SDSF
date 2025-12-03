@@ -116,10 +116,22 @@ public:
 	void grow() {
 		vector<int> tree_deletion_schedule = {};
 		map<float, int> increment_counts;
-		for (auto& [id, tree] : pop->members) {
+		for (int i = 0; i < grid->no_cells; i++) {
+			Cell* cell = &grid->distribution[i];
+			if (cell->stem.second <= 0) continue; // If no stem is present, skip this cell.
+
+			// Get the tree whose stem is in this cell.
+			int id = cell->stem.second;
+			Tree& tree = pop->members[id];
+
+			// Obtain local growth multiplier
+			float local_growth_multiplier = cell->get_growth_multiplier();
+			
+			// Grow tree
 			float shade = state.compute_shade_on_individual_tree(&tree);
-			tree.shade = shade;
-			auto [became_reproductive, dies_due_to_light_limitation] = tree.grow(seed_bearing_threshold, shade);
+			auto [became_reproductive, dies_due_to_light_limitation] = tree.grow(seed_bearing_threshold, shade, local_growth_multiplier);
+
+			// Add dying trees to deletion schedule
 			if (dies_due_to_light_limitation) {
 				tree_deletion_schedule.push_back(id);
 			}
@@ -631,7 +643,7 @@ public:
 	int no_animal_seedlings = 0;
 	int no_recruits = 0;
 	int timestep = 0;
-	int time = -1000;
+	int time = -5;
 	int pop_size = 0;
 	int verbosity = 0;
 	int seeds_produced = 0;

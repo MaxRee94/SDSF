@@ -289,6 +289,12 @@ PYBIND11_MODULE(dbr_cpp, module) {
             convert_from_numpy_array(py_image, image, _width, _height);
             grid.set_grass_carrying_capacity(image);
         })
+        .def("set_local_growth_multipliers", [](Grid& grid, py::array_t<float>& py_image) {
+            shared_ptr<float[]> image;
+            int _width, _height;
+            convert_from_numpy_array(py_image, image, _width, _height);
+            grid.set_local_growth_multipliers(image);
+        })
         .def("get_aggr_tree_LAI_distribution", [](Grid& grid) {
             shared_ptr<float[]> aggr_tree_LAI_distribution = grid.get_aggr_tree_LAI_distribution();
             return as_2d_numpy_array(aggr_tree_LAI_distribution, grid.width);
