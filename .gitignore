@@ -8,6 +8,7 @@ source/DBR-sim/DawnCache/
 source/DBR-sim/GPUCache/
 source/scripts/temp/
 data_in/local_overrides/
+data_in/heterogeneity/local_growth_multipliers/*
 source/DBR-sim/env
 source/DBR-sim/env2
 *.bat
