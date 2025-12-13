@@ -325,11 +325,11 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
     imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
     vis.save_image(img, imagepath, get_max(1000, img.shape[0]), interpolation="none")
     
-    if ("fuel" in visualization_types):
-        print("-- Saving fuel image...") if verbose else None
-        fuel_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel")
-        imagepath_fuel = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
-        vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
+    # if ("fuel" in visualization_types):
+    #     print("-- Saving fuel image...") if verbose else None
+    #     fuel_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel")
+    #     imagepath_fuel = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
+    #     vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
 
     if ("aggr_tree_LAI" in visualization_types):
         print("-- Saving aggregated tree LAI image...") if verbose else None
@@ -337,11 +337,11 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         imagepath_aggr_tree_LAI = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/aggr_tree_LAI/" + str(dynamics.time) + ".png")
         vis.save_image(aggr_tree_LAI_img, imagepath_aggr_tree_LAI, get_max(1000, aggr_tree_LAI_img.shape[0]))
 
-    if ("fuel_penetration" in visualization_types):
-        print("-- Saving fuel penetration image...") if verbose else None
-        fuel_penetration_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel_penetration")
-        imagepath_fuel_penetration = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel_penetration/" + str(dynamics.time) + ".png")
-        vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
+    # if ("fuel_penetration" in visualization_types):
+    #     print("-- Saving fuel penetration image...") if verbose else None
+    #     fuel_penetration_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel_penetration")
+    #     imagepath_fuel_penetration = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel_penetration/" + str(dynamics.time) + ".png")
+    #     vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
 
 
 def do_burn_in(dynamics, args, forest_mask, color_dicts, target_treecover=0):
