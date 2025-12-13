@@ -69,6 +69,11 @@ public:
 		else if (vector == 1) return "wind";
 		else return "animal";
 	}
+	void set_constant_vector(string vector) {
+		if (vector == "linear") trait_distributions["vector"] = ProbModel(0);
+		else if (vector == "wind") trait_distributions["vector"] = ProbModel(1);
+		else if (vector == "animal") trait_distributions["vector"] = ProbModel(2);
+	}
 	float compute_wing_mass(float cumulative_seed_mass) {
 		// Estimate wing mass based on correlation we found in seed- and wing measurement data taken from (Greene and Johnson, 1993)
 		return max(0, (cumulative_seed_mass - 0.03387f) / 3.6609f);
@@ -373,6 +378,12 @@ public:
 		origin = tree.position;
 		id = tree.id;
 	}
+	Crop(Strategy& _strategy, int _id, pair<float, float> _origin) {
+		strategy = _strategy;
+		seed_mass = _strategy.seed_mass;
+		origin = _origin;
+		id = _id;
+	}
 	void compute_no_seeds(Tree &tree, float STR) {
 		float dbh_dependent_factor = (tree.dbh / 30.0f);
 		total_no_seeds_produced = STR * (dbh_dependent_factor * dbh_dependent_factor); // Number of seeds produced by the tree, based on Ribbens et al (1994).
@@ -497,6 +508,9 @@ public:
 	}
 	void get(vector<int>& ids, vector<Tree*> &trees) {
 		for (int id : ids) trees.push_back(get(id));
+	}
+	void add_crop(Strategy& strategy, pair<float, float> origin, int id) {
+		crops[id] = Crop(strategy, id, origin);
 	}
 	Crop* get_crop(int id) {
 		return &crops[id];

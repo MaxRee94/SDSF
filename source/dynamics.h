@@ -150,6 +150,7 @@ public:
 		global_kernels["wind"] = Kernel(1, grid->width_r * 2.0f, wspeed_gmean, wspeed_stdev, wind_direction, wind_direction_stdev);
 		pop->add_kernel("wind", global_kernels["wind"]);
 		cout << "Global kernel created (Wind dispersal). " << endl;
+		pop->strategy_generator.set_constant_vector("wind");
 	}
 	void set_global_animal_kernel(map<string, map<string, float>>& animal_kernel_params) {
 		global_kernels["animal"] = Kernel(1, "animal");
@@ -157,7 +158,8 @@ public:
 		animal_dispersal.animals = Animals(& state, animal_kernel_params, animal_group_size);
 		animal_dispersal.animals.initialize_population();
 		pop->add_kernel("animal", global_kernels["animal"]);
-		cout << "Global kernel created (Dispersal by animals). \n";
+		pop->strategy_generator.set_constant_vector("animal");
+		printf("--- Strat generator vector: %s \n", pop->strategy_generator.pick_vector().c_str());
 	}
 	void set_global_kernels(map<string, map<string, float>> nonanimal_kernel_params, map<string, map<string, float>> animal_kernel_params) {
 		map<string, float> params;
@@ -211,9 +213,13 @@ public:
 		Strategy strategy;
 		pop->strategy_generator.generate(strategy);
 		Seed seed = Seed(strategy, deposition_location);
-		seed.germinate_if_location_is_viable(
+		bool viable = seed.germinate_if_location_is_viable(
 			&state, dummy1, dummy2, dummy3, dummy4, dummy5, dummy6
 		);
+		if (!viable) return;
+
+		// Generate crop (we have to initialize it here; the pop->add() function only creates duplicate crops based on those of parent trees)
+		pop->add_crop(strategy, deposition_location, strategy.id);
 	}
 	void disperse_within_forest(shared_ptr<float[]> mask) {
 		int pre_dispersal_popsize = pop->size();
@@ -387,9 +393,10 @@ public:
 		for (int i = 0; i < grid->no_cells; i++) {
 			Cell* cell = &grid->distribution[i];
 			if (cell->seedling_present) {
+				int id = cell->stem.second;
 				Tree* tree = pop->add(
 					grid->get_real_cell_position(cell),
-					&pop->get_crop(cell->stem.second)->strategy
+					&pop->get_crop(id)->strategy
 				);
 				cell->insert_sapling(tree, grid->cell_area, grid->cell_halfdiagonal_sqrt);
 				grid->state_distribution[i] = -7;
