@@ -15,10 +15,22 @@ import simple_noise_generator as sng
 
 
 
-def get_tree_sizes(dynamics):
+def get_tree_sizes(dynamics, bins="initialize", args=None):
+    if type(bins) == str and bins == "initialize":
+        _tree_sizes = [i for i in range(int(args.max_dbh))]
+        counts, bins = np.histogram(_tree_sizes, bins=5)
     _tree_sizes = dynamics.state.get_tree_sizes()
-    counts, bins = np.histogram(_tree_sizes, bins=5)
-    return counts
+    counts, bins = np.histogram(_tree_sizes, bins=bins)
+    return counts, bins
+
+
+def get_tree_ages(dynamics, bins="initialize"):
+    if type(bins) == str and bins == "initialize":
+        _tree_ages = [i for i in range(400)] # Harcoded max age of 400 years for now.
+        counts, bins = np.histogram(_tree_ages, bins=5)
+    _tree_ages = dynamics.state.get_tree_ages()
+    counts, bins = np.histogram(_tree_ages, bins=bins)
+    return counts, bins
 
 
 def get_firefree_interval_stats(dynamics, _type):
@@ -49,28 +61,36 @@ def set_heterogeneity_maps(dynamics, args):
         dynamics (Dynamics): Dynamics object
         args(SimpleNamespace): User arguments
     """
-    input_map_dir = f"{cfg.DATA_IN_DIR}/heterogeneity/"
-    json_path = os.path.join(input_map_dir, args.heterogeneity)
+    map_root_dir = f"{cfg.DATA_IN_DIR}/heterogeneity/"
+    json_path = os.path.join(map_root_dir, args.heterogeneity)
     heterogeneity_map_args = load_json_config(json_path)
-    if heterogeneity_map_args.get("grass_carrying_capacity"):
-        m_args = heterogeneity_map_args["grass_carrying_capacity"]
+    map_types = {
+        "grass_carrying_capacity": dynamics.state.grid.set_grass_carrying_capacity,
+        "local_growth_multipliers": dynamics.state.grid.set_local_growth_multipliers,
+    }
+    for map_type, setter_func in map_types.items():
+        m_args = heterogeneity_map_args[map_type]
         m_args = helpers.overwrite_from_global_arguments(m_args, vars(args))
-        grass_carcap_dir = os.path.join(input_map_dir, "grass_carrying_capacity")
+        map_dir = os.path.join(map_root_dir, map_type)
         if m_args.get("filename"):
-            path = os.path.join(grass_carcap_dir, m_args["filename"])
-            image = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+            impath = os.path.join(map_dir, m_args["filename"])
+            image = cv2.imread(impath, cv2.IMREAD_GRAYSCALE)
+            print(f"Read {map_type} map from image file:", impath)
         else:
             if m_args["type"] == "sine":
                 image = spg.generate((dynamics.state.grid.width, dynamics.state.grid.width), **m_args)
             elif m_args["type"] == "noise":
                 image = sng.generate(grid_width=dynamics.state.grid.width, **m_args)
             else:
-                raise ValueError(f"Unknown grass carrying capacity map type: {m_args['type']}")
-            cv2.imwrite(os.path.join(grass_carcap_dir, "generated_grass_carrying_capacity.png"), image)
+                raise ValueError(f"Unknown {map_type} pattern type: {m_args['type']}")
+            impath = os.path.join(map_dir, f"{map_type}.png")
+            cv2.imwrite(impath, image)
+            print(f"Generated {map_type} map saved to:", impath)
 
         image = cv2.resize(image, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_NEAREST)
         image = image / 255  # Normalize to 0-1
-        dynamics.state.grid.set_grass_carrying_capacity(image)
+        setter_func(image)
+        
 
     return dynamics, args
 
@@ -82,10 +102,11 @@ def export_state(
     ):
     fieldnames = [
         "time", "treecover", "slope", "population_size", "#seeds_produced", "fires", "top_kills", "nonseedling_top_kills", "deaths",
-        "trees[dbh_0-20%]", "trees[dbh_20-40%]", "trees[dbh_40-60%]", "trees[dbh_60-80%]", "trees[dbh_80-100%]", "extra_parameters",
+        "extra_parameters", "mean tree size", "stdev tree size",
         "firefree_interval_mean", "firefree_interval_stdev", "firefree_interval_full_sim_mean", "firefree_interval_full_sim_stdev", "time_spent_moving",
         "shaded_out", "outcompeted_by_seedlings", "outcompeted_by_oldstems", "initial_no_dispersals",
-        "recruits", "germination_attempts", "oldstem_competition_and_shading", "seedling_competition_and_shading", "perimeter_length", "perimeter-area_ratio"
+        "recruits", "germination_attempts", "oldstem_competition_and_shading", "seedling_competition_and_shading", "perimeter_length", "perimeter-area_ratio",
+        "basal_area"
     ]
     if dependent_var:
         fieldnames.insert(0, dependent_var)
@@ -103,6 +124,26 @@ def export_state(
         fieldnames.insert(0, "dependent_result_range_stdev")
     if not args.rotate_randomly:
         fieldnames.insert(3, "global_rotation_offset")
+
+    # Collect tree ages and sizes
+    if init_csv:
+        tree_sizes, args.treesize_bins = get_tree_sizes(dynamics, "initialize", args=args)
+        tree_ages, args.tree_age_bins = get_tree_ages(dynamics, "initialize")
+    else:
+        tree_sizes, _ = get_tree_sizes(dynamics, args.treesize_bins)
+        tree_ages, _ = get_tree_ages(dynamics, args.tree_age_bins)
+
+    treesize_bins_strings = []
+    tree_age_bins_strings = []
+    for i in range(len(args.treesize_bins)-1):
+        (size_lowb, size_highb) = (args.treesize_bins[i], args.treesize_bins[i+1])
+        (age_lowb, age_highb) = (args.tree_age_bins[i], args.tree_age_bins[i+1])
+        treesize_bins_strings.append("trees[dbh {0} - {1}]".format(round(size_lowb), round(size_highb)))
+        tree_age_bins_strings.append("trees[age {0} - {1}]".format(round(age_lowb), round(age_highb)))
+        fieldnames.insert(5, treesize_bins_strings[i])
+        fieldnames.insert(6+i, tree_age_bins_strings[i])
+
+    # Initialize CSV file with headers if it doesn't exist
     if init_csv and not os.path.exists(path):
         if path == "":
             print("\n\nExport location:", cfg.EXPORT_DIR)
@@ -110,11 +151,9 @@ def export_state(
         with open(path, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
-        
 
     with open(path, 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        tree_sizes = get_tree_sizes(dynamics)
         firefree_interval_mean, firefree_interval_stdev = get_firefree_interval_stats(dynamics, "current_iteration")
         firefree_interval_fullsim_mean, firefree_interval_fullsim_stdev = get_firefree_interval_stats(dynamics, "average")
         fires = dynamics.get_fires()
@@ -126,18 +165,25 @@ def export_state(
             "population_size": str(dynamics.state.population.size()),
             "#seeds_produced": str(dynamics.seeds_produced),
             "fires": fires,
-            "trees[dbh_0-20%]": tree_sizes[0],
-            "trees[dbh_20-40%]": tree_sizes[1],
-            "trees[dbh_40-60%]": tree_sizes[2],
-            "trees[dbh_60-80%]": tree_sizes[3],
-            "trees[dbh_80-100%]": tree_sizes[4],
+            treesize_bins_strings[0]: str(tree_sizes[0]),
+            treesize_bins_strings[1]: str(tree_sizes[1]),
+            treesize_bins_strings[2]: str(tree_sizes[2]),
+            treesize_bins_strings[3]: str(tree_sizes[3]),
+            treesize_bins_strings[4]: str(tree_sizes[4]),
+            tree_age_bins_strings[0]: str(tree_ages[0]),
+            tree_age_bins_strings[1]: str(tree_ages[1]),
+            tree_age_bins_strings[2]: str(tree_ages[2]),
+            tree_age_bins_strings[3]: str(tree_ages[3]),
+            tree_age_bins_strings[4]: str(tree_ages[4]),
+            "mean tree size": str(np.mean(dynamics.state.get_tree_sizes())),
+            "stdev tree size": str(np.std(dynamics.state.get_tree_sizes())),
             "top_kills": str(dynamics.get_no_fire_induced_topkills()),
             "deaths": str(dynamics.get_no_fire_induced_deaths()),
-            "extra_parameters": extra_parameters,
-            "firefree_interval_mean": firefree_interval_mean,
-            "firefree_interval_stdev": firefree_interval_stdev,
-            "firefree_interval_full_sim_mean": firefree_interval_fullsim_mean,
-            "firefree_interval_full_sim_stdev": firefree_interval_fullsim_stdev,
+            "extra_parameters": str(extra_parameters),
+            "firefree_interval_mean": str(firefree_interval_mean),
+            "firefree_interval_stdev": str(firefree_interval_stdev),
+            "firefree_interval_full_sim_mean": str(firefree_interval_fullsim_mean),
+            "firefree_interval_full_sim_stdev": str(firefree_interval_fullsim_stdev),
             "recruits": str(dynamics.get_no_recruits("all")),
             "initial_no_dispersals": str(dynamics.get_initial_no_dispersals()),
             "time_spent_moving": str(dynamics.get_fraction_time_spent_moving()),
@@ -149,7 +195,8 @@ def export_state(
             "oldstem_competition_and_shading": str(dynamics.get_fraction_cases_oldstem_competition_and_shading()),
             "seedling_competition_and_shading": str(dynamics.get_fraction_cases_seedling_competition_and_shading()),
             "perimeter-area_ratio": str(dynamics.get_perimeter_area_ratio()),
-            "perimeter_length": str(dynamics.get_forest_perimeter_length())
+            "perimeter_length": str(dynamics.get_forest_perimeter_length()),
+            "basal_area": str(dynamics.get_basal_area())
         }
         if not args.rotate_randomly:
             result["global_rotation_offset"] = str(args.global_rotation_offset)
@@ -164,8 +211,9 @@ def export_state(
         if dependent_result_range_stdev:
             result["dependent_result_range_stdev"] = dependent_result_range_stdev
         writer.writerow(result)
-        
-    return path
+    
+    args.csv_path = path
+    return args
 
 
 def get_lookup_table(species, width, rcg_width):

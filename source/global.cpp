@@ -259,6 +259,13 @@ PYBIND11_MODULE(dbr_cpp, module) {
             delete[] tree_sizes;
             return np_arr;
 		})
+        .def("get_tree_ages", [](State& state) {
+            float* tree_ages = new float[state.population.size()];
+            state.get_tree_ages(tree_ages);
+            py::array_t<float> np_arr = as_1d_numpy_array(tree_ages, state.population.size());
+            delete[] tree_ages;
+            return np_arr;
+        })
         .def_readwrite("grid", &State::grid)
         .def_readwrite("population", &State::population)
         .def_readwrite("initial_tree_cover", &State::initial_tree_cover);
@@ -281,6 +288,12 @@ PYBIND11_MODULE(dbr_cpp, module) {
             int _width, _height;
             convert_from_numpy_array(py_image, image, _width, _height);
             grid.set_grass_carrying_capacity(image);
+        })
+        .def("set_local_growth_multipliers", [](Grid& grid, py::array_t<float>& py_image) {
+            shared_ptr<float[]> image;
+            int _width, _height;
+            convert_from_numpy_array(py_image, image, _width, _height);
+            grid.set_local_growth_multipliers(image);
         })
         .def("get_aggr_tree_LAI_distribution", [](Grid& grid) {
             shared_ptr<float[]> aggr_tree_LAI_distribution = grid.get_aggr_tree_LAI_distribution();
@@ -309,6 +322,12 @@ PYBIND11_MODULE(dbr_cpp, module) {
             convert_from_numpy_array(img, mask, width, height);
             dynamics.disperse_within_forest(mask);
         })
+        .def("prune", [](Dynamics& dynamics, py::array_t<float>& img) {
+            shared_ptr<float[]> mask;
+            int width, height;
+            convert_from_numpy_array(img, mask, width, height);
+            dynamics.prune(mask);
+        })
         .def("init_state", &Dynamics::init_state)
         .def("get_fires", [](Dynamics& dynamics) {
             py::array_t<float> np_arr = as_1d_numpy_array(dynamics.fires);
@@ -325,6 +344,10 @@ PYBIND11_MODULE(dbr_cpp, module) {
 			float no_recruits = dynamics.get_no_recruits(type);
 			return no_recruits;
 		})
+        .def("get_basal_area", [](Dynamics& dynamics) {
+            float basal_area = dynamics.get_basal_area();
+            return basal_area;
+        })
         .def("free", &Dynamics::free)
         .def("set_global_linear_kernel", &Dynamics::set_global_linear_kernel)
         .def("set_global_wind_kernel", &Dynamics::set_global_wind_kernel)

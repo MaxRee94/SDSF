@@ -118,6 +118,8 @@ namespace help {
 
 	void get_random_unit_vector(pair<float, float> &direction);
 
+	int get_random_key(std::map<int, float>& map);
+
 	void remove_from_vec(vector<int>* vec, int item);
 
 	string readable_number(int number);
@@ -129,12 +131,16 @@ namespace help {
 
 	bool is_in(std::map<int, int>& map, int item);
 
+	bool is_in(std::map<int, float>& map, int item);
+
 	bool is_in(std::string basestring, std::string target);
 
 	template <typename T>
 	vector<int> get_keys(map<int, T>& map);
 
 	void print_map(std::map<int, int>* map);
+	
+	void print_map(std::map<int, float>* map);
 
 	void print_vector(std::vector<int>* vec);
 

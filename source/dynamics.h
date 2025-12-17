@@ -116,10 +116,22 @@ public:
 	void grow() {
 		vector<int> tree_deletion_schedule = {};
 		map<float, int> increment_counts;
-		for (auto& [id, tree] : pop->members) {
+		for (int i = 0; i < grid->no_cells; i++) {
+			Cell* cell = &grid->distribution[i];
+			if (cell->stem.second <= 0) continue; // If no stem is present, skip this cell.
+
+			// Get the tree whose stem is in this cell.
+			int id = cell->stem.second;
+			Tree& tree = pop->members[id];
+
+			// Obtain local growth multiplier
+			float local_growth_multiplier = cell->get_growth_multiplier();
+			
+			// Grow tree
 			float shade = state.compute_shade_on_individual_tree(&tree);
-			tree.shade = shade;
-			auto [became_reproductive, dies_due_to_light_limitation] = tree.grow(seed_bearing_threshold, shade);
+			auto [became_reproductive, dies_due_to_light_limitation] = tree.grow(seed_bearing_threshold, shade, local_growth_multiplier);
+
+			// Add dying trees to deletion schedule
 			if (dies_due_to_light_limitation) {
 				tree_deletion_schedule.push_back(id);
 			}
@@ -138,6 +150,7 @@ public:
 		global_kernels["wind"] = Kernel(1, grid->width_r * 2.0f, wspeed_gmean, wspeed_stdev, wind_direction, wind_direction_stdev);
 		pop->add_kernel("wind", global_kernels["wind"]);
 		cout << "Global kernel created (Wind dispersal). " << endl;
+		pop->strategy_generator.set_constant_vector("wind");
 	}
 	void set_global_animal_kernel(map<string, map<string, float>>& animal_kernel_params) {
 		global_kernels["animal"] = Kernel(1, "animal");
@@ -145,7 +158,8 @@ public:
 		animal_dispersal.animals = Animals(& state, animal_kernel_params, animal_group_size);
 		animal_dispersal.animals.initialize_population();
 		pop->add_kernel("animal", global_kernels["animal"]);
-		cout << "Global kernel created (Dispersal by animals). \n";
+		pop->strategy_generator.set_constant_vector("animal");
+		printf("--- Strat generator vector: %s \n", pop->strategy_generator.pick_vector().c_str());
 	}
 	void set_global_kernels(map<string, map<string, float>> nonanimal_kernel_params, map<string, map<string, float>> animal_kernel_params) {
 		map<string, float> params;
@@ -177,9 +191,9 @@ public:
 		}
 		return true;
 	}
-	void disperse_uniformly(Tree& tree, Crop* crop, shared_ptr<float[]> mask, int& no_seeds_dispersed) {
-		Disperser disperser = Disperser();
-		for (int i = 0; i < crop->no_seeds; i++) {
+	void disperse_uniformly(shared_ptr<float[]> mask, int no_seeds_to_disperse) {
+		int i = 0;
+		while (i < no_seeds_to_disperse) {
 			// Get random location within forest mask
 			pair<float, float> deposition_location;
 			deposition_location.first = help::get_rand_float(0, grid->width_r);
@@ -188,36 +202,122 @@ public:
 
 			if (mask[grid_idx] < 1.0f) continue;
 
-			// Germinate seed at location
-			int dummy1 = 0; int dummy2 = 0; int dummy3 = 0; int dummy4 = 0; int dummy5 = 0;
-			disperser.germinate_seed(
-				crop, &state, deposition_location, dummy1, dummy2, dummy3,
-				no_seeds_dispersed, dummy4, dummy5
-			);
+			// Germinate random seed at location
+			germinate_random_seedling(deposition_location);
+
+			i++;
 		}
+	}
+	void germinate_random_seedling(pair<float, float> deposition_location) {
+		int dummy1 = 0; int dummy2 = 0; int dummy3 = 0; int dummy4 = 0; int dummy5 = 0; int dummy6 = 0;
+		Strategy strategy;
+		pop->strategy_generator.generate(strategy);
+		Seed seed = Seed(strategy, deposition_location);
+		bool viable = seed.germinate_if_location_is_viable(
+			&state, dummy1, dummy2, dummy3, dummy4, dummy5, dummy6
+		);
+		if (!viable) return;
+
+		// Generate crop (we have to initialize it here; the pop->add() function only creates duplicate crops based on those of parent trees)
+		pop->add_crop(strategy, deposition_location, strategy.id);
 	}
 	void disperse_within_forest(shared_ptr<float[]> mask) {
 		int pre_dispersal_popsize = pop->size();
 		Timer timer; timer.start();
 
-		int no_seeds_dispersed = 0;
-		for (auto& [id, tree] : pop->members) {
-			// Get crop and kernel
-			if (tree.life_phase < 2) continue;
-			if (id == -1 || tree.id == -1) {
-				pop->remove(id);
-				continue;
-			}
-			Crop* crop = pop->get_crop(id);
-			if (crop->id == -1) {
-				pop->remove(id);
-				continue;
-			}
-			crop->update(tree, STR);
-
-			disperse_uniformly(tree, crop, mask, no_seeds_dispersed);
-		}
+		int no_seeds_to_disperse = 1000;
+		disperse_uniformly(mask, no_seeds_to_disperse);
 		recruit();
+	}
+	void add_LAI_contributions_FROM_cell(map<int, float>& contributions, Cell* cell) {
+		// Add the LAI contributions from all trees in the given cell to the provided map.
+		// The LAI of trees that already contribute from other cells will be summed.
+		for (int tree_id : cell->trees) {
+			Tree* tree = pop->get(tree_id);
+			if (help::is_in(contributions, tree_id)) contributions[tree_id] += tree->LAI;
+			else contributions[tree_id] = tree->LAI;
+		}
+	}
+	map<int, float> get_LAI_contributions_TO_cell(Cell* cell) {
+		map<int, float> LAI_contributions_to_cell;
+
+		// Use a circular neighborhood with specified radius.
+		float radius = grid->LAI_aggregation_radius;
+		int no_cells_in_radius = 0;
+		int min_x = (int)(cell->pos.first - radius);
+		int max_x = (int)(cell->pos.first + radius);
+		int min_y = (int)(cell->pos.second - radius);
+		int max_y = (int)(cell->pos.second + radius);
+		pair<float, float> cell_real_pos = grid->get_real_cell_position(cell);
+		for (int x = min_x; x <= max_x; x++) {
+			for (int y = min_y; y <= max_y; y++) {
+				pair<int, int> neighbor_pos = pair<int, int>(x, y);
+				grid->cap(neighbor_pos);
+				pair<float, float> neighbor_real_pos = grid->get_real_cell_position(grid->get_cell_at_position(neighbor_pos));
+				float dist = help::get_dist(cell_real_pos, neighbor_pos);
+				if (dist <= radius) {
+					Cell* neighbor = grid->get_cell_at_position(pair<int, int>(x, y));
+					add_LAI_contributions_FROM_cell(LAI_contributions_to_cell, neighbor);
+					no_cells_in_radius++;
+				}
+			}
+		}
+		if (no_cells_in_radius == 0) {
+			add_LAI_contributions_FROM_cell(LAI_contributions_to_cell, cell);
+			return LAI_contributions_to_cell;
+		}
+		else {
+			// Compute averaged contributions and add to map + return it.
+			for (auto& [tree_id, LAI_contribution] : LAI_contributions_to_cell) {
+				LAI_contributions_to_cell[tree_id] = LAI_contribution / (float)no_cells_in_radius;
+			}
+
+			// Compute total LAI and verify it matches the LAI stored in aggr_tree_LAI_distribution.
+			float total_LAI = 0;
+			for (auto& [_, LAI_contribution] : LAI_contributions_to_cell) {
+				total_LAI += LAI_contribution;
+			}
+			assert(help::approx(total_LAI, grid->aggr_tree_LAI_distribution[cell->idx], 0.1f));
+		}
+		return LAI_contributions_to_cell;
+	}
+	void record_LAI_contributions(shared_ptr<map<int, float>[]>& LAI_contributions) {
+		for (int i = 0; i < grid->no_cells; i++) {
+			Cell* cell = &grid->distribution[i];
+			map<int, float> LAI_contributions_to_cell = get_LAI_contributions_TO_cell(cell);
+			LAI_contributions[cell->idx] = LAI_contributions_to_cell;
+		}
+	}
+	vector<int> get_trees_to_prune(float LAI_excess, map<int, float>& LAI_contributions) {
+		// Get list of trees to prune in order to reduce LAI by LAI_excess.
+		float LAI_diff = 0;
+		vector<int> trees_to_remove = {};
+		while (LAI_diff < LAI_excess) {
+			int key = help::get_random_key(LAI_contributions);
+			if (help::is_in(&trees_to_remove, key)) continue; // Tree already selected for removal.
+			LAI_diff += LAI_contributions[key];
+			if (LAI_excess > 0) trees_to_remove.push_back(key);
+		}
+		return trees_to_remove;
+	}
+	void prune(shared_ptr<float[]> mask) {
+		shared_ptr<map<int, float>[]> LAI_contributions = make_shared<map<int, float>[]>(grid->no_cells);
+		record_LAI_contributions(LAI_contributions);
+
+		for (int i = 0; i < grid->no_cells; i++) {
+			Cell* cell = &grid->distribution[i];
+			if (grid->is_forest(cell) && mask[i] < 1.0f) {
+				// Cell is forest but should be savanna according to mask. Remove trees to correct this.
+				float LAI_excess = grid->aggr_tree_LAI_distribution[cell->idx] - 1.0f;
+				vector<int> trees_to_remove = get_trees_to_prune(LAI_excess, LAI_contributions[cell->idx]);
+				for (int tree_id : trees_to_remove) {
+					Tree* tree = pop->get(tree_id);
+					grid->kill_tree_domain(tree, false);
+					grid->update_aggr_LAIs(tree);
+					pop->remove(tree_id);
+				}
+			}
+		}
 	}
 	void disperse_wind_seeds_and_init_fruits(int& no_seed_bearing_trees, int& no_wind_seedlings, int& wind_seeds_dispersed, int& animal_seeds_dispersed, int& wind_trees) {
 		int pre_dispersal_popsize = pop->size();
@@ -293,9 +393,10 @@ public:
 		for (int i = 0; i < grid->no_cells; i++) {
 			Cell* cell = &grid->distribution[i];
 			if (cell->seedling_present) {
+				int id = cell->stem.second;
 				Tree* tree = pop->add(
 					grid->get_real_cell_position(cell),
-					&pop->get_crop(cell->stem.second)->strategy
+					&pop->get_crop(id)->strategy
 				);
 				cell->insert_sapling(tree, grid->cell_area, grid->cell_halfdiagonal_sqrt);
 				grid->state_distribution[i] = -7;
@@ -342,7 +443,7 @@ public:
 	void induce_background_mortality() {
 		vector<int> tree_deletion_schedule = {};
 		for (auto& [id, tree] : pop->members) {
-			if (help::get_rand_float(0, 1) < background_mortality) {
+			if (tree.life_expectancy <= tree.age) {
 				tree_deletion_schedule.push_back(id);
 			}
 		}
@@ -507,6 +608,15 @@ public:
 			return fire_free_interval_averages;
 		}
 	}
+	float get_basal_area() {
+		float basal_area = 0;
+		for (auto& [id, tree] : pop->members) {
+			basal_area += M_PI * tree.dbh * tree.dbh; // Add the cross-secitonal area of this tree's stem.
+		}
+		basal_area /= grid->get_tree_cover();
+		basal_area /= grid->area;
+		return basal_area;
+	}
 	float unsuppressed_flammability = 0;
 	shared_ptr<float[]> fire_free_interval_averages;
 	float min_suppressed_flammability = 0;
@@ -540,7 +650,7 @@ public:
 	int no_animal_seedlings = 0;
 	int no_recruits = 0;
 	int timestep = 0;
-	int time = -30;
+	int time = -5;
 	int pop_size = 0;
 	int verbosity = 0;
 	int seeds_produced = 0;

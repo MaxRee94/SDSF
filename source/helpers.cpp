@@ -96,12 +96,28 @@ int help::get_rand_int(int min, int max) {
     return round(help::get_rand_float(min, max));
 }
 
+int help::get_random_key(std::map<int, float>& map) {
+    int rand_idx = help::get_rand_int(0, map.size() - 1);
+    int i = 0;
+    for (auto const& [key, val] : map) {
+        if (i == rand_idx) {
+            return key;
+        }
+        i++;
+    }
+    throw runtime_error("Unable to generate random key.\n"); // Should not reach here
+}
+
 bool help::is_in(std::vector<int>* vec, int item) {
     return find(vec->begin(), vec->end(), item) != vec->end();
 }
 
 bool help::is_in(std::map<int, int>& map, int item) {
 	return map.find(item) != map.end();
+}
+
+bool help::is_in(std::map<int, float>& map, int item) {
+    return map.find(item) != map.end();
 }
 
 template <typename T>
@@ -168,6 +184,26 @@ void help::remove_from_vec(vector<int>* vec, int item) {
 }
 
 void help::print_map(std::map<int, int>* map) {
+    int i = 0;
+    for (auto const& [key, val] : (*map))
+    {
+        if (i > 0) {
+            std::cout << ", ";
+        }
+        std::cout << key        // string (key)
+            << ':'
+            << val;        // string's value
+        i++;
+    }
+    if (i == 0) {
+        std::cout << "<empty map>" << endl;
+    }
+    else {
+        std::cout << endl;
+    }
+}
+
+void help::print_map(std::map<int, float>* map) {
     int i = 0;
     for (auto const& [key, val] : (*map))
     {

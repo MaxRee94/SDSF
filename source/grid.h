@@ -36,6 +36,12 @@ public:
 	void reset_stem() {
 		stem = pair<float, int>(0, 0);
 	}
+	float get_growth_multiplier() {
+		return growth_multiplier;
+	}
+	void set_growth_multiplier(float _growth_multiplier) {
+		growth_multiplier = _growth_multiplier;
+	}
 	void update_grass_LAI(float tree_LAI_local_neighborhood) {
 		grass_LAI = compute_grass_LAI(tree_LAI_local_neighborhood);
 	}
@@ -206,6 +212,7 @@ private:
 	}
 	float LAI = 0; // Cumulative Leaf Area Index (LAI) of all trees in the cell.
 	float grass_LAI = 0;
+	float growth_multiplier = 1.0f;
 };
 
 
@@ -538,7 +545,7 @@ public:
 		int center_idx = get_capped_center_idx(it.tree_center_gb);
 		distribution[center_idx].insert_stem(tree, cell_area, cell_halfdiagonal_sqrt);
 		if (update_tree_LAI_neighborhood) {
-			update_aggregated_tree_LAIs(tree);
+			update_aggr_LAIs(tree);
 		}
 		return true;
 	}
@@ -616,38 +623,30 @@ public:
 		return LAI_sum;
 	}
 	float get_tree_LAI_of_local_neighborhood(Cell* cell, bool debug=false) {
-		if (LAI_aggregation_radius > 0) {
-			// Use a circular neighborhood with specified radius.
-			float radius = LAI_aggregation_radius;
-			float LAI_sum = 0;
-			int no_cells_in_radius = 0;
-			int min_x = (int)(cell->pos.first - radius);
-			int max_x = (int)(cell->pos.first + radius);
-			int min_y = (int)(cell->pos.second - radius);
-			int max_y = (int)(cell->pos.second + radius);
-			pair<float, float> cell_real_pos = get_real_cell_position(cell);
-			for (int x = min_x; x <= max_x; x++) {
-				for (int y = min_y; y <= max_y; y++) {
-					pair<int, int> neighbor_pos = pair<int, int>(x, y);
-					cap(neighbor_pos);
-					pair<float, float> neighbor_real_pos = get_real_cell_position(get_cell_at_position(neighbor_pos));
-					float dist = help::get_dist(pair<float, float>(cell->pos.first, cell->pos.second), neighbor_pos);
-					if (dist <= radius) {
-						Cell* neighbor = get_cell_at_position(pair<int, int>(x, y));
-						LAI_sum += neighbor->get_LAI();
-						no_cells_in_radius++;
-					}
+		// Use a circular neighborhood with specified radius.
+		float radius = LAI_aggregation_radius;
+		float LAI_sum = 0;
+		int no_cells_in_radius = 0;
+		int min_x = (int)(cell->pos.first - radius);
+		int max_x = (int)(cell->pos.first + radius);
+		int min_y = (int)(cell->pos.second - radius);
+		int max_y = (int)(cell->pos.second + radius);
+		pair<float, float> cell_real_pos = get_real_cell_position(cell);
+		for (int x = min_x; x <= max_x; x++) {
+			for (int y = min_y; y <= max_y; y++) {
+				pair<int, int> neighbor_pos = pair<int, int>(x, y);
+				cap(neighbor_pos);
+				pair<float, float> neighbor_real_pos = get_real_cell_position(get_cell_at_position(neighbor_pos));
+				float dist = help::get_dist(pair<float, float>(cell->pos.first, cell->pos.second), neighbor_pos);
+				if (dist <= radius) {
+					Cell* neighbor = get_cell_at_position(pair<int, int>(x, y));
+					LAI_sum += neighbor->get_LAI();
+					no_cells_in_radius++;
 				}
 			}
-			if (no_cells_in_radius == 0) return cell->get_LAI();
-			return LAI_sum / (float)no_cells_in_radius;
 		}
-		else {
-			float LAI = get_cumulative_onering_LAI_for_cell(cell);
-			LAI += cell->get_LAI();
-			LAI /= 9.0f; // Get the average LAI of the cell and its neighbors.
-			return LAI;
-		}
+		if (no_cells_in_radius == 0) return cell->get_LAI();
+		return LAI_sum / (float)no_cells_in_radius;
 	}
 	bool is_forest(float neighborhood_tree_LAI) {
 		return neighborhood_tree_LAI > 1.0f;
@@ -709,17 +708,15 @@ public:
 		return fuel_load_distribution;
 	}
 	shared_ptr<float[]> get_aggr_tree_LAI_distribution() {
-		for (int i = 0; i < no_cells; i++) {
-			aggr_tree_LAI_distribution[i] = get_tree_LAI_of_local_neighborhood(&distribution[i]);
-		}
+		update_aggr_LAIs();
 		return aggr_tree_LAI_distribution;
 	}
-	void update_aggregated_tree_LAIs() {
+	void update_aggr_LAIs() {
 		for (int i = 0; i < no_cells; i++) {
 			aggr_tree_LAI_distribution[i] = get_tree_LAI_of_local_neighborhood(&distribution[i]);
 		}
 	}
-	void update_aggregated_tree_LAIs(Tree* tree) {
+	void update_aggr_LAIs(Tree* tree) {
 		TreeDomainIterator it(cell_width, tree, tree->radius + LAI_aggregation_radius);
 		while (it.next()) {
 			cap(it.gb_cell_position);
@@ -1157,6 +1154,11 @@ public:
 	void set_grass_carrying_capacity(shared_ptr<float[]> distr) {
 		for (int i = 0; i < no_cells; i++) {
 			distribution[i].grass_carrying_capacity = distr[i];
+		}
+	}
+	void set_local_growth_multipliers(shared_ptr<float[]> distr) {
+		for (int i = 0; i < no_cells; i++) {
+			distribution[i].set_growth_multiplier(distr[i]);
 		}
 	}
 	int width = 0;

@@ -66,9 +66,7 @@ def set_dispersal_kernel(
 
 def set_initial_tree_cover(dynamics, args, color_dicts):
     print("Initial pattern image:", args.initial_pattern_image)
-    if args.initial_pattern_image == "none":
-        dynamics.state.set_tree_cover(args.treecover)
-    elif args.initial_pattern_image == "ctrl":
+    if args.initial_pattern_image == "ctrl":
         _args = copy.copy(args)
         #_args.grid_width = 200 # Temporarily set grid width to 200 for pattern generation
         img, path, benchmark_cover = vis.generate_controllable_pattern_image(**vars(_args))
@@ -78,12 +76,11 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
         cv2.imshow("forest mask", img)
         cv2.waitKey(1)
 
-
         # If the user has set the override_image_treecover to 2, we will use the benchmark cover value from the controllable pattern image.
         # The benchmark cover is the cover for a version of the pattern produced using the given parameters, but with a sine amplitude set to 0 (i.e., with circular disks).
         if args.override_image_treecover == 2:
             args.override_image_treecover = benchmark_cover
-        dynamics.state.set_cover_from_image(img, args.override_image_treecover)
+        #dynamics.state.set_cover_from_image(img, args.override_image_treecover)
     elif args.initial_pattern_image == "perlin_noise":
         path = f"{cfg.DATA_IN_DIR}/state_patterns/" + args.initial_pattern_image
         if "perlin_noise" == args.initial_pattern_image:
@@ -92,7 +89,7 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
             noise_frequency = 5.0 / args.patch_width # Convert patch width to noise frequency
             noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
             vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=args.noise_octaves)
-    else:
+    elif args.initial_pattern_image != "none":
         print("Setting tree cover from image...")
 
         path = f"{cfg.DATA_IN_DIR}/state_patterns/" + args.initial_pattern_image
@@ -122,10 +119,13 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
         dynamics.state.set_cover_from_image(img / 255, args.override_image_treecover)
     dynamics.state.repopulate_grid(0)
 
-    if args.initial_pattern_image != "none":        
+    if args.initial_pattern_image == "none":    
+        dummy_img = np.zeros([args.grid_width,args.grid_width,3],dtype=np.uint8)
+        dummy_img.fill(1)
+        dynamics, args = do_burn_in(dynamics, args, dummy_img, color_dicts, target_treecover=args.treecover)
+    else:
         cv2.imshow("forest mask", img)
         cv2.waitKey(1)
-        # If we're using an image to set tree cover, we need to do a burn-in run to stabilize forest density.
         dynamics, args = do_burn_in(dynamics, args, img, color_dicts)
 
     return dynamics, args
@@ -325,11 +325,11 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
     imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
     vis.save_image(img, imagepath, get_max(1000, img.shape[0]), interpolation="none")
     
-    if ("fuel" in visualization_types):
-        print("-- Saving fuel image...") if verbose else None
-        fuel_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel")
-        imagepath_fuel = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
-        vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
+    # if ("fuel" in visualization_types):
+    #     print("-- Saving fuel image...") if verbose else None
+    #     fuel_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel")
+    #     imagepath_fuel = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
+    #     vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
 
     if ("aggr_tree_LAI" in visualization_types):
         print("-- Saving aggregated tree LAI image...") if verbose else None
@@ -337,25 +337,32 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         imagepath_aggr_tree_LAI = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/aggr_tree_LAI/" + str(dynamics.time) + ".png")
         vis.save_image(aggr_tree_LAI_img, imagepath_aggr_tree_LAI, get_max(1000, aggr_tree_LAI_img.shape[0]))
 
-    if ("fuel_penetration" in visualization_types):
-        print("-- Saving fuel penetration image...") if verbose else None
-        fuel_penetration_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel_penetration")
-        imagepath_fuel_penetration = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel_penetration/" + str(dynamics.time) + ".png")
-        vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
+    # if ("fuel_penetration" in visualization_types):
+    #     print("-- Saving fuel penetration image...") if verbose else None
+    #     fuel_penetration_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel_penetration")
+    #     imagepath_fuel_penetration = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel_penetration/" + str(dynamics.time) + ".png")
+    #     vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
 
 
-def do_burn_in(dynamics, args, forest_mask, color_dicts):
+def do_burn_in(dynamics, args, forest_mask, color_dicts, target_treecover=0):
     """Perform burn-in procedure to stabilize initial forest density and demography."""
     
     burn_in_timesteps = abs(dynamics.time)
     print(f"Beginning burn-in for {burn_in_timesteps} timesteps...")
-    while dynamics.time < 0:
+    init_csv = True
+    args.treesize_bins = "initialize"
+    cur_treecover = 0
+    while dynamics.time < 0 or cur_treecover < target_treecover:
         print(f"Timestep: {dynamics.time})")
         dynamics.disperse_within_forest(forest_mask)
         dynamics.grow()
         dynamics.induce_background_mortality()
         dynamics.state.repopulate_grid(0)
+        dynamics.prune(forest_mask)
         dynamics.report_state()
+        args = io.export_state(dynamics, path=args.csv_path, init_csv=init_csv, args=args)
+        init_csv = False
+        cur_treecover = dynamics.state.grid.get_tree_cover()
         
         # Get a color image representation of the initial state and show it.
         img = vis.visualize(
@@ -363,6 +370,7 @@ def do_burn_in(dynamics, args, forest_mask, color_dicts):
             color_dict=color_dicts["normal"]
         )
         dynamics.time += 1
+    dynamics.time = 0
 
     return dynamics, args
 
@@ -433,9 +441,9 @@ def do_iteration(dynamics, args):
 def updateloop(dynamics, color_dicts, args):
     print("Beginning simulation...")
     start = time.time()
-    csv_path = args.csv_path
+    treesize_bins = args.treesize_bins
     visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI", "aggr_tree_LAI", "colored_patches", "fuel_penetration"]
-    init_csv = True
+    init_csv = False
     prev_tree_cover = [args.treecover] * 60
     slope = 0
     largest_absolute_slope = 0
@@ -485,12 +493,11 @@ def updateloop(dynamics, color_dicts, args):
             )
     
         print("-- Exporting state_data...") if verbose else None
-        csv_path = io.export_state(
-            dynamics, csv_path, init_csv,
+        args = io.export_state(
+            dynamics, args.csv_path, init_csv,
             tree_cover_slope=slope,
             args=SimpleNamespace(**vars(args))
         )
-        init_csv = False
 
         print("-- Saving tree positions...") if verbose else None
         # io.save_state(dynamics)
