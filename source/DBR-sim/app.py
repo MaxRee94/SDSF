@@ -534,7 +534,7 @@ def updateloop(dynamics, color_dicts, args):
         cv2.destroyAllWindows()
         dynamics.free()
 
-    return dynamics, slope, largest_absolute_slope, initial_no_dispersals
+    return dynamics, slope, largest_absolute_slope, initial_no_dispersals, args
 
 
 def test_kernel():
@@ -552,14 +552,16 @@ def test_kernel():
     return
 
 
+def strategy_distribution_params_are_loaded(strategy_distribution_params):
+    return type(strategy_distribution_params) == dict
+
+
 def main(batch_parameters=None, **user_args): 
 
-    #vis.visualize_legend()
-    #return
-
     # Set any given batch parameters
-    with open(os.path.join(cfg.DATA_IN_DIR, user_args["strategy_distribution_params"]), "r") as sdp_jsonfile:
-        user_args["strategy_distribution_params"] = json.load(sdp_jsonfile)
+    if not strategy_distribution_params_are_loaded(user_args["strategy_distribution_params"]):
+        with open(os.path.join(cfg.DATA_IN_DIR, user_args["strategy_distribution_params"]), "r") as sdp_jsonfile:
+            user_args["strategy_distribution_params"] = json.load(sdp_jsonfile)
     if batch_parameters:
         print("-- Setting batch parameters: ", batch_parameters)
         if (type(batch_parameters) == str):

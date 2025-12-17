@@ -132,6 +132,7 @@ def adjust_mean_distance_for_uniform_square_grid(image_size, target_distance, ma
     with all neighbor distances within ±1% of the adjusted mean distance.
     """
     w, h = image_size
+    assert target_distance < w, f"Mean distance between patches (currently {target_distance}) must be smaller than width of spatial domain ({w})."
     target_no_squares = int(w / target_distance)
     new_target_distance = w / target_no_squares
 
@@ -290,40 +291,41 @@ def adjust_args_to_gridwidth(args):
 def create_image(**kwargs):
     args = SimpleNamespace(**kwargs)
     args.global_rotation_offset = random.randint(0, 100000)
-    if not kwargs.get("recursive_call"):
-        args = adjust_args_to_gridwidth(args)
+    image_size = (args.grid_width, args.grid_width)
+    # if not kwargs.get("recursive_call"):
+    #     args = adjust_args_to_gridwidth(args)
     
     if args.grid_type == "hex":
         if args.enforce_distance_uniformity:
             original_distance = args.mean_distance
-            args.mean_distance = adjust_mean_distance_for_uniform_hex_grid(args.image_size, args.mean_distance)
+            args.mean_distance = adjust_mean_distance_for_uniform_hex_grid(image_size, args.mean_distance)
             if not math.isclose(original_distance, args.mean_distance, abs_tol=1):
                 if args.suppress_distance_warning:
                     print(f"Warning: Mean_distance {original_distance:.2f} adjusted to {args.mean_distance:.2f} for uniform hex grid.")
                 else:
                     raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {args.mean_distance-0.5} to have a perfect hex grid.")
-        base_positions = generate_hex_grid_with_filter(args.image_size, args.mean_distance)
+        base_positions = generate_hex_grid_with_filter(image_size, args.mean_distance)
     elif args.grid_type == "square":
         if args.enforce_distance_uniformity:
             original_distance = args.mean_distance
-            args.mean_distance = adjust_mean_distance_for_uniform_square_grid(args.image_size, args.mean_distance)
+            args.mean_distance = adjust_mean_distance_for_uniform_square_grid(image_size, args.mean_distance)
             if not math.isclose(original_distance, args.mean_distance, abs_tol=1):
                 if args.suppress_distance_warning:
                     print(f"Warning: Mean_distance {original_distance:.2f} adjusted to {args.mean_distance:.2f} for uniform square grid.")
                 else:
                     raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {args.mean_distance-0.5:.2f} to have a perfect square grid.")
-        base_positions = generate_square_grid(args.image_size, args.mean_distance)
+        base_positions = generate_square_grid(image_size, args.mean_distance)
     else:
         raise ValueError("grid_type must be 'hex' or 'square'")
 
-    positions = apply_jitter(base_positions, args.image_size, args.mean_distance, args.cv_distance)
-    img = np.zeros(args.image_size, dtype=np.uint8)
+    positions = apply_jitter(base_positions, image_size, args.mean_distance, args.cv_distance)
+    img = np.zeros(image_size, dtype=np.uint8)
     radii = [max(2, np.random.normal(args.mean_radius, args.cv_radius * args.mean_radius)) for _ in positions]
 
     # Draw disks with periodic wrap
     shifts = [
-        (0, 0), (args.image_size[0], 0),(0, args.image_size[1]), (args.image_size[0], args.image_size[1]), (-args.image_size[0], -args.image_size[1]),
-        (args.image_size[0], -args.image_size[1]), (-args.image_size[0], args.image_size[1])
+        (0, 0), (image_size[0], 0),(0, image_size[1]), (image_size[0], image_size[1]), (-image_size[0], -image_size[1]),
+        (image_size[0], -image_size[1]), (-image_size[0], image_size[1])
     ]
     ids = np.random.randint(0, high=10000, size=len(positions))
     for i, (center, radius) in enumerate(zip(positions, radii)):
@@ -339,7 +341,7 @@ def create_image(**kwargs):
     stripe_metadata = []
     if args.draw_stripes:
         stripe_pairs, stripe_metadata = build_parallel_stripes(
-            positions, args.image_size, args.stripe_angle_deg, args.stripe_mean_length, args.stripe_std_length
+            positions, image_size, args.stripe_angle_deg, args.stripe_mean_length, args.stripe_std_length
         )
         for p1, p2 in stripe_pairs:
             if args.sin_stripe:
