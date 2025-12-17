@@ -90,7 +90,6 @@ def set_heterogeneity_maps(dynamics, args):
         image = cv2.resize(image, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_NEAREST)
         image = image / 255  # Normalize to 0-1
         setter_func(image)
-        
 
     return dynamics, args
 
