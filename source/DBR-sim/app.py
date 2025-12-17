@@ -27,10 +27,6 @@ from x64.Release import dbr_cpp as cpp
 
 print(cpp.__file__)
 
-def unpack_control_keys(control_variable):
-    control_keys = control_variable.split("->")
-    return control_keys
-
 
 def set_dispersal_kernel(
         dynamics, dispersal_mode, multi_disperser_params

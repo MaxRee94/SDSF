@@ -12,7 +12,7 @@ def check_cli_args(**user_args):
 
 
 def main():
-    """Set up and launch DBR-sim  either directly (using cli args) or by first showing the GUI."""
+    """Set up and launch DBR-sim either directly (using cli args) or by first showing the GUI."""
     cli_args_provided = len(sys.argv) > 1
     if cli_args_provided:
         kwargs = parse_args()

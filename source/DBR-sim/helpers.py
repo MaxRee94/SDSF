@@ -119,6 +119,11 @@ def get_2d_dist(p1, p2):
     return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
 
 
+def unpack_control_keys(control_variable):
+    control_keys = control_variable.split("->")
+    return control_keys
+
+
 def compute_radial_distribution_function(dynamics, stepsize=0.02):
     tree_positions = dynamics.state.get_tree_positions()
     
