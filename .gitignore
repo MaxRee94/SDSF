@@ -10,6 +10,7 @@ source/scripts/temp/
 data_in/local_overrides/
 source/DBR-sim/env
 source/DBR-sim/env2
+data_in/heterogeneity/local_growth_multipliers/*
 *.bat
 
 # Visaul studio files
