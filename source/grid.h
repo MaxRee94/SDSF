@@ -653,6 +653,10 @@ public:
 	}
 	bool is_forest(Cell* cell) {
 		float tree_LAI_local_neighborhood = aggr_tree_LAI_distribution[cell->idx];
+		if (is_forest(tree_LAI_local_neighborhood)) {
+			pair<int, int> pos = idx_2_pos(cell->idx);
+			printf("aggr tree LAI for location %i, %i: %f, local LAI: %f \n", pos.first, pos.second, tree_LAI_local_neighborhood, cell->get_LAI());
+		}
 		return is_forest(tree_LAI_local_neighborhood);
 	}
 	bool is_forest(int idx) {

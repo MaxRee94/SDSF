@@ -353,6 +353,7 @@ def do_burn_in(dynamics, args, forest_mask, color_dicts, target_treecover=1):
     visualization_types = ["aggr_tree_LAI", "colored_patches"]
     fire_freq_arrays = []
     fire_no_timesteps = 1
+    patch_colors = {}
     while dynamics.time < args.burnin_duration:
         print(f"Burn-in timestep:    {dynamics.time})")
         dynamics.disperse_within_forest(forest_mask)
@@ -370,6 +371,10 @@ def do_burn_in(dynamics, args, forest_mask, color_dicts, target_treecover=1):
         patches = dynamics.get_patches() 
 
         # Get a color image representation of the initial state and show it.
+        do_visualizations(
+            dynamics, fire_freq_arrays, fire_no_timesteps, False, color_dicts,
+            True, visualization_types, patches, patch_colors, args
+        )
         img = vis.visualize(
             dynamics.state.grid, args.image_width, collect_states=1,
             color_dict=color_dicts["normal"]
