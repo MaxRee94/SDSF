@@ -486,9 +486,9 @@ public:
 		}
 		no_fire_induced_deaths = popsize_before_burns - pop->size();
 		printf("no fire induced deaths (time = %i): %i \n", time, no_fire_induced_deaths);
-		printf("no fire induced topkills: %i \n", time, no_fire_induced_topkills);
-		printf("no fire induced topkills of non-seedlings: %i \n", time, no_fire_induced_nonseedling_topkills);
-		printf("no exposures of adults to fire: %i \n", time, no_exposures_of_adults_to_fire);
+		printf("no fire induced topkills: %i \n", no_fire_induced_topkills);
+		printf("no fire induced topkills of non-seedlings: %i \n", no_fire_induced_nonseedling_topkills);
+		printf("no exposures of adults to fire: %i \n", no_exposures_of_adults_to_fire);
 		cout.precision(2);
 		printf(  
 			"-- Fires: %i, Topkills: %s, Kills: %s \n",
