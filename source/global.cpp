@@ -259,6 +259,9 @@ PYBIND11_MODULE(dbr_cpp, module) {
             delete[] tree_sizes;
             return np_arr;
 		})
+        .def("get_tree_count", [](State& state) {
+		    return state.population.size();
+        })
         .def("get_tree_ages", [](State& state) {
             float* tree_ages = new float[state.population.size()];
             state.get_tree_ages(tree_ages);
@@ -347,6 +350,9 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def("get_basal_area", [](Dynamics& dynamics) {
             float basal_area = dynamics.get_basal_area();
             return basal_area;
+        })
+        .def("remove_trees_up_to_age", [](Dynamics& dynamics, int& dbh_threshold) {
+            dynamics.remove_trees_up_to_age(dbh_threshold);
         })
         .def("free", &Dynamics::free)
         .def("set_global_linear_kernel", &Dynamics::set_global_linear_kernel)

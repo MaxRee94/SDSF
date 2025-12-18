@@ -387,6 +387,18 @@ public:
 		}
 		timer.stop(); printf("-- Dispersing %s animal seeds took %f seconds. \n", help::readable_number(no_seeds_to_disperse).c_str(), timer.elapsedSeconds());
 	}
+	void remove_trees_up_to_age(int age_threshold) {
+		vector<int> tree_deletion_schedule = {};
+		for (auto& [id, tree] : pop->members) {
+			if (tree.age < age_threshold) {
+				tree_deletion_schedule.push_back(id);
+			}
+		}
+		for (int id : tree_deletion_schedule) {
+			pop->remove(id);
+		}
+		printf("-- Number of trees removed up to and including age %i year: %i \n", age_threshold, tree_deletion_schedule.size());
+	}
 	void recruit() {
 		Timer timer; timer.start();
 		int pre_recruitment_popsize = pop->size();
@@ -399,6 +411,7 @@ public:
 					&pop->get_crop(id)->strategy
 				);
 				cell->insert_sapling(tree, grid->cell_area, grid->cell_halfdiagonal_sqrt);
+
 				grid->state_distribution[i] = -7;
 			}
 		}
@@ -650,7 +663,7 @@ public:
 	int no_animal_seedlings = 0;
 	int no_recruits = 0;
 	int timestep = 0;
-	int time = -5;
+	int time = 0;
 	int pop_size = 0;
 	int verbosity = 0;
 	int seeds_produced = 0;

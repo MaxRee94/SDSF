@@ -21,6 +21,7 @@ from helpers import *
 from config import *
 import controllable_pattern_generator as cpg
 import sine_pattern_generator as spg
+import simple_noise_generator as sng
 
 #from x64.Debug import dbr_cpp as cpp
 from x64.Release import dbr_cpp as cpp
@@ -87,8 +88,12 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
             path = f"{cfg.PERLIN_NOISE_DIR}/" + args.initial_pattern_image + ".png"
             noise_frequency = 5.0 / args.patch_width # Convert patch width to noise frequency
             noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
-            vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=args.noise_octaves)
-    elif args.initial_pattern_image != "none":
+            img = vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=args.noise_octaves)
+    elif args.initial_pattern_image == "none":
+        img = sng.generate(scale=4, grid_width=args.grid_width, binary_connectivity=args.treecover)
+        impath = f"{constants['SIMPLE_PATTERNS_DIR']}/whitenoise.png"
+        cv2.imwrite(impath, img)
+    else:
         print("Setting tree cover from image...")
 
         path = f"{cfg.DATA_IN_DIR}/state_patterns/" + args.initial_pattern_image
@@ -113,19 +118,12 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
             img = vis.get_thresholded_image(img, args.treecover * img.shape[0] * img.shape[0] * 255 )
             cv2.imwrite(path.replace(".png", "_thresholded.png"), img)
  
-        img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
-        print("Created image. Setting cover...")
-        dynamics.state.set_cover_from_image(img / 255, args.override_image_treecover)
-    dynamics.state.repopulate_grid(0)
+    img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_NEAREST)
+    cv2.imshow("forest mask", img)
+    cv2.waitKey(1)
 
-    if args.initial_pattern_image == "none":    
-        dummy_img = np.zeros([args.grid_width,args.grid_width,3],dtype=np.uint8)
-        dummy_img.fill(1)
-        dynamics, args = do_burn_in(dynamics, args, dummy_img, color_dicts, target_treecover=args.treecover)
-    else:
-        cv2.imshow("forest mask", img)
-        cv2.waitKey(1)
-        dynamics, args = do_burn_in(dynamics, args, img, color_dicts)
+    # Do burn-in procedure to stabilize initial forest density and demography    
+    dynamics, args = do_burn_in(dynamics, args, img, color_dicts, target_treecover=args.treecover)
 
     return dynamics, args
 
@@ -270,6 +268,7 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         central_patch = -1
         max_no_colors = 1000
         offset = -10
+
         for i, patch in enumerate(patches):
             if i > 20 and dynamics.time == 1:
                 if i > 100:
@@ -287,6 +286,7 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
                 else:    
                     color_idx = vis.get_most_distinct_index(patch_color_ids.values(), max_no_colors, offset)
                 patch_color_ids[str(patch_id)] = color_idx # Assign a new color index to the patch
+                print("New col idx: ", color_idx)
             patch_color_id = patch_color_ids[str(patch_id)]
             col=color_dicts["colored_patches"][patch_color_id]
             forest_area += patch["area"] if patch["type"] == "forest" else 0
@@ -343,32 +343,44 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
     #     vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
 
 
-def do_burn_in(dynamics, args, forest_mask, color_dicts, target_treecover=0):
+def do_burn_in(dynamics, args, forest_mask, color_dicts, target_treecover=1):
     """Perform burn-in procedure to stabilize initial forest density and demography."""
     
-    burn_in_timesteps = abs(dynamics.time)
-    print(f"Beginning burn-in for {burn_in_timesteps} timesteps...")
+    print(f"Beginning burn-in for {args.burnin_duration} timesteps...")
     init_csv = True
     args.treesize_bins = "initialize"
     cur_treecover = 0
-    while dynamics.time < 0 or cur_treecover < target_treecover:
-        print(f"Timestep: {dynamics.time})")
+    visualization_types = ["aggr_tree_LAI", "colored_patches"]
+    fire_freq_arrays = []
+    fire_no_timesteps = 1
+    while dynamics.time < args.burnin_duration:
+        print(f"Burn-in timestep:    {dynamics.time})")
         dynamics.disperse_within_forest(forest_mask)
         dynamics.grow()
         dynamics.induce_background_mortality()
         dynamics.state.repopulate_grid(0)
         dynamics.prune(forest_mask)
+        dynamics.state.repopulate_grid(0)
         dynamics.report_state()
         args = io.export_state(dynamics, path=args.csv_path, init_csv=init_csv, args=args)
         init_csv = False
         cur_treecover = dynamics.state.grid.get_tree_cover()
         
+        # Obtain patches from simulation
+        patches = dynamics.get_patches() 
+
         # Get a color image representation of the initial state and show it.
         img = vis.visualize(
             dynamics.state.grid, args.image_width, collect_states=1,
             color_dict=color_dicts["normal"]
         )
         dynamics.time += 1
+
+    # Remove seedlings, then let trees disperse for one time step to create a realistic initial distribution of seedlings.
+    dynamics.time -= 1
+    dynamics.remove_trees_up_to_age(1)
+    dynamics.state.repopulate_grid(0)
+
     dynamics.time = 0
 
     return dynamics, args
@@ -378,7 +390,6 @@ def do_iteration(dynamics, args):
     """Run a single simulation iteration."""
 
     # -- PREPARE -- #
-    dynamics.time += 1
     print(f"\nTime: {dynamics.time}")
 
     if args.verbosity > 0:
@@ -528,6 +539,8 @@ def updateloop(dynamics, color_dicts, args):
 
         if do_terminate:
             break
+        
+        dynamics.time += 1
 
     if not args.headless:
         cv2.destroyAllWindows()

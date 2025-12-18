@@ -20,6 +20,7 @@ constants["CPG_OUTPUT_DIR"] = constants["DATA_OUT_DIR"] + "/controlled_pattern_g
 constants["DATA_INTERNAL_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_internal"
 constants["BUILD_DIR"] = constants["REPOSITORY_BASEDIR"] + "/build"
 constants["PERLIN_NOISE_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/perlin_noise"
+constants["SIMPLE_PATTERNS_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/simple_patterns"
 constants["CONTROLLED_PATTERN_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/controlled_patterns"
 constants["LEGEND_PATH"] = constants["DATA_OUT_DIR"] + "/legends"
 constants["TREE_DBH_FILE"] = constants["DATA_OUT_DIR"] + "/state_reports/tree_dbh_values.json"
@@ -131,6 +132,7 @@ defaults = {
     "grow": True,
     "disperse": True,
     "burn": True,
+    "burnin_duration": 300
 }
 
 gui_defaults = {
@@ -973,6 +975,16 @@ _parameter_config = {
             "default": defaults["burn"],
         }
     },
+    "burnin_duration": {
+        "keys": {
+            "cli": ["--burnin_duration", "-bdur"]
+        },
+        "settings": {
+            "type": int,
+            "help": "The duration of the burn-in period (in timesteps) before the main simulation starts.",
+            "default": defaults["burnin_duration"],
+        }
+    }
 }
 
 class ParameterConfig():
