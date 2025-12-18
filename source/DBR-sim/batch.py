@@ -179,13 +179,12 @@ def execute_saddle_search(
         params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv,
         color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=argmin, secondary_variable=secondary_variable
     )
-    print(f"params after first run:", type(params))
     dynamics, tree_cover_slope, largest_absolute_slope, argmax_result, initial_no_dispersals, argmax_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev, _params = execute_multiple_runs(
         params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv,
         color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=argmax, secondary_variable=secondary_variable
     )
-    print(f"params after second run:", type(params))
     secondary_value_trajectory = {argmin:argmin_result, argmax:argmax_result}
+    assert argmin_result != argmax_result, f"Mean of dependent variable is equal (specifically: {argmin_result}) for both extremes of the given secondary parameter range ({argmin}, {argmax}). Check whether parameter range is realistic and max_timesteps (currently {params['max_timesteps']}) is sufficiently long."
     negative_value_trajectory = {}
     if dependent_var == "tree_cover_slope":
         if argmin_result < 0:
@@ -224,7 +223,6 @@ def execute_saddle_search(
             color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=cur_secondary_value, secondary_variable=secondary_variable,
             dependent_result_range_mean=dependent_result_range_mean, dependent_result_range_stdev=dependent_result_range_stdev
         )
-        print(f"params after iter {i}: ", type(params))
         secondary_value_trajectory[cur_secondary_value] = cur_secondary_value_result
         
         # Get smallest and largest secondary values
