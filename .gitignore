@@ -254,3 +254,5 @@ data_in/heterogeneity/heterogeneity_config.json
 .vs/SDSF/CopilotIndices/17.14.995.13737/CodeChunks.db
 .vs/ProjectSettings.json
 .vs/CMakeWorkspaceSettings.json
+source/DBR-sim/batch_master_8_processes.ps1
+source/DBR-sim/batch_master_singleprocess.ps1
