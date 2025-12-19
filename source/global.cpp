@@ -280,6 +280,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
 		.def("reset_state_distr", &Grid::reset_state_distr)
 		.def("redo_count", &Grid::redo_count)
         .def_readwrite("width", &Grid::width)
+        .def_readwrite("no_cells", &Grid::no_cells)
         .def_readwrite("width_r", &Grid::width_r)
         .def_readwrite("tree_cover", &Grid::tree_cover)
         .def("get_distribution", [](Grid& grid, int& collect_states) {

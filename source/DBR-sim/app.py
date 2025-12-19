@@ -93,6 +93,7 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
         img = sng.generate(scale=4, grid_width=args.grid_width, binary_connectivity=args.treecover)
         impath = f"{constants['SIMPLE_PATTERNS_DIR']}/whitenoise.png"
         cv2.imwrite(impath, img)
+        img = np.zeros((args.grid_width, args.grid_width), np.uint8) + 1
     else:
         print("Setting tree cover from image...")
 
@@ -258,7 +259,7 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         print("Creating colored patches image...") if verbose else None
 
         # Modify color array to give patches distinct colors
-        patch_colors_indices = dynamics.state.grid.get_distribution(False)
+        patch_colors_indices = np.zeros((dynamics.state.grid.width, dynamics.state.grid.width), dtype=int) -1
         
         # Sort patches so that larger patches are assigned colors first
         patches = sorted(patches, key=lambda patch: patch["area"], reverse=True)
@@ -286,13 +287,12 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
                 else:    
                     color_idx = vis.get_most_distinct_index(patch_color_ids.values(), max_no_colors, offset)
                 patch_color_ids[str(patch_id)] = color_idx # Assign a new color index to the patch
-                print("New col idx: ", color_idx)
             patch_color_id = patch_color_ids[str(patch_id)]
             col=color_dicts["colored_patches"][patch_color_id]
             forest_area += patch["area"] if patch["type"] == "forest" else 0
             for cell in patch["cells"]:
                 patch_colors_indices[cell[1]][cell[0]] = patch_color_id
-        
+
         colored_patches_img = vis.get_image(patch_colors_indices, color_dicts["colored_patches"], dynamics.state.grid.width)
         args.show_edges = False # Hardcoded for now
         if args.show_edges:
@@ -356,12 +356,14 @@ def do_burn_in(dynamics, args, forest_mask, color_dicts, target_treecover=1):
     patch_colors = {}
     while dynamics.time < args.burnin_duration:
         print(f"Burn-in timestep:    {dynamics.time})")
-        dynamics.disperse_within_forest(forest_mask)
+        dynamics.disperse_within_forest(forest_mask) if target_treecover == 1 or dynamics.time <= 2 else None # Disperse only during the first two timesteps.
         dynamics.grow()
         dynamics.induce_background_mortality()
-        dynamics.state.repopulate_grid(0)
+        dynamics.state.repopulate_grid(args.verbosity)
         dynamics.prune(forest_mask)
-        dynamics.state.repopulate_grid(0)
+        dynamics.state.repopulate_grid(args.verbosity)
+        dynamics.state.grid.reset_state_distr()
+        dynamics.update_forest_patch_detection()
         dynamics.report_state()
         args = io.export_state(dynamics, path=args.csv_path, init_csv=init_csv, args=args)
         init_csv = False
@@ -370,7 +372,7 @@ def do_burn_in(dynamics, args, forest_mask, color_dicts, target_treecover=1):
         # Obtain patches from simulation
         patches = dynamics.get_patches() 
 
-        # Get a color image representation of the initial state and show it.
+        # get a color image representation of the initial state and show it.
         do_visualizations(
             dynamics, fire_freq_arrays, fire_no_timesteps, False, color_dicts,
             True, visualization_types, patches, patch_colors, args
