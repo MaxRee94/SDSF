@@ -78,9 +78,9 @@ def set_heterogeneity_maps(dynamics, args):
             print(f"Read {map_type} map from image file:", impath)
         else:
             if m_args["type"] == "sine":
-                image = spg.generate((dynamics.state.grid.width, dynamics.state.grid.width), **m_args)
+                image = args.spg.generate((dynamics.state.grid.width, dynamics.state.grid.width), **m_args)
             elif m_args["type"] == "noise":
-                image = sng.generate(grid_width=dynamics.state.grid.width, **m_args)
+                image = sng.generate(grid_width=dynamics.state.grid.width, args=args, **m_args)
             else:
                 raise ValueError(f"Unknown {map_type} pattern type: {m_args['type']}")
             impath = os.path.join(map_dir, f"{map_type}.png")

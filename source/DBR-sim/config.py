@@ -548,7 +548,7 @@ _parameter_config = {
         "settings": {
             "type": int,
             "help": (
-                "Random seed used by the c++ component of this program. A value of -999 (default) indicates each run will use a different unique seed."
+                "Random seed used for all stochastic variables except fire frequency. A value of -999 (default) indicates each run will use a different unique seed."
             ),
             "default": defaults["random_seed"],
         },
