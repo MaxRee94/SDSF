@@ -90,10 +90,10 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
             noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
             img = vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=args.noise_octaves)
     elif args.initial_pattern_image == "none":
-        img = sng.generate(scale=4, grid_width=args.grid_width, binary_connectivity=args.treecover)
+        img = sng.generate(scale=2, grid_width=args.grid_width, binary_connectivity=args.treecover)
         impath = f"{constants['SIMPLE_PATTERNS_DIR']}/whitenoise.png"
         cv2.imwrite(impath, img)
-        img = np.zeros((args.grid_width, args.grid_width), np.uint8) + 1
+        #img = np.zeros((args.grid_width, args.grid_width), np.uint8) + 1
     else:
         print("Setting tree cover from image...")
 
@@ -233,7 +233,7 @@ def termination_condition_satisfied(dynamics, start_time, args):
     return satisfied
 
 
-def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, patches, patch_color_ids, args):
+def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, patches, patch_count_change, patch_color_ids, args):
     if ("recruitment" in visualization_types):
         print("Saving recruitment img...") if verbose else None
         recruitment_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["recruitment"], collect_states=0)
@@ -258,7 +258,7 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
     if ("colored_patches" in visualization_types):
         print("Creating colored patches image...") if verbose else None
 
-        # Modify color array to give patches distinct colors
+        # Initialize color index array
         patch_colors_indices = np.zeros((dynamics.state.grid.width, dynamics.state.grid.width), dtype=int) -1
         
         # Sort patches so that larger patches are assigned colors first
@@ -271,9 +271,9 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         offset = -10
 
         for i, patch in enumerate(patches):
-            if i > 20 and dynamics.time == 1:
-                if i > 100:
-                    print("Breaking patch coloring loop at patch no", i, f"for performance reasons (n.o. patches = {len(patches)}")
+            if (len(patches) > 20) and dynamics.time == 0:
+                if i >= 100:
+                    print("Breaking patch coloring loop at patch no", i, f"for performance reasons (number of patches = {len(patches)}).")
                     break
                 if i % 15 == 0:
                     print(f"Coloring patch no {i}/{len(patches)}... Will be cut off at 100.")
@@ -282,9 +282,9 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
             patch_id = patch["id"]
 
             if not patch_color_ids.get(str(patch_id)):
-                if (len(patches) > 30) and dynamics.time > 1:
+                if (len(patches) > 30) and dynamics.time > 0:
                     color_idx = vis.get_random_color_index(patch_color_ids.values(), max_no_colors, offset)
-                else:    
+                else:
                     color_idx = vis.get_most_distinct_index(patch_color_ids.values(), max_no_colors, offset)
                 patch_color_ids[str(patch_id)] = color_idx # Assign a new color index to the patch
             patch_color_id = patch_color_ids[str(patch_id)]
@@ -356,7 +356,7 @@ def do_burn_in(dynamics, args, forest_mask, color_dicts, target_treecover=1):
     patch_colors = {}
     while dynamics.time < args.burnin_duration:
         print(f"Burn-in timestep:    {dynamics.time})")
-        dynamics.disperse_within_forest(forest_mask) if target_treecover == 1 or dynamics.time <= 2 else None # Disperse only during the first two timesteps.
+        dynamics.disperse_within_forest(forest_mask)
         dynamics.grow()
         dynamics.induce_background_mortality()
         dynamics.state.repopulate_grid(args.verbosity)
@@ -373,10 +373,10 @@ def do_burn_in(dynamics, args, forest_mask, color_dicts, target_treecover=1):
         patches = dynamics.get_patches() 
 
         # get a color image representation of the initial state and show it.
-        do_visualizations(
-            dynamics, fire_freq_arrays, fire_no_timesteps, False, color_dicts,
-            True, visualization_types, patches, patch_colors, args
-        )
+        # do_visualizations(
+        #     dynamics, fire_freq_arrays, fire_no_timesteps, False, color_dicts,
+        #     True, visualization_types, patches, patch_colors, args
+        # )
         img = vis.visualize(
             dynamics.state.grid, args.image_width, collect_states=1,
             color_dict=color_dicts["normal"]
@@ -465,6 +465,7 @@ def updateloop(dynamics, color_dicts, args):
     slope = 0
     largest_absolute_slope = 0
     export_animal_resources = False
+    patches = {}
     collect_states = 1
     fire_no_timesteps = 1
     patch_colors = {}
@@ -499,14 +500,16 @@ def updateloop(dynamics, color_dicts, args):
         do_terminate = termination_condition_satisfied(dynamics, start, args)
     
         # Obtain patches from simulation
+        old_no_patches = len(patches)
         patches = dynamics.get_patches() 
+        patch_count_change =  len(patches) - old_no_patches
     
         # Do visualizations
         if not args.headless:
             do_visualizations(
                 dynamics, fire_freq_arrays, fire_no_timesteps, verbose,
                 color_dicts, collect_states, visualization_types,
-                patches, patch_colors, args
+                patches, patch_count_change, patch_colors, args
             )
     
         print("-- Exporting state_data...") if verbose else None
