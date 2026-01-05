@@ -116,7 +116,7 @@ defaults = {
     "sin_stripe_wavelength":100,
     "grid_type":"square",
     "override_image_treecover": -999,  # If set to a value other than -999, overrides the tree cover in the image (the fraction of white pixels) with this value.
-    "rotate_randomly":False,
+    "rotate_randomly": False,
     "suppress_distance_warning": False,  # If True, suppresses the warning about distance uniformity in the cpg script.
     "cur_image_fraction_pixels": None,
     "circular_image_fraction_pixels": None,

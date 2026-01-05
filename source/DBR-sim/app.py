@@ -27,7 +27,6 @@ import simple_noise_generator as sng
 #from x64.Debug import dbr_cpp as cpp
 from x64.Release import dbr_cpp as cpp
 
-print(cpp.__file__)
 
 def unpack_control_keys(control_variable):
     control_keys = control_variable.split("->")
@@ -137,15 +136,19 @@ def init(args):
 
     # Set random seed
     if (args.random_seed == -999):
-        args.rng = np.random.default_rng(random.randint(0, 100000000))
+        args.random_seed = random.randint(0, 100000000)
+        args.rng = np.random.default_rng(args.random_seed)
+        print(f"Generated new global random seed ({args.random_seed})")
     else:
         args.rng = np.random.default_rng(args.random_seed)
+        print(f"Using given global random seed ({args.random_seed})")
 
     # Set random seed for fire frequency probability distribution. If -999 is given, a random seed will be generated. Otherwise, the given seed will be used.
     if args.firefreq_random_seed == -999:
         args.firefreq_random_seed = random.randint(0, 1000000)
-        print("Generated random seed for fire frequency probability distribution: ", args.firefreq_random_seed)
-    print("Using fire frequency random seed: ", args.firefreq_random_seed)
+        print(f"Generated new random seed ({args.firefreq_random_seed}) for fire frequency probability distribution: ", )
+    else:
+        print(f"Using given random seed ({args.firefreq_random_seed}) for fire frequency probability distribution.")
 
     # Initialize visualization tool
     args.vis = visualization.Visualiser(args)
@@ -154,7 +157,6 @@ def init(args):
     args.dpg = _dpg.DiskPatternGenerator(args)
 
     # Initialize dynamics object and state
-    print("LAI aggregation radius:", args.LAI_aggregation_radius)
     dynamics = cpp.create_dynamics(vars(args))
     dynamics.init_state(
         args.grid_width,
