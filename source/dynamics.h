@@ -25,7 +25,7 @@ public:
 		animal_group_size(_animal_group_size), display_fire_effects(_display_fire_effects)
 	{
 		help::init_RNG(random_seed);
-		random_generator = default_random_engine(firefreq_random_seed);
+		firefreq_RNG.seed(firefreq_random_seed);
 	};
 	void init_state(int gridsize, float dbh_q1, float dbh_q2, float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max,
 		float minimum_patch_size, float LAI_aggregation_radius) {
@@ -193,6 +193,11 @@ public:
 	}
 	void disperse_uniformly(shared_ptr<float[]> mask, int no_seeds_to_disperse) {
 		int i = 0;
+		int no_germinated_seedlings = 0;
+		
+		int no_printed_numbers = 0;
+		printf("Germination sequence: "); // TEMP
+
 		while (i < no_seeds_to_disperse) {
 			// Get random location within forest mask
 			pair<float, float> deposition_location;
@@ -202,13 +207,20 @@ public:
 
 			if (mask[grid_idx] < 1.0f) continue;
 
+
 			// Germinate random seed at location
-			germinate_random_seedling(deposition_location);
+			bool germinated = germinate_random_seedling(deposition_location, no_germinated_seedlings);
+			if (germinated && i % 10 == 0 && no_printed_numbers < 10) {
+				printf("(%f, %f)", deposition_location.first, deposition_location.second); // TEMP
+				no_printed_numbers++;
+			}
 
 			i++;
 		}
+
+		printf("\n");
 	}
-	void germinate_random_seedling(pair<float, float> deposition_location) {
+	bool germinate_random_seedling(pair<float, float> deposition_location, int& no_germinated_seedlings) {
 		int dummy1 = 0; int dummy2 = 0; int dummy3 = 0; int dummy4 = 0; int dummy5 = 0; int dummy6 = 0;
 		Strategy strategy;
 		pop->strategy_generator.generate(strategy);
@@ -216,10 +228,12 @@ public:
 		bool viable = seed.germinate_if_location_is_viable(
 			&state, dummy1, dummy2, dummy3, dummy4, dummy5, dummy6
 		);
-		if (!viable) return;
+		if (!viable) return false;
 
 		// Generate crop (we have to initialize it here; the pop->add() function only creates duplicate crops based on those of parent trees)
-		pop->add_crop(strategy, deposition_location, strategy.id);
+		pop->add_crop(strategy, deposition_location, no_germinated_seedlings);
+
+		return true;
 	}
 	void disperse_within_forest(shared_ptr<float[]> mask) {
 		int pre_dispersal_popsize = pop->size();
@@ -474,7 +488,7 @@ public:
 			return 1;
 		}
 		std::binomial_distribution<int> no_fires_distribution(grid->no_savanna_cells, self_ignition_factor / 1e6);
-		return no_fires_distribution(random_generator);
+		return no_fires_distribution(firefreq_RNG);
 	}
 	void burn() {
 		if (verbosity == 2) printf("Updated tree flammabilities.\n");
@@ -680,7 +694,7 @@ public:
 	Disperser linear_disperser;
 	WindDispersal wind_disperser;
 	AnimalDispersal animal_dispersal;
-	default_random_engine random_generator;
+	mt19937 firefreq_RNG;
 	ResourceGrid resource_grid;
 	shared_ptr<pair<int, int>[]> neighbor_offsets = 0;
 	map<string, map<string, float>> strategy_distribution_params;

@@ -13,17 +13,24 @@ using namespace std;
 #define RAND_DOUBLE_PRECISION 0.0001
 #define INV_RAND_DOUBLE_PRECISION_PLUSONE 1.0 / (1.0 + RAND_DOUBLE_PRECISION)
 
+
+std::mt19937 rng;
+
+
 void help::init_RNG(int seed) {
     if (seed == -999) {
         // Seed the random number generator with the current time
-		srand(time(NULL));
+		rng.seed(time(NULL));
 	}
 	else {
         // Seed the random number generator with the given seed
-		srand(seed);
+        rng.seed(seed);
 	}
-    int x = rand();
-    int z = x * 3;
+
+	// Warm up the RNG
+    for (int i = 0; i < 10000; i++) {
+        rng();
+	}
 }
 
 void help::save_image(string name, shared_ptr<float[]> image) {
@@ -74,11 +81,11 @@ void help::save_image(string name, shared_ptr<float[]> image) {
 
 
 float help::get_rand_float(float min, float max) {
-    return min + (float)rand() * INV_RAND_MAX * (max - min);
+    return min + (float)rng() * INV_RAND_MAX * (max - min);
 }
 
 double help::_get_rand_double(double min, double max) {
-    return min + ((double)rand() * INV_RAND_MAX) * (max - min);
+    return min + ((double)rng() * INV_RAND_MAX) * (max - min);
 }
 
 double help::get_rand_double(double min, double max) {
@@ -756,6 +763,59 @@ void help::DiscreteProbModelPiece::rescale(float factor) {
     ysize = ymax - ymin;
 }
 
+help::DiscreteProbabilityModel::DiscreteProbabilityModel() = default;
+help::DiscreteProbabilityModel::DiscreteProbabilityModel(int _size) {
+    size = _size;
+    probabilities = std::make_shared<double[]>(_size);
+    cdf = std::make_shared<double[]>(_size);
+    id = rng();
+}
+void help::DiscreteProbabilityModel::build_cdf() {
+    double height = 0.0f;
+    for (int i = 0; i < size; i++) {
+        cdf[i] = height;
+        height += probabilities[i];
+    }
+}
+int help::DiscreteProbabilityModel::sample() {
+    double cdf_sample = help::get_rand_double(0.0f, 1.0);
+    int idx = binary_search(cdf.get(), size, cdf_sample);
+    if (idx != -1) return idx;
+    else return uniform_rand_idx();
+}
+int help::DiscreteProbabilityModel::uniform_rand_idx() {
+    return help::get_rand_int(0, size - 1);
+}
+void help::DiscreteProbabilityModel::set_probabilities(double* probs, double& integral) {
+    integral = 0;
+    for (int i = 0; i < size; i++) {
+        probabilities[i] = probs[i];
+        integral += probs[i];
+    }
+}
+void help::DiscreteProbabilityModel::set_probabilities(shared_ptr<float[]> probs, float& integral) {
+    integral = 0;
+    for (int i = 0; i < size; i++) {
+        probabilities[i] = probs[i];
+        integral += probs[i];
+    }
+}
+void help::DiscreteProbabilityModel::normalize(double integral) {
+    double recipr = 1.0 / integral;
+    for (int i = 0; i < size; i++) {
+        probabilities[i] *= recipr;
+    }
+}
+
+help::GammaProbModel::GammaProbModel() = default;
+help::GammaProbModel::GammaProbModel(float shape, float scale) {
+    distribution = std::gamma_distribution<float>(shape, scale);
+};
+float help::GammaProbModel::get_gamma_sample() {
+    return distribution(rng);
+}
+
+
 template <typename T>
 int help::binary_search(T* arr, int size, T target) {
     int l = 0;
@@ -849,6 +909,15 @@ float help::PieceWiseLinearProbModel::sample() {
     x *= piece_width;
     return x;
 }
+
+help::NormalProbModel::NormalProbModel() = default;
+help::NormalProbModel::NormalProbModel(float mean, float stdev) {
+    distribution = normal_distribution<float>(mean, stdev);
+};
+float help::NormalProbModel::get_normal_distr_sample() {
+        return distribution(rng);
+};
+
 
 void help::get_normal_distributed_direction(pair<float, float>& direction, float mean_direction, float direction_stdev) {
     NormalProbModel prob_model(mean_direction, direction_stdev);
