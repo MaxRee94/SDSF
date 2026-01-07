@@ -194,8 +194,6 @@ public:
 	void disperse_uniformly(shared_ptr<float[]> mask, int no_seeds_to_disperse) {
 		int i = 0;
 		int no_germinated_seedlings = 0;
-		
-		int no_printed_numbers = 0;
 		printf("Germination sequence: "); // TEMP
 
 		while (i < no_seeds_to_disperse) {
@@ -205,16 +203,15 @@ public:
 			deposition_location.second = help::get_rand_float(0, grid->width_r);
 			int grid_idx = grid->pos_2_idx(deposition_location);
 
-			if (mask[grid_idx] < 1.0f) continue;
+			printf("i: %i, (%f, %f), rejection: {%s}, mask: %f\n", i, deposition_location.first, deposition_location.second, (mask[grid_idx] < 1.0f) ? "yes" : "no", mask[grid_idx]); // TEMP
 
+			if (mask[grid_idx] < 1.0f) continue;
+			else if (isnan(mask[grid_idx])) continue;
 
 			// Germinate random seed at location
 			bool germinated = germinate_random_seedling(deposition_location, no_germinated_seedlings);
 			if (germinated) no_germinated_seedlings++;
-			if (germinated && i % 10 == 0 && no_printed_numbers < 10) {
-				printf("(%f, %f)", deposition_location.first, deposition_location.second); // TEMP
-				no_printed_numbers++;
-			}
+
 
 			i++;
 		}
