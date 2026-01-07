@@ -172,9 +172,9 @@ public:
 		);
 	}
 	void mutate(Strategy& strategy, float mutation_rate) {
-		bool do_mutation = help::get_rand_float(0, 1) < mutation_rate;
+		bool do_mutation = help::get_rand_float(0, 1, 3) < mutation_rate;
 		if (do_mutation) {
-			int trait_idx = help::get_rand_int(0, 3);
+			int trait_idx = help::get_rand_int(0, 3, 4);
 			float fruit_pulp_mass = 0;
 			if (trait_idx == 0) {
 				strategy.seed_mass = sample_seed_mass(strategy.vector);
@@ -411,11 +411,28 @@ public:
 	}
 	Tree* add(pair<float, float> position, Strategy* _strategy = 0, float dbh = -2) {
 		// Create tree
+		float growth_multiplier = help::get_rand_float(growth_multiplier_distribution.min_value, growth_multiplier_distribution.max_value, 5);
+		Tree tree(no_created_trees + 1, position, -2, seed_bearing_threshold, resprout_growthcurve, growth_multiplier);
+		no_created_trees++;
+
+		// Set the tree's dbh
 		if (dbh == -1) dbh = max_dbh;
 		else if (dbh == -2) {
 			if (_strategy == nullptr) {
-				while (dbh <= 0)
-					dbh = dbh_probability_model.linear_sample();
+				if (tree.dbh <= 0) {
+					tree.age = tree.life_expectancy; // Start by assuming the tree is at the end of its life expectancy.
+
+					// Ensure tree's life expectancy is not lower than its current age
+					int i = 0;
+					while (tree.life_expectancy <= tree.age && i < 10) {
+						tree.draw_life_expectancy(true);
+						i++;
+					}
+					if (tree.life_expectancy <= tree.age) tree.age = tree.life_expectancy - help::get_rand_int(0, 10, 6);
+					
+					// Derive dbh from age (age was randomly generated in Tree constructor)
+					tree.derive_dbh_from_age_assuming_onobstructed_growth();
+				}
 			}
 			else {
 				dbh = _strategy->seedling_dbh; // Growth rate determines initial dbh.
