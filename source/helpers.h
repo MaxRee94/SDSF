@@ -25,6 +25,7 @@ using namespace std;
 #define INV_RAND_MAX  1.0 / RAND_MAX
 
 
+
 using namespace std::chrono;
 typedef unsigned int uint;
 
@@ -108,6 +109,8 @@ namespace help {
 		
 	void populate_with_zeroes(uint* _array, int dim_x, int dim_y);
 
+	void print_rand_calls(); // TEMP FUNCTION
+
 	void split(std::string basestring, std::string separator, vector<std::string>& substrings);
 
 	float dot(pair<float, float> &p1, pair<float, float> &p2);
@@ -117,6 +120,8 @@ namespace help {
 	void normalize(pair<float, float>& vec, float length);
 
 	void get_random_unit_vector(pair<float, float> &direction);
+
+	int get_random_key(std::map<int, float>& map, int call_origin = 1);
 
 	void remove_from_vec(vector<int>* vec, int item);
 
@@ -162,15 +167,15 @@ namespace help {
 
 	int get_value(std::map<uint32_t, uint32_t>* map, uint32_t key);
 
-	float get_rand_float(float min, float max);
+	float get_rand_float(float min, float max, int call_origin = 1);
 
 	double _get_rand_double(double min, double max);
 
 	double get_rand_double(double min, double max);
 
-	uint get_rand_uint(int min, int max);
+	uint get_rand_uint(int min, int max, int call_origin = 1);
 
-	int get_rand_int(int min, int max);
+	int get_rand_int(int min, int max, int call_origin = 1);
 
 	void remove(vector<int>* vec, int item);
 

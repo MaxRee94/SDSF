@@ -13,6 +13,17 @@ using namespace std;
 #define RAND_DOUBLE_PRECISION 0.0001
 #define INV_RAND_DOUBLE_PRECISION_PLUSONE 1.0 / (1.0 + RAND_DOUBLE_PRECISION)
 
+
+std::mt19937 rng;
+
+int rand_calls_1 = 0; // TEMP VARIABLES
+int rand_calls_2 = 0;
+int rand_calls_3 = 0;
+int rand_calls_4 = 0;
+int rand_calls_5 = 0;
+int rand_calls_6 = 0;
+
+
 void help::init_RNG(int seed) {
     if (seed == -999) {
         // Seed the random number generator with the current time
@@ -72,9 +83,23 @@ void help::save_image(string name, shared_ptr<float[]> image) {
     }
 }
 
+void help::print_rand_calls() { // TEMP FUNCTION
+    printf("Total random calls 1: %i \n", rand_calls_1);
+    printf("Total random calls 2: %i \n", rand_calls_2);
+    printf("Total random calls 3: %i \n", rand_calls_3);
+    printf("Total random calls 4: %i \n", rand_calls_4);
+    printf("Total random calls 5: %i \n", rand_calls_5);
+    printf("Total random calls 6: %i \n", rand_calls_6);
+}
 
-float help::get_rand_float(float min, float max) {
-    return min + (float)rand() * INV_RAND_MAX * (max - min);
+
+float help::get_rand_float(float min, float max, int call_origin) {
+    if (call_origin == 1) rand_calls_1++;
+    else if (call_origin == 2) rand_calls_2++;
+    else if (call_origin == 3) rand_calls_3++;
+    else if (call_origin == 4) rand_calls_4++;
+    else if (call_origin == 5) rand_calls_5++;
+    return min + (float)rng() * INV_RAND_MAX * (max - min);
 }
 
 double help::_get_rand_double(double min, double max) {
@@ -88,12 +113,24 @@ double help::get_rand_double(double min, double max) {
     return val;
 }
 
-uint help::get_rand_uint(int min, int max) {
-    return round(help::get_rand_float(min, max));
+uint help::get_rand_uint(int min, int max, int call_origin) {
+    return round(help::get_rand_float(min, max, call_origin));
 }
 
-int help::get_rand_int(int min, int max) {
-    return round(help::get_rand_float(min, max));
+int help::get_rand_int(int min, int max, int call_origin) {
+    return round(help::get_rand_float(min, max, call_origin));
+}
+
+int help::get_random_key(std::map<int, float>& map, int call_origin) {
+    int rand_idx = help::get_rand_int(0, map.size() - 1, call_origin);
+    int i = 0;
+    for (auto const& [key, val] : map) {
+        if (i == rand_idx) {
+            return key;
+        }
+        i++;
+    }
+    throw runtime_error("Unable to generate random key.\n"); // Should not reach here
 }
 
 bool help::is_in(std::vector<int>* vec, int item) {
