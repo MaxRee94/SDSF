@@ -18,6 +18,7 @@ class DiskPatternGenerator():
 
     def __init__(self, _args):
         self.args = _args
+        self.local_rng_seed_multiplier = self.args.rng.integers(0, 100000)
 
     def compute_area(self, contour, center):
         """
@@ -92,7 +93,7 @@ class DiskPatternGenerator():
         if rotate_randomly:
             if global_rotation_offset is not None:
                 index *= global_rotation_offset
-            local_rng = self.args.rng.default_rng(index)  # Ensure reproducibility for the same index
+            local_rng = np.random.default_rng(self.local_rng_seed_multiplier * index)  # Ensure reproducibility for the same index
             rotational_offset = local_rng.uniform(0, 2*math.pi)
         elif global_rotation_offset > 0:
             rotational_offset = global_rotation_offset
@@ -332,7 +333,7 @@ class DiskPatternGenerator():
             (image_size[0], -image_size[1]), (-image_size[0], image_size[1])
         ]
 
-        ids = kwargs.rng.integers(0, high=10000, size=len(positions))
+        ids = self.args.rng.integers(0, high=10000, size=len(positions))
         for i, (center, radius) in enumerate(zip(positions, radii)):
             x, y = center
             for dx, dy in shifts:

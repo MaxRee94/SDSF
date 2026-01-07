@@ -68,7 +68,7 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
     print("Initial pattern image:", args.initial_pattern_image)
     if args.initial_pattern_image == "ctrl":
         _args = copy.copy(args)
-        img, path, benchmark_cover = args.vis.generate_controllable_pattern_image(**vars(_args))
+        img, path, benchmark_cover = args.vis.generate_disk_pattern(**vars(_args))
         img = cv2.resize(img, (args.grid_width, args.grid_width), interpolation=cv2.INTER_NEAREST)
         img = img / 255
 
