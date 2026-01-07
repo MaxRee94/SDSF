@@ -8,8 +8,10 @@ source/DBR-sim/DawnCache/
 source/DBR-sim/GPUCache/
 source/scripts/temp/
 data_in/local_overrides/
+data_in/heterogeneity/local_growth_multipliers/*
 source/DBR-sim/env
 source/DBR-sim/env2
+data_in/heterogeneity/local_growth_multipliers/*
 *.bat
 
 # Visaul studio files
@@ -242,3 +244,15 @@ data_in/heterogeneity/grass_carrying_capacity/*
 data_in/state_patterns/simple_patterns/*
 
 data_in/heterogeneity/heterogeneity_config.json
+.vs/VSWorkspaceState.json
+.vs/slnx.sqlite
+.vs/SDSF/v17/DocumentLayout.json
+.vs/SDSF/v17/Browse.VC.db
+.vs/SDSF/v17/.wsuo
+.vs/SDSF/FileContentIndex/f707d076-6d93-443d-87f3-0316b00ef913.vsidx
+.vs/SDSF/CopilotIndices/17.14.995.13737/SemanticSymbols.db
+.vs/SDSF/CopilotIndices/17.14.995.13737/CodeChunks.db
+.vs/ProjectSettings.json
+.vs/CMakeWorkspaceSettings.json
+source/DBR-sim/batch_master_8_processes.ps1
+source/DBR-sim/batch_master_singleprocess.ps1

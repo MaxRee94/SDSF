@@ -22,8 +22,7 @@
 #include "timer.h"
 
 using namespace std;
-#define INV_RAND_MAX  1.0 / RAND_MAX
-
+#define INV_RAND_MAX  1.0 / 4294967295.0
 
 
 using namespace std::chrono;
@@ -134,12 +133,16 @@ namespace help {
 
 	bool is_in(std::map<int, int>& map, int item);
 
+	bool is_in(std::map<int, float>& map, int item);
+
 	bool is_in(std::string basestring, std::string target);
 
 	template <typename T>
 	vector<int> get_keys(map<int, T>& map);
 
 	void print_map(std::map<int, int>* map);
+	
+	void print_map(std::map<int, float>* map);
 
 	void print_vector(std::vector<int>* vec);
 
@@ -326,16 +329,10 @@ namespace help {
 
 	class NormalProbModel {
 	public:
-		NormalProbModel() = default;
-		NormalProbModel(float mean, float stdev) {
-			distribution = normal_distribution<float>(mean, stdev);
-			generator = default_random_engine(rand());
-		};
-		virtual float get_normal_distr_sample() {
-			return distribution(generator);
-		}
+		NormalProbModel();
+		NormalProbModel(float mean, float stdev);
+		virtual float get_normal_distr_sample();
 		normal_distribution<float> distribution;
-		default_random_engine generator;
 	};
 
 	class UniformProbModel {
@@ -365,67 +362,14 @@ namespace help {
 
 	class DiscreteProbabilityModel{
 	public:
-		DiscreteProbabilityModel() = default;
-		DiscreteProbabilityModel(int _size) {
-			size = _size;
-			probabilities = std::make_shared<double[]>(_size);
-			cdf = std::make_shared<double[]>(_size);
-			id = rand();
-		};
-		/*~DiscreteProbabilityModel() {
-			free();
-		}*/
-		/*void free() {
-			printf("Freeing prob model %i \n", id);
-			if (probabilities != nullptr) {
-				printf("probs: %i\n", probabilities[0]);
-				printf("probs: %i (ptr)\n", probabilities);
-				delete[] probabilities;
-				probabilities = nullptr;
-
-				printf("probs after delete: %i\n", probabilities);
-			}
-			if (cdf != nullptr) {
-				delete[] cdf;
-				cdf = nullptr;
-			}
-		}*/
-		void build_cdf() {
-			double height = 0.0f;
-			for (int i = 0; i < size; i++) {
-				cdf[i] = height;
-				height += probabilities[i];
-			}
-		}
-		int sample() {
-			double cdf_sample = help::get_rand_double(0.0f, 1.0);
-			int idx = binary_search(cdf.get(), size, cdf_sample);
-			if (idx != -1) return idx;
-			else return uniform_rand_idx();
-		}
-		int uniform_rand_idx() {
-			return help::get_rand_int(0, size - 1);
-		}
-		void set_probabilities(double* probs, double &integral) {
-			integral = 0;
-			for (int i = 0; i < size; i++) {
-				probabilities[i] = probs[i];
-				integral += probs[i];
-			}
-		}
-		void set_probabilities(shared_ptr<float[]> probs, float& integral) {
-			integral = 0;
-			for (int i = 0; i < size; i++) {
-				probabilities[i] = probs[i];
-				integral += probs[i];
-			}
-		}
-		void normalize(double integral) {
-			double recipr = 1.0 / integral;
-			for (int i = 0; i < size; i++) {
-				probabilities[i] *= recipr;
-			}
-		}
+		DiscreteProbabilityModel();
+		DiscreteProbabilityModel(int _size);
+		void build_cdf();
+		int sample();
+		int uniform_rand_idx();
+		void set_probabilities(double* probs, double& integral);
+		void set_probabilities(shared_ptr<float[]> probs, float& integral);
+		void normalize(double integral);
 		shared_ptr<double[]> probabilities = 0;
 		shared_ptr<double[]> cdf = 0;
 		int size = 0;
@@ -459,16 +403,10 @@ namespace help {
 
 	class GammaProbModel {
 	public:
-		GammaProbModel() = default;
-		GammaProbModel(float shape, float scale) {
-			generator = default_random_engine(rand());
-			distribution = std::gamma_distribution<float>(shape, scale);
-		};
-		virtual float get_gamma_sample() {
-			return distribution(generator);
-		}
+		GammaProbModel();
+		GammaProbModel(float shape, float scale);
+		virtual float get_gamma_sample();
 		gamma_distribution<float> distribution;
-		default_random_engine generator;
 	};
 
 	class ProbModel : public SmallDiscreteProbabilityModel, public LinearProbabilityModel, public NormalProbModel, public UniformProbModel {

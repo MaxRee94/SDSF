@@ -20,6 +20,7 @@ constants["CPG_OUTPUT_DIR"] = constants["DATA_OUT_DIR"] + "/controlled_pattern_g
 constants["DATA_INTERNAL_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_internal"
 constants["BUILD_DIR"] = constants["REPOSITORY_BASEDIR"] + "/build"
 constants["PERLIN_NOISE_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/perlin_noise"
+constants["SIMPLE_PATTERNS_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/simple_patterns"
 constants["CONTROLLED_PATTERN_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/controlled_patterns"
 constants["LEGEND_PATH"] = constants["DATA_OUT_DIR"] + "/legends"
 constants["TREE_DBH_FILE"] = constants["DATA_OUT_DIR"] + "/state_reports/tree_dbh_values.json"
@@ -76,7 +77,7 @@ defaults = {
     "dbh_q2": 0,
     "verbosity": 0,
     "growth_rate_multiplier_params": [0.5, 0.5, 2.13],
-    "seed_bearing_threshold": 0.25, # dbh fraction of theoretical maximum height. We assume all trees are seed bearing beyond this height, based on Minor and Kobe (2018), Figure 5.
+    "seed_bearing_threshold": 0.1, # dbh fraction of theoreftical maximum height. We assume all trees are seed bearing beyond this height, based on Minor and Kobe (2018), Figure 5.
     "dispersal_mode": "all",
     "multi_disperser_params": f"multi_disperser_params.json",
     "dispersal_min": 0,
@@ -115,7 +116,7 @@ defaults = {
     "sin_stripe_wavelength":100,
     "grid_type":"square",
     "override_image_treecover": -999,  # If set to a value other than -999, overrides the tree cover in the image (the fraction of white pixels) with this value.
-    "rotate_randomly":False,
+    "rotate_randomly": False,
     "suppress_distance_warning": False,  # If True, suppresses the warning about distance uniformity in the cpg script.
     "cur_image_fraction_pixels": None,
     "circular_image_fraction_pixels": None,
@@ -131,6 +132,7 @@ defaults = {
     "grow": True,
     "disperse": True,
     "burn": True,
+    "burnin_duration": 300
 }
 
 gui_defaults = {
@@ -546,7 +548,7 @@ _parameter_config = {
         "settings": {
             "type": int,
             "help": (
-                "Random seed used by the c++ component of this program. A value of -999 (default) indicates each run will use a different unique seed."
+                "Random seed used for all stochastic variables except fire frequency. A value of -999 (default) indicates each run will use a different unique seed."
             ),
             "default": defaults["random_seed"],
         },
@@ -973,6 +975,16 @@ _parameter_config = {
             "default": defaults["burn"],
         }
     },
+    "burnin_duration": {
+        "keys": {
+            "cli": ["--burnin_duration", "-bdur"]
+        },
+        "settings": {
+            "type": int,
+            "help": "The duration of the burn-in period (in timesteps) before the main simulation starts.",
+            "default": defaults["burnin_duration"],
+        }
+    }
 }
 
 class ParameterConfig():

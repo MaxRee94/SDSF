@@ -32,6 +32,16 @@ public:
 			no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading
 		);
 	}
+	bool germinate_seed(
+		Seed* seed, State* state, pair<float, float>& deposition_location, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions,
+		int& no_competitions_with_older_trees, int& no_germination_attempts, int& no_cases_seedling_competition_and_shading, int& no_cases_oldstem_competition_and_shading
+	) {
+		// Create seed and germinate if location has suitable conditions (existing LAI not too high).
+		return seed->germinate_if_location_is_viable(
+			state, no_seedlings_dead_due_to_shade, no_seedling_competitions, no_competitions_with_older_trees, no_germination_attempts,
+			no_cases_seedling_competition_and_shading, no_cases_oldstem_competition_and_shading
+		);
+	}
 	void germinate_seeds_in_diaspore(
 		Crop* crop, State* state, pair<float, float>& deposition_location, int& no_recruits,
 		int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions, int& no_competitions_with_older_trees, int& no_germination_attempts,

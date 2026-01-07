@@ -1,8 +1,9 @@
 import cv2
 import numpy as np
+from types import SimpleNamespace
 
 
-def generate(amplitude=0.3, scale=1, show=False, binary_connectivity=-1, offset=0, grid_width=1000, **args):
+def generate(amplitude=0.3, scale=1, show=False, binary_connectivity=-1, offset=0, grid_width=1000, args=None, **_):
     """
     Generate a 1000x1000 uniform macropixel noise pattern.
 
@@ -28,14 +29,14 @@ def generate(amplitude=0.3, scale=1, show=False, binary_connectivity=-1, offset=
 
     # Generate macropixel noise grid. 
     if binary_connectivity < 0:
-        noise = np.random.uniform(
+        noise = args.rng.uniform(
             low=0.5 - amplitude,
             high=0.5 + amplitude,
             size=(macro_h, macro_w)
         ) + offset
     else:
         # If binary connectivity is specified, we generate binary noise with fraction of 1-pixel Expectation=binary_connectivity.
-        noise = np.random.choice([0, 1], size=(macro_h, macro_w), p=[1-binary_connectivity, binary_connectivity])
+        noise = args.rng.choice([0, 1], size=(macro_h, macro_w), p=[1-binary_connectivity, binary_connectivity])
 
     # Clip to [0,1]
     noise = np.clip(noise, 0.0, 1.0)

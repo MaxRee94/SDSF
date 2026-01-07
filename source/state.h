@@ -62,7 +62,8 @@ public:
 			i++;
 		}
 		grid.update_grass_LAIs();
-		grid.update_aggregated_tree_LAIs();
+		grid.update_aggr_LAIs();
+		grid.redo_count();
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
 	float compute_shade_on_individual_tree(Tree* tree) {
@@ -137,22 +138,6 @@ public:
 		int dummy;
 		return get_tree_neighbors(baseposition, search_radius, dummy);
 	}
-	void thin_crowds(bool recompute_shade = false) {
-		PairSet population_sorted_by_height;
-		population.sort_by_trait("height", population_sorted_by_height);
-		for (auto& [id, height] : population_sorted_by_height) {
-			Tree* tree = population.get(id);
-			if (tree->life_phase == 2) continue; // We assume that mature trees are no longer vulnerable to death by shading.
-			float shade;
-			if (recompute_shade) shade = compute_shade_on_individual_tree(tree);
-			else shade = tree->shade;
-			float death_probability = max(0, (shade - 5.0f)); // We assume that trees always survive if shade <= 5.0, and always die if shade > 6.0.
-			death_probability *= death_probability;
-			if (help::get_rand_float(0, 1) < death_probability) {
-				remove_tree(tree);
-			}
-		}
-	}
 	void remove_tree(Tree* tree) {
 		grid.kill_tree_domain(tree, false);
 		population.remove(tree);
@@ -203,6 +188,7 @@ public:
 			if (!grid.complies_with_aggr_LAI_domain(tree, image)) {
 				// Remove tree if its addition causes the grid to violate the aggregated LAI domain defined by the image.
 				grid.kill_tree_domain(tree, false);
+				grid.update_aggr_LAIs(tree);
 				population.remove(tree->id);
 			}
 			grid.update_grass_LAIs_for_individual_tree(tree);
@@ -249,12 +235,6 @@ public:
 			else if (population.get_crop(tree->id)->strategy.vector == "animal") {
 				animal_trees++;
 			}
-
-			// Thin crowds when close to target tree cover
-			/*if (grid.tree_cover > 0.95f * _tree_cover && no_crowd_thinning_runs < max_no_crowd_thinning_runs) {
-				no_crowd_thinning_runs++;
-				thin_crowds(true);
-			}*/
 
 			if (population.size() % 1000 == 0) {
 				printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
@@ -304,6 +284,13 @@ public:
 		int i = 0;
 		for (auto& [id, tree] : population.members) {
 			tree_sizes[i] = tree.dbh;
+			i++;
+		}
+	}
+	void get_tree_ages(float* tree_ages) {
+		int i = 0;
+		for (auto& [id, tree] : population.members) {
+			tree_ages[i] = tree.age;
 			i++;
 		}
 	}

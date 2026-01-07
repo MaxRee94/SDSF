@@ -92,6 +92,7 @@ def parse_args(parser=None):
         
     return kwargs
 
+
 class Unbuffered(object):
    def __init__(self, stream):
        self.stream = stream
@@ -105,6 +106,7 @@ class Unbuffered(object):
        return getattr(self.stream, attr)
 
 sys.stdout = Unbuffered(sys.stdout)
+
 
 def get_max(val1, val2):
     if val1 > val2:
@@ -125,6 +127,7 @@ def compute_radial_distribution_function(dynamics, stepsize=0.02):
     print("Finished computing radial distribution function.")
     
     return g_r, radii
+
 
 def is_number(inputString):
     return all(char.isdigit() for char in inputString)
