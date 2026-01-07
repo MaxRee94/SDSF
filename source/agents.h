@@ -459,8 +459,7 @@ public:
 				}
 			}
 			else {
-				dbh = _strategy->seedling_dbh; // Growth rate determines initial dbh.
-				tree.dbh = dbh;
+				tree.dbh = _strategy->seedling_dbh;
 			}
 		}
 		tree.derive_allometries(seed_bearing_threshold);

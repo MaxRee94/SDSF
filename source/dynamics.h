@@ -184,7 +184,7 @@ public:
 			if (global_kernel_exists(tree_dispersal_vector))
 				pop->add_kernel(tree_dispersal_vector, global_kernels[tree_dispersal_vector]);
 			else {
-				if (id != -1) printf("No global kernel found for tree dispersal vector '%s'.\n", tree_dispersal_vector.c_str());
+				if (id != -1) printf("No global kernel found for tree dispersal vector '%s', (tree id = %i).\n", tree_dispersal_vector.c_str(), id);
 				//exit(1); Let's not exit the program for now
 				return false;
 			}
@@ -210,6 +210,7 @@ public:
 
 			// Germinate random seed at location
 			bool germinated = germinate_random_seedling(deposition_location, no_germinated_seedlings);
+			if (germinated) no_germinated_seedlings++;
 			if (germinated && i % 10 == 0 && no_printed_numbers < 10) {
 				printf("(%f, %f)", deposition_location.first, deposition_location.second); // TEMP
 				no_printed_numbers++;
@@ -224,14 +225,18 @@ public:
 		int dummy1 = 0; int dummy2 = 0; int dummy3 = 0; int dummy4 = 0; int dummy5 = 0; int dummy6 = 0;
 		Strategy strategy;
 		pop->strategy_generator.generate(strategy);
+		strategy.id = -2 - no_germinated_seedlings; // Use a negative id to indicate that this is a seedling generated during burn-in (if the seedling is recruited, its id will be changed to be equal to the new tree's id (in pop->add)).
 		Seed seed = Seed(strategy, deposition_location);
 		bool viable = seed.germinate_if_location_is_viable(
 			&state, dummy1, dummy2, dummy3, dummy4, dummy5, dummy6
 		);
 		if (!viable) return false;
 
-		// Generate crop (we have to initialize it here; the pop->add() function only creates duplicate crops based on those of parent trees)
-		pop->add_crop(strategy, deposition_location, no_germinated_seedlings);
+		// Generate crop
+		int crop_id = strategy.id; // Normally (outside burn-in) we insert the parent tree's id into the grid cell, which is equal to the corresponding crop id.
+								   // However, during burn-in there are no parent trees and thus strategy.id is inserted as a surrogate for tree id.
+								   // We must therefore set the crop id equal to strategy.id here, so that the recruitment function can retrieve the corresponding crop.
+		pop->add_crop(strategy, deposition_location, strategy.id);
 
 		return true;
 	}
@@ -419,11 +424,9 @@ public:
 		for (int i = 0; i < grid->no_cells; i++) {
 			Cell* cell = &grid->distribution[i];
 			if (cell->seedling_present) {
-				int id = cell->stem.second;
-				Tree* tree = pop->add(
-					grid->get_real_cell_position(cell),
-					&pop->get_crop(id)->strategy
-				);
+				int parent_id = cell->stem.second;
+				Strategy* strat_of_parent_tree = &pop->get_crop(parent_id)->strategy;
+				Tree* tree = pop->add(grid->get_real_cell_position(cell), strat_of_parent_tree);
 				cell->insert_sapling(tree, grid->cell_area, grid->cell_halfdiagonal_sqrt);
 
 				grid->state_distribution[i] = -7;
