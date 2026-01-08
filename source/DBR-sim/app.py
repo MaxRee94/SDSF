@@ -190,13 +190,13 @@ def init(args):
     color_dicts["blackwhite"] = color_dict_blackwhite
     color_dicts["colored_patches"] = color_dict_colored_patches
     
-    # Set initial tree cover
-    print("Setting initial tree cover...") if args.verbosity > 0 else None
-    dynamics, args = set_initial_tree_cover(dynamics, args, color_dicts)
-
     # Set input maps
     print("Setting heterogeneity maps...") if args.verbosity > 0 else None
     dynamics, args = io.set_heterogeneity_maps(dynamics, args)
+    
+    # Set initial tree cover
+    print("Setting initial tree cover...") if args.verbosity > 0 else None
+    dynamics, args = set_initial_tree_cover(dynamics, args, color_dicts)
     
     # Visualize the initial state
     collect_states = True
@@ -221,7 +221,6 @@ def init(args):
         print("animal species: ", animal_species)
         for species in animal_species:
             lookup_table, fpath = io.get_lookup_table(species, args.grid_width, args.resource_grid_width * args.resource_grid_width)
-            #lookup_table = None # Hotfix; lookup table might lead to memory leaks (?)
             if lookup_table is None:
                 print(f"Lookup table file {fpath} not found. Creating new one...")
                 dynamics.precompute_resourcegrid_lookup_table(species)
