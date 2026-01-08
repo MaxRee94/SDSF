@@ -194,29 +194,21 @@ public:
 	void disperse_uniformly(shared_ptr<float[]> mask, int no_seeds_to_disperse) {
 		int i = 0;
 		int no_germinated_seedlings = 0;
-		printf("Germination sequence: "); // TEMP
-
 		while (i < no_seeds_to_disperse) {
 			// Get random location within forest mask
 			pair<float, float> deposition_location;
-			deposition_location.first = help::get_rand_float(0, grid->width_r);
-			deposition_location.second = help::get_rand_float(0, grid->width_r);
+			deposition_location.first = help::get_rand_float(0, grid->width_r - 0.51f * grid->cell_width);
+			deposition_location.second = help::get_rand_float(0, grid->width_r - 0.51f * grid->cell_width);
 			int grid_idx = grid->pos_2_idx(deposition_location);
 
-			printf("i: %i, (%f, %f), rejection: {%s}, mask: %f\n", i, deposition_location.first, deposition_location.second, (mask[grid_idx] < 1.0f) ? "yes" : "no", mask[grid_idx]); // TEMP
-
-			if (mask[grid_idx] < 1.0f) continue;
-			else if (isnan(mask[grid_idx])) continue;
+			if (mask[grid_idx] < 1) continue;
 
 			// Germinate random seed at location
 			bool germinated = germinate_random_seedling(deposition_location, no_germinated_seedlings);
 			if (germinated) no_germinated_seedlings++;
 
-
 			i++;
 		}
-
-		printf("\n");
 	}
 	bool germinate_random_seedling(pair<float, float> deposition_location, int& no_germinated_seedlings) {
 		int dummy1 = 0; int dummy2 = 0; int dummy3 = 0; int dummy4 = 0; int dummy5 = 0; int dummy6 = 0;

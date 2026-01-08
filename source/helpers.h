@@ -141,7 +141,7 @@ namespace help {
 	
 	void print_map(std::map<int, float>* map);
 
-	void print_vector(std::vector<int>* vec);
+	void print_vector(std::vector<int>* vec, std::string prefix = "");
 
 	void print_pairs(std::vector<pair<int, int>>* vec);
 

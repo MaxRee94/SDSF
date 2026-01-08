@@ -410,6 +410,7 @@ public:
 		}
 	}
 	int pos_2_idx(pair<float, float> pos) {
+		assert (pos.first >= 0 && pos.first < (width_r - 0.5f * cell_width) && pos.first >= 0 && pos.first < (width_r - 0.5f * cell_width)), "Position out of bounds";
 		return width * round(pos.second / cell_width) + round(pos.first / cell_width);
 		//return width * (int)(pos.second / cell_width) + (int)(pos.first / cell_width);
 	}

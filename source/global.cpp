@@ -25,6 +25,35 @@ void convert_from_numpy_array(py::array_t<float>& img, shared_ptr<float[]>& outp
 	}
 }
 
+void convert_from_numpy_array(
+    const py::array_t<uint8_t>& img,
+    std::shared_ptr<float[]>& output_image,
+    int& width,
+    int& height
+) {
+    auto buf = img.request();
+
+    // Expect a 2D array
+    if (buf.ndim != 2) {
+        throw std::runtime_error("Expected a 2D uint8 NumPy array");
+    }
+
+    uint8_t* ptr = static_cast<uint8_t*>(buf.ptr);
+
+    width = static_cast<int>(buf.shape[0]);
+    height = static_cast<int>(buf.shape[1]);
+
+    output_image = std::make_shared<float[]>(width * height);
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            output_image[y * width + x] =
+                static_cast<float>(ptr[y * width + x]);
+        }
+    }
+}
+
+
 py::list convert_from_idx_pair_vector_to_position_pylist(const vector<pair<int, int>>& vec, Grid& grid) {
     py::list pylist;
     for (size_t j = 0; j < vec.size(); j++) {
@@ -320,13 +349,13 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def_readwrite("timestep", &Dynamics::timestep)
         .def_readwrite("seeds_produced", &Dynamics::seeds_produced)
         .def_readwrite("max_dbh", &Dynamics::max_dbh)
-        .def("disperse_within_forest", [](Dynamics& dynamics, py::array_t<float>& img) {
+        .def("disperse_within_forest", [](Dynamics& dynamics, py::array_t<uint8_t>& img) {
             shared_ptr<float[]> mask;
             int width, height;
             convert_from_numpy_array(img, mask, width, height);
             dynamics.disperse_within_forest(mask);
         })
-        .def("prune", [](Dynamics& dynamics, py::array_t<float>& img) {
+        .def("prune", [](Dynamics& dynamics, py::array_t<uint8_t>& img) {
             shared_ptr<float[]> mask;
             int width, height;
             convert_from_numpy_array(img, mask, width, height);

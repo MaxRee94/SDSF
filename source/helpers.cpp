@@ -272,7 +272,8 @@ string help::join(vector<string> strings, string separator) {
     return result;
 }
 
-void help::print_vector(std::vector<int>* vec) {
+void help::print_vector(std::vector<int>* vec, std::string prefix) {
+	printf("%s", prefix.c_str());
     for (int i = 0; i < vec->size(); i++) {
         if (i > 0) std::cout << ", ";
         std::cout << vec->at(i);

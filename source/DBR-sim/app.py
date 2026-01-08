@@ -122,6 +122,8 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
     cv2.imshow("forest mask", img)
     cv2.waitKey(1)
 
+    print("data type of img:", img.dtype)
+
     # Do burn-in procedure to stabilize initial forest density and demography    
     dynamics, args = do_burn_in(dynamics, args, img, color_dicts, target_treecover=args.treecover)
 
