@@ -78,9 +78,9 @@ def set_heterogeneity_maps(dynamics, args):
             print(f"Read {map_type} map from image file:", impath)
         else:
             if m_args["type"] == "sine":
-                image = spg.generate((dynamics.state.grid.width, dynamics.state.grid.width), **m_args)
+                image = args.spg.generate((dynamics.state.grid.width, dynamics.state.grid.width), **m_args)
             elif m_args["type"] == "noise":
-                image = sng.generate(grid_width=dynamics.state.grid.width, **m_args)
+                image = sng.generate(grid_width=dynamics.state.grid.width, args=args, **m_args)
             else:
                 raise ValueError(f"Unknown {map_type} pattern type: {m_args['type']}")
             impath = os.path.join(map_dir, f"{map_type}.png")
@@ -197,6 +197,9 @@ def export_state(
             "perimeter_length": str(dynamics.get_forest_perimeter_length()),
             "basal_area": str(dynamics.get_basal_area())
         }
+        PAR_derived_area = float(result["perimeter_length"]) / float(result["perimeter-area_ratio"]) if float(result["perimeter-area_ratio"]) != 0 else 0
+        treecover_derived_area = float(result["treecover"]) * args.grid_width**2 * args.cell_width**2
+        #assert (PAR_derived_area == treecover_derived_area), f"Perimeter-length / Perimeter-area-ratio ({PAR_derived_area}) does not equal Tree-cover * Spatial domain area ({treecover_derived_area})."
         if not args.rotate_randomly:
             result["global_rotation_offset"] = str(args.global_rotation_offset)
         if control_variable:

@@ -1,3 +1,4 @@
+from ast import arg
 from dataclasses import dataclass
 import sys
 from tkinter import E, N, Y
@@ -15,17 +16,17 @@ import random
 import math
 from types import SimpleNamespace
 
-import visualization as vis
+import visualization
 import file_handling as io
 from helpers import *
 from config import *
-import controllable_pattern_generator as cpg
+import disk_pattern_generator as _dpg
 import sine_pattern_generator as spg
+import simple_noise_generator as sng
 
 #from x64.Debug import dbr_cpp as cpp
 from x64.Release import dbr_cpp as cpp
 
-print(cpp.__file__)
 
 
 def set_dispersal_kernel(
@@ -43,7 +44,6 @@ def set_dispersal_kernel(
         dynamics.set_global_wind_kernel(
             multi_disperser_params["wind"]["wspeed_gmean"], multi_disperser_params["wind"]["wspeed_stdev"],
             multi_disperser_params["wind"]["wind_direction"], multi_disperser_params["wind"]["wind_direction_stdev"]
-            
         );
     elif (dispersal_mode == "animal"):
         animal_dispersal_params = multi_disperser_params["animal"]
@@ -64,8 +64,7 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
     print("Initial pattern image:", args.initial_pattern_image)
     if args.initial_pattern_image == "ctrl":
         _args = copy.copy(args)
-        #_args.grid_width = 200 # Temporarily set grid width to 200 for pattern generation
-        img, path, benchmark_cover = vis.generate_controllable_pattern_image(**vars(_args))
+        img, path, benchmark_cover = args.vis.generate_disk_pattern(**vars(_args))
         img = cv2.resize(img, (args.grid_width, args.grid_width), interpolation=cv2.INTER_NEAREST)
         img = img / 255
 
@@ -84,8 +83,13 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
             path = f"{cfg.PERLIN_NOISE_DIR}/" + args.initial_pattern_image + ".png"
             noise_frequency = 5.0 / args.patch_width # Convert patch width to noise frequency
             noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
-            vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=args.noise_octaves)
-    elif args.initial_pattern_image != "none":
+            img = args.vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=args.noise_octaves)
+    elif args.initial_pattern_image == "none":
+        img = sng.generate(scale=2, grid_width=args.grid_width, binary_connectivity=args.treecover, args=args)
+        impath = f"{constants['SIMPLE_PATTERNS_DIR']}/whitenoise.png"
+        cv2.imwrite(impath, img)
+        #img = np.zeros((args.grid_width, args.grid_width), np.uint8) + 1
+    else:
         print("Setting tree cover from image...")
 
         path = f"{cfg.DATA_IN_DIR}/state_patterns/" + args.initial_pattern_image
@@ -93,7 +97,7 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
         print(f"Path of the generated {args.initial_pattern_image} pattern image: ", path) if args.initial_pattern_image in ["ctrl", "perlin_noise"] else None
         if img is None and args.initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
             print("Image not found. Generating new one...")
-            vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=args.noise_octaves)
+            args.vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=args.noise_octaves)
             
             img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
             if img is None:
@@ -102,27 +106,22 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
             print("Path perlin noise image: (attempt 2)", path)
             if img is None and args.initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
                 print("Image not found. Generating new one...")
-                vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=args.noise_octaves)
+                args.vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=args.noise_octaves)
                 time.sleep(1) # Wait for the image to be generated before trying to load it again
                 img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         
         if ("perlin_noise" in path) and (not "thresholded.png" in path):
-            img = vis.get_thresholded_image(img, args.treecover * img.shape[0] * img.shape[0] * 255 )
+            img = args.vis.get_thresholded_image(img, args.treecover * img.shape[0] * img.shape[0] * 255 )
             cv2.imwrite(path.replace(".png", "_thresholded.png"), img)
  
-        img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_LINEAR)
-        print("Created image. Setting cover...")
-        dynamics.state.set_cover_from_image(img / 255, args.override_image_treecover)
-    dynamics.state.repopulate_grid(0)
+    img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_NEAREST)
+    cv2.imshow("forest mask", img)
+    cv2.waitKey(1)
 
-    if args.initial_pattern_image == "none":    
-        dummy_img = np.zeros([args.grid_width,args.grid_width,3],dtype=np.uint8)
-        dummy_img.fill(1)
-        dynamics, args = do_burn_in(dynamics, args, dummy_img, color_dicts, target_treecover=args.treecover)
-    else:
-        cv2.imshow("forest mask", img)
-        cv2.waitKey(1)
-        dynamics, args = do_burn_in(dynamics, args, img, color_dicts)
+    print("data type of img:", img.dtype)
+
+    # Do burn-in procedure to stabilize initial forest density and demography    
+    dynamics, args = do_burn_in(dynamics, args, img, color_dicts, target_treecover=args.treecover)
 
     return dynamics, args
 
@@ -132,14 +131,29 @@ def init(args):
     # Make any changes to args if needed
     args.patch_width = round(args.patch_width, 2)
 
+    # Set random seed
+    if (args.random_seed == -999):
+        args.random_seed = random.randint(0, 100000000)
+        args.rng = np.random.default_rng(args.random_seed)
+        print(f"Generated new global random seed ({args.random_seed})")
+    else:
+        args.rng = np.random.default_rng(args.random_seed)
+        print(f"Using given global random seed ({args.random_seed})")
+
     # Set random seed for fire frequency probability distribution. If -999 is given, a random seed will be generated. Otherwise, the given seed will be used.
     if args.firefreq_random_seed == -999:
         args.firefreq_random_seed = random.randint(0, 1000000)
-        print("Generated random seed for fire frequency probability distribution: ", args.firefreq_random_seed)
-    print("Using fire frequency random seed: ", args.firefreq_random_seed)
+        print(f"Generated new random seed ({args.firefreq_random_seed}) for fire frequency probability distribution: ", )
+    else:
+        print(f"Using given random seed ({args.firefreq_random_seed}) for fire frequency probability distribution.")
+
+    # Initialize visualization tool
+    args.vis = visualization.Visualiser(args)
     
+    # Initialize disk pattern generator
+    args.dpg = _dpg.DiskPatternGenerator(args)
+
     # Initialize dynamics object and state
-    print("LAI aggregation radius:", args.LAI_aggregation_radius)
     dynamics = cpp.create_dynamics(vars(args))
     dynamics.init_state(
         args.grid_width,
@@ -158,13 +172,13 @@ def init(args):
     # Create color dictionaries for visualizations
     no_colors = 100
     if args.display_fire_effects == 1:
-        color_dict = vis.get_color_dict(no_colors, begin=0.2, end=0.5, distr_type="normal_with_fire_effects")
+        color_dict = args.vis.get_color_dict(no_colors, begin=0.2, end=0.5, distr_type="normal_with_fire_effects")
     else:
-        color_dict = vis.get_color_dict(no_colors, begin=0.2, end=0.5, distr_type="normal")
-    color_dict_recruitment = vis.get_color_dict(no_colors, begin=0.2, end=0.5, distr_type="recruitment")
-    color_dict_fire_freq = vis.get_color_dict(10, begin=0.2, end=0.5, distr_type="fire_freq")
-    color_dict_blackwhite = vis.get_color_dict(no_colors, distr_type="blackwhite")
-    color_dict_colored_patches = vis.get_color_dict(no_colors, distr_type="colored_patches")
+        color_dict = args.vis.get_color_dict(no_colors, begin=0.2, end=0.5, distr_type="normal")
+    color_dict_recruitment = args.vis.get_color_dict(no_colors, begin=0.2, end=0.5, distr_type="recruitment")
+    color_dict_fire_freq = args.vis.get_color_dict(10, begin=0.2, end=0.5, distr_type="fire_freq")
+    color_dict_blackwhite = args.vis.get_color_dict(no_colors, distr_type="blackwhite")
+    color_dict_colored_patches = args.vis.get_color_dict(no_colors, distr_type="colored_patches")
     color_dicts = {}
     color_dicts["normal"] = color_dict
     color_dicts["recruitment"] = color_dict_recruitment
@@ -172,31 +186,30 @@ def init(args):
     color_dicts["blackwhite"] = color_dict_blackwhite
     color_dicts["colored_patches"] = color_dict_colored_patches
     
-    # Set initial tree cover
-    print("Setting initial tree cover...") if args.verbosity > 0 else None
-    dynamics, args = set_initial_tree_cover(dynamics, args, color_dicts)
-
     # Set input maps
     print("Setting heterogeneity maps...") if args.verbosity > 0 else None
     dynamics, args = io.set_heterogeneity_maps(dynamics, args)
     
+    # Set initial tree cover
+    print("Setting initial tree cover...") if args.verbosity > 0 else None
+    dynamics, args = set_initial_tree_cover(dynamics, args, color_dicts)
     
     # Visualize the initial state
     collect_states = True
     print("Visualizing state at t = 0")
     if not args.headless:
         # Get a color image representation of the initial state and show it.
-        img = vis.visualize(
+        img = args.vis.visualize(
             dynamics.state.grid, args.image_width, collect_states=collect_states,
             color_dict=color_dict
         )
     else:
         # Get a color image representation of the initial state
-        img = vis.get_image_from_grid(dynamics.state.grid, color_dict, collect_states=collect_states)
+        img = args.vis.get_image_from_grid(dynamics.state.grid, color_dict, collect_states=collect_states)
    
     # Export image file
     imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
-    vis.save_image(img, imagepath)
+    args.vis.save_image(img, imagepath)
     
     if args.dispersal_mode == "all" or args.dispersal_mode == "animal":
 
@@ -204,7 +217,6 @@ def init(args):
         print("animal species: ", animal_species)
         for species in animal_species:
             lookup_table, fpath = io.get_lookup_table(species, args.grid_width, args.resource_grid_width * args.resource_grid_width)
-            #lookup_table = None # Hotfix; lookup table might lead to memory leaks (?)
             if lookup_table is None:
                 print(f"Lookup table file {fpath} not found. Creating new one...")
                 dynamics.precompute_resourcegrid_lookup_table(species)
@@ -231,20 +243,20 @@ def termination_condition_satisfied(dynamics, start_time, args):
     return satisfied
 
 
-def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, patches, patch_color_ids, args):
+def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, patches, patch_count_change, patch_color_ids, args):
     if ("recruitment" in visualization_types):
         print("Saving recruitment img...") if verbose else None
-        recruitment_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["recruitment"], collect_states=0)
+        recruitment_img = args.vis.get_image_from_grid(dynamics.state.grid, color_dicts["recruitment"], collect_states=0)
         imagepath_recruitment = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/recruitment/" + str(dynamics.time) + ".png")
-        vis.save_image(recruitment_img, imagepath_recruitment, get_max(1000, recruitment_img.shape[0]), interpolation="none")
+        args.vis.save_image(recruitment_img, imagepath_recruitment, get_max(1000, recruitment_img.shape[0]), interpolation="none")
     
     if ("fire_freq" in visualization_types):
         fire_freq_arrays.append(dynamics.state.grid.get_distribution(0) == -5)
         if dynamics.time > fire_no_timesteps:
             print("Saving fire frequency img...") if verbose else None
-            fire_freq_img = vis.get_fire_freq_image(fire_freq_arrays[-fire_no_timesteps:], color_dicts["fire_freq"], dynamics.state.grid.width, fire_no_timesteps)
+            fire_freq_img = args.vis.get_fire_freq_image(fire_freq_arrays[-fire_no_timesteps:], color_dicts["fire_freq"], dynamics.state.grid.width, fire_no_timesteps)
             imagepath_fire_freq = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fire_frequencies/" + str(dynamics.time) + ".png")
-            vis.save_image(fire_freq_img, imagepath_fire_freq, get_max(1000, fire_freq_img.shape[0]))
+            args.vis.save_image(fire_freq_img, imagepath_fire_freq, get_max(1000, fire_freq_img.shape[0]))
 
     def get_bbox(positions2d):
         min_x = min(positions2d, key=lambda item: item[0])[0]
@@ -256,8 +268,8 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
     if ("colored_patches" in visualization_types):
         print("Creating colored patches image...") if verbose else None
 
-        # Modify color array to give patches distinct colors
-        patch_colors_indices = dynamics.state.grid.get_distribution(False)
+        # Initialize color index array
+        patch_colors_indices = np.zeros((dynamics.state.grid.width, dynamics.state.grid.width), dtype=int) -1
         
         # Sort patches so that larger patches are assigned colors first
         patches = sorted(patches, key=lambda patch: patch["area"], reverse=True)
@@ -267,10 +279,11 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         central_patch = -1
         max_no_colors = 1000
         offset = -10
+
         for i, patch in enumerate(patches):
-            if i > 20 and dynamics.time == 1:
-                if i > 100:
-                    print("Breaking patch coloring loop at patch no", i, f"for performance reasons (n.o. patches = {len(patches)}")
+            if (len(patches) > 20) and dynamics.time == 0:
+                if i >= 100:
+                    print("Breaking patch coloring loop at patch no", i, f"for performance reasons (number of patches = {len(patches)}).")
                     break
                 if i % 15 == 0:
                     print(f"Coloring patch no {i}/{len(patches)}... Will be cut off at 100.")
@@ -279,18 +292,18 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
             patch_id = patch["id"]
 
             if not patch_color_ids.get(str(patch_id)):
-                if (len(patches) > 30) and dynamics.time > 1:
-                    color_idx = vis.get_random_color_index(patch_color_ids.values(), max_no_colors, offset)
-                else:    
-                    color_idx = vis.get_most_distinct_index(patch_color_ids.values(), max_no_colors, offset)
+                if (len(patches) > 30) and dynamics.time > 0:
+                    color_idx = args.vis.get_random_color_index(patch_color_ids.values(), max_no_colors, offset)
+                else:
+                    color_idx = args.vis.get_most_distinct_index(patch_color_ids.values(), max_no_colors, offset)
                 patch_color_ids[str(patch_id)] = color_idx # Assign a new color index to the patch
             patch_color_id = patch_color_ids[str(patch_id)]
             col=color_dicts["colored_patches"][patch_color_id]
             forest_area += patch["area"] if patch["type"] == "forest" else 0
             for cell in patch["cells"]:
                 patch_colors_indices[cell[1]][cell[0]] = patch_color_id
-        
-        colored_patches_img = vis.get_image(patch_colors_indices, color_dicts["colored_patches"], dynamics.state.grid.width)
+
+        colored_patches_img = args.vis.get_image(patch_colors_indices, color_dicts["colored_patches"], dynamics.state.grid.width)
         args.show_edges = False # Hardcoded for now
         if args.show_edges:
             for patch in patches:
@@ -303,69 +316,87 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
                         continue # Skip drawing wrap-around edges for now.
                     cv2.line(colored_patches_img, point1, point2, (0, 0, 0), 1)  # black line, thickness=2
         imagepath_colored_patches = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/colored_patches/" + str(dynamics.time) + ".png")
-        vis.save_image(colored_patches_img, imagepath_colored_patches, get_max(1000, colored_patches_img.shape[0]), interpolation="none")
-
+        args.vis.save_image(colored_patches_img, imagepath_colored_patches, get_max(1000, colored_patches_img.shape[0]), interpolation="none")
 
     print("-- Visualizing image...") if verbose else None
     if args.headless:
         # Get a color image representation of the initial state
-        img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["normal"], collect_states=1)
+        img = args.vis.get_image_from_grid(dynamics.state.grid, color_dicts["normal"], collect_states=1)
     else:
         # Get a color image representation of the initial state and show it.
-        img = vis.visualize(
+        img = args.vis.visualize(
             dynamics.state.grid, args.image_width, collect_states=collect_states,
             color_dict=color_dicts["normal"]
         )
 
     print("-- Saving image...") if verbose else None
     imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
-    vis.save_image(img, imagepath, get_max(1000, img.shape[0]), interpolation="none")
+    args.vis.save_image(img, imagepath, get_max(1000, img.shape[0]), interpolation="none")
     
     # if ("fuel" in visualization_types):
     #     print("-- Saving fuel image...") if verbose else None
-    #     fuel_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel")
+    #     fuel_img = args.vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel")
     #     imagepath_fuel = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
-    #     vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
+    #     args.vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
 
     if ("aggr_tree_LAI" in visualization_types):
         print("-- Saving aggregated tree LAI image...") if verbose else None
-        aggr_tree_LAI_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="aggr_tree_LAI", invert=False)
+        aggr_tree_LAI_img = args.vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="aggr_tree_LAI", invert=False)
         imagepath_aggr_tree_LAI = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/aggr_tree_LAI/" + str(dynamics.time) + ".png")
-        vis.save_image(aggr_tree_LAI_img, imagepath_aggr_tree_LAI, get_max(1000, aggr_tree_LAI_img.shape[0]))
+        args.vis.save_image(aggr_tree_LAI_img, imagepath_aggr_tree_LAI, get_max(1000, aggr_tree_LAI_img.shape[0]))
 
     # if ("fuel_penetration" in visualization_types):
     #     print("-- Saving fuel penetration image...") if verbose else None
-    #     fuel_penetration_img = vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel_penetration")
+    #     fuel_penetration_img = args.vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel_penetration")
     #     imagepath_fuel_penetration = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel_penetration/" + str(dynamics.time) + ".png")
-    #     vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
+    #     args.vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
 
 
-def do_burn_in(dynamics, args, forest_mask, color_dicts, target_treecover=0):
+def do_burn_in(dynamics, args, forest_mask, color_dicts, target_treecover=1):
     """Perform burn-in procedure to stabilize initial forest density and demography."""
     
-    burn_in_timesteps = abs(dynamics.time)
-    print(f"Beginning burn-in for {burn_in_timesteps} timesteps...")
+    print(f"Beginning burn-in for {args.burnin_duration} timesteps...")
     init_csv = True
     args.treesize_bins = "initialize"
     cur_treecover = 0
-    while dynamics.time < 0 or cur_treecover < target_treecover:
-        print(f"Timestep: {dynamics.time})")
+    visualization_types = ["aggr_tree_LAI", "colored_patches"]
+    fire_freq_arrays = []
+    fire_no_timesteps = 1
+    patch_colors = {}
+    while dynamics.time < args.burnin_duration:
+        print(f"Burn-in timestep:    {dynamics.time})")
         dynamics.disperse_within_forest(forest_mask)
         dynamics.grow()
         dynamics.induce_background_mortality()
-        dynamics.state.repopulate_grid(0)
+        dynamics.state.repopulate_grid(args.verbosity)
         dynamics.prune(forest_mask)
+        dynamics.state.repopulate_grid(args.verbosity)
+        dynamics.state.grid.reset_state_distr()
+        dynamics.update_forest_patch_detection()
         dynamics.report_state()
         args = io.export_state(dynamics, path=args.csv_path, init_csv=init_csv, args=args)
         init_csv = False
         cur_treecover = dynamics.state.grid.get_tree_cover()
         
-        # Get a color image representation of the initial state and show it.
-        img = vis.visualize(
+        # Obtain patches from simulation
+        patches = dynamics.get_patches() 
+
+        # get a color image representation of the initial state and show it.
+        # do_visualizations(
+        #     dynamics, fire_freq_arrays, fire_no_timesteps, False, color_dicts,
+        #     True, visualization_types, patches, patch_colors, args
+        # )
+        img = args.vis.visualize(
             dynamics.state.grid, args.image_width, collect_states=1,
             color_dict=color_dicts["normal"]
         )
         dynamics.time += 1
+
+    # Remove seedlings, then let trees disperse for one time step to create a realistic initial distribution of seedlings.
+    dynamics.time -= 1
+    dynamics.remove_trees_up_to_age(1)
+    dynamics.state.repopulate_grid(0)
+
     dynamics.time = 0
 
     return dynamics, args
@@ -375,7 +406,6 @@ def do_iteration(dynamics, args):
     """Run a single simulation iteration."""
 
     # -- PREPARE -- #
-    dynamics.time += 1
     print(f"\nTime: {dynamics.time}")
 
     if args.verbosity > 0:
@@ -444,16 +474,17 @@ def updateloop(dynamics, color_dicts, args):
     slope = 0
     largest_absolute_slope = 0
     export_animal_resources = False
+    patches = {}
     collect_states = 1
     fire_no_timesteps = 1
     patch_colors = {}
     verbose = args.verbosity
     fire_freq_arrays = []
-    color_dict_fire_freq = vis.get_color_dict(fire_no_timesteps, begin=0.2, end=0.5, distr_type="fire_freq")
+    color_dict_fire_freq = args.vis.get_color_dict(fire_no_timesteps, begin=0.2, end=0.5, distr_type="fire_freq")
     color_dicts["fire_freq"] = color_dict_fire_freq
 
     if not args.headless:
-        graphs = vis.Graphs(dynamics)
+        graphs = visualization.Graphs(dynamics)
 
     while True:
         print("-- Starting iteration...") if verbose else None
@@ -478,14 +509,16 @@ def updateloop(dynamics, color_dicts, args):
         do_terminate = termination_condition_satisfied(dynamics, start, args)
     
         # Obtain patches from simulation
+        old_no_patches = len(patches)
         patches = dynamics.get_patches() 
+        patch_count_change =  len(patches) - old_no_patches
     
         # Do visualizations
         if not args.headless:
             do_visualizations(
                 dynamics, fire_freq_arrays, fire_no_timesteps, verbose,
                 color_dicts, collect_states, visualization_types,
-                patches, patch_colors, args
+                patches, patch_count_change, patch_colors, args
             )
     
         print("-- Exporting state_data...") if verbose else None
@@ -515,16 +548,18 @@ def updateloop(dynamics, color_dicts, args):
             k_coarse_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/k_coarse/" + str(dynamics.time) + ".png")
             k_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/k/" + str(dynamics.time) + ".png")
 
-            vis.save_resource_grid_colors(dynamics, "Turdus merula", "cover", cover_path)
-            vis.save_resource_grid_colors(dynamics, "Turdus merula", "fruits", fruits_path)
-            vis.save_resource_grid_colors(dynamics, "Turdus merula", "visits", visits_path)
-            vis.save_resource_grid_colors(dynamics, "Turdus merula", "distance_single", distance_path)
-            vis.save_resource_grid_colors(dynamics, "Turdus merula", "distance_single_coarse", distance_coarse_path)
-            vis.save_resource_grid_colors(dynamics, "Turdus merula", "k", k_path)
-            vis.save_resource_grid_colors(dynamics, "Turdus merula", "k_coarse", k_coarse_path)
+            args.vis.save_resource_grid_colors(dynamics, "Turdus merula", "cover", cover_path)
+            args.vis.save_resource_grid_colors(dynamics, "Turdus merula", "fruits", fruits_path)
+            args.vis.save_resource_grid_colors(dynamics, "Turdus merula", "visits", visits_path)
+            args.vis.save_resource_grid_colors(dynamics, "Turdus merula", "distance_single", distance_path)
+            args.vis.save_resource_grid_colors(dynamics, "Turdus merula", "distance_single_coarse", distance_coarse_path)
+            args.vis.save_resource_grid_colors(dynamics, "Turdus merula", "k", k_path)
+            args.vis.save_resource_grid_colors(dynamics, "Turdus merula", "k_coarse", k_coarse_path)
 
         if do_terminate:
             break
+        
+        dynamics.time += 1
 
     if not args.headless:
         cv2.destroyAllWindows()
@@ -542,7 +577,7 @@ def test_kernel():
     abscission_height = 30
     wind_kernel = cpp.Kernel(1, dist_max, windspeed_gmean, windspeed_stdev, 0, 3600, seed_terminal_speed, abscission_height)
     wind_kernel.build()
-    vis.visualize_kernel(wind_kernel, "Wind kernel. d_max = {}, w_gmean = {}, \n w_stdev = {}, v_t = {}, h = {}".format(
+    args.vis.visualize_kernel(wind_kernel, "Wind kernel. d_max = {}, w_gmean = {}, \n w_stdev = {}, v_t = {}, h = {}".format(
         dist_max, windspeed_gmean, windspeed_stdev, seed_terminal_speed, abscission_height)
     )
     return
@@ -572,6 +607,7 @@ def main(batch_parameters=None, **user_args):
             user_args[control_keys[0]][idx] = batch_parameters["control_value"]
 
     args = SimpleNamespace(**user_args)
+
     dynamics, color_dicts, args = init(args)
     return updateloop(dynamics, color_dicts, args)
  

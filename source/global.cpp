@@ -25,6 +25,35 @@ void convert_from_numpy_array(py::array_t<float>& img, shared_ptr<float[]>& outp
 	}
 }
 
+void convert_from_numpy_array(
+    const py::array_t<uint8_t>& img,
+    std::shared_ptr<float[]>& output_image,
+    int& width,
+    int& height
+) {
+    auto buf = img.request();
+
+    // Expect a 2D array
+    if (buf.ndim != 2) {
+        throw std::runtime_error("Expected a 2D uint8 NumPy array");
+    }
+
+    uint8_t* ptr = static_cast<uint8_t*>(buf.ptr);
+
+    width = static_cast<int>(buf.shape[0]);
+    height = static_cast<int>(buf.shape[1]);
+
+    output_image = std::make_shared<float[]>(width * height);
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            output_image[y * width + x] =
+                static_cast<float>(ptr[y * width + x]);
+        }
+    }
+}
+
+
 py::list convert_from_idx_pair_vector_to_position_pylist(const vector<pair<int, int>>& vec, Grid& grid) {
     py::list pylist;
     for (size_t j = 0; j < vec.size(); j++) {
@@ -259,6 +288,9 @@ PYBIND11_MODULE(dbr_cpp, module) {
             delete[] tree_sizes;
             return np_arr;
 		})
+        .def("get_tree_count", [](State& state) {
+		    return state.population.size();
+        })
         .def("get_tree_ages", [](State& state) {
             float* tree_ages = new float[state.population.size()];
             state.get_tree_ages(tree_ages);
@@ -277,6 +309,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
 		.def("reset_state_distr", &Grid::reset_state_distr)
 		.def("redo_count", &Grid::redo_count)
         .def_readwrite("width", &Grid::width)
+        .def_readwrite("no_cells", &Grid::no_cells)
         .def_readwrite("width_r", &Grid::width_r)
         .def_readwrite("tree_cover", &Grid::tree_cover)
         .def("get_distribution", [](Grid& grid, int& collect_states) {
@@ -316,13 +349,13 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def_readwrite("timestep", &Dynamics::timestep)
         .def_readwrite("seeds_produced", &Dynamics::seeds_produced)
         .def_readwrite("max_dbh", &Dynamics::max_dbh)
-        .def("disperse_within_forest", [](Dynamics& dynamics, py::array_t<float>& img) {
+        .def("disperse_within_forest", [](Dynamics& dynamics, py::array_t<uint8_t>& img) {
             shared_ptr<float[]> mask;
             int width, height;
             convert_from_numpy_array(img, mask, width, height);
             dynamics.disperse_within_forest(mask);
         })
-        .def("prune", [](Dynamics& dynamics, py::array_t<float>& img) {
+        .def("prune", [](Dynamics& dynamics, py::array_t<uint8_t>& img) {
             shared_ptr<float[]> mask;
             int width, height;
             convert_from_numpy_array(img, mask, width, height);
@@ -347,6 +380,9 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def("get_basal_area", [](Dynamics& dynamics) {
             float basal_area = dynamics.get_basal_area();
             return basal_area;
+        })
+        .def("remove_trees_up_to_age", [](Dynamics& dynamics, int& dbh_threshold) {
+            dynamics.remove_trees_up_to_age(dbh_threshold);
         })
         .def("free", &Dynamics::free)
         .def("set_global_linear_kernel", &Dynamics::set_global_linear_kernel)

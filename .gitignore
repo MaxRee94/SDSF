@@ -11,6 +11,7 @@ data_in/local_overrides/
 data_in/heterogeneity/local_growth_multipliers/*
 source/DBR-sim/env
 source/DBR-sim/env2
+data_in/heterogeneity/local_growth_multipliers/*
 *.bat
 
 # Visaul studio files
@@ -253,3 +254,5 @@ data_in/heterogeneity/heterogeneity_config.json
 .vs/SDSF/CopilotIndices/17.14.995.13737/CodeChunks.db
 .vs/ProjectSettings.json
 .vs/CMakeWorkspaceSettings.json
+source/DBR-sim/batch_master_8_processes.ps1
+source/DBR-sim/batch_master_singleprocess.ps1

@@ -63,6 +63,7 @@ public:
 		}
 		grid.update_grass_LAIs();
 		grid.update_aggr_LAIs();
+		grid.redo_count();
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
 	float compute_shade_on_individual_tree(Tree* tree) {

@@ -25,7 +25,7 @@ public:
 		animal_group_size(_animal_group_size), display_fire_effects(_display_fire_effects)
 	{
 		help::init_RNG(random_seed);
-		random_generator = default_random_engine(firefreq_random_seed);
+		firefreq_RNG.seed(firefreq_random_seed);
 	};
 	void init_state(int gridsize, float dbh_q1, float dbh_q2, float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max,
 		float minimum_patch_size, float LAI_aggregation_radius) {
@@ -184,7 +184,7 @@ public:
 			if (global_kernel_exists(tree_dispersal_vector))
 				pop->add_kernel(tree_dispersal_vector, global_kernels[tree_dispersal_vector]);
 			else {
-				if (id != -1) printf("No global kernel found for tree dispersal vector '%s'.\n", tree_dispersal_vector.c_str());
+				if (id != -1) printf("No global kernel found for tree dispersal vector '%s', (tree id = %i).\n", tree_dispersal_vector.c_str(), id);
 				//exit(1); Let's not exit the program for now
 				return false;
 			}
@@ -193,33 +193,41 @@ public:
 	}
 	void disperse_uniformly(shared_ptr<float[]> mask, int no_seeds_to_disperse) {
 		int i = 0;
+		int no_germinated_seedlings = 0;
 		while (i < no_seeds_to_disperse) {
 			// Get random location within forest mask
 			pair<float, float> deposition_location;
-			deposition_location.first = help::get_rand_float(0, grid->width_r);
-			deposition_location.second = help::get_rand_float(0, grid->width_r);
+			deposition_location.first = help::get_rand_float(0, grid->width_r - 0.51f * grid->cell_width);
+			deposition_location.second = help::get_rand_float(0, grid->width_r - 0.51f * grid->cell_width);
 			int grid_idx = grid->pos_2_idx(deposition_location);
 
-			if (mask[grid_idx] < 1.0f) continue;
+			if (mask[grid_idx] < 1) continue;
 
 			// Germinate random seed at location
-			germinate_random_seedling(deposition_location);
+			bool germinated = germinate_random_seedling(deposition_location, no_germinated_seedlings);
+			if (germinated) no_germinated_seedlings++;
 
 			i++;
 		}
 	}
-	void germinate_random_seedling(pair<float, float> deposition_location) {
+	bool germinate_random_seedling(pair<float, float> deposition_location, int& no_germinated_seedlings) {
 		int dummy1 = 0; int dummy2 = 0; int dummy3 = 0; int dummy4 = 0; int dummy5 = 0; int dummy6 = 0;
 		Strategy strategy;
 		pop->strategy_generator.generate(strategy);
+		strategy.id = -2 - no_germinated_seedlings; // Use a negative id to indicate that this is a seedling generated during burn-in (if the seedling is recruited, its id will be changed to be equal to the new tree's id (in pop->add)).
 		Seed seed = Seed(strategy, deposition_location);
 		bool viable = seed.germinate_if_location_is_viable(
 			&state, dummy1, dummy2, dummy3, dummy4, dummy5, dummy6
 		);
-		if (!viable) return;
+		if (!viable) return false;
 
-		// Generate crop (we have to initialize it here; the pop->add() function only creates duplicate crops based on those of parent trees)
+		// Generate crop
+		int crop_id = strategy.id; // Normally (outside burn-in) we insert the parent tree's id into the grid cell, which is equal to the corresponding crop id.
+								   // However, during burn-in there are no parent trees and thus strategy.id is inserted as a surrogate for tree id.
+								   // We must therefore set the crop id equal to strategy.id here, so that the recruitment function can retrieve the corresponding crop.
 		pop->add_crop(strategy, deposition_location, strategy.id);
+
+		return true;
 	}
 	void disperse_within_forest(shared_ptr<float[]> mask) {
 		int pre_dispersal_popsize = pop->size();
@@ -387,18 +395,29 @@ public:
 		}
 		timer.stop(); printf("-- Dispersing %s animal seeds took %f seconds. \n", help::readable_number(no_seeds_to_disperse).c_str(), timer.elapsedSeconds());
 	}
+	void remove_trees_up_to_age(int age_threshold) {
+		vector<int> tree_deletion_schedule = {};
+		for (auto& [id, tree] : pop->members) {
+			if (tree.age < age_threshold) {
+				tree_deletion_schedule.push_back(id);
+			}
+		}
+		for (int id : tree_deletion_schedule) {
+			pop->remove(id);
+		}
+		printf("-- Number of trees removed up to and including age %i year: %i \n", age_threshold, tree_deletion_schedule.size());
+	}
 	void recruit() {
 		Timer timer; timer.start();
 		int pre_recruitment_popsize = pop->size();
 		for (int i = 0; i < grid->no_cells; i++) {
 			Cell* cell = &grid->distribution[i];
 			if (cell->seedling_present) {
-				int id = cell->stem.second;
-				Tree* tree = pop->add(
-					grid->get_real_cell_position(cell),
-					&pop->get_crop(id)->strategy
-				);
+				int parent_id = cell->stem.second;
+				Strategy* strat_of_parent_tree = &pop->get_crop(parent_id)->strategy;
+				Tree* tree = pop->add(grid->get_real_cell_position(cell), strat_of_parent_tree);
 				cell->insert_sapling(tree, grid->cell_area, grid->cell_halfdiagonal_sqrt);
+
 				grid->state_distribution[i] = -7;
 			}
 		}
@@ -461,7 +480,7 @@ public:
 			return 1;
 		}
 		std::binomial_distribution<int> no_fires_distribution(grid->no_savanna_cells, self_ignition_factor / 1e6);
-		return no_fires_distribution(random_generator);
+		return no_fires_distribution(firefreq_RNG);
 	}
 	void burn() {
 		if (verbosity == 2) printf("Updated tree flammabilities.\n");
@@ -486,9 +505,9 @@ public:
 		}
 		no_fire_induced_deaths = popsize_before_burns - pop->size();
 		printf("no fire induced deaths (time = %i): %i \n", time, no_fire_induced_deaths);
-		printf("no fire induced topkills: %i \n", time, no_fire_induced_topkills);
-		printf("no fire induced topkills of non-seedlings: %i \n", time, no_fire_induced_nonseedling_topkills);
-		printf("no exposures of adults to fire: %i \n", time, no_exposures_of_adults_to_fire);
+		printf("no fire induced topkills: %i \n", no_fire_induced_topkills);
+		printf("no fire induced topkills of non-seedlings: %i \n", no_fire_induced_nonseedling_topkills);
+		printf("no exposures of adults to fire: %i \n", no_exposures_of_adults_to_fire);
 		cout.precision(2);
 		printf(  
 			"-- Fires: %i, Topkills: %s, Kills: %s \n",
@@ -650,7 +669,7 @@ public:
 	int no_animal_seedlings = 0;
 	int no_recruits = 0;
 	int timestep = 0;
-	int time = -5;
+	int time = 0;
 	int pop_size = 0;
 	int verbosity = 0;
 	int seeds_produced = 0;
@@ -667,7 +686,7 @@ public:
 	Disperser linear_disperser;
 	WindDispersal wind_disperser;
 	AnimalDispersal animal_dispersal;
-	default_random_engine random_generator;
+	mt19937 firefreq_RNG;
 	ResourceGrid resource_grid;
 	shared_ptr<pair<int, int>[]> neighbor_offsets = 0;
 	map<string, map<string, float>> strategy_distribution_params;
