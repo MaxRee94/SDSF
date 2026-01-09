@@ -16,9 +16,7 @@ import visualization as vis
 import file_handling as io
 from helpers import *
 from config import *
-import controllable_pattern_generator as cpg
 
-sys.path.append(BUILD_DIR)
 #from x64.Debug import dbr_cpp as cpp
 from x64.Release import dbr_cpp as cpp
 
