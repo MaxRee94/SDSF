@@ -84,12 +84,15 @@ def parse_args(parser=None):
         _ = parser.parse_args()
     
     kwargs = vars(args)
+        
+    return kwargs
 
+
+def load_json_strings_if_any(kwargs):
     # Convert JSON strings to dicts
     for k, v in kwargs.items():
         if type(v) == str and "{" in v:
             kwargs[k] = json.loads(v) 
-        
     return kwargs
 
 

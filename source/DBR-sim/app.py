@@ -390,10 +390,11 @@ def do_burn_in(dynamics, args, forest_mask, color_dicts, target_treecover=1):
         #     dynamics, fire_freq_arrays, fire_no_timesteps, False, color_dicts,
         #     True, visualization_types, patches, patch_colors, args
         # )
-        img = args.vis.visualize(
-            dynamics.state.grid, args.image_width, collect_states=1,
-            color_dict=color_dicts["normal"]
-        )
+        if not args.headless:
+            img = args.vis.visualize(
+                dynamics.state.grid, args.image_width, collect_states=1,
+                color_dict=color_dicts["normal"]
+            )
         dynamics.time += 1
 
     # Remove seedlings, then let trees disperse for one time step to create a realistic initial distribution of seedlings.

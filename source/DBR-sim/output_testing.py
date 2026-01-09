@@ -18,10 +18,8 @@ import visualization as vis
 import file_handling as io
 from helpers import *
 from config import *
+import app
 
-
-#from x64.Debug import dbr_cpp as cpp
-from x64.Release import dbr_cpp as cpp
 
 
 class Test:
@@ -32,8 +30,9 @@ class Test:
         self.expected_outputs = {}
         
     def load(self, cfg_file, default_args):
-        case_args = self.load_case(cfg_file)
+        case_args = self.load_casefile(cfg_file)
         args = self.apply_case_args(case_args, default_args)
+        args.headless = True
 
         return args
 
@@ -45,21 +44,24 @@ class Test:
         return args
 
     @staticmethod
-    def load_case(cfg_file):
+    def load_casefile(cfg_file):
         with open(cfg_file, "r") as f:
             args = json.load(f)
         args = SimpleNamespace(**args)
         return args
      
     def run(self):
-        print(f"Running test '{self.name}'...")
+        app.main(**vars(self.args))
+        time.sleep(1)
 
-        print("Test completed successfully.")
+        return True
 
 
 class OutputTests:
     def __init__(self):
-        self.default_args = SimpleNamespace(**get_all_defaults())
+        kwargs = get_all_defaults()
+        kwargs = load_json_strings_if_any(kwargs)
+        self.default_args = SimpleNamespace(**kwargs)
         self.tests = self.get_tests()
 
     def get_tests(self):
@@ -83,8 +85,14 @@ class OutputTests:
     def run_all(self):
         print("Running all output tests...")
         for i, test in enumerate(self.tests):
-            print(f"Running test: {i}/{len(self.tests)}")
-            test.run()
+            message = f"- Running test {i+1}/{len(self.tests)}: {test.name}"
+            print(message + " ...", end="")
+            success = test.run()
+            sys.stdout.flush()
+            if success:
+                print("\r" + message.replace("Running", "Passed"))
+            else:
+                print("\r" + message.replace("Running", "FAILED"))
             
         print("All tests completed.")
 

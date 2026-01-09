@@ -16,6 +16,7 @@ def main():
     cli_args_provided = len(sys.argv) > 1
     if cli_args_provided:
         kwargs = parse_args()
+        kwargs = load_json_strings_if_any(kwargs)
         check_cli_args(**kwargs)
         tests = kwargs.pop("tests")
         if tests == "unit_tests":

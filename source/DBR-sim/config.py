@@ -95,7 +95,6 @@ defaults = {
     "resource_grid_width": 48,
     "initial_pattern_image": "none",
     "mutation_rate": 0, # We do not incorporate mutation in this study.
-    #"batch_parameters": "{\"control_variable\": \"growth_rate_multiplier_params-><idx>0\", \"control_value\": 0.99}"
     "batch_parameters": "",
     "report_state": False,
     "animal_group_size": 10,
