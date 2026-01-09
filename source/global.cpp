@@ -12,17 +12,70 @@ void check_communication() {
     printf("Verified python->cpp communication.\n");
 }
 
-void convert_from_numpy_array(py::array_t<float>& img, shared_ptr<float[]>& cover_image, int& width, int& height) {
+void convert_from_numpy_array(py::array_t<float>& img, shared_ptr<float[]>& output_image, int& width, int& height) {
 	auto buf1 = img.request();
 	float* ptr = (float*)buf1.ptr;
 	width = buf1.shape[0];
     height = width;
-    cover_image = make_shared<float[]>(width * height);
+    output_image = make_shared<float[]>(width * height);
 	for (int x = 0; x < width; x++) {
 		for (int y = 0; y < height; y++) {
-			cover_image[y * width + x] = ptr[y * width + x];
+			output_image[y * width + x] = ptr[y * width + x];
 		}
 	}
+}
+
+void convert_from_numpy_array(
+    const py::array_t<uint8_t>& img,
+    std::shared_ptr<float[]>& output_image,
+    int& width,
+    int& height
+) {
+    auto buf = img.request();
+
+    // Expect a 2D array
+    if (buf.ndim != 2) {
+        throw std::runtime_error("Expected a 2D uint8 NumPy array");
+    }
+
+    uint8_t* ptr = static_cast<uint8_t*>(buf.ptr);
+
+    width = static_cast<int>(buf.shape[0]);
+    height = static_cast<int>(buf.shape[1]);
+
+    output_image = std::make_shared<float[]>(width * height);
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            output_image[y * width + x] =
+                static_cast<float>(ptr[y * width + x]);
+        }
+    }
+}
+
+
+py::list convert_from_idx_pair_vector_to_position_pylist(const vector<pair<int, int>>& vec, Grid& grid) {
+    py::list pylist;
+    for (size_t j = 0; j < vec.size(); j++) {
+        pair<int, int> _pair = vec[j];
+        pair<int, int> pos_1_cpp = grid.idx_2_pos(_pair.first);
+        pair<int, int> pos_2_cpp = grid.idx_2_pos(_pair.second);
+        py::tuple pos_1 = py::make_tuple(pos_1_cpp.first, pos_1_cpp.second);
+        py::tuple pos_2 = py::make_tuple(pos_2_cpp.first, pos_2_cpp.second);
+        py::tuple neighbors = py::make_tuple(pos_1, pos_2);
+        pylist.append(neighbors);
+    }
+	return pylist;
+}
+
+py::list convert_from_idx_vector_to_position_pylist(const vector<int>& vec, Grid& grid) {
+    py::list pylist;
+    for (size_t j = 0; j < vec.size(); j++) {
+        pair<int, int> pos_cpp = grid.idx_2_pos(vec[j]);
+        py::tuple pos = py::make_tuple(pos_cpp.first, pos_cpp.second);
+        pylist.append(pos);
+    }
+    return pylist;
 }
 
 py::array_t<int> as_2d_numpy_array(int* distribution, int width) {
@@ -193,7 +246,8 @@ Dynamics create_dynamics(py::dict dict) {
         get("random_seed").cast<int>(),
         get("firefreq_random_seed").cast<int>(),
         get("enforce_no_recruits").cast<float>(),
-        get("animal_group_size").cast<int>()
+        get("animal_group_size").cast<int>(),
+		get("display_fire_effects").cast<bool>()
     );
 }
 
@@ -209,14 +263,14 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&, const float&, const float&, const float&,
             const float&, const float&, map<string, map<string, float>>&, const float&,
-            const float&, const float&, const float&>())
-        .def("repopulate_grid", &State::repopulate_grid)
+            const float&, const float&, const float&, const float&, const float&>())
+        .def("repopulate_grid", [](State& state, int verbosity) {state.repopulate_grid(verbosity); })
         .def("set_tree_cover", &State::set_tree_cover)
-        .def("set_cover_from_image", [](State& state, py::array_t<float>& img, float& target_cover) {
+        .def("set_cover_from_image", [](State& state, py::array_t<float>& img, float& override_image_treecover) {
             shared_ptr<float[]> cover_image;
             int width, height;
             convert_from_numpy_array(img, cover_image, width, height);
-            if (target_cover > 0) state.set_cover_from_image(cover_image, width, height, target_cover);
+            if (override_image_treecover >= 0) state.set_cover_from_image(cover_image, width, height, override_image_treecover);
             else state.set_cover_from_image(cover_image, width, height);
         })
         .def("get_state_table", [](State& state) {
@@ -234,6 +288,16 @@ PYBIND11_MODULE(dbr_cpp, module) {
             delete[] tree_sizes;
             return np_arr;
 		})
+        .def("get_tree_count", [](State& state) {
+		    return state.population.size();
+        })
+        .def("get_tree_ages", [](State& state) {
+            float* tree_ages = new float[state.population.size()];
+            state.get_tree_ages(tree_ages);
+            py::array_t<float> np_arr = as_1d_numpy_array(tree_ages, state.population.size());
+            delete[] tree_ages;
+            return np_arr;
+        })
         .def_readwrite("grid", &State::grid)
         .def_readwrite("population", &State::population)
         .def_readwrite("initial_tree_cover", &State::initial_tree_cover);
@@ -242,12 +306,35 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def(py::init<>())
         .def(py::init<const int&, const float&>())
         .def("get_tree_cover", &Grid::get_tree_cover)
+		.def("reset_state_distr", &Grid::reset_state_distr)
+		.def("redo_count", &Grid::redo_count)
         .def_readwrite("width", &Grid::width)
+        .def_readwrite("no_cells", &Grid::no_cells)
         .def_readwrite("width_r", &Grid::width_r)
         .def_readwrite("tree_cover", &Grid::tree_cover)
-        .def("get_distribution", [](Grid &grid, int &collect_states) {
+        .def("get_distribution", [](Grid& grid, int& collect_states) {
             shared_ptr<int[]> state_distribution = grid.get_state_distribution(collect_states);
             return as_2d_numpy_array(state_distribution, grid.width);
+        })
+        .def("set_grass_carrying_capacity", [](Grid& grid, py::array_t<float>& py_image) {
+            shared_ptr<float[]> image;
+            int _width, _height;
+            convert_from_numpy_array(py_image, image, _width, _height);
+            grid.set_grass_carrying_capacity(image);
+        })
+        .def("set_local_growth_multipliers", [](Grid& grid, py::array_t<float>& py_image) {
+            shared_ptr<float[]> image;
+            int _width, _height;
+            convert_from_numpy_array(py_image, image, _width, _height);
+            grid.set_local_growth_multipliers(image);
+        })
+        .def("get_aggr_tree_LAI_distribution", [](Grid& grid) {
+            shared_ptr<float[]> aggr_tree_LAI_distribution = grid.get_aggr_tree_LAI_distribution();
+            return as_2d_numpy_array(aggr_tree_LAI_distribution, grid.width);
+        })
+        .def("get_fuel_distribution", [](Grid& grid) {
+            shared_ptr<float[]> fuel_load_distribution = grid.get_fuel_load_distribution();
+            return as_2d_numpy_array(fuel_load_distribution, grid.width);
         });
 
     py::class_<Dynamics>(module, "Dynamics")
@@ -262,6 +349,18 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def_readwrite("timestep", &Dynamics::timestep)
         .def_readwrite("seeds_produced", &Dynamics::seeds_produced)
         .def_readwrite("max_dbh", &Dynamics::max_dbh)
+        .def("disperse_within_forest", [](Dynamics& dynamics, py::array_t<uint8_t>& img) {
+            shared_ptr<float[]> mask;
+            int width, height;
+            convert_from_numpy_array(img, mask, width, height);
+            dynamics.disperse_within_forest(mask);
+        })
+        .def("prune", [](Dynamics& dynamics, py::array_t<uint8_t>& img) {
+            shared_ptr<float[]> mask;
+            int width, height;
+            convert_from_numpy_array(img, mask, width, height);
+            dynamics.prune(mask);
+        })
         .def("init_state", &Dynamics::init_state)
         .def("get_fires", [](Dynamics& dynamics) {
             py::array_t<float> np_arr = as_1d_numpy_array(dynamics.fires);
@@ -278,6 +377,13 @@ PYBIND11_MODULE(dbr_cpp, module) {
 			float no_recruits = dynamics.get_no_recruits(type);
 			return no_recruits;
 		})
+        .def("get_basal_area", [](Dynamics& dynamics) {
+            float basal_area = dynamics.get_basal_area();
+            return basal_area;
+        })
+        .def("remove_trees_up_to_age", [](Dynamics& dynamics, int& dbh_threshold) {
+            dynamics.remove_trees_up_to_age(dbh_threshold);
+        })
         .def("free", &Dynamics::free)
         .def("set_global_linear_kernel", &Dynamics::set_global_linear_kernel)
         .def("set_global_wind_kernel", &Dynamics::set_global_wind_kernel)
@@ -304,6 +410,38 @@ PYBIND11_MODULE(dbr_cpp, module) {
 			convert_from_numpy_array(lookup_table, float_array, width, height);
 			dynamics.resource_grid.set_dist_lookup_table(float_array, species);
 		})
+        .def("get_patches", [](Dynamics& dynamics) {
+            map<int, Patch> _forest_patches = dynamics.state.grid.forest_patches;
+            map<int, Patch> _savanna_patches = dynamics.state.grid.savanna_patches;
+            map<int, Patch> _patches = {};
+			_patches.merge(_forest_patches);
+            _patches.merge(_savanna_patches);
+            Grid& grid = dynamics.state.grid;
+            py::list patches;
+            for (auto const& [id, _patch] : _patches) {
+                py::dict patch;
+                py::list perimeter = convert_from_idx_pair_vector_to_position_pylist(_patch.perimeter, dynamics.state.grid);
+                py::list cells = convert_from_idx_vector_to_position_pylist(_patch.cells, dynamics.state.grid);
+
+                // Assemble patch info into a dictionary
+                patch["type"] = py::str(_patch.type);
+                patch["id"] = py::int_(_patch.id);
+                patch["area"] = py::float_(_patch.area);
+                patch["cells"] = cells;
+                patch["perimeter"] = perimeter;
+                patch["perimeter_length"] = _patch.perimeter_length;
+                patch["centroid"] = py::make_tuple(_patch.centroid_x, _patch.centroid_y);
+
+                patches.append(patch);
+			}
+            return patches;
+        })
+        .def("get_forest_perimeter_length", [](Dynamics& dynamics) {
+		    return dynamics.state.grid.get_forest_perimeter_length();
+        })
+        .def("get_perimeter_area_ratio", [](Dynamics& dynamics) {
+            return dynamics.state.grid.get_perimeter_area_ratio();
+        })
         .def("get_fraction_time_spent_moving", [](Dynamics& dynamics) {
 			return dynamics.fraction_time_spent_moving;
 		})
@@ -339,7 +477,15 @@ PYBIND11_MODULE(dbr_cpp, module) {
         })
         .def("precompute_resourcegrid_lookup_table", [](Dynamics& dynamics, string& species) {
             dynamics.resource_grid.precompute_dist_lookup_table(species);
-		});
+		})
+        .def("disperse", &Dynamics::disperse)
+        .def("burn", &Dynamics::burn)
+        .def("grow", &Dynamics::grow)
+        .def("induce_background_mortality", &Dynamics::induce_background_mortality)
+        .def("report_state", &Dynamics::report_state)
+        .def("update_firefree_interval_averages", &Dynamics::update_firefree_interval_averages)
+        .def("update_forest_patch_detection", &Dynamics::update_forest_patch_detection)
+        ;
 
     py::class_<DiscreteProbabilityModel>(module, "DiscreteProbabilityModel")
         .def(py::init<>())

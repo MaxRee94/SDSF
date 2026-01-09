@@ -12,7 +12,7 @@ public:
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _max_dbh, float _saturation_threshold, map<string, float> fire_resistance_params,
 		float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
 		int _resource_grid_width, float _mutation_rate, float _STR, int _verbosity, int random_seed, int firefreq_random_seed, float __enforce_no_recruits,
-		int _animal_group_size
+		int _animal_group_size, bool _display_fire_effects
 	) :
 		timestep(_timestep), cell_width(_cell_width), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_max_dbh * _seed_bearing_threshold),
@@ -22,16 +22,16 @@ public:
 		fire_resistance_stretch(fire_resistance_params["stretch"]),
 		background_mortality(_background_mortality), strategy_distribution_params(_strategy_distribution_params),
 		resource_grid_width(_resource_grid_width), mutation_rate(_mutation_rate), STR(_STR), _enforce_no_recruits(__enforce_no_recruits), 
-		animal_group_size(_animal_group_size)
+		animal_group_size(_animal_group_size), display_fire_effects(_display_fire_effects)
 	{
-		time = 0;
 		help::init_RNG(random_seed);
-		random_generator = default_random_engine(firefreq_random_seed);
+		firefreq_RNG.seed(firefreq_random_seed);
 	};
-	void init_state(int gridsize, float dbh_q1, float dbh_q2, float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max) {
+	void init_state(int gridsize, float dbh_q1, float dbh_q2, float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max,
+		float minimum_patch_size, float LAI_aggregation_radius) {
 		state = State(
 			gridsize, cell_width, max_dbh, dbh_q1, dbh_q2, seed_bearing_threshold, saturation_threshold, strategy_distribution_params,
-			mutation_rate, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max
+			mutation_rate, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max, minimum_patch_size, LAI_aggregation_radius
 		);
 		linear_disperser = Disperser();
 		wind_disperser = WindDispersal();
@@ -84,6 +84,12 @@ public:
 		report_state();
 
 		update_firefree_interval_averages();
+		update_forest_patch_detection();
+	}
+	void update_forest_patch_detection() {
+		// Obtain forest patches, report their sizes, their perimeter lengths, and the sizes of the neighboring savanna areas.
+		if (verbosity > 0) printf("Updating forest patch detection... \n");
+		state.grid.get_patches(verbosity);
 	}
 	void report_state() {
 		int grid_memory_size = 0;
@@ -110,10 +116,22 @@ public:
 	void grow() {
 		vector<int> tree_deletion_schedule = {};
 		map<float, int> increment_counts;
-		for (auto& [id, tree] : pop->members) {
+		for (int i = 0; i < grid->no_cells; i++) {
+			Cell* cell = &grid->distribution[i];
+			if (cell->stem.second <= 0) continue; // If no stem is present, skip this cell.
+
+			// Get the tree whose stem is in this cell.
+			int id = cell->stem.second;
+			Tree& tree = pop->members[id];
+
+			// Obtain local growth multiplier
+			float local_growth_multiplier = cell->get_growth_multiplier();
+			
+			// Grow tree
 			float shade = state.compute_shade_on_individual_tree(&tree);
-			tree.shade = shade;
-			auto [became_reproductive, dies_due_to_light_limitation] = tree.grow(seed_bearing_threshold, shade);
+			auto [became_reproductive, dies_due_to_light_limitation] = tree.grow(seed_bearing_threshold, shade, local_growth_multiplier);
+
+			// Add dying trees to deletion schedule
 			if (dies_due_to_light_limitation) {
 				tree_deletion_schedule.push_back(id);
 			}
@@ -132,6 +150,7 @@ public:
 		global_kernels["wind"] = Kernel(1, grid->width_r * 2.0f, wspeed_gmean, wspeed_stdev, wind_direction, wind_direction_stdev);
 		pop->add_kernel("wind", global_kernels["wind"]);
 		cout << "Global kernel created (Wind dispersal). " << endl;
+		pop->strategy_generator.set_constant_vector("wind");
 	}
 	void set_global_animal_kernel(map<string, map<string, float>>& animal_kernel_params) {
 		global_kernels["animal"] = Kernel(1, "animal");
@@ -139,7 +158,8 @@ public:
 		animal_dispersal.animals = Animals(& state, animal_kernel_params, animal_group_size);
 		animal_dispersal.animals.initialize_population();
 		pop->add_kernel("animal", global_kernels["animal"]);
-		cout << "Global kernel created (Dispersal by animals). \n";
+		pop->strategy_generator.set_constant_vector("animal");
+		printf("--- Strat generator vector: %s \n", pop->strategy_generator.pick_vector().c_str());
 	}
 	void set_global_kernels(map<string, map<string, float>> nonanimal_kernel_params, map<string, map<string, float>> animal_kernel_params) {
 		map<string, float> params;
@@ -153,9 +173,7 @@ public:
 		float resource_grid_cell_width = grid->width_r / (float)resource_grid_width;
 		vector<string> species = {};
 		for (auto& [_species, _] : animal_kernel_params) species.push_back(_species);
-		if (resource_grid.selection_probabilities.probabilities != nullptr) printf("not nullptr");
 		resource_grid = ResourceGrid(&state, resource_grid_width, resource_grid_cell_width, species, animal_kernel_params);
-		printf("resource grid's probmodel obj id: %i \n", resource_grid.selection_probabilities.id);
 	}
 	bool global_kernel_exists(string type) {
 		return global_kernels.find(type) != global_kernels.end();
@@ -166,12 +184,148 @@ public:
 			if (global_kernel_exists(tree_dispersal_vector))
 				pop->add_kernel(tree_dispersal_vector, global_kernels[tree_dispersal_vector]);
 			else {
-				if (id != -1) printf("No global kernel found for tree dispersal vector '%s'.\n", tree_dispersal_vector.c_str());
+				if (id != -1) printf("No global kernel found for tree dispersal vector '%s', (tree id = %i).\n", tree_dispersal_vector.c_str(), id);
 				//exit(1); Let's not exit the program for now
 				return false;
 			}
 		}
 		return true;
+	}
+	void disperse_uniformly(shared_ptr<float[]> mask, int no_seeds_to_disperse) {
+		int i = 0;
+		int no_germinated_seedlings = 0;
+		while (i < no_seeds_to_disperse) {
+			// Get random location within forest mask
+			pair<float, float> deposition_location;
+			deposition_location.first = help::get_rand_float(0, grid->width_r - 0.51f * grid->cell_width);
+			deposition_location.second = help::get_rand_float(0, grid->width_r - 0.51f * grid->cell_width);
+			int grid_idx = grid->pos_2_idx(deposition_location);
+
+			if (mask[grid_idx] < 1) continue;
+
+			// Germinate random seed at location
+			bool germinated = germinate_random_seedling(deposition_location, no_germinated_seedlings);
+			if (germinated) no_germinated_seedlings++;
+
+			i++;
+		}
+	}
+	bool germinate_random_seedling(pair<float, float> deposition_location, int& no_germinated_seedlings) {
+		int dummy1 = 0; int dummy2 = 0; int dummy3 = 0; int dummy4 = 0; int dummy5 = 0; int dummy6 = 0;
+		Strategy strategy;
+		pop->strategy_generator.generate(strategy);
+		strategy.id = -2 - no_germinated_seedlings; // Use a negative id to indicate that this is a seedling generated during burn-in (if the seedling is recruited, its id will be changed to be equal to the new tree's id (in pop->add)).
+		Seed seed = Seed(strategy, deposition_location);
+		bool viable = seed.germinate_if_location_is_viable(
+			&state, dummy1, dummy2, dummy3, dummy4, dummy5, dummy6
+		);
+		if (!viable) return false;
+
+		// Generate crop
+		int crop_id = strategy.id; // Normally (outside burn-in) we insert the parent tree's id into the grid cell, which is equal to the corresponding crop id.
+								   // However, during burn-in there are no parent trees and thus strategy.id is inserted as a surrogate for tree id.
+								   // We must therefore set the crop id equal to strategy.id here, so that the recruitment function can retrieve the corresponding crop.
+		pop->add_crop(strategy, deposition_location, strategy.id);
+
+		return true;
+	}
+	void disperse_within_forest(shared_ptr<float[]> mask) {
+		int pre_dispersal_popsize = pop->size();
+		Timer timer; timer.start();
+
+		int no_seeds_to_disperse = 1000;
+		disperse_uniformly(mask, no_seeds_to_disperse);
+		recruit();
+	}
+	void add_LAI_contributions_FROM_cell(map<int, float>& contributions, Cell* cell) {
+		// Add the LAI contributions from all trees in the given cell to the provided map.
+		// The LAI of trees that already contribute from other cells will be summed.
+		for (int tree_id : cell->trees) {
+			Tree* tree = pop->get(tree_id);
+			if (help::is_in(contributions, tree_id)) contributions[tree_id] += tree->LAI;
+			else contributions[tree_id] = tree->LAI;
+		}
+	}
+	map<int, float> get_LAI_contributions_TO_cell(Cell* cell) {
+		map<int, float> LAI_contributions_to_cell;
+
+		// Use a circular neighborhood with specified radius.
+		float radius = grid->LAI_aggregation_radius;
+		int no_cells_in_radius = 0;
+		int min_x = (int)(cell->pos.first - radius);
+		int max_x = (int)(cell->pos.first + radius);
+		int min_y = (int)(cell->pos.second - radius);
+		int max_y = (int)(cell->pos.second + radius);
+		pair<float, float> cell_real_pos = grid->get_real_cell_position(cell);
+		for (int x = min_x; x <= max_x; x++) {
+			for (int y = min_y; y <= max_y; y++) {
+				pair<int, int> neighbor_pos = pair<int, int>(x, y);
+				grid->cap(neighbor_pos);
+				pair<float, float> neighbor_real_pos = grid->get_real_cell_position(grid->get_cell_at_position(neighbor_pos));
+				float dist = help::get_dist(cell_real_pos, neighbor_pos);
+				if (dist <= radius) {
+					Cell* neighbor = grid->get_cell_at_position(pair<int, int>(x, y));
+					add_LAI_contributions_FROM_cell(LAI_contributions_to_cell, neighbor);
+					no_cells_in_radius++;
+				}
+			}
+		}
+		if (no_cells_in_radius == 0) {
+			add_LAI_contributions_FROM_cell(LAI_contributions_to_cell, cell);
+			return LAI_contributions_to_cell;
+		}
+		else {
+			// Compute averaged contributions and add to map + return it.
+			for (auto& [tree_id, LAI_contribution] : LAI_contributions_to_cell) {
+				LAI_contributions_to_cell[tree_id] = LAI_contribution / (float)no_cells_in_radius;
+			}
+
+			// Compute total LAI and verify it matches the LAI stored in aggr_tree_LAI_distribution.
+			float total_LAI = 0;
+			for (auto& [_, LAI_contribution] : LAI_contributions_to_cell) {
+				total_LAI += LAI_contribution;
+			}
+			assert(help::approx(total_LAI, grid->aggr_tree_LAI_distribution[cell->idx], 0.1f));
+		}
+		return LAI_contributions_to_cell;
+	}
+	void record_LAI_contributions(shared_ptr<map<int, float>[]>& LAI_contributions) {
+		for (int i = 0; i < grid->no_cells; i++) {
+			Cell* cell = &grid->distribution[i];
+			map<int, float> LAI_contributions_to_cell = get_LAI_contributions_TO_cell(cell);
+			LAI_contributions[cell->idx] = LAI_contributions_to_cell;
+		}
+	}
+	vector<int> get_trees_to_prune(float LAI_excess, map<int, float>& LAI_contributions) {
+		// Get list of trees to prune in order to reduce LAI by LAI_excess.
+		float LAI_diff = 0;
+		vector<int> trees_to_remove = {};
+		while (LAI_diff < LAI_excess) {
+			int key = help::get_random_key(LAI_contributions);
+			if (help::is_in(&trees_to_remove, key)) continue; // Tree already selected for removal.
+			LAI_diff += LAI_contributions[key];
+			if (LAI_excess > 0) trees_to_remove.push_back(key);
+		}
+		return trees_to_remove;
+	}
+	void prune(shared_ptr<float[]> mask) {
+		shared_ptr<map<int, float>[]> LAI_contributions = make_shared<map<int, float>[]>(grid->no_cells);
+		record_LAI_contributions(LAI_contributions);
+
+		for (int i = 0; i < grid->no_cells; i++) {
+			Cell* cell = &grid->distribution[i];
+			if (grid->is_forest(cell) && mask[i] < 1.0f) {
+				// Cell is forest but should be savanna according to mask. Remove trees to correct this.
+				float LAI_excess = grid->aggr_tree_LAI_distribution[cell->idx] - 1.0f;
+				vector<int> trees_to_remove = get_trees_to_prune(LAI_excess, LAI_contributions[cell->idx]);
+				for (int tree_id : trees_to_remove) {
+					Tree* tree = pop->get(tree_id);
+					grid->kill_tree_domain(tree, false);
+					grid->update_aggr_LAIs(tree);
+					pop->remove(tree_id);
+				}
+			}
+		}
 	}
 	void disperse_wind_seeds_and_init_fruits(int& no_seed_bearing_trees, int& no_wind_seedlings, int& wind_seeds_dispersed, int& animal_seeds_dispersed, int& wind_trees) {
 		int pre_dispersal_popsize = pop->size();
@@ -241,17 +395,29 @@ public:
 		}
 		timer.stop(); printf("-- Dispersing %s animal seeds took %f seconds. \n", help::readable_number(no_seeds_to_disperse).c_str(), timer.elapsedSeconds());
 	}
+	void remove_trees_up_to_age(int age_threshold) {
+		vector<int> tree_deletion_schedule = {};
+		for (auto& [id, tree] : pop->members) {
+			if (tree.age < age_threshold) {
+				tree_deletion_schedule.push_back(id);
+			}
+		}
+		for (int id : tree_deletion_schedule) {
+			pop->remove(id);
+		}
+		printf("-- Number of trees removed up to and including age %i year: %i \n", age_threshold, tree_deletion_schedule.size());
+	}
 	void recruit() {
 		Timer timer; timer.start();
 		int pre_recruitment_popsize = pop->size();
 		for (int i = 0; i < grid->no_cells; i++) {
 			Cell* cell = &grid->distribution[i];
 			if (cell->seedling_present) {
-				Tree* tree = pop->add(
-					grid->get_real_cell_position(cell),
-					&pop->get_crop(cell->stem.second)->strategy
-				);
+				int parent_id = cell->stem.second;
+				Strategy* strat_of_parent_tree = &pop->get_crop(parent_id)->strategy;
+				Tree* tree = pop->add(grid->get_real_cell_position(cell), strat_of_parent_tree);
 				cell->insert_sapling(tree, grid->cell_area, grid->cell_halfdiagonal_sqrt);
+
 				grid->state_distribution[i] = -7;
 			}
 		}
@@ -296,7 +462,7 @@ public:
 	void induce_background_mortality() {
 		vector<int> tree_deletion_schedule = {};
 		for (auto& [id, tree] : pop->members) {
-			if (help::get_rand_float(0, 1) < background_mortality) {
+			if (tree.life_expectancy <= tree.age) {
 				tree_deletion_schedule.push_back(id);
 			}
 		}
@@ -314,7 +480,7 @@ public:
 			return 1;
 		}
 		std::binomial_distribution<int> no_fires_distribution(grid->no_savanna_cells, self_ignition_factor / 1e6);
-		return no_fires_distribution(random_generator);
+		return no_fires_distribution(firefreq_RNG);
 	}
 	void burn() {
 		if (verbosity == 2) printf("Updated tree flammabilities.\n");
@@ -322,25 +488,28 @@ public:
 		int no_ash_cells = 0;
 		int popsize_before_burns = pop->size();
 		int re_ignitions = 0;
+		int no_exposures_of_adults_to_fire = 0;
 		no_fire_induced_topkills = 0;
 		no_fire_induced_nonseedling_topkills = 0;
 		fires.clear();
 		for (int i = 0; i < no_fires; i++) {
-			Cell* cell = grid->get_random_cell();
+			Cell* cell = grid->get_random_savanna_cell();
 			if (cell->time_last_fire == time) {
 				no_fires--;
 				continue;
 			}
 			no_fires++;
-			auto [_no_ash_cells, _no_grassy_ash_cells] = percolate(cell, time, no_fire_induced_topkills, no_fire_induced_nonseedling_topkills);
+			auto [_no_ash_cells, _no_grassy_ash_cells] = percolate(cell, time, no_fire_induced_topkills, no_fire_induced_nonseedling_topkills, no_exposures_of_adults_to_fire);
 			no_ash_cells += _no_ash_cells;
 			fires.push_back((float)_no_ash_cells * grid->cell_area);
 		}
 		no_fire_induced_deaths = popsize_before_burns - pop->size();
 		printf("no fire induced deaths (time = %i): %i \n", time, no_fire_induced_deaths);
-		printf("no fire induced topkills (time = %i): %i \n", time, no_fire_induced_topkills);
+		printf("no fire induced topkills: %i \n", no_fire_induced_topkills);
+		printf("no fire induced topkills of non-seedlings: %i \n", no_fire_induced_nonseedling_topkills);
+		printf("no exposures of adults to fire: %i \n", no_exposures_of_adults_to_fire);
 		cout.precision(2);
-		printf(
+		printf(  
 			"-- Fires: %i, Topkills: %s, Kills: %s \n",
 			no_fires, help::readable_number(no_fire_induced_topkills).c_str(), help::readable_number(no_fire_induced_deaths).c_str()
 		);
@@ -351,7 +520,7 @@ public:
 	}
 	float get_forest_flammability(Cell* cell, bool grass_has_recovered) {
 		float fuel_load = cell->get_fuel_load();
-		return grass_has_recovered * unsuppressed_flammability * fuel_load; // We assume forest flammability is directly proportional to fuel load
+		return max(0.1f, grass_has_recovered * unsuppressed_flammability * fuel_load); // We assume forest flammability is directly proportional to fuel load, though with a given minimum.
 	}
 	float get_savanna_flammability(bool grass_has_recovered) {
 		return grass_has_recovered * unsuppressed_flammability; // We assume grass flammability is directly proportional to fire-free interval.
@@ -364,14 +533,13 @@ public:
 	}
 	bool tree_is_topkilled(Tree* tree) {
 		// if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", dbh, bark_thickness, survival_probability);
-		// COMMENT: We currently assume topkill always implies death, but resprouting should also be possible. (TODO: make death dependent on fire-free interval)
 
-		if (tree->dbh < seedling_discard_dbh) return true; // We assume that seedlings with a dbh below this 'discard'-value are always killed by fire.
+		if (tree->dbh < seedling_discard_dbh) return true; // We assume that seedlings with a dbh below this 'discard'-value are always killed by fire.display_fire_effect
 		return !tree->survives_fire(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 	}
 	void kill_tree(Tree* tree, float time_last_fire, queue<Cell*>& queue, Cell* cell) {
 		if (verbosity > 1) printf("Burning tree %i ... \n", tree->id);
-		Cell* stem_cell = grid->burn_tree_domain(tree, queue, time_last_fire, true, true, cell->idx);
+		Cell* stem_cell = grid->burn_tree_domain(tree, queue, time_last_fire, display_fire_effects, display_fire_effects, cell->idx);
 		if (tree->life_phase == 2 || tree->life_phase == 0) {
 			// A tree which has been burned once is allowed to resprout, in line with findings of Hoffmann et al. (2012).
 			tree->resprout(seed_bearing_threshold);
@@ -387,30 +555,27 @@ public:
 	}
 	void kill_tree(Tree* tree) {
 		if (verbosity == 2) printf("Removing tree %i ... \n", tree->id);
-		grid->kill_tree_domain(tree, false);
+		grid->kill_tree_domain(tree, display_fire_effects);
 		pop->remove(tree);
 	}
-	void induce_tree_mortality(Cell* cell, queue<Cell*>& queue, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills) {
+	void induce_tree_mortality(Cell* cell, queue<Cell*>& queue, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills, int& no_exposures_of_adults_to_fire) {
 		int tree_id = cell->stem.second;
-		//printf("idx: %i , no trees: %i\n", idx, cell->trees.size());
 		if (tree_id == 0) return; // If no tree stem is present in this cell, skip mortality evaluation.
 
 		Tree* tree = pop->get(tree_id);
-		vector<int> trees = cell->trees;
-		if (tree->id == -1) {
-			//printf("\n\n ------- ERROR: Tree %i has been removed from the population but is still present in cell %i, %i. \n", tree_id, cell->pos.first, cell->pos.second);
-			//printf("Trees in cell before starting this mortality loop: ");
-			//help::print_vector(&trees);
-			//bool present = state.check_grid_for_tree_presence(tree_id, 0);
-			return;
-		}
+		if (tree->life_phase == 2) no_exposures_of_adults_to_fire++;
 		if (tree->last_mortality_check == time) return; // Skip mortality evaluation if this was already done in the current timestep.
 		if (tree_is_topkilled(tree)) {
 			no_trees_topkilled++;
 			if (tree->age > -1) no_fire_induced_nonseedling_topkills++;
 			kill_tree(tree, cell->time_last_fire, queue, cell);
 		}
-		else tree->last_mortality_check = time;
+		else {
+			tree->last_mortality_check = time;
+			if (display_fire_effects) {
+				grid->store_fire_exposure(tree);
+			}
+		}
 	}
 	inline bool cell_will_ignite(Cell* cell, float t_start) {
 		if (t_start - cell->time_last_fire < 10e-4) {
@@ -418,14 +583,14 @@ public:
 		}
 		return help::get_rand_float(0.0, 1.0) < get_cell_flammability(cell, min(t_start - cell->time_last_fire, 1));
 	}
-	inline void burn_cell(Cell* cell, float t_start, queue<Cell*>& queue, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills) {
+	inline void burn_cell(Cell* cell, float t_start, queue<Cell*>& queue, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills, int& no_exposures_of_adults_to_fire) {
 		cell->time_last_fire = t_start;
-		grid->state_distribution[grid->pos_2_idx(cell->pos)] = -5;
-		induce_tree_mortality(cell, queue, no_trees_topkilled, no_fire_induced_nonseedling_topkills);
+		if (display_fire_effects) grid->state_distribution[grid->pos_2_idx(cell->pos)] = -5;
+		induce_tree_mortality(cell, queue, no_trees_topkilled, no_fire_induced_nonseedling_topkills, no_exposures_of_adults_to_fire);
 	}
-	pair<int, int> percolate(Cell* cell, float t_start, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills) {
+	pair<int, int> percolate(Cell* cell, float t_start, int& no_trees_topkilled, int& no_fire_induced_nonseedling_topkills, int& no_exposures_of_adults_to_fire) {
 		std::queue<Cell*> queue;
-		burn_cell(cell, t_start, queue, no_trees_topkilled, no_fire_induced_nonseedling_topkills);
+		burn_cell(cell, t_start, queue, no_trees_topkilled, no_fire_induced_nonseedling_topkills, no_exposures_of_adults_to_fire);
 		queue.push(cell);
 		int no_ash_cells = 1;
 		int no_grassy_ash_cells = 1;
@@ -439,7 +604,7 @@ public:
 			for (int i = 0; i < 8; i++) {
 				Cell* neighbor = grid->get_cell_at_position(cell->pos + neighbor_offsets[i]);
 				if (cell_will_ignite(neighbor, t_start)) {
-					burn_cell(neighbor, t_start, queue, no_trees_topkilled, no_fire_induced_nonseedling_topkills);
+					burn_cell(neighbor, t_start, queue, no_trees_topkilled, no_fire_induced_nonseedling_topkills, no_exposures_of_adults_to_fire);
 					queue.push(neighbor);
 					no_ash_cells++;
 					if (neighbor->state == 0) no_grassy_ash_cells++;
@@ -461,6 +626,15 @@ public:
 		else if (type == "average") {
 			return fire_free_interval_averages;
 		}
+	}
+	float get_basal_area() {
+		float basal_area = 0;
+		for (auto& [id, tree] : pop->members) {
+			basal_area += M_PI * tree.dbh * tree.dbh; // Add the cross-secitonal area of this tree's stem.
+		}
+		basal_area /= grid->get_tree_cover();
+		basal_area /= grid->area;
+		return basal_area;
 	}
 	float unsuppressed_flammability = 0;
 	shared_ptr<float[]> fire_free_interval_averages;
@@ -505,17 +679,18 @@ public:
 	int no_fire_induced_topkills = 0;
 	int no_fire_induced_nonseedling_topkills = 0;
 	int initial_no_effective_dispersals = 0;
+	bool display_fire_effects = true;
 	State state;
 	Population* pop = 0;
 	Grid* grid = 0;
 	Disperser linear_disperser;
 	WindDispersal wind_disperser;
 	AnimalDispersal animal_dispersal;
-	default_random_engine random_generator;
+	mt19937 firefreq_RNG;
 	ResourceGrid resource_grid;
 	shared_ptr<pair<int, int>[]> neighbor_offsets = 0;
-	map<string, Kernel> global_kernels;
 	map<string, map<string, float>> strategy_distribution_params;
+	map<string, Kernel> global_kernels;
 	Animals animals;
 };
 

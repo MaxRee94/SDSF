@@ -13,25 +13,79 @@ using namespace std;
 #define RAND_DOUBLE_PRECISION 0.0001
 #define INV_RAND_DOUBLE_PRECISION_PLUSONE 1.0 / (1.0 + RAND_DOUBLE_PRECISION)
 
+
+std::mt19937 rng;
+
+
 void help::init_RNG(int seed) {
     if (seed == -999) {
         // Seed the random number generator with the current time
-		srand(time(NULL));
+		rng.seed(time(NULL));
 	}
 	else {
         // Seed the random number generator with the given seed
-		srand(seed);
+        rng.seed(seed);
 	}
-    int x = rand();
-    int z = x * 3;
+
+	// Warm up the RNG
+    for (int i = 0; i < 10000; i++) {
+        rng();
+	}
 }
 
+void help::save_image(string name, shared_ptr<float[]> image) {
+    using ::std::string;
+    using ::std::ios;
+    using ::std::ofstream;
+    typedef unsigned char pixval_t;
+    auto float_to_pixval = [](float img_val) -> pixval_t {
+        int tmpval = static_cast<int>(::std::floor(256 * img_val));
+        if (tmpval < 0) {
+            return 0u;
+        }
+        else if (tmpval > 255) {
+            return 255u;
+        }
+        else {
+            return tmpval & 0xffu;
+        }
+    };
+    auto as_pgm = [](const string& name) -> string {
+        if (!((name.length() >= 4)
+            && (name.substr(name.length() - 4, 4) == ".pgm")))
+        {
+            return name + ".pgm";
+        }
+        else {
+            return name;
+        }
+    };
+
+    ofstream out(as_pgm(name), ios::binary | ios::out | ios::trunc);
+
+    out << "P5\n512 512\n255\n";
+    for (int x = 0; x < 512; ++x) {
+        for (int y = 0; y < 512; ++y) {
+            pixval_t pixval;
+            if (y > 239 || x > 239) {
+                pixval = float_to_pixval(0.0f);
+            }
+            else {
+                pixval = float_to_pixval(image[y * 240 + x]);
+            }
+            const char outpv = static_cast<const char>(pixval);
+            out.write(&outpv, 1);
+        }
+    }
+}
+
+
 float help::get_rand_float(float min, float max) {
-    return min + (float)rand() * INV_RAND_MAX * (max - min);
+    return min + (float)rng() * INV_RAND_MAX * (max - min);
 }
 
 double help::_get_rand_double(double min, double max) {
-    return min + ((double)rand() * INV_RAND_MAX) * (max - min);
+    return min + ((double)rng() * INV_RAND_MAX) * (max - min);
 }
 
 double help::get_rand_double(double min, double max) {
@@ -49,8 +103,37 @@ int help::get_rand_int(int min, int max) {
     return round(help::get_rand_float(min, max));
 }
 
+int help::get_random_key(std::map<int, float>& map) {
+    int rand_idx = help::get_rand_int(0, map.size() - 1);
+    int i = 0;
+    for (auto const& [key, val] : map) {
+        if (i == rand_idx) {
+            return key;
+        }
+        i++;
+    }
+    throw runtime_error("Unable to generate random key.\n"); // Should not reach here
+}
+
 bool help::is_in(std::vector<int>* vec, int item) {
     return find(vec->begin(), vec->end(), item) != vec->end();
+}
+
+bool help::is_in(std::map<int, int>& map, int item) {
+	return map.find(item) != map.end();
+}
+
+bool help::is_in(std::map<int, float>& map, int item) {
+    return map.find(item) != map.end();
+}
+
+template <typename T>
+vector<int> help::get_keys(map<int, T>& map) {
+    vector<int> keys = {};
+    for (auto const& [key, val] : map) {
+        keys.push_back(key);
+    }
+	return keys;
 }
 
 // Add padding as suffix to given basestring
@@ -127,6 +210,26 @@ void help::print_map(std::map<int, int>* map) {
     }
 }
 
+void help::print_map(std::map<int, float>* map) {
+    int i = 0;
+    for (auto const& [key, val] : (*map))
+    {
+        if (i > 0) {
+            std::cout << ", ";
+        }
+        std::cout << key        // string (key)
+            << ':'
+            << val;        // string's value
+        i++;
+    }
+    if (i == 0) {
+        std::cout << "<empty map>" << endl;
+    }
+    else {
+        std::cout << endl;
+    }
+}
+
 string help::join_as_string(vector<int> numbers, string separator) {
     string result = "";
     for (auto number : numbers) {
@@ -169,7 +272,8 @@ string help::join(vector<string> strings, string separator) {
     return result;
 }
 
-void help::print_vector(std::vector<int>* vec) {
+void help::print_vector(std::vector<int>* vec, std::string prefix) {
+	printf("%s", prefix.c_str());
     for (int i = 0; i < vec->size(); i++) {
         if (i > 0) std::cout << ", ";
         std::cout << vec->at(i);
@@ -338,6 +442,23 @@ void help::populate_with_zeroes(uint* _array, int dim_x, int dim_y) {
 void help::sort(std::map<int, double>& _map, PairSet& _set)
 {
     _set = PairSet(_map.begin(), _map.end());
+}
+
+
+// Function to sort the map according
+// to value in a (key-value) pairs
+void help::sort(std::map<int, int>& _map, PairIntSet& _set)
+{
+    _set = PairIntSet(_map.begin(), _map.end());
+}
+
+
+vector<pair<int, int>> help::get_bbox(vector<pair<int, int>> positions2d) {
+    int min_x = help::get_min(positions2d, 0);
+    int min_y = help::get_min(positions2d, 1);
+    int max_x = help::get_max(positions2d, 0);
+	int max_y = help::get_max(positions2d, 1);
+    return vector<pair<int, int>>{pair<int, int>(min_x, min_y), pair<int, int>(max_x, max_y)};
 }
 
 
@@ -520,7 +641,7 @@ double help::get_max(vector<double>* distribution) {
 
 template <typename T>
 double help::get_min(vector<T>* distribution) {
-    double min = INFINITY;
+    double min = 1e12;
     for (auto value : *distribution) {
         if (value < min) min = value;
     }
@@ -528,6 +649,40 @@ double help::get_min(vector<T>* distribution) {
 }
 template double help::get_min<double>(vector<double>* vec);
 template double help::get_min<float>(vector<float>* vec);
+
+
+template <typename T>
+T help::get_min(vector<pair<T, T>>& distribution, int index) {
+	T min = 1e12;
+    for (auto& value : distribution) {
+        T contained_value;
+        if (index == 0) contained_value = value.first;
+        if (index == 1) contained_value = value.second;
+        if (contained_value < min) min = contained_value;
+		//if (contained_value == 0) printf("zero found: (%i, %i)\n", value.first, value.second);
+	}
+    return min;
+}
+template double help::get_min<double>(vector<double>* vec);
+template double help::get_min<float>(vector<float>* vec);
+template double help::get_min<int>(vector<int>* vec);
+
+
+template <typename T>
+T help::get_max(vector<pair<T, T>>& distribution, int index) {
+    T max = 0;
+    for (auto& value : distribution) {
+        T contained_value;
+        if (index == 0) contained_value = value.first;
+        if (index == 1) contained_value = value.second;
+        if (contained_value > max) max = contained_value;
+    }
+    return max;
+}
+template double help::get_min<double>(vector<double>* vec);
+template double help::get_min<float>(vector<float>* vec);
+template double help::get_min<int>(vector<int>* vec);
+
 
 float help::get_dist(pair<float, float> p1, pair<float, float> p2) {
     float xdif = (p1.first - p2.first);
@@ -608,6 +763,59 @@ void help::DiscreteProbModelPiece::rescale(float factor) {
     ymin *= factor; ymax *= factor;
     ysize = ymax - ymin;
 }
+
+help::DiscreteProbabilityModel::DiscreteProbabilityModel() = default;
+help::DiscreteProbabilityModel::DiscreteProbabilityModel(int _size) {
+    size = _size;
+    probabilities = std::make_shared<double[]>(_size);
+    cdf = std::make_shared<double[]>(_size);
+    id = rng();
+}
+void help::DiscreteProbabilityModel::build_cdf() {
+    double height = 0.0f;
+    for (int i = 0; i < size; i++) {
+        cdf[i] = height;
+        height += probabilities[i];
+    }
+}
+int help::DiscreteProbabilityModel::sample() {
+    double cdf_sample = help::get_rand_double(0.0f, 1.0);
+    int idx = binary_search(cdf.get(), size, cdf_sample);
+    if (idx != -1) return idx;
+    else return uniform_rand_idx();
+}
+int help::DiscreteProbabilityModel::uniform_rand_idx() {
+    return help::get_rand_int(0, size - 1);
+}
+void help::DiscreteProbabilityModel::set_probabilities(double* probs, double& integral) {
+    integral = 0;
+    for (int i = 0; i < size; i++) {
+        probabilities[i] = probs[i];
+        integral += probs[i];
+    }
+}
+void help::DiscreteProbabilityModel::set_probabilities(shared_ptr<float[]> probs, float& integral) {
+    integral = 0;
+    for (int i = 0; i < size; i++) {
+        probabilities[i] = probs[i];
+        integral += probs[i];
+    }
+}
+void help::DiscreteProbabilityModel::normalize(double integral) {
+    double recipr = 1.0 / integral;
+    for (int i = 0; i < size; i++) {
+        probabilities[i] *= recipr;
+    }
+}
+
+help::GammaProbModel::GammaProbModel() = default;
+help::GammaProbModel::GammaProbModel(float shape, float scale) {
+    distribution = std::gamma_distribution<float>(shape, scale);
+};
+float help::GammaProbModel::get_gamma_sample() {
+    return distribution(rng);
+}
+
 
 template <typename T>
 int help::binary_search(T* arr, int size, T target) {
@@ -702,6 +910,15 @@ float help::PieceWiseLinearProbModel::sample() {
     x *= piece_width;
     return x;
 }
+
+help::NormalProbModel::NormalProbModel() = default;
+help::NormalProbModel::NormalProbModel(float mean, float stdev) {
+    distribution = normal_distribution<float>(mean, stdev);
+};
+float help::NormalProbModel::get_normal_distr_sample() {
+        return distribution(rng);
+};
+
 
 void help::get_normal_distributed_direction(pair<float, float>& direction, float mean_direction, float direction_stdev) {
     NormalProbModel prob_model(mean_direction, direction_stdev);

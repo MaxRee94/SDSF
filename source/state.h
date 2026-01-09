@@ -14,14 +14,15 @@ public:
 		int gridsize, float cell_width, float max_dbh, float dbh_q1, float dbh_q2,
 		float seed_bearing_threshold, float _saturation_threshold,
 		map<string, map<string, float>>& strategy_distribution_params, float mutation_rate,
-		float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max
+		float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max,
+		float minimum_patch_size, float LAI_aggregation_radius
 	) {
 		saturation_threshold = _saturation_threshold;
 		population = Population(
 			max_dbh, cell_width, dbh_q1, dbh_q2, strategy_distribution_params, mutation_rate,
 			seed_bearing_threshold, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max
 		);
-		grid = Grid(gridsize, cell_width);
+		grid = Grid(gridsize, cell_width, minimum_patch_size, LAI_aggregation_radius);
 	}
 	bool check_grid_for_tree_presence(int tree_id, int verbose = 0) {
 		bool presence = false;
@@ -61,6 +62,8 @@ public:
 			i++;
 		}
 		grid.update_grass_LAIs();
+		grid.update_aggr_LAIs();
+		grid.redo_count();
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
 	float compute_shade_on_individual_tree(Tree* tree) {
@@ -135,25 +138,16 @@ public:
 		int dummy;
 		return get_tree_neighbors(baseposition, search_radius, dummy);
 	}
-	void thin_crowds(bool recompute_shade = false) {
-		PairSet population_sorted_by_height;
-		population.sort_by_trait("height", population_sorted_by_height);
-		for (auto& [id, height] : population_sorted_by_height) {
-			Tree* tree = population.get(id);
-			if (tree->life_phase == 2) continue; // We assume that mature trees are no longer vulnerable to death by shading.
-			float shade;
-			if (recompute_shade) shade = compute_shade_on_individual_tree(tree);
-			else shade = tree->shade;
-			float death_probability = max(0, (shade - 5.0f)); // We assume that trees always survive if shade <= 5.0, and always die if shade > 6.0.
-			death_probability *= death_probability;
-			if (help::get_rand_float(0, 1) < death_probability) {
-				remove_tree(tree);
-			}
-		}
-	}
 	void remove_tree(Tree* tree) {
 		grid.kill_tree_domain(tree, false);
 		population.remove(tree);
+	}
+	bool sufficient_LAI(int population_size, shared_ptr<float[]> image, float integral_image_cover) {
+		if (population_size % 100 == 0) {
+			float mean_LAI_of_allowed_domain = grid.get_mean_LAI_of_allowed_domain(image, integral_image_cover);
+			if (mean_LAI_of_allowed_domain > 7.0f) return true;
+		}
+		return false;
 	}
 	void set_cover_from_image(shared_ptr<float[]> image, int img_width, int img_height, float target_cover = -1) {
 		float pixel_size = grid.width_r / (float)img_width;
@@ -172,12 +166,16 @@ public:
 			target_cover = integral_image_cover / (float)(img_width * img_height);
 			printf("Image cover: %f\n", target_cover);
 		}
+		else {
+			printf("Using user-provided tree cover: %f\n", target_cover);
+		}
 
 		// Set tree cover
-		int no_crowd_thinning_runs = 0;
-		int max_no_crowd_thinning_runs = 10;
-		while (grid.get_tree_cover() < target_cover) {
+		int no_overshoot_correction_runs = 0;
+		int max_no_overshoot_correction_runs = 10;
+		while (grid.get_tree_cover() < target_cover || !sufficient_LAI(population.size(), image, integral_image_cover)) {
 			int idx = probmodel.sample();
+			if (image[idx] < 0.01f) continue; // Skip empty cells (these correspond to black pixels in the image)
 			Cell &cell = grid.distribution[idx];
 			pair<float, float> position = grid.get_real_cell_position(&cell);
 			Tree* tree = population.add(position);
@@ -186,19 +184,27 @@ public:
 				population.remove(tree->id);
 				continue;
 			}
-			grid.populate_tree_domain(tree);
+			grid.populate_tree_domain(tree, true);
+			if (!grid.complies_with_aggr_LAI_domain(tree, image)) {
+				// Remove tree if its addition causes the grid to violate the aggregated LAI domain defined by the image.
+				grid.kill_tree_domain(tree, false);
+				grid.update_aggr_LAIs(tree);
+				population.remove(tree->id);
+			}
 			grid.update_grass_LAIs_for_individual_tree(tree);
-			
-
-			// Thin crowds when close to target tree cover
-			/*if (grid.tree_cover > 0.95f * integral_image_cover && no_crowd_thinning_runs < max_no_crowd_thinning_runs) {
-				no_crowd_thinning_runs++;
-				thin_crowds(true);
-			}*/
-
 			if (population.size() % 10000 == 0) {
-				repopulate_grid(0);
-				printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
+				float mean_LAI_of_allowed_domain = grid.get_mean_LAI_of_allowed_domain(image, integral_image_cover);
+				printf("mean LAI of allowed domain: %f\n", mean_LAI_of_allowed_domain);
+			}
+
+			if (no_overshoot_correction_runs < max_no_overshoot_correction_runs && (population.size() % 10000 == 0 || grid.get_tree_cover() > 0.9999 * target_cover)) {
+				no_overshoot_correction_runs++;
+				double diff_with_target = grid.get_tree_cover() - target_cover;
+				if (diff_with_target > 0.000001) {
+					grid.kill_tree_domain(tree, false); // Remove last tree if we overshot the target cover by too much.
+					printf("Overshot target cover by >0.0001%% (%f %%), removing tree with id %i.\n", diff_with_target * 100.0f, tree->id);
+				}
+				printf("Current tree cover: %f (target=%f), current population size: %i\n", grid.get_tree_cover(), target_cover, population.size());
 			}
 		}
 		printf("Final tree cover: %f\n", grid.tree_cover);
@@ -222,7 +228,7 @@ public:
 				continue;
 			}
 			if (tree->id == -1) population.remove(population.no_created_trees - 1); // HOTFIX: Sometimes trees are not initialized properly and need to be removed.
-			grid.populate_tree_domain(tree);
+			grid.populate_tree_domain(tree,	true);
 			if (population.get_crop(tree->id)->strategy.vector == "wind") {
 				wind_trees++;
 			}
@@ -230,21 +236,12 @@ public:
 				animal_trees++;
 			}
 
-			// Thin crowds when close to target tree cover
-			/*if (grid.tree_cover > 0.95f * _tree_cover && no_crowd_thinning_runs < max_no_crowd_thinning_runs) {
-				no_crowd_thinning_runs++;
-				thin_crowds(true);
-			}*/
-
 			if (population.size() % 1000 == 0) {
 				printf("Current tree cover: %f, current population size: %i\n", grid.get_tree_cover(), population.size());
 			}
 			continue;
 		}
 		printf("Final tree cover: %f\n", grid.tree_cover);
-		printf("Wind trees: %i, Animal trees: %i\n", wind_trees, animal_trees);
-		printf("First tree's strategy: \n");
-		population.get_crop(10)->strategy.print();
 
 		// Count no small trees
 		int no_small = 0;
@@ -287,6 +284,13 @@ public:
 		int i = 0;
 		for (auto& [id, tree] : population.members) {
 			tree_sizes[i] = tree.dbh;
+			i++;
+		}
+	}
+	void get_tree_ages(float* tree_ages) {
+		int i = 0;
+		for (auto& [id, tree] : population.members) {
+			tree_ages[i] = tree.age;
 			i++;
 		}
 	}

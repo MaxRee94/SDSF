@@ -3,20 +3,55 @@ import argparse
 import string
 import json
 import os
+import importlib.util
+import sys
+from types import SimpleNamespace
 
 
-# global constants
+# Define default global constants (can be overridden locally, see 'apply_local_overrides()')
 cwd = os.getcwd()
 if cwd.endswith("source"):
     cwd = cwd + "/DBR-sim"
-REPOSITORY_BASEDIR = os.path.dirname(os.path.dirname(cwd))
-DATA_IN_DIR = REPOSITORY_BASEDIR + "/data_in"
-DATA_OUT_DIR = REPOSITORY_BASEDIR + "/data_out"
-DATA_INTERNAL_DIR = REPOSITORY_BASEDIR + "/data_internal"  
-BUILD_DIR = REPOSITORY_BASEDIR + "/build"
-PERLIN_NOISE_DIR = DATA_IN_DIR + "/state patterns/perlin_noise"
-CONTROLLED_PATTERN_DIR = DATA_IN_DIR + "/state patterns/controlled_patterns"
-LEGEND_PATH = DATA_OUT_DIR + "/legends"
+constants = {}
+constants["REPOSITORY_BASEDIR"] = os.path.dirname(os.path.dirname(cwd))
+constants["DATA_IN_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_in"
+constants["DATA_OUT_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_out"
+constants["CPG_OUTPUT_DIR"] = constants["DATA_OUT_DIR"] + "/controlled_pattern_generator"
+constants["DATA_INTERNAL_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_internal"
+constants["BUILD_DIR"] = constants["REPOSITORY_BASEDIR"] + "/build"
+constants["PERLIN_NOISE_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/perlin_noise"
+constants["SIMPLE_PATTERNS_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/simple_patterns"
+constants["CONTROLLED_PATTERN_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/controlled_patterns"
+constants["LEGEND_PATH"] = constants["DATA_OUT_DIR"] + "/legends"
+constants["TREE_DBH_FILE"] = constants["DATA_OUT_DIR"] + "/state_reports/tree_dbh_values.json"
+constants["EXPORT_DIR"] = os.path.join(constants["DATA_OUT_DIR"], "state_data")
+
+cfg = SimpleNamespace(**constants)
+
+
+def apply_local_overrides(cfg):
+    """Apply local overrides to the global constants to allow control over the directories to which files are
+    written / from which they are read. To do this, the user can create a file called local_overrides.py in the cfg.DATA_IN_DIR.
+    """
+    override_path = cfg.DATA_IN_DIR + "/local_overrides/local_overrides.py"
+    if not os.path.exists(override_path):
+        print("No local overrides found at {}.\nContinuing with remote defaults defined in config.py.".format(override_path))
+        return cfg
+
+    # Load the local overrides module
+    spec = importlib.util.spec_from_file_location("module.name", override_path)
+    overrides = importlib.util.module_from_spec(spec)
+    sys.modules["module.name"] = overrides
+    spec.loader.exec_module(overrides)
+
+    # Run the module's function to apply local overrides
+    cfg = overrides.modify_global_constants(cfg)
+
+    return cfg
+
+
+cfg = apply_local_overrides(cfg)
+sys.path.append(cfg.BUILD_DIR)
 
 
 defaults = {
@@ -42,7 +77,7 @@ defaults = {
     "dbh_q2": 0,
     "verbosity": 0,
     "growth_rate_multiplier_params": [0.5, 0.5, 2.13],
-    "seed_bearing_threshold": 0.25, # dbh fraction of theoretical maximum height. We assume all trees are seed bearing beyond this height, based on Minor and Kobe (2018), Figure 5.
+    "seed_bearing_threshold": 0.1, # dbh fraction of theoreftical maximum height. We assume all trees are seed bearing beyond this height, based on Minor and Kobe (2018), Figure 5.
     "dispersal_mode": "all",
     "multi_disperser_params": f"multi_disperser_params.json",
     "dispersal_min": 0,
@@ -80,8 +115,24 @@ defaults = {
     "sin_stripe_amp":10,
     "sin_stripe_wavelength":100,
     "grid_type":"square",
-    "rotate_randomly":False,
+    "override_image_treecover": -999,  # If set to a value other than -999, overrides the tree cover in the image (the fraction of white pixels) with this value.
+    "rotate_randomly": False,
     "suppress_distance_warning": False,  # If True, suppresses the warning about distance uniformity in the cpg script.
+    "cur_image_fraction_pixels": None,
+    "circular_image_fraction_pixels": None,
+    "global_area_normalization_factor": None,
+    "global_rotation_offset": None,
+    "enforce_area_constancy": True,
+    "colored_patches": False,
+    "minimum_patch_size":30, # Minimum size (in m^2) of patches that are retained when generating initial patterns from images. We assume 78 m^2 since this corresponds to the area of a tree with radius = 5 (the approximate maximum in our model), in line with the 30m resolution of the GFC dataset.
+    "LAI_aggregation_radius": 3, # Radius (in m) around each cell used to aggregate tree LAI values. 
+    "display_fire_effects": False,
+    "heterogeneity": "heterogeneity_config.json",
+    "allow_unknown_args": False,
+    "grow": True,
+    "disperse": True,
+    "burn": True,
+    "burnin_duration": 300
 }
 
 gui_defaults = {
@@ -312,7 +363,7 @@ _parameter_config = {
     },
     "saturation_threshold": {
         "keys": {
-            "cli": ["--saturation_threshold", "-st"]
+            "cli": ["--saturation_threshold", "-sat"]
         },
         "settings": {
             "type": float,
@@ -497,7 +548,7 @@ _parameter_config = {
         "settings": {
             "type": int,
             "help": (
-                "Random seed used by the c++ component of this program. A value of -999 (default) indicates each run will use a different unique seed."
+                "Random seed used for all stochastic variables except fire frequency. A value of -999 (default) indicates each run will use a different unique seed."
             ),
             "default": defaults["random_seed"],
         },
@@ -762,9 +813,179 @@ _parameter_config = {
             "help": "If True, no error is raised if the given mean_distance (used for generating disk patterns) is automatically changed to generate a perfect grid.",
             "default": defaults["suppress_distance_warning"],
         }
+    },#
+    "cur_image_fraction_pixels": {
+        "keys": {
+            "cli": ["--cur_image_fraction_pixels", "-cifpx"]
+        },
+        "settings": {
+            "type": bool,
+            "help": "Internal argument for cpg script.",
+            "default": defaults["cur_image_fraction_pixels"],
+        }
+    },
+    "circular_image_fraction_pixels": {
+        "keys": {
+            "cli": ["--circular_image_fraction_pixels", "-circifpx"]
+        },
+        "settings": {
+            "type": bool,
+            "help": "Internal argument for cpg script.",
+            "default": defaults["circular_image_fraction_pixels"],
+        }
+    },
+    "global_area_normalization_factor": {
+        "keys": {
+            "cli": ["--global_area_normalization_factor", "-ganfact"]
+        },
+        "settings": {
+            "type": int,
+            "help": "Internal argument for cpg script.",
+            "default": defaults["global_area_normalization_factor"],
+        }
+    },
+    "global_rotation_offset": {
+        "keys": {
+            "cli": ["--global_rotation_offset", "-groff"]
+        },
+        "settings": {
+            "type": int,
+            "help": "Internal argument for cpg script.",
+            "default": defaults["global_rotation_offset"],
+        }
+    },
+    "enforce_area_constancy": {
+        "keys": {
+            "cli": ["--enforce_area_constancy", "-enacon"]
+        },
+        "settings": {
+            "type": bool,
+            "help": "Internal argument for cpg script.",
+            "default": defaults["enforce_area_constancy"],
+        }
+    },
+    "override_image_treecover": {
+        "keys": {
+            "cli": ["--override_image_treecover", "-overimt"]
+        },
+        "settings": {
+            "type": float,
+            "help": """
+                If specified, the given value will override the tree cover of the image (if an image is provided).
+                Default is -999, meaning the fraction of white pixels in the image is used (or the tree cover
+                provided using --treecover, in case no image is provided). If 2 is specified, the 'benchmark_cover'
+                generated by the cpg-script will be used (see app.py and the cpg script for details)."
+            """,
+            "default": defaults["override_image_treecover"],
+        }
+    },
+    "colored_patches": {
+        "keys": {
+            "cli": ["--colored_patches", "-colpat"]
+        },
+        "settings": {
+            "type": bool,
+            "help": "Color each forest patch separately, so they can be visually identified.",
+            "default": defaults["colored_patches"],
+        }
+    },
+    "minimum_patch_size": {
+        "keys": {
+            "cli": ["--minimum_patch_size", "-sps"]
+        },
+        "settings": {
+            "type": float,
+            "help": """
+                The minimum size of a patch (in m^2) that is included in calculations of patch perimeters and savanna patch areas.
+            """,
+            "default": defaults["minimum_patch_size"],
+        }
+    },
+    "LAI_aggregation_radius": {
+        "keys": {
+            "cli": ["--LAI_aggregation_radius", "-laiar"]
+        },
+        "settings": {
+            "type": float,
+            "help": """
+                This radius determines the size of the area around a grid cell x for which the mean LAI is calculated and assigned to x.
+            """,
+            "default": defaults["LAI_aggregation_radius"],
+        }
+    },
+    "display_fire_effects": {
+        "keys": {
+            "cli": ["--display_fire_effects", "-dispfe"]
+        },
+        "settings": {
+            "type": bool,
+            "help": "Specify if you want to display fire as red pixels, burned trees as black, and fire-exposed but unburned trees as purple.",
+            "default": defaults["display_fire_effects"],
+        }
+    },
+    "heterogeneity": {
+        "keys": {
+            "cli": ["--heterogeneity", "-hetero"]
+        },
+        "settings": {
+            "type": str,
+            "help": (
+                'json string with (optionally) subdictionaries containing arguments per input (e.g., "\{"grass_carrying_capacity": \{"filename": "none", "sine_wavelength": 200\}\}" ).'
+            ),
+            "default": defaults["heterogeneity"],
+        },
+    },
+    "allow_unknown_args": {
+        "keys": {
+            "cli": ["--allow_unknown_args", "-alua"]
+        },
+        "settings": {
+            "type": bool,
+            "help": "Specify if you want to pass parameters which are not in this configuration. Any parameter of the same name will be overwritten by your specified value.",
+            "default": defaults["allow_unknown_args"],
+        }
+    },
+    "grow": {
+        "keys": {
+            "cli": ["--grow", "-grow"]
+        },
+        "settings": {
+            "action": argparse.BooleanOptionalAction,
+            "help": "Specify whether or not the growth submodel should be enabled.",
+            "default": defaults["grow"],
+        }
+    },
+    "disperse": {
+        "keys": {
+            "cli": ["--disperse", "-disp"]
+        },
+        "settings": {
+            "action": argparse.BooleanOptionalAction,
+            "help": "Specify whether or not the dispersal submodel should be enabled.",
+            "default": defaults["disperse"],
+        }
+    },
+    "burn": {
+        "keys": {
+            "cli": ["--burn", "-burn"]
+        },
+        "settings": {
+            "action": argparse.BooleanOptionalAction,
+            "help": "Specify whether or not the fire submodel should be enabled.",
+            "default": defaults["burn"],
+        }
+    },
+    "burnin_duration": {
+        "keys": {
+            "cli": ["--burnin_duration", "-bdur"]
+        },
+        "settings": {
+            "type": int,
+            "help": "The duration of the burn-in period (in timesteps) before the main simulation starts.",
+            "default": defaults["burnin_duration"],
+        }
     }
 }
-
 
 class ParameterConfig():
     """Wrapper class for _parameter_config."""

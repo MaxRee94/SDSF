@@ -1,0 +1,71 @@
+import cv2
+import numpy as np
+from types import SimpleNamespace
+
+
+def generate(amplitude=0.3, scale=1, show=False, binary_connectivity=-1, offset=0, grid_width=1000, args=None, **_):
+    """
+    Generate a 1000x1000 uniform macropixel noise pattern.
+
+    Each macropixel has a uniform random value in [0.5-amplitude, 0.5+amplitude],
+    clipped to [0,1], and the macropixel size in the *final* image is exactly
+    <scale> pixels.
+
+    Parameters
+    ----------
+    amplitude : float
+        Noise half-range. Values sampled from [0.5 - amplitude, 0.5 + amplitude].
+    scale : int
+        Final macropixel width (and height) in pixels.
+    show : bool
+        Whether to show the final <grid_width> x <grid_width> image.
+    """
+
+    FINAL_SIZE = grid_width
+
+    # Determine number of macropixels in each direction
+    macro_h = FINAL_SIZE // scale
+    macro_w = FINAL_SIZE // scale
+
+    # Generate macropixel noise grid. 
+    if binary_connectivity < 0:
+        noise = args.rng.uniform(
+            low=0.5 - amplitude,
+            high=0.5 + amplitude,
+            size=(macro_h, macro_w)
+        ) + offset
+    else:
+        # If binary connectivity is specified, we generate binary noise with fraction of 1-pixel Expectation=binary_connectivity.
+        noise = args.rng.choice([0, 1], size=(macro_h, macro_w), p=[1-binary_connectivity, binary_connectivity])
+
+    # Clip to [0,1]
+    noise = np.clip(noise, 0.0, 1.0)
+
+    # Upscale macropixel grid to 1000x1000
+    img = cv2.resize(
+        noise,
+        (FINAL_SIZE, FINAL_SIZE),
+        interpolation=cv2.INTER_LINEAR
+    )
+
+    # Convert to uint8 grayscale image
+    img_uint8 = (img * 255).astype(np.uint8)
+
+    if show:
+        cv2.imshow("Uniform Macropixel Noise", img_uint8)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+    return img_uint8
+
+
+if __name__ == "__main__":
+    # Example usage
+    amplitude = 0.3   # uniform noise range is [0.2, 0.8]
+    scale = 100        # each macropixel is <scale> X <scale> pixels in the final image
+    show = True
+    grid_width = 1000
+    offset = 0
+    binary_connectivity = 0.8
+
+    generate(amplitude=amplitude, scale=scale, show=show, grid_width=grid_width, offset=offset, binary_connectivity=binary_connectivity)

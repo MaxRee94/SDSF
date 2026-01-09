@@ -69,6 +69,11 @@ public:
 		else if (vector == 1) return "wind";
 		else return "animal";
 	}
+	void set_constant_vector(string vector) {
+		if (vector == "linear") trait_distributions["vector"] = ProbModel(0);
+		else if (vector == "wind") trait_distributions["vector"] = ProbModel(1);
+		else if (vector == "animal") trait_distributions["vector"] = ProbModel(2);
+	}
 	float compute_wing_mass(float cumulative_seed_mass) {
 		// Estimate wing mass based on correlation we found in seed- and wing measurement data taken from (Greene and Johnson, 1993)
 		return max(0, (cumulative_seed_mass - 0.03387f) / 3.6609f);
@@ -203,18 +208,25 @@ class Tree {
 public:
 	Tree() = default;
 	Tree(int _id, pair<float, float> _position, float _dbh, float seed_bearing_threshold,
-		map<int, float> _resprout_growthcurve, float _growth_multiplier
+		map<int, float> _resprout_growthcurve, float _growth_noise_multiplier
 	) :
 		position(_position), dbh(_dbh), resprout_growthcurve(_resprout_growthcurve)
 	{
 		id = _id;
 		derive_allometries(seed_bearing_threshold);
-		growth_multiplier = _growth_multiplier;
-		//printf("Tree created with id: %i, radius: %f, radius_tmin1: %f, stem dbh: %f, bark thickness: %f, LAI: %f \n", id, radius, radius_tmin1, dbh, bark_thickness, LAI);
+		growth_noise_multiplier = _growth_noise_multiplier;
+		draw_life_expectancy();
 	};
 	bool operator==(const Tree& tree) const
 	{
 		return id == tree.id;
+	}
+	void draw_life_expectancy(bool force_redraw = false) {
+		help::NormalProbModel life_expectancy_probmodel = help::NormalProbModel(186, 138); // Based on Locosselli et al (2020), abstract
+		if (force_redraw) life_expectancy = -1;
+		while (life_expectancy < 0) {
+			life_expectancy = life_expectancy_probmodel.get_normal_distr_sample();
+		}
 	}
 	void resprout(float seed_bearing_threshold) {
 		life_phase = 1;
@@ -258,11 +270,11 @@ public:
 	float get_dbh_increment(float LAI_shade) {
 		if (LAI_shade > 5.0f) return 0.0f; // If the LAI of shading leaf cover is larger than 5, the tree is too shaded to grow.
 
-		float stem_increment = 0.3f * (1.0f - exp(-0.118 * dbh * 10.0f));	// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
-																	// Current stem dbh and increment in cm.
+		float stem_increment = 0.3f * (1.0f - exp(-0.118 * dbh));	// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
+		// Current stem dbh and increment in cm.
 
 		stem_increment *= (5.0f - LAI_shade) / 5.0f;	// LAI-dependent growth reduction to introduce density dependence. Multiplication factor: ((LAI_max - LAI) / LAI_max) 
-														// From Hoffman et al (2012), Appendix 2.
+		// From Hoffman et al (2012), Appendix 2.
 
 
 		return stem_increment;
@@ -275,13 +287,13 @@ public:
 	}
 	float compute_crown_area() {
 		return 0.551f * pow(dbh, 1.28f);	// Crown area in m^2. y = b x^a. Parameters of a and b are averages of fits for 5 trees presented in Blanchard et al (2015),
-											// page 1957 (explains the model in "Fitting allometries"), and table 4 (shows regression results).
+		// page 1957 (explains the model in "Fitting allometries"), and table 4 (shows regression results).
 	}
 	float get_LAI() {
 		float leaf_area = get_leaf_area();
 		return leaf_area / crown_area;
 	}
-	bool survives_fire(float &fire_resistance_argmin, float &fire_resistance_argmax, float &fire_resistance_stretch) {
+	bool survives_fire(float& fire_resistance_argmin, float& fire_resistance_argmax, float& fire_resistance_stretch) {
 		float survival_probability = get_survival_probability(fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch);
 		return help::get_rand_float(0.0f, 1.0f) < survival_probability;
 	}
@@ -295,35 +307,40 @@ public:
 	float get_height() {
 		float ln_dbh = log(dbh);
 		return exp(0.865 + 0.760 * ln_dbh - 0.0340 * (ln_dbh * ln_dbh)); // From Chave et al (2014), equation 6a. Value of E obtained by calculating mean of E
-																		 // values for bistable study sites.
+		// values for bistable study sites.
+	}
+	void derive_dbh_from_age_assuming_onobstructed_growth() {
+		// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
+		// Current stem dbh and increment in cm.
+		dbh = max(0, 2.5f + ((float)age - 4.0f) * 0.2); // We assume a constant growth rate of 2.0 mm for saplings older than 5 years.
 	}
 	float get_lowest_branch_height() {
 		return height * 0.4f; // We assume the tree's crown begins at 40% its height.
-							  // TODO: Perhaps make this fraction a function of dbh for added realism.
+		// TODO: Perhaps make this fraction a function of dbh for added realism.
 	}
 	float get_AGB() {
 		float ln_dbh = log(dbh);
 		float ln_wood_specific_gravity = log(0.5f);
 		return -1.803 - 0.976f * -0.02802 + 0.976 * ln_wood_specific_gravity + 2.673f * ln_dbh - 0.0299f * (ln_dbh * ln_dbh); // From Chave et al (2014), equation 7.
 	}
-	float compute_new_dbh(float LAI_shade) {
+	float compute_new_dbh(float LAI_shade, float local_growth_multiplier) {
 		float _dbh;
 		if (dbh < 2.5f) {
 			if (life_phase == 1) {
 				_dbh = resprout_growthcurve.at(age); // Resprouts younger than 5 years (implied by dbh < 2.5) are assumed to grow according to a predefined growth curve (Hoffmann et al, 2012, supplementary information 1).
 			}
 			else {
-				_dbh = dbh + growth_multiplier * 0.25f; // Assume a constant growth rate of 2.5 mm for saplings, until they reach 2.5 cm dbh. Based on growth rate of resprouts after first 5 years (Hoffmann et al, 2012, supplementary information 1. Also see "Tree Allometric Relations.xlsx").
+				_dbh = dbh + growth_noise_multiplier * local_growth_multiplier * 0.25f; // Assume a constant growth rate of 2.5 mm for saplings, until they reach 2.5 cm dbh. Based on growth rate of resprouts after first 5 years (Hoffmann et al, 2012, supplementary information 1. Also see "Tree Allometric Relations.xlsx").
 			}
 		}
 		else {
-			_dbh = dbh + growth_multiplier * get_dbh_increment(LAI_shade);
+			_dbh = dbh + growth_noise_multiplier * local_growth_multiplier * get_dbh_increment(LAI_shade);
 		}
 		return _dbh;
 	}
-	pair<bool, bool> grow(float &seed_bearing_threshold, float LAI_shade) {
+	pair<bool, bool> grow(float& seed_bearing_threshold, float LAI_shade, float local_growth_multiplier) {
 		age++;
-		float _dbh = compute_new_dbh(LAI_shade);
+		float _dbh = compute_new_dbh(LAI_shade, local_growth_multiplier);
 		bool dies_due_to_light_limitation = is_float_equal(_dbh, dbh) && (life_phase == 0); // If the tree is not reproductive yet and is unable to grow, we assume it dies.
 		dbh = _dbh;
 		bool became_reproductive = derive_allometries(seed_bearing_threshold);
@@ -337,12 +354,12 @@ public:
 	float radius = -1;
 	float dbh = 0.1;
 	float bark_thickness = 0;
-	float shade = 0;
 	float LAI = 0;
 	float height = 0;
 	float lowest_branch = 0;
 	float crown_area = 0;
-	float growth_multiplier = 1;
+	float growth_noise_multiplier = 1;
+	int life_expectancy = -1;
 	pair<float, float> position = pair(0, 0);
 	int id = -1;
 	int age = -1;
@@ -360,6 +377,12 @@ public:
 		seed_mass = _strategy.seed_mass;
 		origin = tree.position;
 		id = tree.id;
+	}
+	Crop(Strategy& _strategy, int _id, pair<float, float> _origin) {
+		strategy = _strategy;
+		seed_mass = _strategy.seed_mass;
+		origin = _origin;
+		id = _id;
 	}
 	void compute_no_seeds(Tree &tree, float STR) {
 		float dbh_dependent_factor = (tree.dbh / 30.0f);
@@ -399,7 +422,6 @@ public:
 	) : max_dbh(_max_dbh), cellsize(_cellsize), seed_bearing_threshold(_seed_bearing_threshold)
 	{
 		strategy_generator = StrategyGenerator(strategy_parameters);
-		dbh_probability_model = help::LinearProbabilityModel(dbh_q1, dbh_q2, 0, max_dbh);
 		mutation_rate = _mutation_rate;
 		init_growth_curves();
 		growth_multiplier_distribution = ProbModel(1, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max, -1);
@@ -410,21 +432,40 @@ public:
 		};
 	}
 	Tree* add(pair<float, float> position, Strategy* _strategy = 0, float dbh = -2) {
+		// Add a new tree. If no dbh or strategy is provided, these will be randomly generated.
+
 		// Create tree
+		float growth_multiplier = help::get_rand_float(growth_multiplier_distribution.min_value, growth_multiplier_distribution.max_value);
+		Tree tree(no_created_trees + 1, position, -2, seed_bearing_threshold, resprout_growthcurve, growth_multiplier);
+		no_created_trees++;
+
+		// Set the tree's dbh
 		if (dbh == -1) dbh = max_dbh;
 		else if (dbh == -2) {
 			if (_strategy == nullptr) {
-				while (dbh <= 0)
-					dbh = dbh_probability_model.linear_sample();
+				if (tree.dbh <= 0) {
+					tree.age = tree.life_expectancy; // Start by assuming the tree is at the end of its life expectancy.
+
+					// Ensure tree's life expectancy is not lower than its current age
+					int i = 0;
+					while (tree.life_expectancy <= tree.age && i < 10) {
+						tree.draw_life_expectancy(true);
+						i++;
+					}
+					if (tree.life_expectancy <= tree.age) tree.age = tree.life_expectancy - help::get_rand_int(0, 10);
+					
+					// Derive dbh from age (age was randomly generated in Tree constructor)
+					tree.derive_dbh_from_age_assuming_onobstructed_growth();
+				}
 			}
 			else {
-				dbh = _strategy->seedling_dbh; // Growth rate determines initial dbh.
+				tree.dbh = _strategy->seedling_dbh;
 			}
 		}
-		float growth_multiplier = help::get_rand_float(growth_multiplier_distribution.min_value, growth_multiplier_distribution.max_value);
-		Tree tree(no_created_trees + 1, position, dbh, seed_bearing_threshold, resprout_growthcurve, growth_multiplier);
+		tree.derive_allometries(seed_bearing_threshold);
+
+		// Add new member to population
 		members[tree.id] = tree;
-		no_created_trees++;
 
 		// Create strategy
 		Strategy strategy;
@@ -466,6 +507,9 @@ public:
 	}
 	void get(vector<int>& ids, vector<Tree*> &trees) {
 		for (int id : ids) trees.push_back(get(id));
+	}
+	void add_crop(Strategy& strategy, pair<float, float> origin, int id) {
+		crops[id] = Crop(strategy, id, origin);
 	}
 	Crop* get_crop(int id) {
 		return &crops[id];
@@ -521,7 +565,6 @@ public:
 	unordered_map<int, Crop> crops;
 	unordered_map<string, Kernel> kernels;
 	unordered_map<int, Kernel> kernels_individual;
-	help::LinearProbabilityModel dbh_probability_model;
 	StrategyGenerator strategy_generator;
 	float max_dbh = 0;
 	float cellsize = 0;
