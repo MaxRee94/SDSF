@@ -3,5 +3,6 @@
     "max_timesteps": 10,
     "resource_grid_width": 5,
     "burnin_duration": 10,
-    "random_seed": 42
+    "random_seed": 42,
+    "dispersal_mode": "animal"
 }
