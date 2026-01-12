@@ -190,46 +190,6 @@ void help::remove_from_vec(vector<int>* vec, int item) {
 	}
 }
 
-void help::print_map(std::map<int, int>* map) {
-    int i = 0;
-    for (auto const& [key, val] : (*map))
-    {
-        if (i > 0) {
-            std::cout << ", ";
-        }
-        std::cout << key        // string (key)
-            << ':'
-            << val;        // string's value
-        i++;
-    }
-    if (i == 0) {
-        std::cout << "<empty map>" << endl;
-    }
-    else {
-        std::cout << endl;
-    }
-}
-
-void help::print_map(std::map<int, float>* map) {
-    int i = 0;
-    for (auto const& [key, val] : (*map))
-    {
-        if (i > 0) {
-            std::cout << ", ";
-        }
-        std::cout << key        // string (key)
-            << ':'
-            << val;        // string's value
-        i++;
-    }
-    if (i == 0) {
-        std::cout << "<empty map>" << endl;
-    }
-    else {
-        std::cout << endl;
-    }
-}
-
 string help::join_as_string(vector<int> numbers, string separator) {
     string result = "";
     for (auto number : numbers) {
@@ -437,20 +397,24 @@ void help::populate_with_zeroes(uint* _array, int dim_x, int dim_y) {
     }
 }
 
-// Function to sort the map according
-// to value in a (key-value) pairs
-void help::sort(std::map<int, double>& _map, PairSet& _set)
+// Function to sort the map by value in ascending order
+void help::sort(std::map<int, double>& _map, AscendPairSet& _set)
 {
-    _set = PairSet(_map.begin(), _map.end());
+    _set = AscendPairSet(_map.begin(), _map.end());
 }
 
-
-// Function to sort the map according
-// to value in a (key-value) pairs
-void help::sort(std::map<int, int>& _map, PairIntSet& _set)
+// Function to sort the map by value in ascending order
+void help::sort(std::map<string, float>& _map, AscendPairStringSet& _set)
 {
-    _set = PairIntSet(_map.begin(), _map.end());
+    _set = AscendPairStringSet(_map.begin(), _map.end());
 }
+
+// Function to sort the map by value in ascending order
+void help::sort(std::map<int, int>& _map, AscendPairIntSet& _set)
+{
+    _set = AscendPairIntSet(_map.begin(), _map.end());
+}
+
 
 
 vector<pair<int, int>> help::get_bbox(vector<pair<int, int>> positions2d) {

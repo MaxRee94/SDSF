@@ -988,7 +988,7 @@ public:
 		for (auto [cur_id, overlaps_with_old_patches] : claims) {
 
 			// For the given old patch ID, find the current patch that has the biggest overlap with it.
-			PairIntSet sorted_claimants;
+			AscendPairIntSet sorted_claimants;
 			help::sort(overlaps_with_old_patches, sorted_claimants); // Sort old patches by their overlap with the current patch, in ascending order.
 			int old_id_with_biggest_overlap = (--sorted_claimants.end())->first; // "end()" points to one past the last element, so we need to decrement it once.
 

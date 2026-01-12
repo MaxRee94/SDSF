@@ -555,7 +555,7 @@ public:
 			}
 		}
 	}
-	void sort_by_trait(string trait, PairSet &sorted_population) {
+	void sort_by_trait(string trait, AscendPairSet &sorted_population) {
 		map<int, double> ids_and_trait_values;
 		get_ids_and_trait_values(trait, ids_and_trait_values);
 		help::sort(ids_and_trait_values, sorted_population);

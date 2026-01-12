@@ -219,7 +219,8 @@ public:
 	Animals(State* state, map<string, map<string, float>> _animal_kernel_params, int _animal_group_size) {
 		animal_kernel_params = _animal_kernel_params;
 		animal_group_size = _animal_group_size;
-		total_no_animals = round(animal_kernel_params["population"]["density"] * (state->grid.area / 1e6));
+		int pop_density = animal_kernel_params["population"]["density"];
+		total_no_animals = max(1, round(pop_density * (state->grid.area / 1e6)));
 		no_iterations = animal_kernel_params["population"]["no_iterations"];
 		animal_kernel_params.erase("population");
 	}
@@ -231,15 +232,34 @@ public:
 			}
 		}
 	}
+	void supplement_animal_population(int& created_no_animals, map<string, float>& fractional_remainders, int target_no_animals) {
+		vector<pair<string, float>> ordered_fractional_remainders = help::sort_descending(fractional_remainders);
+		for (auto& [species, remainder] : ordered_fractional_remainders) {
+			if (created_no_animals == target_no_animals) return;
+			Animal animal(animal_kernel_params[species], species, animal_group_size);
+			total_animal_population[species].push_back(animal);
+			created_no_animals++;
+		}
+	}
 	void initialize_population() {
 		float cumulative_population_fraction = 0;
+		int created_no_animals = 0;
+		map<string, float> fractional_remainders;
 		for (auto& [species, params] : animal_kernel_params) {
-			int popsize = round(total_no_animals * params["population_fraction"]);
+			int popsize = floor(total_no_animals * params["population_fraction"]);
+			fractional_remainders[species] = (
+				(total_no_animals * params["population_fraction"]) - (float)popsize
+			);
 			cumulative_population_fraction += params["population_fraction"];
 			vector<Animal> species_population;
 			create_species_population(popsize, species_population, params, species);
 			total_animal_population[species] = species_population;
+			created_no_animals += popsize;
 		}
+		int target_no_animals = total_no_animals;
+		if (created_no_animals < target_no_animals) supplement_animal_population(created_no_animals, fractional_remainders, target_no_animals);
+		assert(created_no_animals == target_no_animals && "Created number of animals is unequal to target number of animals.");
+
 		if (
 			(cumulative_population_fraction < 0.95f) || (cumulative_population_fraction > 1.05f)
 			) {
@@ -271,7 +291,6 @@ public:
 		place(state);
 		resource_grid->reset_color_arrays();
 		int iteration = 0;
-
 		int no_seeds_eaten = 0;
 		int no_seeds_defecated = 0;
 		float time_spent_resting = 0;
@@ -286,6 +305,7 @@ public:
 			int cur_no_seeds_eaten = 0;
 			float average_curtime = 0;
 			for (auto& [species, species_population] : total_animal_population) {
+				if (species_population.size() == 0) continue;
 				if (iteration == 0) resource_grid->update_cover_probabilities(species, species_population[0].traits);
 				resource_grid->update_fruit_probabilities(species, species_population[0].traits);
 				for (auto& animal : species_population) {

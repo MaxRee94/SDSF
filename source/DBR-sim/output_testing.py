@@ -38,7 +38,7 @@ class Test:
 
     @staticmethod
     def apply_case_args(case_args, default_args):
-        args = default_args
+        args = deepcopy(default_args)
         for key, value in vars(case_args).items():
             setattr(args, key, value)
         return args

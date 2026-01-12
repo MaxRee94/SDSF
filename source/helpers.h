@@ -30,9 +30,8 @@ typedef unsigned int uint;
 // Comparison function for sorting the
 // set by increasing order of its pair's
 // second value
-struct _comparator {
+struct _comparator  {
 	template <typename T>
-
 	// Comparator function
 	bool operator()(const T& l, const T& r) const
 	{
@@ -43,9 +42,12 @@ struct _comparator {
 	}
 };
 
-typedef std::set < std::pair<int, double>, _comparator> PairSet;
+typedef std::set < std::pair<int, double>, _comparator> AscendPairSet;
 
-typedef std::set < std::pair<int, int>, _comparator> PairIntSet;
+typedef std::set < std::pair<string, float>, _comparator> AscendPairStringSet;
+
+typedef std::set < std::pair<int, int>, _comparator> AscendPairIntSet;
+
 
 template <typename T, typename U>
 std::pair<T, U> operator+(const std::pair<T, U>& l, const std::pair<T, U>& r) {
@@ -95,11 +97,26 @@ namespace help {
 
 	void init_RNG(int seed);
 
-	void sort(std::map<int, double>& _map, PairSet& _set);
+	void sort(std::map<int, double>& _map, AscendPairSet& _set);
+
+	void sort(std::map<string, float>& _map, AscendPairStringSet& _set);
+
+	void sort(std::map<int, int>& _map, AscendPairIntSet& _set);
+
+	template <typename K, typename V>
+	vector<pair<K, V>> sort_descending(map<K,V> mymap) {
+		vector<pair<K, V>> vec;
+		for (auto& [key, val] : mymap) {
+			vec.push_back(make_pair(key, val));
+		}
+		sort(vec.begin(), vec.end(),
+			[](const pair<K, V>& a, const pair<K, V>& b) {
+				return a.second > b.second;
+		});
+		return vec;
+	}
 
 	void save_image(string name, shared_ptr<float[]> image);
-
-	void sort(std::map<int, int>& _map, PairIntSet& _set);
 
 	int get_key(std::map<int, int>* _map, int value);
 
@@ -137,9 +154,41 @@ namespace help {
 	template <typename T>
 	vector<int> get_keys(map<int, T>& map);
 
-	void print_map(std::map<int, int>* map);
-	
-	void print_map(std::map<int, float>* map);
+	template <typename K, typename V>
+	void print_map(const std::map<K, V>* map, string offset = "", string sep = ", ")
+	{
+		int i = 0;
+		for (const auto& [key, val] : *map)
+		{
+			if (i > 0) {
+				std::cout << sep;
+			}
+			std::cout << offset << key << ": " << val;
+			++i;
+		}
+
+		if (i == 0) {
+			std::cout << "<empty map>";
+		}
+		std::cout << std::endl;
+	}
+
+	template <typename K, typename V, typename T>
+	void print_nested_map(const std::map<K, std::map<T, V>>* map)
+	{
+		int i = 0;
+		for (const auto& [key, val] : *map)
+		{
+			std::cout << key << ':' << std::endl;
+			print_map(&val, "   ", "\n");
+			++i;
+		}
+
+		if (i == 0) {
+			std::cout << "<empty map>";
+		}
+		std::cout << std::endl;
+	}
 
 	void print_vector(std::vector<int>* vec, std::string prefix = "");
 

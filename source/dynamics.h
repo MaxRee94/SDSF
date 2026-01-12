@@ -352,8 +352,10 @@ public:
 
 			// Add fruit crop or disperse seeds, depending on dispersal vector type
 			if (pop->get_kernel(id)->type == "animal") {
+				printf("Tree %i at location %f, %f has %i fruits. \n", id, tree.position.first, tree.position.second, crop->no_diaspora);
 				animal_seeds_dispersed += crop->no_seeds;
 				resource_grid.has_fruits = true;
+				resource_grid.total_no_fruits += crop->no_diaspora;
 			}
 			else if (pop->get_kernel(id)->type == "wind") {
 				wind_seeds_dispersed += crop->no_seeds;
