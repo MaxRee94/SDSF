@@ -52,7 +52,6 @@ class Test:
      
     def run(self):
         app.main(**vars(self.args))
-        time.sleep(1)
 
         return True
 
@@ -76,7 +75,6 @@ class OutputTests:
     @staticmethod
     def get_test_files():
         test_files = []
-        print(cfg.OUTPUT_TESTCASE_DIR + "/*.json")
         for f in glob(cfg.OUTPUT_TESTCASE_DIR + "/*.json"):
             test_files.append(f)
 
@@ -87,6 +85,7 @@ class OutputTests:
         for i, test in enumerate(self.tests):
             message = f"- Running test {i+1}/{len(self.tests)}: {test.name}"
             print(message + " ...", end="")
+            
             success = test.run()
             sys.stdout.flush()
             if success:
