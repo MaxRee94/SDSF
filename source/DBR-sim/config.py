@@ -25,7 +25,7 @@ constants["CONTROLLED_PATTERN_DIR"] = constants["DATA_IN_DIR"] + "/state_pattern
 constants["LEGEND_PATH"] = constants["DATA_OUT_DIR"] + "/legends"
 constants["TREE_DBH_FILE"] = constants["DATA_OUT_DIR"] + "/state_reports/tree_dbh_values.json"
 constants["EXPORT_DIR"] = os.path.join(constants["DATA_OUT_DIR"], "state_data")
-constants["TEST_OUTPUT_DIR"] = os.path.join(constants["DATA_OUT_DIR"], "output_tests")
+constants["TEST_OUTPUT_DIR"] = os.path.join(constants["DATA_OUT_DIR"], "tests/output_tests")
 constants["OUTPUT_TESTCASE_DIR"] = os.path.join(constants["DATA_IN_DIR"], "output_test_cases")
 
 cfg = SimpleNamespace(**constants)
