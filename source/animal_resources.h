@@ -328,7 +328,6 @@ public:
 		float a_f_recipr = 1.0f / a_f;
 		for (int i = 0; i < size; i++) {
 			_f[i] = tanh(pow((fruit_abundance[i] * a_f_recipr), b_f));
-			if (_f[i] > 0) printf("found some fruits at cell %i, %i \n", cells[i].pos.first, cells[i].pos.second);
 		}
 	}
 	void update_cover_probabilities(string species, map<string, float>& species_params) {
