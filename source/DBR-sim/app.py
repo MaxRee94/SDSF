@@ -72,9 +72,6 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
         img = cv2.resize(img, (args.grid_width, args.grid_width), interpolation=cv2.INTER_NEAREST)
         img = img / 255
 
-        cv2.imshow("forest mask", img)
-        cv2.waitKey(1)
-
         # If the user has set the override_image_treecover to 2, we will use the benchmark cover value from the controllable pattern image.
         # The benchmark cover is the cover for a version of the pattern produced using the given parameters, but with a sine amplitude set to 0 (i.e., with circular disks).
         if args.override_image_treecover == 2:
@@ -119,8 +116,6 @@ def set_initial_tree_cover(dynamics, args, color_dicts):
             cv2.imwrite(path.replace(".png", "_thresholded.png"), img)
  
     img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_NEAREST)
-    cv2.imshow("forest mask", img)
-    cv2.waitKey(1)
 
     print("data type of img:", img.dtype)
 
