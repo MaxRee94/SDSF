@@ -27,6 +27,15 @@ import app
 class OutputTests:
     def __init__(self):
         self.test_files = self.get_test_files()
+        self.cmdline_out_dir = self.make_cmdline_output_dir()
+
+    @staticmethod
+    def make_cmdline_output_dir():
+        timecode = time.strftime("%Y_%m_%d-%H,%M,%S")
+        out_dir = os.path.join(cfg.END2END_TEST_OUTPUT_DIR, "commandline_output", timecode)
+        os.makedirs(out_dir, exist_ok = False)
+
+        return out_dir
 
     @staticmethod
     def get_test_files():
@@ -39,7 +48,6 @@ class OutputTests:
     def run_test(self, testfile, test_name):
         stdout, stderr = self.run_test_process(testfile)
         success = self.parse_stdout(stdout)
-        
         self.write_stdout_to_file(stdout, test_name)
         
         return success
@@ -74,12 +82,8 @@ class OutputTests:
         
         return p.stdout, p.stderr
     
-    @staticmethod
-    def write_stdout_to_file(stdout, test_name):
-        timecode = time.strftime("%Y_%m_%d-%H,%M,%S")
-        out_dir = os.path.join(cfg.END2END_TEST_OUTPUT_DIR, "commandline_output", timecode)
-        os.makedirs(out_dir)
-        with open(os.path.join(out_dir, test_name), "w") as f:
+    def write_stdout_to_file(self, stdout, test_name):
+        with open(os.path.join(self.cmdline_out_dir, test_name + ".txt"), "w") as f:
             f.write(stdout)
 
     def run_all(self):
