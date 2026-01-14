@@ -84,20 +84,16 @@ public:
 		for (int x = bb_min.first; x < bb_max.first; x++) {
 			for (int y = bb_min.second; y < bb_max.second; y++) {
 				Cell* cell = grid->get_cell_at_position(pair<int, int>(x, y));
-				printf("Resource cell bb: %f, %f to %f, %f. \n", (float)bb_min.first, (float)bb_min.second, (float)bb_max.first, (float)bb_max.second);
 				for (int tree_id : cell->trees) {
 					if (!help::is_in(&rcell->trees, tree_id)) {
-						if (tree_id == 52) printf("Adding tree %i to resource cell at %i %i \n", tree_id, rcell->pos.first, rcell->pos.second);
 						rcell->add_tree(tree_id);
 					}
 					if (state->population.get(tree_id)->life_phase == 2) {
-						printf("%i fruits at cell %i %i \n", rcell->fruits.no_fruits(), rcell->pos.first, rcell->pos.second);
 						rcell->fruits.add_fruits(
 							state->population.get_crop(tree_id),
 							state->population.get(tree_id)->crown_area * cell_area_inv
 						);
 					}
-					//printf("Tree %i, fruit abundance: %i \n", tree_id, rcell->fruits[tree_id]);
 				}
 				no_forest_cells += cell->state;
 				no_cells++;
@@ -332,7 +328,6 @@ public:
 		float a_f_recipr = 1.0f / a_f;
 		for (int i = 0; i < size; i++) {
 			_f[i] = tanh(pow((fruit_abundance[i] * a_f_recipr), b_f));
-			if (_f[i] > 0) printf("found some fruits at cell %i, %i \n", cells[i].pos.first, cells[i].pos.second);
 		}
 	}
 	void update_cover_probabilities(string species, map<string, float>& species_params) {
