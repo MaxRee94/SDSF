@@ -31,7 +31,7 @@ class OutputTests:
     @staticmethod
     def get_test_files():
         test_files = []
-        for f in glob(cfg.OUTPUT_TESTCASE_DIR + "/*.json"):
+        for f in glob(cfg.END2END_TESTCASE_DIR + "/*.json"):
             test_files.append(f)
 
         return test_files
@@ -76,42 +76,37 @@ class OutputTests:
     
     @staticmethod
     def write_stdout_to_file(stdout, test_name):
-        with open(os.path.normpath(cfg.TEST_OUTPUT_DIR + "/commandline_output/{}_{}.txt".format(test_name, time.strftime("%Y%m%d-%H%M%S"))), "w") as f:
+        timecode = time.strftime("%Y_%m_%d-%H,%M,%S")
+        out_dir = os.path.join(cfg.END2END_TEST_OUTPUT_DIR, "commandline_output", timecode)
+        os.makedirs(out_dir)
+        with open(os.path.join(out_dir, test_name), "w") as f:
             f.write(stdout)
 
     def run_all(self):
-        print("Running all output tests...")
+        print("Running all end-to-end tests...")
+        n_failed = 0
         for i, testfile in enumerate(self.test_files):
             test_name = Path(testfile).stem
-            message = f"- Running test {i+1}/{len(self.test_files)}: {test_name}"
-            print(message + " ...", end="")
+            message = f"Running {i+1}/{len(self.test_files)}: {test_name}"
+            print(message + "...", end="")
             
             success = self.run_test(testfile, test_name)
+            n_failed += not success
             
             sys.stdout.flush()
             if success:
-                print("\r" + message.replace("Running", "Passed"))
+                print("\r" + message.replace("Running", ">>  Passed test") + "         ")
             else:
-                print("\r" + message.replace("Running", "FAILED"))
-            
-        print("All tests completed.")
+                print("\r" + message.replace("Running", ">>  FAILED test") + "         ")
 
-
-def init_tests():
-    print("Initializing tests...")
-
-    tests = OutputTests()
-    
-    print("Tests initialized")
-    
-    return tests
+        return n_failed, len(self.test_files)
 
 
 def main():
-    print("Starting output tests...")
+    print("Starting end-to-end tests...")
 
-    tests = init_tests()
-    tests.run_all()
+    tests = OutputTests()
+    n_failed, n_total = tests.run_all()
     
-    print("\nOutput tests completed.")
+    print(f"\nEnd-to-end tests completed.", "All passed." if n_failed==0 else f"Tests FAILED in {n_failed} / {n_total} cases!")
 
