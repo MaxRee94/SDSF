@@ -140,7 +140,8 @@ defaults = {
     "grow": True,
     "disperse": True,
     "burn": True,
-    "burnin_duration": 300
+    "burnin_duration": 300,
+    "export_visualizations": True,
 }
 
 gui_defaults = {
@@ -992,7 +993,17 @@ _parameter_config = {
             "help": "The duration of the burn-in period (in timesteps) before the main simulation starts.",
             "default": defaults["burnin_duration"],
         }
-    }
+    },
+    "export_visualizations": {
+        "keys": {
+            "cli": ["--export_visualizations", "-exp_vis"]
+        },
+        "settings": {
+            "action": argparse.BooleanOptionalAction,
+            "help": "Whether or not to export visualization images.",
+            "default": defaults["export_visualizations"],
+        }
+    },
 }
 
 class ParameterConfig():

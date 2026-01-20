@@ -1,0 +1,11 @@
+{
+    "grid_width": 20,
+    "max_timesteps": 10,
+    "resource_grid_width": 5,
+    "burnin_duration": 50,
+    "random_seed": 42,
+    "initial_pattern_image": "ctrl",
+    "mean_distance": 4,
+    "sine_amplitude": 1,
+    "heterogeneity": "homogeneous_config.json"
+}

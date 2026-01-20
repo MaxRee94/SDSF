@@ -327,7 +327,7 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
                     _io.export_state(
                         dynamics, total_results_csv, init_csv, initial_no_dispersals=initial_no_dispersals, control_variable=control_variable, control_value=control_value,
                         tree_cover_slope=tree_cover_slope, secondary_variable=secondary_variable, secondary_value=secondary_value, extra_parameters=str(extra_parameters),
-                        args=SimpleNamespace(**params)
+                        cfg=SimpleNamespace(**params)
                     )
             elif (batch_type == "saddle_search"):
                 secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, guess_result, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev, _params = execute_saddle_search(
@@ -339,7 +339,7 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
                 _io.export_state(
                     dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value,
                     tree_cover_slope=tree_cover_slope, extra_parameters=str(extra_parameters), secondary_variable=secondary_variable, secondary_value=secondary_value,
-                    dependent_var=dependent_var, dependent_val=guess_result, dependent_result_range_stdev=dependent_result_range_stdev, args=SimpleNamespace(**params)
+                    dependent_var=dependent_var, dependent_val=guess_result, dependent_result_range_stdev=dependent_result_range_stdev, cfg=SimpleNamespace(**params)
                 )
             else:
                 raise RuntimeError("Invalid batch type '{}'. Exiting..".format(batch_type))
@@ -389,20 +389,20 @@ def _ensure_correct_arg_datatype(element):
     return element
 
 
-def ensure_correct_arg_datatype(args):
+def ensure_correct_arg_datatype(cfg):
     """Ensure that the arguments are of the correct datatype.
 
-    Args:
-        args (dict): Dictionary containing the arguments and their values.
+    cfg:
+        cfg (dict): Dictionary containing the arguments and their values.
 
     Returns:
         dict: Dictionary with the arguments and their values, with the correct datatypes.
     """
-    print("args: ", args)
-    for key in args:
-        args[key] = _ensure_correct_arg_datatype(args[key])
+    print("cfg: ", cfg)
+    for key in cfg:
+        cfg[key] = _ensure_correct_arg_datatype(cfg[key])
     
-    return args
+    return cfg
  
 
 def main(
@@ -455,12 +455,12 @@ if __name__ == "__main__":
         '-ep', '--extra_parameters', type=str,
         help=r"Json string containing key-value pairs of custom parameters. Keys should be surrounded by double quotes preceded by a backslash. Example: {\"verbosity\":1}"
     )
-    args = SimpleNamespace(**parse_args(parser))
+    cfg = SimpleNamespace(**parse_args(parser))
     try:
-        main(**vars(args))
+        main(**vars(cfg))
     except Exception as e:
         print("======== ERROR =========")
-        parent_dir = get_csv_parent_dir(args.run)
+        parent_dir = get_csv_parent_dir(cfg.run)
         csv_file = parent_dir + "/Error_log.txt";
         with open(csv_file, 'a') as f:
             f.write(str(e))

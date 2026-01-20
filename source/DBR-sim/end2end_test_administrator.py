@@ -45,10 +45,16 @@ class OutputTests:
         return _dir
 
     def run_test(self, testfile, test_name, output_dir):
-        stdout, stderr = self.run_test_process(testfile, output_dir)
-        success = self.parse_stdout(stdout)
+        stdout, stderr, returncode = self.run_test_process(testfile, output_dir)
         
-        self.write_stdout_to_file(stdout, output_dir)
+        self.write_cmdline_output_to_file(stdout, output_dir, "stdout.txt")
+        if stderr:
+            self.write_cmdline_output_to_file(stderr, output_dir, "stderr.txt")
+    
+        if returncode == 0:
+            success = self.parse_stdout(stdout)
+        else:
+            success = False
         
         return success
 
@@ -70,21 +76,20 @@ class OutputTests:
         return success
 
     @staticmethod
-    def run_test_process(testfile, output_dir):   
+    def run_test_process(testfile, output_dir):
         p = subprocess.run(
             [sys.executable, "end2end_test.py", "--cfg_file", testfile, "--output_dir", output_dir],
             text=True,
-            check=True,
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            stderr=subprocess.PIPE,
             bufsize=8
         )
         
-        return p.stdout, p.stderr
+        return p.stdout, p.stderr, p.returncode
     
     @staticmethod
-    def write_stdout_to_file(stdout, output_dir):
-        path = os.path.join(output_dir, "stdout.txt")
+    def write_cmdline_output_to_file(stdout, output_dir, filename):
+        path = os.path.join(output_dir, filename)
         with open(path, "w") as f:
             f.write(stdout)
 
@@ -100,9 +105,9 @@ class OutputTests:
     def produce_test_report(self, message, success):
         sys.stdout.flush()
         if success:
-            print("\r" + message.replace("Running", ">>  Passed test") + "         ")
+            print("\r" + message.replace("Running", "    Passed test") + "         ")
         else:
-            print("\r" + message.replace("Running", ">>  FAILED test") + "         ")
+            print("\r" + message.replace("Running", "--> FAILED test") + "         ")
 
     def run_all(self):
         print("Running all end-to-end tests...")

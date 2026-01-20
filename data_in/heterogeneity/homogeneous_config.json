@@ -1,0 +1,14 @@
+{
+    "grass_carrying_capacity": {
+        "filename": "uniform.png"
+    },
+    "local_growth_multipliers" : {
+        "filename": "uniform.png"
+    },
+    "example": {
+        "type": "noise",
+        "scale": 5,
+        "offset": 0.0,
+        "amplitude": 0.3
+    }
+}
