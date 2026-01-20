@@ -23,9 +23,9 @@ def main():
             import unit_testing as ut
             ut.main(**kwargs)
             return
-        elif tests == "output_tests":
-            import output_testing as ot
-            ot.main()
+        elif tests == "end2end":
+            import end2end_test_administrator as e2e
+            e2e.main()
             return
         else:
             app.main(**kwargs)

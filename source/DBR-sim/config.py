@@ -297,7 +297,7 @@ _parameter_config = {
         "settings": {
             "type": str,
             "help": (
-                "Whether or not to run unit or output tests. Possible options: 'none', 'unit_tests', 'output_tests'."
+                "Whether or not to run unit or output tests. Possible options: 'none', 'unit_tests', 'end2end'."
             ),
             "default": defaults["tests"],
         },

@@ -64,7 +64,7 @@ class OutputTests:
     @staticmethod
     def run_test_process(testfile):   
         p = subprocess.run(
-            [sys.executable, "output_test.py", "--cfg_file", testfile],
+            [sys.executable, "end2end_test.py", "--cfg_file", testfile],
             text=True,
             check=True,
             stdout=subprocess.PIPE,
