@@ -122,6 +122,12 @@ def get_2d_dist(p1, p2):
     return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
 
 
+def apply_user_args(args, cfg):
+    for key, value in args.items():
+        setattr(cfg, key, value)
+    return cfg
+
+
 def compute_radial_distribution_function(dynamics, stepsize=0.02):
     tree_positions = dynamics.state.get_tree_positions()
     

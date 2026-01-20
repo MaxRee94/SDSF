@@ -24,6 +24,12 @@ def get_tree_sizes(dynamics, bins="initialize", args=None):
     return counts, bins
 
 
+def create_output_dirs(main_output_dir):
+    create_directory_if_not_exists(main_output_dir)
+    create_directory_if_not_exists(os.path.join(main_output_dir, "state_data"))
+    create_directory_if_not_exists(os.path.join(main_output_dir, "image_timeseries"))
+
+
 def get_tree_ages(dynamics, bins="initialize"):
     if type(bins) == str and bins == "initialize":
         _tree_ages = [i for i in range(400)] # Harcoded max age of 400 years for now.
@@ -92,6 +98,15 @@ def set_heterogeneity_maps(dynamics, args):
         setter_func(image)
 
     return dynamics, args
+
+
+def create_directory_if_not_exists(_dir):
+    if not os.path.exists(_dir):
+        os.makedirs(_dir)
+        if not os.path.exists(_dir):
+            raise RuntimeError("Failed to create directory: " + _dir)
+    else:
+        raise RuntimeError("Directory already exists: " + _dir)
 
 
 def export_state(

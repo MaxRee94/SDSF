@@ -16,19 +16,26 @@ constants = {}
 constants["REPOSITORY_BASEDIR"] = os.path.dirname(os.path.dirname(cwd))
 constants["DATA_IN_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_in"
 constants["DATA_OUT_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_out"
-constants["CPG_OUTPUT_DIR"] = constants["DATA_OUT_DIR"] + "/controlled_pattern_generator"
 constants["DATA_INTERNAL_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_internal"
 constants["BUILD_DIR"] = constants["REPOSITORY_BASEDIR"] + "/build"
 constants["PERLIN_NOISE_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/perlin_noise"
 constants["SIMPLE_PATTERNS_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/simple_patterns"
 constants["CONTROLLED_PATTERN_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/controlled_patterns"
-constants["LEGEND_PATH"] = constants["DATA_OUT_DIR"] + "/legends"
-constants["TREE_DBH_FILE"] = constants["DATA_OUT_DIR"] + "/state_reports/tree_dbh_values.json"
-constants["EXPORT_DIR"] = os.path.join(constants["DATA_OUT_DIR"], "state_data")
-constants["END2END_TEST_OUTPUT_DIR"] = os.path.join(constants["DATA_OUT_DIR"], "tests/end2end_test_output")
 constants["END2END_TESTCASE_DIR"] = os.path.join(constants["DATA_IN_DIR"], "end2end_test_cases")
 
 cfg = SimpleNamespace(**constants)
+
+
+def derive_output_dirs(cfg):
+    out_dir = cfg.DATA_OUT_DIR
+    cfg.CPG_OUTPUT_DIR = out_dir + "/controlled_pattern_generator"
+    cfg.LEGEND_PATH = out_dir + "/legends"
+    cfg.TREE_DBH_FILE = out_dir + "/state_reports/tree_dbh_values.json"
+    cfg.EXPORT_DIR = os.path.join(out_dir, "state_data")
+    cfg.END2END_TEST_OUTPUT_DIR = os.path.join(out_dir, "tests/end2end_test_output")
+    return cfg
+
+cfg = derive_output_dirs(cfg)
 
 
 def apply_local_overrides(cfg):

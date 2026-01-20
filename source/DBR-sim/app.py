@@ -607,6 +607,7 @@ def main(batch_parameters=None, **user_args):
             user_args[control_keys[0]][idx] = batch_parameters["control_value"]
 
     args = SimpleNamespace(**user_args)
+    # cfg = apply_user_args(args, cfg)
 
     dynamics, color_dicts, args = init(args)
     return updateloop(dynamics, color_dicts, args)

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import re
 import sys
 
 import cv2
@@ -27,6 +28,7 @@ import app
 class OutputTests:
     def __init__(self):
         self.test_files = self.get_test_files()
+        self.main_output_dir = self.create_main_output_dir()
 
     @staticmethod
     def get_test_files():
@@ -36,11 +38,17 @@ class OutputTests:
 
         return test_files
 
-    def run_test(self, testfile, test_name):
-        stdout, stderr = self.run_test_process(testfile)
+    def create_main_output_dir(self):
+        _dir = os.path.join(cfg.END2END_TEST_OUTPUT_DIR, time.strftime("%Y_%m_%d-%H,%M,%S"))
+        io.create_directory_if_not_exists(_dir)
+        
+        return _dir
+
+    def run_test(self, testfile, test_name, output_dir):
+        stdout, stderr = self.run_test_process(testfile, output_dir)
         success = self.parse_stdout(stdout)
         
-        self.write_stdout_to_file(stdout, test_name)
+        self.write_stdout_to_file(stdout, output_dir)
         
         return success
 
@@ -62,9 +70,9 @@ class OutputTests:
         return success
 
     @staticmethod
-    def run_test_process(testfile):   
+    def run_test_process(testfile, output_dir):   
         p = subprocess.run(
-            [sys.executable, "end2end_test.py", "--cfg_file", testfile],
+            [sys.executable, "end2end_test.py", "--cfg_file", testfile, "--output_dir", output_dir],
             text=True,
             check=True,
             stdout=subprocess.PIPE,
@@ -75,31 +83,40 @@ class OutputTests:
         return p.stdout, p.stderr
     
     @staticmethod
-    def write_stdout_to_file(stdout, test_name):
-        timecode = time.strftime("%Y_%m_%d-%H,%M,%S")
-        out_dir = os.path.join(cfg.END2END_TEST_OUTPUT_DIR, "commandline_output", timecode)
-        os.makedirs(out_dir)
-        with open(os.path.join(out_dir, test_name), "w") as f:
+    def write_stdout_to_file(stdout, output_dir):
+        path = os.path.join(output_dir, "stdout.txt")
+        with open(path, "w") as f:
             f.write(stdout)
+
+    def prepare_test(self, index, testfile):
+        test_name = Path(testfile).stem
+        output_dir = os.path.join(self.main_output_dir, test_name)
+        io.create_output_dirs(output_dir)
+        message = f"Running {index+1}/{len(self.test_files)}: {test_name}"
+        print(message + "...", end="")        
+
+        return test_name, output_dir, message
+
+    def produce_test_report(self, message, success):
+        sys.stdout.flush()
+        if success:
+            print("\r" + message.replace("Running", ">>  Passed test") + "         ")
+        else:
+            print("\r" + message.replace("Running", ">>  FAILED test") + "         ")
 
     def run_all(self):
         print("Running all end-to-end tests...")
         n_failed = 0
         for i, testfile in enumerate(self.test_files):
-            test_name = Path(testfile).stem
-            message = f"Running {i+1}/{len(self.test_files)}: {test_name}"
-            print(message + "...", end="")
+            test_name, output_dir, message = self.prepare_test(i, testfile)
             
-            success = self.run_test(testfile, test_name)
+            success = self.run_test(testfile, test_name, output_dir)
             n_failed += not success
             
-            sys.stdout.flush()
-            if success:
-                print("\r" + message.replace("Running", ">>  Passed test") + "         ")
-            else:
-                print("\r" + message.replace("Running", ">>  FAILED test") + "         ")
+            self.produce_test_report(message, success)
 
         return n_failed, len(self.test_files)
+
 
 
 def main():
