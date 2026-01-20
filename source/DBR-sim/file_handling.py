@@ -9,10 +9,20 @@ import time
 from config import *
 import helpers
 import numpy as np
+import shutil, errno
+from glob import glob
 
 import sine_pattern_generator as spg
 import simple_noise_generator as sng
 
+
+
+def remove_dir_contents(_dir):
+    for subdir in glob(os.path.join(_dir, '*')):
+        if os.path.isdir(subdir):
+            remove_dir_contents(subdir)
+        else:
+            os.remove(subdir)
 
 
 def get_tree_sizes(dynamics, bins="initialize", cfg=None):
@@ -100,13 +110,49 @@ def set_heterogeneity_maps(dynamics, cfg):
     return dynamics, cfg
 
 
+
+def copy_tree_if_needed(src, dst):
+    """
+    Recursively copy all files and directories from src to dst.
+    Create directories only if they do not already exist.
+    Files are overwritten if they already exist.
+    """
+    src = Path(src)
+    dst = Path(dst)
+
+    if not src.is_dir():
+        raise ValueError(f"Source is not a directory: {src}")
+
+    dst.mkdir(parents=True, exist_ok=True)
+
+    for item in src.iterdir():
+        target = dst / item.name
+
+        if item.is_dir():
+            copy_tree_if_needed(item, target)
+        else:
+            shutil.copy2(item, target)
+
+
+def copy_filetree(src, dst):
+    try:
+        shutil.copytree(src, dst)
+    except FileExistsError:
+        if os.path.isdir(dst):
+            pass
+        else:
+            raise FileExistsError(f"Destination path {dst} exists and is not a directory.")
+    except OSError as exc: # python >2.5
+        if exc.errno in (errno.ENOTDIR, errno.EINVAL):
+            shutil.copy(src, dst)
+        else: raise
+
+
 def create_directory_if_not_exists(_dir):
     if not os.path.exists(_dir):
         os.makedirs(_dir)
         if not os.path.exists(_dir):
             raise RuntimeError("Failed to create directory: " + _dir)
-    else:
-        raise RuntimeError("Directory already exists: " + _dir)
 
 
 def export_state(

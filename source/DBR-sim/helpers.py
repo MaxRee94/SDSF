@@ -6,7 +6,6 @@ import argparse
 from config import ParameterConfig
 
 
-
 def add_kwargs(parser):
     """Dynamically add arguments using `ParameterConfig` defined in `config.py`.
 

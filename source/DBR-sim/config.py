@@ -26,18 +26,6 @@ constants["END2END_TESTCASE_DIR"] = os.path.join(constants["DATA_IN_DIR"], "end2
 cfg = SimpleNamespace(**constants)
 
 
-def derive_output_dirs(cfg):
-    out_dir = cfg.DATA_OUT_DIR
-    cfg.CPG_OUTPUT_DIR = out_dir + "/controlled_pattern_generator"
-    cfg.LEGEND_PATH = out_dir + "/legends"
-    cfg.TREE_DBH_FILE = out_dir + "/state_reports/tree_dbh_values.json"
-    cfg.EXPORT_DIR = os.path.join(out_dir, "state_data")
-    cfg.END2END_TEST_OUTPUT_DIR = os.path.join(out_dir, "tests/end2end_test_output")
-    return cfg
-
-cfg = derive_output_dirs(cfg)
-
-
 def apply_local_overrides(cfg):
     """Apply local overrides to the global constants to allow control over the directories to which files are
     written / from which they are read. To do this, the user can create a file called local_overrides.py in the cfg.DATA_IN_DIR.
@@ -59,7 +47,20 @@ def apply_local_overrides(cfg):
     return cfg
 
 
+def derive_output_dirs(cfg):
+    out_dir = cfg.DATA_OUT_DIR
+    cfg.CPG_OUTPUT_DIR = out_dir + "/controlled_pattern_generator"
+    cfg.LEGEND_PATH = out_dir + "/legends"
+    cfg.TREE_DBH_FILE = out_dir + "/state_reports/tree_dbh_values.json"
+    cfg.EXPORT_DIR = os.path.join(out_dir, "state_data")
+    cfg.END2END_TEST_OUTPUT_DIR = os.path.join(out_dir, "tests/end2end_test_output")
+    cfg.END2END_TEST_BENCHMARK_DIR = os.path.join(out_dir, "tests/end2end_benchmarks")
+    return cfg
+
+
 cfg = apply_local_overrides(cfg)
+cfg = derive_output_dirs(cfg)
+
 sys.path.append(cfg.BUILD_DIR)
 
 

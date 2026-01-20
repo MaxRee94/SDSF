@@ -26,7 +26,8 @@ import app
 
 
 class OutputTests:
-    def __init__(self):
+    def __init__(self, mode):
+        self.mode = "generate_benchmark" if mode == "end2end_reset" else "evaluate"
         self.test_files = self.get_test_files()
         self.main_output_dir = self.create_main_output_dir()
 
@@ -45,15 +46,18 @@ class OutputTests:
         return _dir
 
     def run_test(self, testfile, test_name, output_dir):
-        stdout, stderr, returncode = self.run_test_process(testfile, output_dir)
+        stdout, stderr, returncode = self.run_test_process(testfile, output_dir, self.mode)
         
         self.write_cmdline_output_to_file(stdout, output_dir, "stdout.txt")
         if stderr:
             self.write_cmdline_output_to_file(stderr, output_dir, "stderr.txt")
     
         if returncode == 0:
-            success = self.parse_stdout(stdout)
-        else:
+            if self.mode == "evaluate":
+                success = self.parse_stdout(stdout)
+            elif self.mode == "generate_benchmark":
+                success = True # If we're generating a benchmark, 'success' depends only on return code.
+        elif returncode != 0:
             success = False
         
         return success
@@ -76,9 +80,9 @@ class OutputTests:
         return success
 
     @staticmethod
-    def run_test_process(testfile, output_dir):
+    def run_test_process(testfile, output_dir, mode):
         p = subprocess.run(
-            [sys.executable, "end2end_test.py", "--cfg_file", testfile, "--output_dir", output_dir],
+            [sys.executable, "end2end_test.py", "--cfg_file", testfile, "--output_dir", output_dir, "--mode", mode],
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -104,13 +108,15 @@ class OutputTests:
 
     def produce_test_report(self, message, success):
         sys.stdout.flush()
+        success_basemessage = "    Passed test" if self.mode == "evaluate" else "    Generated benchmark for"
+        failure_basemessage = "--> FAILED test" if self.mode == "evaluate" else "--> FAILED to generate benchmark for"
         if success:
-            print("\r" + message.replace("Running", "    Passed test") + "         ")
+            print("\r" + message.replace("Running", f"{success_basemessage} test") + "         ")
         else:
-            print("\r" + message.replace("Running", "--> FAILED test") + "         ")
+            print("\r" + message.replace("Running", f"{failure_basemessage} test") + "         ")
 
     def run_all(self):
-        print("Running all end-to-end tests...")
+        print("{} all end-to-end tests...".format("Running" if self.mode == "evaluate" else "Generating benchmarks for"))
         n_failed = 0
         for i, testfile in enumerate(self.test_files):
             test_name, output_dir, message = self.prepare_test(i, testfile)
@@ -124,10 +130,10 @@ class OutputTests:
 
 
 
-def main():
+def main(mode):
     print("Starting end-to-end tests...")
 
-    tests = OutputTests()
+    tests = OutputTests(mode)
     n_failed, n_total = tests.run_all()
     
     print(f"\nEnd-to-end tests completed.", "All passed." if n_failed==0 else f"Tests FAILED in {n_failed} / {n_total} cases!")
