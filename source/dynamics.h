@@ -233,7 +233,7 @@ public:
 		int pre_dispersal_popsize = pop->size();
 		Timer timer; timer.start();
 
-		int no_seeds_to_disperse = 1000;
+		int no_seeds_to_disperse = max(1, grid->no_cells / 100);
 		disperse_uniformly(mask, no_seeds_to_disperse);
 		recruit();
 	}
@@ -325,6 +325,21 @@ public:
 					pop->remove(tree_id);
 				}
 			}
+		}
+	}
+	void prune_randomly(float cover_fraction) {
+		float old_cover = grid->get_tree_cover();
+		float target_cover = old_cover - cover_fraction;
+		float current_cover = old_cover;
+		int chunksize = 0;
+		int chunksize_threshold = 0.002 * (float)pop->size();
+		while (current_cover > target_cover) {
+			Tree* tree = pop->get_random_tree();
+			grid->kill_tree_domain(tree, false);
+			grid->update_aggr_LAIs(tree);
+			pop->remove(tree->id);
+			if (chunksize > chunksize_threshold) current_cover = grid->get_tree_cover();
+			chunksize++;
 		}
 	}
 	void disperse_wind_seeds_and_init_fruits(int& no_seed_bearing_trees, int& no_wind_seedlings, int& wind_seeds_dispersed, int& animal_seeds_dispersed, int& wind_trees) {

@@ -103,18 +103,6 @@ int help::get_rand_int(int min, int max) {
     return round(help::get_rand_float(min, max));
 }
 
-int help::get_random_key(std::map<int, float>& map) {
-    int rand_idx = help::get_rand_int(0, map.size() - 1);
-    int i = 0;
-    for (auto const& [key, val] : map) {
-        if (i == rand_idx) {
-            return key;
-        }
-        i++;
-    }
-    throw runtime_error("Unable to generate random key.\n"); // Should not reach here
-}
-
 bool help::is_in(std::vector<int>* vec, int item) {
     return find(vec->begin(), vec->end(), item) != vec->end();
 }

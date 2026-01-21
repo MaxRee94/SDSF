@@ -133,8 +133,42 @@ namespace help {
 	void normalize(pair<float, float>& vec, float length);
 
 	void get_random_unit_vector(pair<float, float> &direction);
+	
+	float get_rand_float(float min, float max);
 
-	int get_random_key(std::map<int, float>& map);
+	double _get_rand_double(double min, double max);
+
+	double get_rand_double(double min, double max);
+
+	uint get_rand_uint(int min, int max);
+
+	int get_rand_int(int min, int max);
+
+	template <typename K, typename V>
+	int get_random_key(std::map<K, V>& map) {
+		int rand_idx = get_rand_int(0, map.size() - 1);
+		int i = 0;
+		for (auto const& [key, val] : map) {
+			if (i == rand_idx) {
+				return key;
+			}
+			i++;
+		}
+		throw runtime_error("Unable to generate random key.\n"); // Should not reach here
+	}
+
+	template <typename K, typename V>
+	int get_random_key(std::unordered_map<K, V>& map) {
+		int rand_idx = get_rand_int(0, map.size() - 1);
+		int i = 0;
+		for (auto const& [key, val] : map) {
+			if (i == rand_idx) {
+				return key;
+			}
+			i++;
+		}
+		throw runtime_error("Unable to generate random key.\n"); // Should not reach here
+	}
 
 	void remove_from_vec(vector<int>* vec, int item);
 
@@ -215,16 +249,6 @@ namespace help {
 	float cubed(float val);
 
 	int get_value(std::map<uint32_t, uint32_t>* map, uint32_t key);
-
-	float get_rand_float(float min, float max);
-
-	double _get_rand_double(double min, double max);
-
-	double get_rand_double(double min, double max);
-
-	uint get_rand_uint(int min, int max);
-
-	int get_rand_int(int min, int max);
 
 	void remove(vector<int>* vec, int item);
 

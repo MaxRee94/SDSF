@@ -76,7 +76,6 @@ def set_initial_tree_cover(dynamics, cfg, color_dicts):
         # The benchmark cover is the cover for a version of the pattern produced using the given parameters, but with a sine amplitude set to 0 (i.e., with circular disks).
         if cfg.override_image_treecover == 2:
             cfg.override_image_treecover = benchmark_cover
-        #dynamics.state.set_cover_from_image(img, cfg.override_image_treecover)
     elif cfg.initial_pattern_image == "perlin_noise":
         cfg.cover_img_path = f"{cfg.PERLIN_NOISE_DIR}/" + cfg.initial_pattern_image + ".png"
         noise_frequency = 5.0 / cfg.patch_width # Convert patch width to noise frequency
@@ -86,7 +85,6 @@ def set_initial_tree_cover(dynamics, cfg, color_dicts):
         img = sng.generate(scale=2, grid_width=cfg.grid_width, binary_connectivity=cfg.treecover, cfg=cfg)
         cfg.cover_img_path = f"{cfg.SIMPLE_PATTERNS_DIR}/whitenoise.png"
         cv2.imwrite(cfg.cover_img_path, img)
-        #img = np.zeros((cfg.grid_width, cfg.grid_width), np.uint8) + 1
     else:
         print("Setting tree cover from image...")
 
@@ -343,7 +341,7 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
     fire_freq_arrays = []
     fire_no_timesteps = 1
     patch_colors = {}
-    while dynamics.time < cfg.burnin_duration:
+    while dynamics.time < cfg.burnin_duration or dynamics.state.grid.get_tree_cover() > target_treecover:
         print(f"Burn-in timestep:    {dynamics.time})")
         dynamics.disperse_within_forest(forest_mask)
         dynamics.grow()
@@ -357,15 +355,16 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
         cfg = io.export_state(dynamics, path=cfg.csv_path, init_csv=init_csv, cfg=cfg)
         init_csv = False
         cur_treecover = dynamics.state.grid.get_tree_cover()
+
+        # Feedback control on tree cover during burn-in
+        if dynamics.state.grid.get_tree_cover() > target_treecover:
+            prune_fraction = dynamics.state.grid.get_tree_cover() - target_treecover
+            dynamics.prune_randomly(prune_fraction)
         
         # Obtain patches from simulation
         patches = dynamics.get_patches() 
 
-        # get a color image representation of the initial state and show it.
-        # do_visualizations(
-        #     dynamics, fire_freq_arrays, fire_no_timesteps, False, color_dicts,
-        #     True, visualization_types, patches, patch_colors, cfg
-        # )
+        # Do visualizations
         if not cfg.headless:
             img = cfg.vis.visualize(
                 dynamics.state.grid, cfg.image_width, collect_states=1,
