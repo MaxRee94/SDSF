@@ -3,6 +3,8 @@ from calendar import c
 from pathlib import Path
 from copy import deepcopy
 from argparse import ArgumentParser
+import cv2
+import shutil
 
 import visualization as vis
 import file_handling as io
@@ -15,44 +17,48 @@ import time
 
 
 class Test:
-    def __init__(self, args):
+    def __init__(self, cfg):
         kwargs = get_all_defaults()
         kwargs = load_json_strings_if_any(kwargs)
-        default_args = SimpleNamespace(**kwargs)
-        self.output_dir = args.output_dir
-        self.mode = args.mode
-        self.args = self.load(args.cfg_file, default_args)
-        self.name = Path(args.cfg_file).stem
+        default_cfg = SimpleNamespace(**kwargs)
+        self.output_dir = cfg.output_dir
+        self.mode = cfg.mode
+        self.cfg = self.load(cfg.cfg_file, default_cfg)
+        self.name = Path(cfg.cfg_file).stem
         self.current_outputs = {}
         self.expected_outputs = {}
         
-    def load(self, cfg_file, default_args):
-        case_args = self.load_casefile(cfg_file)
-        args = self.apply_case_args(case_args, default_args)
-        args = self.overwrite_output_dir(args, self.output_dir)
-        args.headless = True
-        return args
+    def load(self, cfg_file, default_cfg):
+        case_cfg = self.load_casefile(cfg_file)
+        cfg = self.apply_case_cfg(case_cfg, default_cfg)
+        cfg = self.overwrite_output_dir(cfg, self.output_dir)
+        self.check_cfg(cfg)
+        cfg.headless = True
+        return cfg
 
     @staticmethod
-    def overwrite_output_dir(args, output_dir):
-        args.DATA_OUT_DIR = output_dir
-        args = derive_output_dirs(args)
-        return args
+    def overwrite_output_dir(cfg, output_dir):
+        cfg.DATA_OUT_DIR = output_dir
+        cfg = derive_output_dirs(cfg)
+        return cfg
 
     @staticmethod
-    def apply_case_args(case_args, default_args):
-        args = deepcopy(default_args)
-        for key, value in vars(case_args).items():
-            setattr(args, key, value)
-        return args
+    def check_cfg(cfg):
+        assert cfg.random_seed != -999, "End-to-end test cases must specify a random seed."
+
+    @staticmethod
+    def apply_case_cfg(case_cfg, default_cfg):
+        cfg = deepcopy(default_cfg)
+        for key, value in vars(case_cfg).items():
+            setattr(cfg, key, value)
+        return cfg
 
     @staticmethod
     def load_casefile(cfg_file):
         with open(cfg_file, "r") as f:
-            args = json.load(f)
-        args = SimpleNamespace(**args)
-        return args
-     
+            cfg = json.load(f)
+        cfg = SimpleNamespace(**cfg)
+        return cfg
     def run(self):
         app.main(**vars(self.args))
 
@@ -72,7 +78,7 @@ class Evaluator:
     def evaluate(self, test):
         
         return True
-
+ 
 
 def evaluate(test, evaluator, args):
     result = evaluator.evaluate(test)
