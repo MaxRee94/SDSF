@@ -154,5 +154,8 @@ def main(mode):
     tests = OutputTests(mode)
     n_failed, n_total = tests.run_all()
     
-    print(f"\nEnd-to-end tests completed.", "All passed." if n_failed==0 else f"Tests FAILED in {n_failed} / {n_total} cases!")
+    if mode == "evaluate":
+        print(f"\nEnd-to-end tests completed.", "All passed." if n_failed==0 else f"Tests FAILED in {n_failed} / {n_total} cases!")
+    else:
+        print(f"\nEnd-to-end benchmark creation complete.", "All succeeded." if n_failed==0 else f"Failure occurred in {n_failed} / {n_total} cases!")
 
