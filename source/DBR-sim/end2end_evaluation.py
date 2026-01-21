@@ -86,9 +86,10 @@ class Evaluator:
 
     def _assert_no_extra_output_files(self, bench_root: str, out_root: str) -> None:
         """
-        Optional strictness: fail if output contains files that benchmark doesn't.
+        Fail if output contains files that benchmark doesn't.
         """
         for rel_path in self._iter_files_relative_to(out_root):
+            print("rel_path:", rel_path)
             bench_path = self._bench_path(bench_root, rel_path)
             if not os.path.exists(bench_path):
                 out_path = self._out_path(out_root, rel_path)

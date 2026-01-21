@@ -13,6 +13,7 @@ import scipy.stats as stats
 import random
 import math
 from glob import glob
+import shutil
 from copy import deepcopy
 import contextlib
 import subprocess
@@ -106,10 +107,50 @@ class OutputTests:
         return n_failed, len(self.test_files)
 
 
+def move_subfolders_to_old(root_dir: str, old_name: str = "old") -> None:
+    """
+    Move all direct subfolders of `root_dir` into the existing subfolder `old_name`,
+    except the `old_name` folder itself.
+
+    Example layout before:
+        end2end_test_output/
+            run_001/
+            run_002/
+            old/
+
+    After:
+        end2end_test_output/
+            old/
+                run_001/
+                run_002/
+    """
+    old_dir = os.path.join(root_dir, old_name)
+
+    if not os.path.isdir(old_dir):
+        raise FileNotFoundError(f"'old' directory does not exist: {old_dir}")
+
+    for entry in os.listdir(root_dir):
+        src = os.path.join(root_dir, entry)
+
+        # Skip non-directories and the 'old' folder itself
+        if entry == old_name or not os.path.isdir(src):
+            continue
+
+        dst = os.path.join(old_dir, entry)
+
+        # shutil.move handles cross-filesystem moves as well
+        shutil.move(src, dst)
+
+
+
+def prepare(cfg):
+    move_subfolders_to_old(cfg.END2END_TEST_OUTPUT_DIR)
+
 
 def main(mode):
     print("Starting end-to-end tests...")
 
+    prepare(cfg)
     tests = OutputTests(mode)
     n_failed, n_total = tests.run_all()
     
