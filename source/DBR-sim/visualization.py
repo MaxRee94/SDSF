@@ -295,7 +295,7 @@ class Visualiser:
             for x in range(width):
                 val = self.fBm(x*frequency, y*frequency, int(width*frequency), octaves)
                 val = min(255, max(0, (val + 0.5) * 255))
-                row.append([val, val, val])
+                row.append(val)
             data.append(row)
         img = np.array(data, dtype=np.uint8)
         if write:
