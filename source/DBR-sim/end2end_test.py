@@ -5,15 +5,16 @@ from copy import deepcopy
 from argparse import ArgumentParser
 import cv2
 import shutil
+import time
+import filecmp
+from glob import glob
 
 import visualization as vis
 import file_handling as io
 from helpers import *
 from config import *
+from end2end_evaluation import Evaluator
 import app
-
-import time
-
 
 
 class Test:
@@ -64,35 +65,23 @@ class Test:
         dst = os.path.join(self.output_dir, "cover.png")
         shutil.copyfile(self.cfg.cover_img_path, dst)
 
+    def rename_state_data_file(self):
+        src = list(glob(os.path.join(self.output_dir, "state_data", "Simulation*.csv")))[0]
+        dst = os.path.join(self.output_dir, "state_data", "Simulation.csv")
+        os.rename(src, dst)
+
+    def do_post_test_filemanagement(self):
+        self.copy_cover_image()
+        self.rename_state_data_file()
+
     def run(self):
         _, _, _, _, self.cfg = app.main(**vars(self.cfg))
-        self.copy_cover_image()
+        self.do_post_test_filemanagement()
 
-        return True
-
-
-class Evaluator:
-    def __init__(self, testcase):
-        self.testcase = testcase
-        self.benchmark_dir = self.get_benchmark_dir()
-    
-    def get_benchmark_dir(self):
-        benchmark_dir = os.path.join(cfg.END2END_TEST_BENCHMARK_DIR, self.testcase)
-        io.create_directory_if_not_exists(benchmark_dir)
-        return benchmark_dir
-
-    def evaluate(self, test):
-        
-        return True
- 
-
-def evaluate(test, evaluator, args):
-    result = evaluator.evaluate(test)
-    print(json.dumps({"test_result": result}))
 
 
 def replace_benchmark(test, evaluator, args):
-    # Copy current outputs to expected outputs
+    # Replace benchmark with current output
     io.remove_dir_contents(evaluator.benchmark_dir)
     print("Copying file tree from {} to {}".format(test.output_dir, evaluator.benchmark_dir))
     io.copy_tree_if_needed(test.output_dir, evaluator.benchmark_dir)
@@ -109,10 +98,10 @@ def main():
     args = parser.parse_args()
     test = Test(args)
     
-    evaluator = Evaluator(test.name)
+    evaluator = Evaluator(test.name, cfg)
     test.run()
     if args.mode == "evaluate":
-        evaluate(test, evaluator, args)
+        evaluator.evaluate(test)
     elif args.mode == "generate_benchmark":
         replace_benchmark(test, evaluator, args)
     else: 

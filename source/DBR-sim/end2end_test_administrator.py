@@ -52,31 +52,8 @@ class OutputTests:
         if stderr:
             self.write_cmdline_output_to_file(stderr, output_dir, "stderr.txt")
     
-        if returncode == 0:
-            if self.mode == "evaluate":
-                success = self.parse_stdout(stdout)
-            elif self.mode == "generate_benchmark":
-                success = True # If we're generating a benchmark, 'success' depends only on return code.
-        elif returncode != 0:
-            success = False
+        success = returncode == 0
         
-        return success
-
-    @staticmethod
-    def parse_stdout(stdout):
-        success = False
-        lines = stdout.splitlines()
-        success = None
-        for i in range (len(lines), 0, -1):
-            line = lines[i-1]
-            if "test_result" in line:
-                result_json = json.loads(line.strip())
-                if result_json["test_result"] == 1:
-                    success = True
-                else:
-                    success = False
-                break
-        assert success is not None, "Could not parse test result from stdout."
         return success
 
     @staticmethod
