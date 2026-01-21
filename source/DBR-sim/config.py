@@ -18,10 +18,6 @@ constants["DATA_IN_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_in"
 constants["DATA_OUT_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_out"
 constants["DATA_INTERNAL_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_internal"
 constants["BUILD_DIR"] = constants["REPOSITORY_BASEDIR"] + "/build"
-constants["PERLIN_NOISE_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/perlin_noise"
-constants["SIMPLE_PATTERNS_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/simple_patterns"
-constants["CONTROLLED_PATTERN_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/controlled_patterns"
-constants["END2END_TESTCASE_DIR"] = os.path.join(constants["DATA_IN_DIR"], "end2end_test_cases")
 
 cfg = SimpleNamespace(**constants)
 
@@ -58,8 +54,18 @@ def derive_output_dirs(cfg):
     return cfg
 
 
+def derive_input_dirs(cfg):
+    in_dir = cfg.DATA_IN_DIR
+    cfg.PERLIN_NOISE_DIR = os.path.join(in_dir, "state_patterns/perlin_noise")
+    cfg.SIMPLE_PATTERNS_DIR = os.path.join(in_dir, "state_patterns/simple_patterns")
+    cfg.CONTROLLED_PATTERN_DIR = os.path.join(in_dir, "state_patterns/controlled_patterns")
+    cfg.END2END_TESTCASE_DIR = os.path.join(in_dir, "end2end_test_cases")
+    return cfg
+
+
 cfg = apply_local_overrides(cfg)
 cfg = derive_output_dirs(cfg)
+cfg = derive_input_dirs(cfg)
 
 sys.path.append(cfg.BUILD_DIR)
 
