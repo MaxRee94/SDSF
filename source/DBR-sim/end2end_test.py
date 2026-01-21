@@ -59,8 +59,14 @@ class Test:
             cfg = json.load(f)
         cfg = SimpleNamespace(**cfg)
         return cfg
+
+    def copy_cover_image(self):
+        dst = os.path.join(self.output_dir, "cover.png")
+        shutil.copyfile(self.cfg.cover_img_path, dst)
+
     def run(self):
-        app.main(**vars(self.args))
+        _, _, _, _, self.cfg = app.main(**vars(self.cfg))
+        self.copy_cover_image()
 
         return True
 

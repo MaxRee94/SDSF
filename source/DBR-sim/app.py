@@ -68,7 +68,7 @@ def set_initial_tree_cover(dynamics, cfg, color_dicts):
     print("Initial pattern image:", cfg.initial_pattern_image)
     if cfg.initial_pattern_image == "ctrl":
         _cfg = copy.copy(cfg)
-        img, path, benchmark_cover = cfg.vis.generate_disk_pattern(**vars(_cfg))
+        img, cfg.cover_img_path, benchmark_cover = cfg.vis.generate_disk_pattern(**vars(_cfg))
         img = cv2.resize(img, (cfg.grid_width, cfg.grid_width), interpolation=cv2.INTER_NEAREST)
         img = img / 255
 
@@ -78,46 +78,44 @@ def set_initial_tree_cover(dynamics, cfg, color_dicts):
             cfg.override_image_treecover = benchmark_cover
         #dynamics.state.set_cover_from_image(img, cfg.override_image_treecover)
     elif cfg.initial_pattern_image == "perlin_noise":
-        path = f"{cfg.DATA_IN_DIR}/state_patterns/" + cfg.initial_pattern_image
+        cfg.cover_img_path = f"{cfg.DATA_IN_DIR}/state_patterns/" + cfg.initial_pattern_image
         if "perlin_noise" == cfg.initial_pattern_image:
             print("Setting tree cover using perlin noise function...")
-            path = f"{cfg.PERLIN_NOISE_DIR}/" + cfg.initial_pattern_image + ".png"
+            cfg.cover_img_path = f"{cfg.PERLIN_NOISE_DIR}/" + cfg.initial_pattern_image + ".png"
             noise_frequency = 5.0 / cfg.patch_width # Convert patch width to noise frequency
             noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
-            img = cfg.vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=cfg.noise_octaves)
+            img = cfg.vis.generate_perlin_noise_image(cfg.cover_img_path, frequency=noise_frequency, octaves=cfg.noise_octaves)
     elif cfg.initial_pattern_image == "none":
         img = sng.generate(scale=2, grid_width=cfg.grid_width, binary_connectivity=cfg.treecover, cfg=cfg)
-        impath = f"{constants['SIMPLE_PATTERNS_DIR']}/whitenoise.png"
-        cv2.imwrite(impath, img)
+        cfg.cover_img_path = f"{cfg.SIMPLE_PATTERNS_DIR}/whitenoise.png"
+        cv2.imwrite(cfg.cover_img_path, img)
         #img = np.zeros((cfg.grid_width, cfg.grid_width), np.uint8) + 1
     else:
         print("Setting tree cover from image...")
 
-        path = f"{cfg.DATA_IN_DIR}/state_patterns/" + cfg.initial_pattern_image
-        img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-        print(f"Path of the generated {cfg.initial_pattern_image} pattern image: ", path) if cfg.initial_pattern_image in ["ctrl", "perlin_noise"] else None
+        cfg.cover_img_path = f"{cfg.DATA_IN_DIR}/state_patterns/" + cfg.initial_pattern_image
+        img = cv2.imread(cfg.cover_img_path, cv2.IMREAD_GRAYSCALE)
+        print(f"Path of the generated {cfg.initial_pattern_image} pattern image: ", cfg.cover_img_path) if cfg.initial_pattern_image in ["ctrl", "perlin_noise"] else None
         if img is None and cfg.initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
             print("Image not found. Generating new one...")
-            cfg.vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=cfg.noise_octaves)
+            cfg.vis.generate_perlin_noise_image(cfg.cover_img_path, frequency=noise_frequency, octaves=cfg.noise_octaves)
             
-            img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+            img = cv2.imread(cfg.cover_img_path, cv2.IMREAD_GRAYSCALE)
             if img is None:
                 time.sleep(1)
-                img = cv2.imread(path, cv2.IMREAD_GRAYSCALE) # Wait for the image to be generated before trying to load it again
-            print("Path perlin noise image: (attempt 2)", path)
+                img = cv2.imread(cfg.cover_img_path, cv2.IMREAD_GRAYSCALE) # Wait for the image to be generated before trying to load it again
+            print("Path perlin noise image: (attempt 2)", cfg.cover_img_path)
             if img is None and cfg.initial_pattern_image == "perlin_noise": # Hotfix; sometimes perlin noise-generated images fail to load properly
                 print("Image not found. Generating new one...")
-                cfg.vis.generate_perlin_noise_image(path, frequency=noise_frequency, octaves=cfg.noise_octaves)
+                cfg.vis.generate_perlin_noise_image(cfg.cover_img_path, frequency=noise_frequency, octaves=cfg.noise_octaves)
                 time.sleep(1) # Wait for the image to be generated before trying to load it again
-                img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+                img = cv2.imread(cfg.cover_img_path, cv2.IMREAD_GRAYSCALE)
         
-        if ("perlin_noise" in path) and (not "thresholded.png" in path):
+        if ("perlin_noise" in cfg.cover_img_path) and (not "thresholded.png" in cfg.cover_img_path):
             img = cfg.vis.get_thresholded_image(img, cfg.treecover * img.shape[0] * img.shape[0] * 255 )
-            cv2.imwrite(path.replace(".png", "_thresholded.png"), img)
+            cv2.imwrite(cfg.cover_img_path.replace(".png", "_thresholded.png"), img)
  
     img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_NEAREST)
-
-    print("data type of img:", img.dtype)
 
     # Do burn-in procedure to stabilize initial forest density and demography    
     dynamics, cfg = do_burn_in(dynamics, cfg, img, color_dicts, target_treecover=cfg.treecover)
