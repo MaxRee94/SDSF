@@ -82,9 +82,8 @@ def set_initial_tree_cover(dynamics, cfg, color_dicts):
         noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
         img = cfg.vis.generate_perlin_noise_image(cfg.cover_img_path, frequency=noise_frequency, octaves=cfg.noise_octaves)
     elif cfg.initial_pattern_image == "none":
-        img = sng.generate(scale=2, grid_width=cfg.grid_width, binary_connectivity=cfg.treecover, cfg=cfg)
-        cfg.cover_img_path = f"{cfg.SIMPLE_PATTERNS_DIR}/whitenoise.png"
-        cv2.imwrite(cfg.cover_img_path, img)
+        cfg.cover_img_path = f"{cfg.SIMPLE_PATTERNS_DIR}/uniform.png" # Pure white image
+        img = cv2.imread(cfg.cover_img_path, cv2.IMREAD_GRAYSCALE)
     else:
         print("Setting tree cover from image...")
 
@@ -297,10 +296,11 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         cfg.vis.save_image(colored_patches_img, imagepath_colored_patches, get_max(1000, colored_patches_img.shape[0]), interpolation="none")
 
     print("-- Visualizing image...") if verbose else None
-    if cfg.export_visualizations:
+    if cfg.headless:
         # Get a color image representation of the state
         img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["normal"], collect_states=1)
     else:
+        print("showing image..")
         # Get a color image representation of the state and show it.
         img = cfg.vis.visualize(
             dynamics.state.grid, cfg.image_width, collect_states=collect_states,
@@ -336,7 +336,6 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
     print(f"Beginning burn-in for {cfg.burnin_duration} timesteps...")
     init_csv = True
     cfg.treesize_bins = "initialize"
-    cur_treecover = 0
     visualization_types = ["aggr_tree_LAI", "colored_patches"]
     fire_freq_arrays = []
     fire_no_timesteps = 1
@@ -354,7 +353,6 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
         dynamics.report_state()
         cfg = io.export_state(dynamics, path=cfg.csv_path, init_csv=init_csv, cfg=cfg)
         init_csv = False
-        cur_treecover = dynamics.state.grid.get_tree_cover()
 
         # Feedback control on tree cover during burn-in
         if dynamics.state.grid.get_tree_cover() > target_treecover:

@@ -159,7 +159,6 @@ public:
 		animal_dispersal.animals.initialize_population();
 		pop->add_kernel("animal", global_kernels["animal"]);
 		pop->strategy_generator.set_constant_vector("animal");
-		printf("--- Strat generator vector: %s \n", pop->strategy_generator.pick_vector().c_str());
 	}
 	void set_global_kernels(map<string, map<string, float>> nonanimal_kernel_params, map<string, map<string, float>> animal_kernel_params) {
 		map<string, float> params;

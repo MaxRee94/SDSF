@@ -148,13 +148,11 @@ def prepare(cfg):
 
 
 def main(mode):
-    print("Starting end-to-end tests...")
-
     prepare(cfg)
     tests = OutputTests(mode)
     n_failed, n_total = tests.run_all()
     
-    if mode == "evaluate":
+    if tests.mode == "evaluate":
         print(f"\nEnd-to-end tests completed.", "All passed." if n_failed==0 else f"Tests FAILED in {n_failed} / {n_total} cases!")
     else:
         print(f"\nEnd-to-end benchmark creation complete.", "All succeeded." if n_failed==0 else f"Failure occurred in {n_failed} / {n_total} cases!")
