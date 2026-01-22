@@ -3,7 +3,7 @@ import numpy as np
 
 
 def generate(dimensions, sine_amplitude=1, sine_wavelength=100,
-             sine_type="horizontal", sine_offset=0, show=False, **args):
+             sine_type="horizontal", sine_offset=0, show=False, **cfg):
     """
     Generate a grayscale image with sine-based patterns.
 

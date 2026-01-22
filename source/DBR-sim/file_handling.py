@@ -9,19 +9,35 @@ import time
 from config import *
 import helpers
 import numpy as np
+import shutil, errno
+from glob import glob
 
 import sine_pattern_generator as spg
 import simple_noise_generator as sng
 
 
 
-def get_tree_sizes(dynamics, bins="initialize", args=None):
+def remove_dir_contents(_dir):
+    for subdir in glob(os.path.join(_dir, '*')):
+        if os.path.isdir(subdir):
+            remove_dir_contents(subdir)
+        else:
+            os.remove(subdir)
+
+
+def get_tree_sizes(dynamics, bins="initialize", cfg=None):
     if type(bins) == str and bins == "initialize":
-        _tree_sizes = [i for i in range(int(args.max_dbh))]
+        _tree_sizes = [i for i in range(int(cfg.max_dbh))]
         counts, bins = np.histogram(_tree_sizes, bins=5)
     _tree_sizes = dynamics.state.get_tree_sizes()
     counts, bins = np.histogram(_tree_sizes, bins=bins)
     return counts, bins
+
+
+def create_output_dirs(main_output_dir):
+    create_directory_if_not_exists(main_output_dir)
+    create_directory_if_not_exists(os.path.join(main_output_dir, "state_data"))
+    create_directory_if_not_exists(os.path.join(main_output_dir, "image_timeseries"))
 
 
 def get_tree_ages(dynamics, bins="initialize"):
@@ -54,35 +70,35 @@ def load_json_config(file_path):
     return config
 
 
-def set_heterogeneity_maps(dynamics, args):
-    """Set input maps from args if provided.
+def set_heterogeneity_maps(dynamics, cfg):
+    """Set input maps from cfg if provided.
     
     Params:
         dynamics (Dynamics): Dynamics object
-        args(SimpleNamespace): User arguments
+        cfg(SimpleNamespace): User arguments
     """
     map_root_dir = f"{cfg.DATA_IN_DIR}/heterogeneity/"
-    json_path = os.path.join(map_root_dir, args.heterogeneity)
-    heterogeneity_map_args = load_json_config(json_path)
+    json_path = os.path.join(map_root_dir, cfg.heterogeneity)
+    heterogeneity_map_cfg = load_json_config(json_path)
     map_types = {
         "grass_carrying_capacity": dynamics.state.grid.set_grass_carrying_capacity,
         "local_growth_multipliers": dynamics.state.grid.set_local_growth_multipliers,
     }
     for map_type, setter_func in map_types.items():
-        m_args = heterogeneity_map_args[map_type]
-        m_args = helpers.overwrite_from_global_arguments(m_args, vars(args))
+        m_cfg = heterogeneity_map_cfg[map_type]
+        m_cfg = helpers.overwrite_from_global_arguments(m_cfg, vars(cfg))
         map_dir = os.path.join(map_root_dir, map_type)
-        if m_args.get("filename"):
-            impath = os.path.join(map_dir, m_args["filename"])
+        if m_cfg.get("filename"):
+            impath = os.path.join(map_dir, m_cfg["filename"])
             image = cv2.imread(impath, cv2.IMREAD_GRAYSCALE)
             print(f"Read {map_type} map from image file:", impath)
         else:
-            if m_args["type"] == "sine":
-                image = args.spg.generate((dynamics.state.grid.width, dynamics.state.grid.width), **m_args)
-            elif m_args["type"] == "noise":
-                image = sng.generate(grid_width=dynamics.state.grid.width, args=args, **m_args)
+            if m_cfg["type"] == "sine":
+                image = cfg.spg.generate((dynamics.state.grid.width, dynamics.state.grid.width), **m_cfg)
+            elif m_cfg["type"] == "noise":
+                image = sng.generate(grid_width=dynamics.state.grid.width, cfg=cfg, **m_cfg)
             else:
-                raise ValueError(f"Unknown {map_type} pattern type: {m_args['type']}")
+                raise ValueError(f"Unknown {map_type} pattern type: {m_cfg['type']}")
             impath = os.path.join(map_dir, f"{map_type}.png")
             cv2.imwrite(impath, image)
             print(f"Generated {map_type} map saved to:", impath)
@@ -91,13 +107,58 @@ def set_heterogeneity_maps(dynamics, args):
         image = image / 255  # Normalize to 0-1
         setter_func(image)
 
-    return dynamics, args
+    return dynamics, cfg
+
+
+
+def copy_tree_if_needed(src, dst):
+    """
+    Recursively copy all files and directories from src to dst.
+    Create directories only if they do not already exist.
+    Files are overwritten if they already exist.
+    """
+    src = Path(src)
+    dst = Path(dst)
+
+    if not src.is_dir():
+        raise ValueError(f"Source is not a directory: {src}")
+
+    dst.mkdir(parents=True, exist_ok=True)
+
+    for item in src.iterdir():
+        target = dst / item.name
+
+        if item.is_dir():
+            copy_tree_if_needed(item, target)
+        else:
+            shutil.copy2(item, target)
+
+
+def copy_filetree(src, dst):
+    try:
+        shutil.copytree(src, dst)
+    except FileExistsError:
+        if os.path.isdir(dst):
+            pass
+        else:
+            raise FileExistsError(f"Destination path {dst} exists and is not a directory.")
+    except OSError as exc: # python >2.5
+        if exc.errno in (errno.ENOTDIR, errno.EINVAL):
+            shutil.copy(src, dst)
+        else: raise
+
+
+def create_directory_if_not_exists(_dir):
+    if not os.path.exists(_dir):
+        os.makedirs(_dir)
+        if not os.path.exists(_dir):
+            raise RuntimeError("Failed to create directory: " + _dir)
 
 
 def export_state(
         dynamics, path="", init_csv=True, control_variable=None, control_value=None, tree_cover_slope=0,
         extra_parameters="", secondary_variable=None, secondary_value=None, dependent_var=None, dependent_val=None, initial_no_dispersals=None, dependent_result_range_stdev=None,
-        args=None
+        cfg=None
     ):
     fieldnames = [
         "time", "treecover", "slope", "population_size", "#seeds_produced", "fires", "top_kills", "nonseedling_top_kills", "deaths",
@@ -121,22 +182,22 @@ def export_state(
         fieldnames.insert(0, control_variable)
     if dependent_result_range_stdev:
         fieldnames.insert(0, "dependent_result_range_stdev")
-    if not args.rotate_randomly:
+    if not cfg.rotate_randomly:
         fieldnames.insert(3, "global_rotation_offset")
 
     # Collect tree ages and sizes
     if init_csv:
-        tree_sizes, args.treesize_bins = get_tree_sizes(dynamics, "initialize", args=args)
-        tree_ages, args.tree_age_bins = get_tree_ages(dynamics, "initialize")
+        tree_sizes, cfg.treesize_bins = get_tree_sizes(dynamics, "initialize", cfg=cfg)
+        tree_ages, cfg.tree_age_bins = get_tree_ages(dynamics, "initialize")
     else:
-        tree_sizes, _ = get_tree_sizes(dynamics, args.treesize_bins)
-        tree_ages, _ = get_tree_ages(dynamics, args.tree_age_bins)
+        tree_sizes, _ = get_tree_sizes(dynamics, cfg.treesize_bins)
+        tree_ages, _ = get_tree_ages(dynamics, cfg.tree_age_bins)
 
     treesize_bins_strings = []
     tree_age_bins_strings = []
-    for i in range(len(args.treesize_bins)-1):
-        (size_lowb, size_highb) = (args.treesize_bins[i], args.treesize_bins[i+1])
-        (age_lowb, age_highb) = (args.tree_age_bins[i], args.tree_age_bins[i+1])
+    for i in range(len(cfg.treesize_bins)-1):
+        (size_lowb, size_highb) = (cfg.treesize_bins[i], cfg.treesize_bins[i+1])
+        (age_lowb, age_highb) = (cfg.tree_age_bins[i], cfg.tree_age_bins[i+1])
         treesize_bins_strings.append("trees[dbh {0} - {1}]".format(round(size_lowb), round(size_highb)))
         tree_age_bins_strings.append("trees[age {0} - {1}]".format(round(age_lowb), round(age_highb)))
         fieldnames.insert(5, treesize_bins_strings[i])
@@ -198,10 +259,10 @@ def export_state(
             "basal_area": str(dynamics.get_basal_area())
         }
         PAR_derived_area = float(result["perimeter_length"]) / float(result["perimeter-area_ratio"]) if float(result["perimeter-area_ratio"]) != 0 else 0
-        treecover_derived_area = float(result["treecover"]) * args.grid_width**2 * args.cell_width**2
+        treecover_derived_area = float(result["treecover"]) * cfg.grid_width**2 * cfg.cell_width**2
         #assert (PAR_derived_area == treecover_derived_area), f"Perimeter-length / Perimeter-area-ratio ({PAR_derived_area}) does not equal Tree-cover * Spatial domain area ({treecover_derived_area})."
-        if not args.rotate_randomly:
-            result["global_rotation_offset"] = str(args.global_rotation_offset)
+        if not cfg.rotate_randomly:
+            result["global_rotation_offset"] = str(cfg.global_rotation_offset)
         if control_variable:
             result[control_variable] = control_value
         if secondary_variable:
@@ -214,8 +275,8 @@ def export_state(
             result["dependent_result_range_stdev"] = dependent_result_range_stdev
         writer.writerow(result)
     
-    args.csv_path = path
-    return args
+    cfg.csv_path = path
+    return cfg
 
 
 def get_lookup_table(species, width, rcg_width):

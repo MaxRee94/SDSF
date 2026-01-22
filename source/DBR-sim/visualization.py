@@ -15,15 +15,15 @@ from config import *
 
 class Visualiser:
 
-    def __init__(self, args):
-        self.args = args
+    def __init__(self, cfg):
+        self.cfg = cfg
         self.init_perlin_noise_global_variables()
-        self.dpg = dpg.DiskPatternGenerator(args)
+        self.dpg = dpg.DiskPatternGenerator(cfg)
 
     def init_perlin_noise_global_variables(self):
         # Perlin noise global variables
         self.perm = list(range(4096))
-        self.args.rng.shuffle(self.perm)
+        self.cfg.rng.shuffle(self.perm)
         self.perm += self.perm
         self.dirs = [(math.cos(a * 2.0 * math.pi / 4096),
                     math.sin(a * 2.0 * math.pi / 4096))
@@ -62,7 +62,7 @@ class Visualiser:
     def reshuffle_perlin_noise(self):
         global perm
         perm = list(range(4096))
-        self.args.rng.shuffle(perm)
+        self.cfg.rng.shuffle(perm)
         perm += perm
 
     def number_to_rgb(self, n: int, i: int) -> tuple[int, int, int]:
@@ -74,7 +74,7 @@ class Visualiser:
         return int(r * 255), int(g * 255), int(b * 255)
 
     def get_random_color_index(self, existing_colors, max_no_colors, offset):
-        color_idx = offset - self.args.rng.integers(0, max_no_colors-1)
+        color_idx = offset - self.cfg.rng.integers(0, max_no_colors-1)
         if len(existing_colors) >= max_no_colors:
             # All possible colors are taken; simply return a random one (we assume it's okay that there will be duplicates)
             return color_idx
@@ -82,7 +82,7 @@ class Visualiser:
         max_no_attempts = 1000
         i = 0
         while color_idx in existing_colors and i < max_no_attempts:
-            color_idx = offset - self.args.rng.integers(0, max_no_colors-1)
+            color_idx = offset - self.cfg.rng.integers(0, max_no_colors-1)
             i+=1
 
         return color_idx
@@ -295,7 +295,7 @@ class Visualiser:
             for x in range(width):
                 val = self.fBm(x*frequency, y*frequency, int(width*frequency), octaves)
                 val = min(255, max(0, (val + 0.5) * 255))
-                row.append([val, val, val])
+                row.append(val)
             data.append(row)
         img = np.array(data, dtype=np.uint8)
         if write:

@@ -560,6 +560,10 @@ public:
 		get_ids_and_trait_values(trait, ids_and_trait_values);
 		help::sort(ids_and_trait_values, sorted_population);
 	}
+	Tree* get_random_tree() {
+		int id = help::get_random_key(members);
+		return &members[id];
+	}
 	
 	unordered_map<int, Tree> members;
 	unordered_map<int, Crop> crops;

@@ -367,6 +367,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
             return np_arr;
         })
         .def("update", &Dynamics::update)
+		.def("prune_randomly", &Dynamics::prune_randomly)
         .def("simulate_fires", &Dynamics::burn)
         .def("get_firefree_intervals", [](Dynamics& dynamics, string& type) {
             shared_ptr<float[]> intervals = dynamics.get_firefree_intervals(type);

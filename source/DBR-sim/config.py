@@ -16,17 +16,8 @@ constants = {}
 constants["REPOSITORY_BASEDIR"] = os.path.dirname(os.path.dirname(cwd))
 constants["DATA_IN_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_in"
 constants["DATA_OUT_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_out"
-constants["CPG_OUTPUT_DIR"] = constants["DATA_OUT_DIR"] + "/controlled_pattern_generator"
 constants["DATA_INTERNAL_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_internal"
 constants["BUILD_DIR"] = constants["REPOSITORY_BASEDIR"] + "/build"
-constants["PERLIN_NOISE_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/perlin_noise"
-constants["SIMPLE_PATTERNS_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/simple_patterns"
-constants["CONTROLLED_PATTERN_DIR"] = constants["DATA_IN_DIR"] + "/state_patterns/controlled_patterns"
-constants["LEGEND_PATH"] = constants["DATA_OUT_DIR"] + "/legends"
-constants["TREE_DBH_FILE"] = constants["DATA_OUT_DIR"] + "/state_reports/tree_dbh_values.json"
-constants["EXPORT_DIR"] = os.path.join(constants["DATA_OUT_DIR"], "state_data")
-constants["END2END_TEST_OUTPUT_DIR"] = os.path.join(constants["DATA_OUT_DIR"], "tests/end2end_test_output")
-constants["END2END_TESTCASE_DIR"] = os.path.join(constants["DATA_IN_DIR"], "end2end_test_cases")
 
 cfg = SimpleNamespace(**constants)
 
@@ -52,7 +43,30 @@ def apply_local_overrides(cfg):
     return cfg
 
 
+def derive_output_dirs(cfg):
+    out_dir = cfg.DATA_OUT_DIR
+    cfg.CPG_OUTPUT_DIR = out_dir + "/controlled_pattern_generator"
+    cfg.LEGEND_PATH = out_dir + "/legends"
+    cfg.TREE_DBH_FILE = out_dir + "/state_reports/tree_dbh_values.json"
+    cfg.EXPORT_DIR = os.path.join(out_dir, "state_data")
+    cfg.END2END_TEST_OUTPUT_DIR = os.path.join(out_dir, "tests/end2end_test_output")
+    cfg.END2END_TEST_BENCHMARK_DIR = os.path.join(out_dir, "tests/end2end_benchmarks")
+    return cfg
+
+
+def derive_input_dirs(cfg):
+    in_dir = cfg.DATA_IN_DIR
+    cfg.PERLIN_NOISE_DIR = os.path.join(in_dir, "state_patterns/perlin_noise")
+    cfg.SIMPLE_PATTERNS_DIR = os.path.join(in_dir, "state_patterns/simple_patterns")
+    cfg.CONTROLLED_PATTERN_DIR = os.path.join(in_dir, "state_patterns/controlled_patterns")
+    cfg.END2END_TESTCASE_DIR = os.path.join(in_dir, "end2end_test_cases")
+    return cfg
+
+
 cfg = apply_local_overrides(cfg)
+cfg = derive_output_dirs(cfg)
+cfg = derive_input_dirs(cfg)
+
 sys.path.append(cfg.BUILD_DIR)
 
 
@@ -133,7 +147,8 @@ defaults = {
     "grow": True,
     "disperse": True,
     "burn": True,
-    "burnin_duration": 300
+    "burnin_duration": 300,
+    "export_visualizations": True,
 }
 
 gui_defaults = {
@@ -297,7 +312,7 @@ _parameter_config = {
         "settings": {
             "type": str,
             "help": (
-                "Whether or not to run unit or output tests. Possible options: 'none', 'unit_tests', 'output_tests'."
+                "Whether or not to run unit or output tests. Possible options: 'none', 'unit_tests', 'end2end'."
             ),
             "default": defaults["tests"],
         },
@@ -985,7 +1000,17 @@ _parameter_config = {
             "help": "The duration of the burn-in period (in timesteps) before the main simulation starts.",
             "default": defaults["burnin_duration"],
         }
-    }
+    },
+    "export_visualizations": {
+        "keys": {
+            "cli": ["--export_visualizations", "-exp_vis"]
+        },
+        "settings": {
+            "action": argparse.BooleanOptionalAction,
+            "help": "Whether or not to export visualization images.",
+            "default": defaults["export_visualizations"],
+        }
+    },
 }
 
 class ParameterConfig():

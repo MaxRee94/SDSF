@@ -6,7 +6,6 @@ import argparse
 from config import ParameterConfig
 
 
-
 def add_kwargs(parser):
     """Dynamically add arguments using `ParameterConfig` defined in `config.py`.
 
@@ -120,6 +119,12 @@ def get_max(val1, val2):
 
 def get_2d_dist(p1, p2):
     return np.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
+
+
+def apply_user_args_to_configuration(args, cfg):
+    for key, value in vars(args).items():
+        setattr(cfg, key, value)
+    return cfg
 
 
 def compute_radial_distribution_function(dynamics, stepsize=0.02):

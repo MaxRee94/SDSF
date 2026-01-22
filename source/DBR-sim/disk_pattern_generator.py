@@ -16,9 +16,9 @@ cpgn = SimpleNamespace(area_normalization_factor=None)
 
 class DiskPatternGenerator():
 
-    def __init__(self, _args):
-        self.args = _args
-        self.local_rng_seed_multiplier = self.args.rng.integers(0, 100000)
+    def __init__(self, _cfg):
+        self.cfg = _cfg
+        self.local_rng_seed_multiplier = self.cfg.rng.integers(0, 100000)
 
     def compute_area(self, contour, center):
         """
@@ -78,7 +78,7 @@ class DiskPatternGenerator():
         jittered = []
 
         for pos in positions:
-            jitter = self.args.rng.normal(0, stdev, 2)
+            jitter = self.cfg.rng.normal(0, stdev, 2)
             new_pos = (np.array(pos) + jitter) % box
             jittered.append(tuple(new_pos))
 
@@ -86,7 +86,7 @@ class DiskPatternGenerator():
 
     def generate_disk(
             self, center, base_radius, amp1=0, wave1=1, amp2=0, wave2=2, index=None, rotate_randomly=True, resolution=360,
-            global_area_normalization_factor=None, global_rotation_offset=None, **args
+            global_area_normalization_factor=None, global_rotation_offset=None, **cfg
         ):
         angles = np.linspace(0, 2 * np.pi, resolution, endpoint=False)
         rotational_offset = 0
@@ -283,49 +283,49 @@ class DiskPatternGenerator():
         cv2.fillPoly(img, [ribbon], 255)
 
 
-    def adjust_args_to_gridwidth(self, args):
-        args.mean_radius = (args.mean_radius / args.grid_width) * 1000.0
-        args.cv_radius = (args.cv_radius / args.grid_width) * 1000.0
-        args.mean_distance = (args.mean_distance / args.grid_width) * 1000.0
-        args.cv_distance = (args.cv_distance / args.grid_width) * 1000.0
-        args.sine_amp1 = (args.sine_amp1 / args.grid_width) * 1000.0
-        args.sine_amp2 = (args.sine_amp2 / args.grid_width) * 1000.0
-        return args
+    def adjust_cfg_to_gridwidth(self, cfg):
+        cfg.mean_radius = (cfg.mean_radius / cfg.grid_width) * 1000.0
+        cfg.cv_radius = (cfg.cv_radius / cfg.grid_width) * 1000.0
+        cfg.mean_distance = (cfg.mean_distance / cfg.grid_width) * 1000.0
+        cfg.cv_distance = (cfg.cv_distance / cfg.grid_width) * 1000.0
+        cfg.sine_amp1 = (cfg.sine_amp1 / cfg.grid_width) * 1000.0
+        cfg.sine_amp2 = (cfg.sine_amp2 / cfg.grid_width) * 1000.0
+        return cfg
 
 
     def create_image(self, **kwargs):
-        args = SimpleNamespace(**kwargs)
-        args.global_rotation_offset = args.rng.integers(0, 100000)
-        image_size = (args.grid_width, args.grid_width)
+        cfg = SimpleNamespace(**kwargs)
+        cfg.global_rotation_offset = cfg.rng.integers(0, 100000)
+        image_size = (cfg.grid_width, cfg.grid_width)
         # if not kwargs.get("recursive_call"):
-        #     args = adjust_args_to_gridwidth(args)
+        #     cfg = adjust_cfg_to_gridwidth(cfg)
     
-        if args.grid_type == "hex":
-            if args.enforce_distance_uniformity:
-                original_distance = args.mean_distance
-                args.mean_distance = self.adjust_mean_distance_for_uniform_hex_grid(image_size, args.mean_distance)
-                if not math.isclose(original_distance, args.mean_distance, abs_tol=1):
-                    if args.suppress_distance_warning:
-                        print(f"Warning: Mean_distance {original_distance:.2f} adjusted to {args.mean_distance:.2f} for uniform hex grid.")
+        if cfg.grid_type == "hex":
+            if cfg.enforce_distance_uniformity:
+                original_distance = cfg.mean_distance
+                cfg.mean_distance = self.adjust_mean_distance_for_uniform_hex_grid(image_size, cfg.mean_distance)
+                if not math.isclose(original_distance, cfg.mean_distance, abs_tol=1):
+                    if cfg.suppress_distance_warning:
+                        print(f"Warning: Mean_distance {original_distance:.2f} adjusted to {cfg.mean_distance:.2f} for uniform hex grid.")
                     else:
-                        raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {args.mean_distance-0.5} to have a perfect hex grid.")
-            base_positions = self.generate_hex_grid_with_filter(image_size, args.mean_distance)
-        elif args.grid_type == "square":
-            if args.enforce_distance_uniformity:
-                original_distance = args.mean_distance
-                args.mean_distance = self.adjust_mean_distance_for_uniform_square_grid(image_size, args.mean_distance)
-                if not math.isclose(original_distance, args.mean_distance, abs_tol=1):
-                    if args.suppress_distance_warning:
-                        print(f"Warning: Mean_distance {original_distance:.2f} adjusted to {args.mean_distance:.2f} for uniform square grid.")
+                        raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {cfg.mean_distance-0.5} to have a perfect hex grid.")
+            base_positions = self.generate_hex_grid_with_filter(image_size, cfg.mean_distance)
+        elif cfg.grid_type == "square":
+            if cfg.enforce_distance_uniformity:
+                original_distance = cfg.mean_distance
+                cfg.mean_distance = self.adjust_mean_distance_for_uniform_square_grid(image_size, cfg.mean_distance)
+                if not math.isclose(original_distance, cfg.mean_distance, abs_tol=1):
+                    if cfg.suppress_distance_warning:
+                        print(f"Warning: Mean_distance {original_distance:.2f} adjusted to {cfg.mean_distance:.2f} for uniform square grid.")
                     else:
-                        raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {args.mean_distance-0.5:.2f} to have a perfect square grid.")
-            base_positions = self.generate_square_grid(image_size, args.mean_distance)
+                        raise ValueError(f"Mean_distance {original_distance:.2f} needs to be changed to {cfg.mean_distance-0.5:.2f} to have a perfect square grid.")
+            base_positions = self.generate_square_grid(image_size, cfg.mean_distance)
         else:
             raise ValueError("grid_type must be 'hex' or 'square'")
 
-        positions = self.apply_jitter(base_positions, image_size, args.mean_distance, args.cv_distance)
+        positions = self.apply_jitter(base_positions, image_size, cfg.mean_distance, cfg.cv_distance)
         img = np.zeros(image_size, dtype=np.uint8)
-        radii = [max(2, self.args.rng.normal(args.mean_radius, args.cv_radius * args.mean_radius)) for _ in positions]
+        radii = [max(2, self.cfg.rng.normal(cfg.mean_radius, cfg.cv_radius * cfg.mean_radius)) for _ in positions]
 
         # Draw disks with periodic wrap
         shifts = [
@@ -333,55 +333,55 @@ class DiskPatternGenerator():
             (image_size[0], -image_size[1]), (-image_size[0], image_size[1])
         ]
 
-        ids = self.args.rng.integers(0, high=10000, size=len(positions))
+        ids = self.cfg.rng.integers(0, high=10000, size=len(positions))
         for i, (center, radius) in enumerate(zip(positions, radii)):
             x, y = center
             for dx, dy in shifts:
                 draw_center = (int(x + dx), int(y + dy))
                 self.draw_disk(
-                    img, draw_center, radius, args.sine_amp1, args.sine_wave1, args.sine_amp2,
-                    args.sine_wave2, args.rotate_randomly, int(ids[i]), args.global_area_normalization_factor,
-                    global_rotation_offset = args.global_rotation_offset
+                    img, draw_center, radius, cfg.sine_amp1, cfg.sine_wave1, cfg.sine_amp2,
+                    cfg.sine_wave2, cfg.rotate_randomly, int(ids[i]), cfg.global_area_normalization_factor,
+                    global_rotation_offset = cfg.global_rotation_offset
                 )
 
         stripe_metadata = []
-        if args.draw_stripes:
+        if cfg.draw_stripes:
             stripe_pairs, stripe_metadata = self.build_parallel_stripes(
-                positions, image_size, args.stripe_angle_deg, args.stripe_mean_length, args.stripe_std_length
+                positions, image_size, cfg.stripe_angle_deg, cfg.stripe_mean_length, cfg.stripe_std_length
             )
             for p1, p2 in stripe_pairs:
-                if args.sin_stripe:
+                if cfg.sin_stripe:
                     self.draw_sinusoidal_stripe(
-                        img, p1, p2, args.mean_radius,
-                        amplitude=args.sin_stripe_amp,
-                        wavelength=args.sin_stripe_wavelength
+                        img, p1, p2, cfg.mean_radius,
+                        amplitude=cfg.sin_stripe_amp,
+                        wavelength=cfg.sin_stripe_wavelength
                     )
                 else:
-                    self.draw_stripe(img, p1, p2, args.mean_radius, args.rotate_randomly)
+                    self.draw_stripe(img, p1, p2, cfg.mean_radius, cfg.rotate_randomly)
 
         benchmark_cover = -1 # Set default to 0, this will ensure that main program will not use the benchmark cover (instead, the fraction of white pixels will be used)
-        if args.enforce_area_constancy:
-            if args.cur_image_fraction_pixels is None and args.global_area_normalization_factor is None:
-                args.cur_image_fraction_pixels = self.fraction_white_pixels(img)
+        if cfg.enforce_area_constancy:
+            if cfg.cur_image_fraction_pixels is None and cfg.global_area_normalization_factor is None:
+                cfg.cur_image_fraction_pixels = self.fraction_white_pixels(img)
 
                 # Reset sine parameters to generate a circular pattern (i.e., the same pattern as 'cur_image', but without sine waves)
-                sine_amp1 = args.sine_amp1
-                sine_amp2 = args.sine_amp2
-                args.sine_amp1 = 0
-                args.sine_amp2 = 0
+                sine_amp1 = cfg.sine_amp1
+                sine_amp2 = cfg.sine_amp2
+                cfg.sine_amp1 = 0
+                cfg.sine_amp2 = 0
 
                 # Generate the circular pattern
-                args.recursive_call=True
-                img, _, _, _, _ = self.create_image(**vars(args))
-                args.circular_image_fraction_pixels = self.fraction_white_pixels(img)
-                benchmark_cover = args.circular_image_fraction_pixels
+                cfg.recursive_call=True
+                img, _, _, _, _ = self.create_image(**vars(cfg))
+                cfg.circular_image_fraction_pixels = self.fraction_white_pixels(img)
+                benchmark_cover = cfg.circular_image_fraction_pixels
 
                 # Reset sine parameters to original values
-                args.sine_amp1 = sine_amp1
-                args.sine_amp2 = sine_amp2
+                cfg.sine_amp1 = sine_amp1
+                cfg.sine_amp2 = sine_amp2
 
                 iterative_correction_factor = 0
-                args.global_area_normalization_factor = args.cur_image_fraction_pixels / args.circular_image_fraction_pixels
+                cfg.global_area_normalization_factor = cfg.cur_image_fraction_pixels / cfg.circular_image_fraction_pixels
                 error = 100000
                 stepsize = 20
                 best_version = [100000, iterative_correction_factor, img, positions, radii, stripe_metadata, benchmark_cover]
@@ -389,11 +389,11 @@ class DiskPatternGenerator():
                 max_iters = 100
                 while abs(error) > 0.0001 and idx < max_iters:
                     # Generate a revised version of the pattern with the area normalization factor
-                    img, positions, radii, stripe_metadata, _ = self.create_image(**vars(args))
-                    args.cur_image_fraction_pixels = self.fraction_white_pixels(img)
+                    img, positions, radii, stripe_metadata, _ = self.create_image(**vars(cfg))
+                    cfg.cur_image_fraction_pixels = self.fraction_white_pixels(img)
 
                     # Update error and iterative correction factor
-                    error = 1 - args.cur_image_fraction_pixels / args.circular_image_fraction_pixels
+                    error = 1 - cfg.cur_image_fraction_pixels / cfg.circular_image_fraction_pixels
                     _stepsize = stepsize * abs(error) * abs(error) * abs(error) # Adjust step size based on error magnitude
                     error_sign = error / max(0.00000000001, abs(error))
                     if abs(error) < best_version[0]:
@@ -405,7 +405,7 @@ class DiskPatternGenerator():
                         print(f"Optimizing area correction iteratively... iteration {idx+1} (maximum is {max_iters}).")
 
                     # Derive the next global area normalization factor
-                    args.global_area_normalization_factor /= 1 + iterative_correction_factor  # Adjust based on sine amplitude (heuristic, needed because of artifacts in image generation)
+                    cfg.global_area_normalization_factor /= 1 + iterative_correction_factor  # Adjust based on sine amplitude (heuristic, needed because of artifacts in image generation)
             
                 best_version.pop(1)
                 print("Relative deviation from target area ratio:", best_version.pop(0))
@@ -501,11 +501,11 @@ if __name__ == "__main__":
         "circular_image_fraction_pixels": None,
         "global_area_normalization_factor": None,
         "global_rotation_offset": None,
-        "args": SimpleNamespace(rng=np.random.default_rng(42))
+        "cfg": SimpleNamespace(rng=np.random.default_rng(42))
     }
 
-    generator = DiskPatternGenerator(params["args"])
-    img, positions, radii, stripe_metadata, benchmark_cover = generator.create_image(args=None, **params)
+    generator = DiskPatternGenerator(params["cfg"])
+    img, positions, radii, stripe_metadata, benchmark_cover = generator.create_image(cfg=None, **params)
     generator.export_metadata(positions, radii, params, stripe_metadata)
     cv2.imwrite(os.path.join(cfg.CPG_OUTPUT_DIR, "generated_pattern_sine80.png"), img)
     cv2.imshow("Generated pattern", img)
