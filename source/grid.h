@@ -115,7 +115,7 @@ public:
 		else LAI -= tree->LAI;
 	}
 	float compute_grass_LAI(float tree_LAI) {
-		tree_LAI = min(3.0f, tree_LAI);			// Done to avoid re-intersecting the y=0 line at about LAI=4.3 
+		tree_LAI = min(3.0f, tree_LAI);			// Cap tree LAI at 3.0 to avoid re-intersecting the y=0 line at about LAI=4.3 
 												// (grass LAI would then (incorrectly) start rising again).
 		float _grass_LAI = max(0, 0.241f * (tree_LAI * tree_LAI) - 1.709f * tree_LAI + 2.899f);		// Relationship between grass- and tree LAI from 
 																									// Hoffman et al. (2012), figure 2b.		

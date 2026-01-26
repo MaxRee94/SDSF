@@ -291,6 +291,7 @@ public:
 	}
 	float get_LAI() {
 		float leaf_area = get_leaf_area();
+		if (crown_area == 0) return 0;
 		return leaf_area / crown_area;
 	}
 	bool survives_fire(float& fire_resistance_argmin, float& fire_resistance_argmax, float& fire_resistance_stretch) {
@@ -431,37 +432,13 @@ public:
 			{1, 1.3f}, {2, 1.8f}, {3, 2.1f}, {4, 2.5f}, // From Hoffmann et al (2012), estimated from supplementary figure S1.
 		};
 	}
-	Tree* add(pair<float, float> position, Strategy* _strategy = 0, float dbh = -2) {
+	Tree* add(pair<float, float> position, Strategy* _strategy = 0) {
 		// Add a new tree. If no dbh or strategy is provided, these will be randomly generated.
 
 		// Create tree
 		float growth_multiplier = help::get_rand_float(growth_multiplier_distribution.min_value, growth_multiplier_distribution.max_value);
-		Tree tree(no_created_trees + 1, position, -2, seed_bearing_threshold, resprout_growthcurve, growth_multiplier);
+		Tree tree(no_created_trees + 1, position, _strategy->seedling_dbh, seed_bearing_threshold, resprout_growthcurve, growth_multiplier);
 		no_created_trees++;
-
-		// Set the tree's dbh
-		if (dbh == -1) dbh = max_dbh;
-		else if (dbh == -2) {
-			if (_strategy == nullptr) {
-				if (tree.dbh <= 0) {
-					tree.age = tree.life_expectancy; // Start by assuming the tree is at the end of its life expectancy.
-
-					// Ensure tree's life expectancy is not lower than its current age
-					int i = 0;
-					while (tree.life_expectancy <= tree.age && i < 10) {
-						tree.draw_life_expectancy(true);
-						i++;
-					}
-					if (tree.life_expectancy <= tree.age) tree.age = tree.life_expectancy - help::get_rand_int(0, 10);
-					
-					// Derive dbh from age (age was randomly generated in Tree constructor)
-					tree.derive_dbh_from_age_assuming_onobstructed_growth();
-				}
-			}
-			else {
-				tree.dbh = _strategy->seedling_dbh;
-			}
-		}
 		tree.derive_allometries(seed_bearing_threshold);
 
 		// Add new member to population
