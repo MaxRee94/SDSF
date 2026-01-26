@@ -147,7 +147,7 @@ defaults = {
     "grow": True,
     "disperse": True,
     "burn": True,
-    "burnin_duration": 300,
+    "burnin_duration": 100,
     "export_visualizations": True,
 }
 
