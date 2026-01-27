@@ -1,0 +1,6 @@
+{
+    "type": "sensitivity_analysis",
+    "reruns": 2,
+    "increments:": 5,
+    "treecover": [0.1, 0.8]
+}
