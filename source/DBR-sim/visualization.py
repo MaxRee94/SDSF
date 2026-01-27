@@ -6,7 +6,6 @@ import math
 import time
 import colorsys
 import disk_pattern_generator as dpg
-from PIL import Image
 
 from helpers import *
 from config import *

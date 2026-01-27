@@ -1,4 +1,3 @@
-from cgitb import lookup
 import csv
 import os
 from pathlib import Path
