@@ -18,6 +18,7 @@ constants["DATA_IN_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_in"
 constants["DATA_OUT_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_out"
 constants["DATA_INTERNAL_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_internal"
 constants["BUILD_DIR"] = constants["REPOSITORY_BASEDIR"] + "/build"
+constants["SOURCE_DIR"] = constants["REPOSITORY_BASEDIR"] + "/source/DBR-sim"
 
 cfg = SimpleNamespace(**constants)
 

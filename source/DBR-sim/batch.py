@@ -1,4 +1,5 @@
 import __main__
+from operator import ge
 import config
 import app
 from argparse import ArgumentParser
@@ -20,8 +21,7 @@ def get_csv_parent_dir(run):
     with open(os.path.join(config.cfg.DATA_OUT_DIR, "state_data/tmp/batchfolder_lookup_table.json"), "r") as lookup_table_file:
         folder_lookup_table = json.load(lookup_table_file)
 
-    csv_parent_dir = folder_lookup_table[run]
-    print("csv parent dir: ", csv_parent_dir)
+    csv_parent_dir = folder_lookup_table[str(run)]
     if not os.path.isdir(csv_parent_dir):
         os.makedirs(csv_parent_dir)
     
@@ -33,8 +33,8 @@ def get_next_control_value(i, control_variable, control_value, control_range, pr
     return control_value
 
 
-def get_singlerun_name(batch_type, sim_name, control_value, csv_parent_dir, secondary_variable=None, secondary_value=None, process_index=None, no_runs_for_current_parameter_set=None, rerun_idx=None):
-    if batch_type == "range" or batch_type == "constant":
+def get_singlerun_name(type, sim_name, control_value, csv_parent_dir, secondary_variable=None, secondary_value=None, process_index=None, no_runs_for_current_parameter_set=None, rerun_idx=None):
+    if type == "range" or type == "constant":
         if secondary_variable:
             singlerun_name = f"{sim_name}={str(control_value)}_process_{str(process_index)}_2nd_var({secondary_variable})={str(secondary_value)}_run_{str(rerun_idx+1)}" 
         else:
@@ -42,7 +42,7 @@ def get_singlerun_name(batch_type, sim_name, control_value, csv_parent_dir, seco
         print(f"\n ------- Beginning simulation with {singlerun_name} ------- \n")
         singlerun_csv_path = csv_parent_dir + "/" + singlerun_name + ".csv"
         singlerun_image_path = singlerun_csv_path.replace(".csv", ".png")
-    elif batch_type == "saddle_search":
+    elif type == "saddle_search":
         singlerun_name = f"{sim_name}={str(control_value)}, {secondary_variable}={str(secondary_value)}, process {str(process_index)}"
         print(f"\n ------- Beginning simulation with {singlerun_name} ------- \n")
         singlerun_csv_path = csv_parent_dir + "/" + singlerun_name + ".csv"
@@ -53,7 +53,7 @@ def get_singlerun_name(batch_type, sim_name, control_value, csv_parent_dir, seco
 
 def execute_single_run(
         params, control_variable, control_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict,
-        extra_parameters, dependent_var, opti_mode, statistic, batch_type, init_csv, export_to_parent_csv=True,
+        extra_parameters, dependent_var, opti_mode, statistic, type, init_csv, export_to_parent_csv=True,
         secondary_variable=None, secondary_value=None, no_runs_for_current_parameter_set=None, rerun_idx=None
     ):
     
@@ -63,7 +63,7 @@ def execute_single_run(
         _params[secondary_variable] = secondary_value
     print("rerun idx:", rerun_idx)
     singlerun_name, singlerun_csv_path, singlerun_image_path = get_singlerun_name(
-        batch_type, sim_name, control_value, csv_parent_dir, secondary_variable=secondary_variable, secondary_value=secondary_value, process_index=process_index,
+        type, sim_name, control_value, csv_parent_dir, secondary_variable=secondary_variable, secondary_value=secondary_value, process_index=process_index,
         no_runs_for_current_parameter_set=no_runs_for_current_parameter_set, rerun_idx=rerun_idx
     )
     _params["csv_path"] = singlerun_csv_path
@@ -82,7 +82,7 @@ def execute_single_run(
 
 
 def execute_multiple_runs(params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
-        dependent_var, opti_mode, statistic, batch_type, init_csv, secondary_value=None, secondary_variable=None, dependent_result_range_mean=1, dependent_result_range_stdev=1
+        dependent_var, opti_mode, statistic, type, init_csv, secondary_value=None, secondary_variable=None, dependent_result_range_mean=1, dependent_result_range_stdev=1
     ):
     
     params[secondary_variable] = secondary_value
@@ -93,7 +93,7 @@ def execute_multiple_runs(params, primary_variable, primary_value, csv_parent_di
         print(f"Beginning run {i+1} of {no_reruns}")
         dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, _params = execute_single_run(
             params, primary_variable, primary_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
-            dependent_var, opti_mode, statistic, batch_type, init_csv, secondary_value=secondary_value, secondary_variable=secondary_variable, export_to_parent_csv=False
+            dependent_var, opti_mode, statistic, type, init_csv, secondary_value=secondary_value, secondary_variable=secondary_variable, export_to_parent_csv=False
         )
         if dependent_var == "tree_cover_slope":
             dependent_values.append(tree_cover_slope)
@@ -282,8 +282,8 @@ def get_secondary_value_if_applicable(secondary_variable, secondary_range):
             secondary_control_value += secondary_range[1] # New value is old value + step size
 
 
-def yield_rerun_idx_if_not_saddle_search(batch_type, no_reruns):
-    if batch_type == "saddle_search":
+def yield_rerun_idx_if_not_saddle_search(type, no_reruns):
+    if type == "saddle_search":
         yield None
         return
     else:
@@ -296,7 +296,7 @@ def yield_rerun_idx_if_not_saddle_search(batch_type, no_reruns):
 
             
 def iterate_across_range(params, control_variable, control_range, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict,
-                        extra_parameters, batch_type, dependent_var, opti_mode, statistic, secondary_variable, secondary_range, attempts=None):
+                        extra_parameters, type, dependent_var, opti_mode, statistic, secondary_variable, secondary_range, attempts=None):
     init_csv = True
     i = 0
     time_budget_per_run = 60 * 60
@@ -308,18 +308,18 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
     with open(params_json_path, "w") as params_json_file:
         json.dump(params, params_json_file)
         
-    for rerun_idx in yield_rerun_idx_if_not_saddle_search(batch_type, no_reruns):
+    for rerun_idx in yield_rerun_idx_if_not_saddle_search(type, no_reruns):
         control_value = control_value_minimum
-        print("\n\n\n\n ------- Received rerun index: ", rerun_idx, "for batch type: ", batch_type, "and no_reruns: ", no_reruns)
-        while (control_value < control_range[1]) or (batch_type == "constant"):    
+        print("\n\n\n\n ------- Received rerun index: ", rerun_idx, "for batch type: ", type, "and no_reruns: ", no_reruns)
+        while (control_value < control_range[1]) or (type == "constant"):    
             print("\n\n\n\n---new control val:", control_value)
             run_starttime = time.time()
-            if (batch_type == "range" or batch_type == "constant"):
+            if (type == "range" or type == "constant"):
                 for secondary_value in get_secondary_value_if_applicable(secondary_variable, secondary_range):
                     # Run the simulation and append its results to the total results csv
                     dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, _params = execute_single_run(
                         params, control_variable, control_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, 
-                        extra_parameters, dependent_var, opti_mode, statistic, batch_type, init_csv, secondary_variable=secondary_variable, secondary_value=secondary_value, 
+                        extra_parameters, dependent_var, opti_mode, statistic, type, init_csv, secondary_variable=secondary_variable, secondary_value=secondary_value, 
                         no_runs_for_current_parameter_set=1, rerun_idx=rerun_idx
                     )
                     params = vars(_params) # Update params in case they were modified during the run
@@ -329,7 +329,7 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
                         tree_cover_slope=tree_cover_slope, secondary_variable=secondary_variable, secondary_value=secondary_value, extra_parameters=str(extra_parameters),
                         cfg=SimpleNamespace(**params)
                     )
-            elif (batch_type == "saddle_search"):
+            elif (type == "saddle_search"):
                 secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, guess_result, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev, _params = execute_saddle_search(
                     params, control_variable, control_value, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
                     dependent_var, opti_mode, statistic, secondary_variable, secondary_range, attempts
@@ -342,7 +342,7 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
                     dependent_var=dependent_var, dependent_val=guess_result, dependent_result_range_stdev=dependent_result_range_stdev, cfg=SimpleNamespace(**params)
                 )
             else:
-                raise RuntimeError("Invalid batch type '{}'. Exiting..".format(batch_type))
+                raise RuntimeError("Invalid batch type '{}'. Exiting..".format(type))
         
             init_csv = False
 
@@ -352,7 +352,7 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
         
             # Get the next control value
             no_runs_for_current_parameter_set += 1
-            if batch_type != "constant" and (batch_type in ["saddle_search", "range"]):
+            if type != "constant" and (type in ["saddle_search", "range"]):
                 no_runs_for_current_parameter_set = 0
                 control_value = get_next_control_value(i, control_variable, control_value, control_range, process_index, no_processes, dynamics, largest_absolute_slope)
             i += no_runs_for_current_parameter_set == 0
@@ -362,7 +362,7 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
             init_csv = False
         
             # If the batch type is constant, we terminate when we've performed a number of simulations equal to 'no_reruns'
-            if batch_type == "constant" and no_runs_for_current_parameter_set > no_reruns:
+            if type == "constant" and no_runs_for_current_parameter_set > no_reruns:
                 break
     
     print("Batch complete. Exiting..")
@@ -405,32 +405,65 @@ def ensure_correct_arg_datatype(cfg):
     return cfg
  
 
-def main(
-        process_index=None, control_variable=None, control_range=None, extra_parameters=None, run=0, no_processes=7, no_reruns=None, batch_type=None,
-         dependent_var=None, opti_mode=None, statistic=None, secondary_variable=None, secondary_range=None, attempts=None, **params
-    ):
-    csv_parent_dir = get_csv_parent_dir(run)
-    print("csv parent dir: ", csv_parent_dir)
+def read_config_from_file(config_file):
+    with open(os.path.join(config.cfg.SOURCE_DIR, "batch_config", config_file), "r") as f:
+        batch_cfg = json.load(f)
     
+    return SimpleNamespace(**batch_cfg)
+
+
+
+def create_color_dict(batch_cfg):
     no_colors = 100
-    if "->" in control_variable:
-        sim_name = control_variable.split("->")[-2]
-    else:
-        sim_name = control_variable
-    color_dict = vis.get_color_dict(no_colors, begin=0.2, end=0.5)
+    color_dict = batch_cfg.vis.get_color_dict(no_colors, begin=0.2, end=0.5)
     color_dict[0] = np.array((170, 255, 255), np.uint8)
-    params["headless"] = True
-    if extra_parameters:
-        print("Extra parameters:", extra_parameters) # Example of usage: {\"verbosity\":1}
-        extra_parameters = ensure_correct_arg_datatype(extra_parameters)
-        for key, val in extra_parameters.items():
-            params[key] = val
-            print("extra parameter:", val, f"(key = {key})")
+
+    return color_dict
+
+
+def set_random_seeds(batch_cfg, random_seed, firefreq_random_seed):
+    # Set random seed
+    if (random_seed == -999):
+        batch_cfg.random_seed = random.randint(0, 100000000)
+        batch_cfg.rng = np.random.default_rng(random_seed)
+        print(f"Generated new global random seed ({random_seed})")
+    else:
+        batch_cfg.rng = np.random.default_rng(random_seed)
+        batch_cfg.random_seed = random_seed
+        print(f"Using given global random seed ({random_seed})")
+
+    # Set random seed for fire frequency probability distribution. If -999 is given, a random seed will be generated. Otherwise, the given seed will be used.
+    if firefreq_random_seed == -999:
+        batch_cfg.firefreq_random_seed = random.randint(0, 1000000)
+        print(f"Generated new random seed ({batch_cfg.firefreq_random_seed}) for fire frequency probability distribution: ", )
+    else:
+        batch_cfg.firefreq_random_seed = firefreq_random_seed
+        print(f"Using given random seed ({batch_cfg.firefreq_random_seed}) for fire frequency probability distribution.")
+
+    return batch_cfg
+
+
+def load_batch_config(config_file, run, random_seed, firefreq_random_seed):
+    batch_cfg = read_config_from_file(config_file)
+    batch_cfg.csv_parent_dir = get_csv_parent_dir(run)
+    batch_cfg.total_results_csv = batch_cfg.csv_parent_dir + "/{}_results.csv".format(batch_cfg.csv_parent_dir.split("state_data/")[1])
+    batch_cfg = set_random_seeds(batch_cfg, random_seed, firefreq_random_seed)
+    batch_cfg.vis = vis.Visualiser(batch_cfg)
+    batch_cfg.color_dict = create_color_dict(batch_cfg)
+    batch_cfg.headless = True
+
+    return batch_cfg
+
+
+def main(
+        process_index=None, run=None, no_processes=None, config=None, random_seed=None, firefreq_random_seed=None
+    ):
+    batch_cfg = load_batch_config(config, run, random_seed, firefreq_random_seed)
             
-    total_results_csv = csv_parent_dir + "/{}_results.csv".format(csv_parent_dir.split("state_data/")[1])
+    print("batch config: ", batch_cfg)
         
     iterate_across_range(params, control_variable, control_range, csv_parent_dir, process_index, no_processes, no_reruns, sim_name, total_results_csv, 
-                         color_dict, extra_parameters, batch_type, dependent_var, opti_mode, statistic, secondary_variable, secondary_range, 
+                         color_dict, extra_parameters, type, dependent_var, opti_mode, statistic, secondary_variable, secondary_range, 
                          attempts=attempts)
     
         
@@ -439,23 +472,14 @@ if __name__ == "__main__":
 
     parser = ArgumentParser()
     parser.add_argument('-pi', '--process_index', type=int)
-    parser.add_argument('-cv', '--control_variable', default="constant_batch", type=str)
-    parser.add_argument('-cr', '--control_range', type=float, nargs="*", default=[-1, -1, -1], help="Format: min max stepsize")
+    parser.add_argument('-cfg', '--config', default="constant_batch", type=str)
     parser.add_argument('-np', '--no_processes', type=int, help="Number of processes to run simultaneously.")
-    parser.add_argument('-nrr', '--no_reruns', type=int, default=1, help="Number of reruns to perform per parameter set.")
     parser.add_argument('-r', '--run', type=str, default=1, help="Unique run identifier in case of multiple runs per batch")
-    parser.add_argument('-bt', '--batch_type', type=str, default="range", help="Type of batch to run. Options: 'range', 'saddle_search', 'constant'")
-    parser.add_argument('-dvar', '--dependent_var', type=str, default="tree_cover_slope", help="Dependent variable to optimize")
-    parser.add_argument('-om', '--opti_mode', type=str, default="minimize", help="Mode of optimization. Options: 'maximize', 'minimize'")
-    parser.add_argument('-st', '--statistic', type=str, default="mean", help="Statistic to optimize. Options: 'max', 'min'")
-    parser.add_argument('-secvar', '--secondary_variable', type=str, default=None, help="Secondary variable")
-    parser.add_argument('-svr', '--secondary_range', type=float, nargs="*", default=[0, 2, 2], help="Value range of the secondary variable")
-    parser.add_argument('-na', '--attempts', type=str, default="5", help="Number of attempts (saddle search)")
-    parser.add_argument(
-        '-ep', '--extra_parameters', type=str,
-        help=r"Json string containing key-value pairs of custom parameters. Keys should be surrounded by double quotes preceded by a backslash. Example: {\"verbosity\":1}"
-    )
-    cfg = SimpleNamespace(**parse_args(parser))
+    parser.add_argument('-rs', '--random_seed', type=str, default=1, help="Random seed for the batch. If != -999, each individual simulation may still get a unique random seed, but according to a reproducible sequence. If a random seed is provided in the batch config, this seed will be used for each simulation.")
+    parser.add_argument('-rsf', '--firefreq_random_seed', type=str, default=1, help="Random seed for fire frequencies for the batch. If != -999, each individual simulation may still get a unique random seed, but according to a reproducible sequence. If a random seed is provided in the batch config, this seed will be used for each simulation.")
+
+    cfg = parser.parse_args()
+    print("cfg:", cfg)
     try:
         main(**vars(cfg))
     except Exception as e:
