@@ -6,6 +6,32 @@ import argparse
 from config import ParameterConfig
 
 
+class Processes:
+    def __init__(self):
+        self.procs = []
+        self.active_proc_count = 0
+
+    def add(self, proc):
+        self.procs.append(proc)
+        self.procs[-1].start()
+        self.active_proc_count += 1
+
+    def __getitem__(self, idx):
+        return self.procs[idx]
+
+    def join(self):
+        for proc in self.procs:
+            proc.join()
+        return True
+
+    def finished(self, print_progress=False):
+        _active_proc_count = sum(proc.is_alive() for proc in self.procs)
+        if print_progress and _active_proc_count != self.active_proc_count:
+            print(f"    {len(self.procs) - _active_proc_count} out of {len(self.procs)} processes have finished.")
+        self.active_proc_count = _active_proc_count
+        return self.active_proc_count == 0
+
+
 def add_kwargs(parser):
     """Dynamically add arguments using `ParameterConfig` defined in `config.py`.
 
