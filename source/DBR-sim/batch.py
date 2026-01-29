@@ -21,6 +21,43 @@ from types import SimpleNamespace
 logger = logging.getLogger(__name__)
 
 
+class Job:
+    def __init__(self):
+        self.defaults = config.get_all_defaults()
+        self.job = self.defaults.copy()
+
+    def parse(self, arg_changes):
+        for idx, vec in self.changes.items():
+            self.job = self.add_range(self.job, idx, vec)
+
+    @staticmethod
+    def apply_single_arg_change(argsets, idx, value):
+        if len(argsets.shape) == 1:
+            argsets[idx] = value
+        else:
+            argsets[:, idx] = value
+
+        return argsets
+
+    def add_range(self, argsets, idx, vec):
+        if len(argsets.shape) == 1:
+            expanded_argsets = np.array([argsets] * len(vec))
+        else:
+            expanded_argsets = np.repeat(argsets, len(vec), axis=0)
+
+        expanded_argsets = expanded_argsets.copy()
+        stepsize = argsets.shape[0] if len(argsets.shape) > 1 else 1
+        for i, value in enumerate(vec):
+            argsets = self.apply_single_arg_change(argsets, idx, value)
+            begin = i * stepsize
+            end = begin + stepsize
+            if len(argsets.shape) == 1:
+                argsets = argsets.reshape(1, argsets.shape[0])
+            expanded_argsets[begin:end, :] = argsets
+
+        return expanded_argsets
+
+
 def get_csv_parent_dir(batch_cfg):
     with open(os.path.join(config.cfg.DATA_OUT_DIR, "state_data/tmp/batchfolder_lookup_table.json"), "r") as lookup_table_file:
         folder_lookup_table = json.load(lookup_table_file)
@@ -451,7 +488,9 @@ def set_random_seeds(batch_cfg):
 
 def determine_no_processes(batch_cfg):
     if batch_cfg.no_processes < 0:
-        batch_cfg.no_processes = max(1, os.cpu_count() - 1)
+        cpu_count = os.cpu_count()
+        logger.info(f"No number of processes set. Detected {cpu_count} CPU cores, will therefore use {cpu_count-1} processes.")
+        batch_cfg.no_processes = max(1, cpu_count - 1)
 
     return batch_cfg
 
@@ -476,7 +515,8 @@ def run_batch(batch_cfg, proc_id):
 
 
 def parse_job(batch_cfg):
-    pass
+    job = Job()
+    job.parse()
 
 
 def configure_logger(logname=None, verbosity=None, **_):
@@ -517,8 +557,8 @@ if __name__ == "__main__":
     parser.add_argument('-cfg', '--config', default="constant_batch", type=str)
     parser.add_argument('-np', '--no_processes', type=int, default=-1, help="Number of processes to run simultaneously.")
     parser.add_argument('-r', '--run', type=str, default=1, help="Unique run identifier in case of multiple runs per batch")
-    parser.add_argument('-rs', '--random_seed', type=str, default=-999, help="Random seed for the batch. If != -999, each individual simulation may still get a unique random seed, but according to a reproducible sequence. If a random seed is provided in the batch config, this seed will be used for each simulation.")
-    parser.add_argument('-rsf', '--firefreq_random_seed', type=str, default=-999, help="Random seed for fire frequencies for the batch. If != -999, each individual simulation may still get a unique random seed, but according to a reproducible sequence. If a random seed is provided in the batch config, this seed will be used for each simulation.")
+    parser.add_argument('-rs', '--random_seed', type=str, default=-999, help="Random seed for the batch. If seed != -999, each individual simulation may still get a unique random seed, but according to a reproducible sequence. If a random seed (!= -999) is provided in the batch config, this seed will be used for each simulation.")
+    parser.add_argument('-rsf', '--firefreq_random_seed', type=str, default=-999, help="Random seed for fire frequencies for the batch. If != -999, each individual simulation may still get a unique random seed, but according to a reproducible sequence. If a random seed (!= -999) is provided in the batch config, this seed will be used for each simulation.")
     parser.add_argument('-vrb', '--verbosity', type=str, default="info", help="Verbosity level for the batch runs. Set to 0 to suppress console output.")
     cfg = parser.parse_args()
     

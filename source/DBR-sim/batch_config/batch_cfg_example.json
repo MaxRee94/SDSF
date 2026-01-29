@@ -1,8 +1,34 @@
 {
     "type": "sensitivity_analysis",
     "reruns": 2,
-    "increments:": 5,
-    "predictors": {
-        "treecover": [0.1, 0.8]
+    "arguments": {
+        "treecover": {
+            "range":[0.1, 0.8],
+            "interpolation": "linear",
+            "stepsize": 0.1
+        }
+    },
+    "example": {
+        "treecover": {
+            "range":[0.1, 0.8],
+            "interpolation": "linear",
+            "stepsize": 0.1
+        },
+        "self_ignition_factor": {
+            "range":10
+        },
+        "dispersal_mode": {
+            "range": ["wind", "animal"]
+        },
+        "verbosity": {
+            "range": [0, 2],
+            "interpolation": "none",
+            "stepsize": 1
+        },
+        "unsuppressed_flammability": {
+            "range":[0.2, 0.9],
+            "interpolation": "y=x^2",
+            "stepsize": 0.1
+        }
     }
 }
