@@ -4,6 +4,21 @@ import sys
 import json
 import argparse
 from config import ParameterConfig
+import logging
+
+
+def get_stdout_logging_handler():
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(name)s %(levelname)s:    %(message)s')
+    handler.setFormatter(formatter)
+
+    return handler
+
+
+logger = logging.getLogger(__name__)
+handler = get_stdout_logging_handler()
+logger.addHandler(handler)
 
 
 class Processes:
@@ -27,7 +42,7 @@ class Processes:
     def finished(self, print_progress=False):
         _active_proc_count = sum(proc.is_alive() for proc in self.procs)
         if print_progress and _active_proc_count != self.active_proc_count:
-            print(f"    {len(self.procs) - _active_proc_count} out of {len(self.procs)} processes have finished.")
+            logger.info(f"    {len(self.procs) - _active_proc_count} out of {len(self.procs)} processes have finished.")
         self.active_proc_count = _active_proc_count
         return self.active_proc_count == 0
 

@@ -14,8 +14,11 @@ import random
 import time
 import traceback
 import json
+import logging
 import statistics as stats
 from types import SimpleNamespace
+
+logger = logging.getLogger(__name__)
 
 
 def get_csv_parent_dir(batch_cfg):
@@ -430,18 +433,18 @@ def set_random_seeds(batch_cfg):
     if (batch_cfg.random_seed == -999):
         batch_cfg.random_seed = random.randint(0, 100000000)
         batch_cfg.rng = np.random.default_rng(batch_cfg.random_seed)
-        print(f"Generated new global random seed ({batch_cfg.random_seed})")
+        logger.info(f"Generated new global random seed ({batch_cfg.random_seed})")
     else:
         batch_cfg.rng = np.random.default_rng(batch_cfg.random_seed)
-        print(f"Using given global random seed ({batch_cfg.random_seed})")
+        logger.info(f"Using given global random seed ({batch_cfg.random_seed})")
 
     # Set random seed for fire frequency probability distribution. If -999 is given, a random seed will be generated. Otherwise, the given seed will be used.
     if batch_cfg.firefreq_random_seed == -999:
         batch_cfg.firefreq_random_seed = random.randint(0, 1000000)
-        print(f"Generated new random seed ({batch_cfg.firefreq_random_seed}) for fire frequency probability distribution: ", )
+        logger.info(f"Generated new random seed ({batch_cfg.firefreq_random_seed}) for fire frequency probability distribution: ", )
     else:
         batch_cfg.firefreq_random_seed = batch_cfg.firefreq_random_seed
-        print(f"Using given random seed ({batch_cfg.firefreq_random_seed}) for fire frequency probability distribution.")
+        logger.info(f"Using given random seed ({batch_cfg.firefreq_random_seed}) for fire frequency probability distribution.")
 
     return batch_cfg
 
@@ -476,44 +479,54 @@ def parse_job(batch_cfg):
     pass
 
 
+def configure_logger(logname=None, verbosity=None, **_):
+    if verbosity == "info":
+        logging.basicConfig(filename=logname, level=logging.INFO)
+
+    handler = get_stdout_logging_handler()
+    logger.addHandler(handler)
+
+
 def manage_processes(batch_cfg):
+
+    logging.basicConfig(filename="batch.log", level=logging.INFO)
     procs = Processes()
+    logger.info("Starting processes...")
     for i in range(batch_cfg.no_processes):
         procs.add(Process(target=run_batch, args=(batch_cfg, i)))
     
-    print("Finished starting processes.")
+    logger.info("Finished starting processes.")
 
     while not procs.finished(print_progress=True):
         time.sleep(0.4)
 
     procs.join()
 
-    print("All processes finished.")
+    logger.info("All processes finished.")
 
 
 def main(batch_cfg):
+    configure_logger(logname="batch.log", **vars(batch_cfg))
     batch_cfg = load_batch_config(batch_cfg)
     job = parse_job(batch_cfg)
     manage_processes(batch_cfg)
 
         
 if __name__ == "__main__":
-    print(sys.argv)
-
     parser = ArgumentParser()
     parser.add_argument('-cfg', '--config', default="constant_batch", type=str)
     parser.add_argument('-np', '--no_processes', type=int, default=-1, help="Number of processes to run simultaneously.")
     parser.add_argument('-r', '--run', type=str, default=1, help="Unique run identifier in case of multiple runs per batch")
     parser.add_argument('-rs', '--random_seed', type=str, default=-999, help="Random seed for the batch. If != -999, each individual simulation may still get a unique random seed, but according to a reproducible sequence. If a random seed is provided in the batch config, this seed will be used for each simulation.")
     parser.add_argument('-rsf', '--firefreq_random_seed', type=str, default=-999, help="Random seed for fire frequencies for the batch. If != -999, each individual simulation may still get a unique random seed, but according to a reproducible sequence. If a random seed is provided in the batch config, this seed will be used for each simulation.")
-
+    parser.add_argument('-vrb', '--verbosity', type=str, default="info", help="Verbosity level for the batch runs. Set to 0 to suppress console output.")
     cfg = parser.parse_args()
-    print("cfg:", cfg)
+    
     try:
         main(cfg)
     except Exception as e:
-        print("======== ERROR =========")
-        parent_dir = get_csv_parent_dir(cfg.run)
+        logger.error("An error occurred during execution of the batch module.")
+        parent_dir = get_csv_parent_dir(cfg)
         csv_file = parent_dir + "/Error_log.txt";
         with open(csv_file, 'a') as f:
             f.write(str(e))
