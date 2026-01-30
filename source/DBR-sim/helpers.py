@@ -5,6 +5,8 @@ import json
 import argparse
 from config import ParameterConfig
 import logging
+import itertools
+from collections import deque
 
 
 def get_stdout_logging_handler():
@@ -45,6 +47,37 @@ class Processes:
             logger.info(f"    {len(self.procs) - _active_proc_count} out of {len(self.procs)} processes have finished.")
         self.active_proc_count = _active_proc_count
         return self.active_proc_count == 0
+
+
+def index_order_once(n):
+    queue = deque([(0, n - 1)])
+    seen = set()
+
+    while queue:
+        lo, hi = queue.popleft()
+        if lo > hi:
+            continue
+
+        # candidates in desired priority
+        for i in (lo, hi, (lo + hi) // 2):
+            if lo <= i <= hi and i not in seen:
+                seen.add(i)
+                yield i
+
+        mid = (lo + hi) // 2
+
+        # push sub-intervals
+        queue.append((lo + 1, mid - 1))
+        queue.append((mid + 1, hi - 1))
+
+
+def get_random_int_generator(rng, low, high):
+    while True:
+        yield rng.randint(low, high)
+
+
+def infinite_index_order(n):
+    return itertools.cycle(index_order_once(n))
 
 
 def add_kwargs(parser):

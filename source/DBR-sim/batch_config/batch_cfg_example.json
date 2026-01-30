@@ -6,6 +6,15 @@
             "range":[0.1, 0.8],
             "interpolation": "linear",
             "stepsize": 0.1
+        },
+        "self_ignition_factor": {
+            "range":[5, 30],
+            "interpolation": "linear",
+            "stepsize": 3
+        },
+        "dispersal_mode": {
+            "range": ["wind", "animal"],
+            "interpolation": "categorical"
         }
     },
     "example": {
@@ -18,7 +27,8 @@
             "range":10
         },
         "dispersal_mode": {
-            "range": ["wind", "animal"]
+            "range": ["wind", "animal"],
+            "interpolation": "categorical"
         },
         "verbosity": {
             "range": [0, 2],

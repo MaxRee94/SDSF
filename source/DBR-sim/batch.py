@@ -21,39 +21,114 @@ from types import SimpleNamespace
 logger = logging.getLogger(__name__)
 
 
-class Job:
-    def __init__(self):
+class Jobs:
+    def __init__(self, reruns=None, arguments=None, rng=None, **args):
         self.defaults = config.get_all_defaults()
-        self.job = self.defaults.copy()
+        self.default_values = list(self.defaults.values())
+        self.reruns_per_job = reruns
+        self.job_runcount = 0
+        self.rng = rng
+        self.sampling_mode = "regular" # alternative: "random"
+        self.jobs, self.job_idx_generator = self.parse(arguments)
+
+    def get_key_idx(self, key):
+        return list(self.defaults.keys()).index(key)
+    
+    @staticmethod
+    def get_argset(arg_cfg):
+        if arg_cfg["interpolation"] == "linear":
+            minim, maxim, stepsize = arg_cfg["range"] + [arg_cfg["stepsize"]]
+            vec = [float(v) for v in np.arange(minim, maxim, stepsize)]
+        elif arg_cfg["interpolation"] == "categorical":
+            vec = arg_cfg["range"]
+
+        return vec
+
+    def convert_value_set_to_namespace(self, job_values):
+        job = {}
+        for i, (key, _) in self.defaults.items():
+            job[key] = job_values[i]
+
+        return SimpleNamespace(**job)
+    
+    def derive_unique_job_count(self, arg_changes):
+        job_count = 0
+        for key, arg_cfg in arg_changes.items():
+            vec = self.get_argset(arg_cfg)
+            if job_count == 0:
+                job_count = len(vec)
+            else:
+                job_count *= len(vec)
+
+        return job_count
 
     def parse(self, arg_changes):
-        for idx, vec in self.changes.items():
-            self.job = self.add_range(self.job, idx, vec)
+        job_count = self.derive_unique_job_count(arg_changes)
+        print("Expecting a unique job count of :", job_count)
+        if job_count < 1e6:
+            jobs = self.parse_arg_values(arg_changes)
+            job_idx_generator = infinite_index_order(len(jobs))
+        else:
+            logger.warning("Number of jobs ({}) exceeds 1 million. \nI will not precompute all job arguments. Instead, I will switch to random sampling.".format(job_count))
+            self.sampling_mode = "random"
+            jobs = []
+            job_idx_generator = get_random_int_generator(self.rng, 0, job_count - 1)
+
+        return jobs, job_idx_generator
+
+    def parse_arg_values(self, arg_changes):
+        value_sets = self.default_values.copy()
+        for key, arg_cfg in arg_changes.items():
+            vec = self.get_argset(arg_cfg)
+            idx = self.get_key_idx(key)
+            value_sets = self.add_range(value_sets, idx, vec)
+
+        return value_sets
+
+    def get_specific_job(self, idx):
+        return self.convert_value_set_to_namespace(self.jobs[idx])
+
+    def count(self):
+        return self.reruns_per_job * len(self.jobs)
+
+    def get(self):
+        idx = next(self.job_idx_generator)
+        if idx == 0:
+            self.job_runcount += 1
+
+        if self.job_runcount > self.reruns_per_job:
+            return None
+        else:
+            return self.get_specific_job(idx)
 
     @staticmethod
-    def apply_single_arg_change(argsets, idx, value):
-        if len(argsets.shape) == 1:
+    def apply_single_arg_change(argsets, is_single_argset, idx, value):
+        if is_single_argset:
             argsets[idx] = value
         else:
-            argsets[:, idx] = value
+            for argset in argsets:
+                argset[idx] = value
 
         return argsets
 
     def add_range(self, argsets, idx, vec):
-        if len(argsets.shape) == 1:
-            expanded_argsets = np.array([argsets] * len(vec))
+        is_single_argset = type(argsets[0]) != list
+        if is_single_argset:
+            expanded_argsets = [argsets] * len(vec)
         else:
-            expanded_argsets = np.repeat(argsets, len(vec), axis=0)
+            expanded_argsets = argsets * len(vec)
 
         expanded_argsets = expanded_argsets.copy()
-        stepsize = argsets.shape[0] if len(argsets.shape) > 1 else 1
+        stepsize = len(argsets) if is_single_argset else 1
         for i, value in enumerate(vec):
-            argsets = self.apply_single_arg_change(argsets, idx, value)
+            argsets = self.apply_single_arg_change(argsets, is_single_argset, idx, value)
             begin = i * stepsize
             end = begin + stepsize
-            if len(argsets.shape) == 1:
-                argsets = argsets.reshape(1, argsets.shape[0])
-            expanded_argsets[begin:end, :] = argsets
+            if is_single_argset:
+                _argsets = [argsets]
+            else:
+                _argsets = argsets
+            expanded_argsets[begin:end] = _argsets
 
         return expanded_argsets
 
@@ -478,7 +553,7 @@ def set_random_seeds(batch_cfg):
     # Set random seed for fire frequency probability distribution. If -999 is given, a random seed will be generated. Otherwise, the given seed will be used.
     if batch_cfg.firefreq_random_seed == -999:
         batch_cfg.firefreq_random_seed = random.randint(0, 1000000)
-        logger.info(f"Generated new random seed ({batch_cfg.firefreq_random_seed}) for fire frequency probability distribution: ", )
+        logger.info(f"Generated new random seed ({batch_cfg.firefreq_random_seed}) for fire frequency probability distribution.")
     else:
         batch_cfg.firefreq_random_seed = batch_cfg.firefreq_random_seed
         logger.info(f"Using given random seed ({batch_cfg.firefreq_random_seed}) for fire frequency probability distribution.")
@@ -497,6 +572,7 @@ def determine_no_processes(batch_cfg):
 
 def load_batch_config(batch_cfg):
     batch_cfg = read_config_from_file(batch_cfg)
+    batch_cfg = parse_jobs(batch_cfg)
     batch_cfg.csv_parent_dir = get_csv_parent_dir(batch_cfg)
     batch_cfg.total_results_csv = batch_cfg.csv_parent_dir + "/{}_results.csv".format(batch_cfg.csv_parent_dir.split("state_data/")[1])
     batch_cfg = set_random_seeds(batch_cfg)
@@ -514,9 +590,9 @@ def run_batch(batch_cfg, proc_id):
     return True
 
 
-def parse_job(batch_cfg):
-    job = Job()
-    job.parse()
+def parse_jobs(batch_cfg):
+    batch_cfg.jobs = Jobs(**vars(batch_cfg))
+    logger.info("Number of jobs to run: {}".format(batch_cfg.jobs.count()))
 
 
 def configure_logger(logname=None, verbosity=None, **_):
@@ -528,27 +604,23 @@ def configure_logger(logname=None, verbosity=None, **_):
 
 
 def manage_processes(batch_cfg):
-
     logging.basicConfig(filename="batch.log", level=logging.INFO)
     procs = Processes()
     logger.info("Starting processes...")
     for i in range(batch_cfg.no_processes):
         procs.add(Process(target=run_batch, args=(batch_cfg, i)))
-    
     logger.info("Finished starting processes.")
 
     while not procs.finished(print_progress=True):
         time.sleep(0.4)
-
     procs.join()
 
-    logger.info("All processes finished.")
+    logger.info("All processes have finished.")
 
 
 def main(batch_cfg):
     configure_logger(logname="batch.log", **vars(batch_cfg))
     batch_cfg = load_batch_config(batch_cfg)
-    job = parse_job(batch_cfg)
     manage_processes(batch_cfg)
 
         
