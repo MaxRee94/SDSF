@@ -17,6 +17,7 @@ import json
 import logging
 import statistics as stats
 from types import SimpleNamespace
+from copy import deepcopy
 
 logger = logging.getLogger(__name__)
 
@@ -30,15 +31,19 @@ class Jobs:
         self.rng = rng
         self.sampling_mode = "regular" # alternative: "random"
         self.jobs, self.job_indices = self.parse(arguments)
+        print("---- Jobs: \n\n", '\n'.join([str(job) for job in self.jobs]))
 
     def get_key_idx(self, key):
         return list(self.defaults.keys()).index(key)
     
     @staticmethod
-    def get_argset(arg_cfg):
+    def get_vec(arg_cfg):
         if arg_cfg["interpolation"] == "linear":
             minim, maxim, stepsize = arg_cfg["range"] + [arg_cfg["stepsize"]]
-            vec = [float(v) for v in np.arange(minim, maxim, stepsize)]
+            no_steps = int((maxim - minim) / stepsize)
+            vec = list(np.arange(minim, maxim + stepsize/2, stepsize))
+            no_digits_after_comma = max(digits_after_decimal(minim), digits_after_decimal(maxim), digits_after_decimal(stepsize))
+            vec = [float(round(v, no_digits_after_comma)) for v in vec]
         elif arg_cfg["interpolation"] == "categorical":
             vec = arg_cfg["range"]
 
@@ -54,7 +59,7 @@ class Jobs:
     def derive_unique_job_count(self, arg_changes):
         job_count = 0
         for key, arg_cfg in arg_changes.items():
-            vec = self.get_argset(arg_cfg)
+            vec = self.get_vec(arg_cfg)
             if job_count == 0:
                 job_count = len(vec)
             else:
@@ -95,7 +100,7 @@ class Jobs:
     def parse_arg_values(self, arg_changes):
         value_sets = self.default_values.copy()
         for key, arg_cfg in arg_changes.items():
-            vec = self.get_argset(arg_cfg)
+            vec = self.get_vec(arg_cfg)
             idx = self.get_key_idx(key)
             value_sets = self.add_range(value_sets, idx, vec)
 
@@ -112,7 +117,6 @@ class Jobs:
             return None
 
         idx = self.job_indices[n_finished_simulations % len(self.jobs)]
-        print("Getting job index:", idx)
         if idx == 0:
             self.no_finished_rerun_cycles += 1
 
@@ -132,22 +136,31 @@ class Jobs:
         return argsets
 
     def add_range(self, argsets, idx, vec):
+        """Add a range of values (i.e., a vector) to the argument sets at position idx.
+        
+        vec (list): Range of values to add.
+        idx (int): Index into each argument list (='argset') of the argument to modify.
+        argsets (list): list of argument lists (='argset'), or a single, flat argument list if no arg changes have yet been made.
+        """
+
         is_single_argset = type(argsets[0]) != list
         if is_single_argset:
-            expanded_argsets = [argsets] * len(vec)
+            expanded_argsets = [argsets.copy() for i in range(len(vec))]
         else:
-            expanded_argsets = argsets * len(vec)
+            expanded_argsets = []
+            for i in range(len(vec)):
+                expanded_argsets += deepcopy(argsets)
 
-        expanded_argsets = expanded_argsets.copy()
-        stepsize = len(argsets) if is_single_argset else 1
+        stepsize = len(argsets)
         for i, value in enumerate(vec):
-            argsets = self.apply_single_arg_change(argsets, is_single_argset, idx, value)
+            argsets = self.apply_single_arg_change(deepcopy(argsets), is_single_argset, idx, value)
             begin = i * stepsize
             end = begin + stepsize
             if is_single_argset:
                 _argsets = [argsets]
             else:
                 _argsets = argsets
+                
             expanded_argsets[begin:end] = _argsets
 
         return expanded_argsets

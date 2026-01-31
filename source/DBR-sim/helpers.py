@@ -94,6 +94,13 @@ def get_random_int_generator(cfg):
         yield cfg.rng.randint(cfg.low, cfg.high)
 
 
+def digits_after_decimal(num):
+    num = str(num)
+    if '.' in num:
+        return len(num.split('.', 1)[1])
+    return 0
+
+
 def add_kwargs(parser):
     """Dynamically add arguments using `ParameterConfig` defined in `config.py`.
 
