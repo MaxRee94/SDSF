@@ -31,7 +31,6 @@ class Jobs:
         self.rng = rng
         self.sampling_mode = "regular" # alternative: "random"
         self.jobs, self.job_indices = self.parse(arguments)
-        print("---- Jobs: \n\n", '\n'.join([str(job) for job in self.jobs]))
 
     def get_key_idx(self, key):
         return list(self.defaults.keys()).index(key)
@@ -113,17 +112,13 @@ class Jobs:
         return self.n_reruns * len(self.jobs)
 
     def get(self, n_finished_simulations):
-        if n_finished_simulations == self.count():
+        if n_finished_simulations >= self.count():
             return None
 
         idx = self.job_indices[n_finished_simulations % len(self.jobs)]
-        if idx == 0:
-            self.no_finished_rerun_cycles += 1
+        job = self.get_specific_job(idx)
 
-        if self.no_finished_rerun_cycles > self.n_reruns:
-            return None
-        else:
-            return self.get_specific_job(idx)
+        return job
 
     @staticmethod
     def apply_single_arg_change(argsets, is_single_argset, idx, value):
@@ -631,27 +626,34 @@ def load_batch_config(batch_cfg):
 
 
 def run_batch(batch_cfg, proc_id, sim_counter):
-    with sim_counter.get_lock():
-        n_finished_simulations = sim_counter.value
-        sim_counter.value += 1
+    configure_logger(logname="batch.log", format="%(levelname)s %(processName)s: %(message)s", **vars(batch_cfg))
 
-    job = batch_cfg.jobs.get(n_finished_simulations)
+    while True:
+        with sim_counter.get_lock():
+            n_finished_simulations = sim_counter.value
+            sim_counter.value += 1        
+
+        job = batch_cfg.jobs.get(n_finished_simulations)
+        if not job:
+            break
+        
+        logger.debug(f"\n\nProcess {proc_id} starting simulation {n_finished_simulations+1}/{batch_cfg.jobs.count()} with parameters: {job}")
  
     return True
 
 
 def parse_jobs(batch_cfg):
     batch_cfg.jobs = Jobs(**vars(batch_cfg))
-    logger.info("Number of jobs to run: {}".format(batch_cfg.jobs.count()))
+    logger.info("Number of jobs to run (including reruns): {}".format(batch_cfg.jobs.count()))
     
     return batch_cfg
 
 
-def configure_logger(logname=None, verbosity=None, **_):
+def configure_logger(logname=None, verbosity=None, _format="%(levelname)s:%(name)s:%(message)s", **_):
     if verbosity == "info":
-        logging.basicConfig(filename=logname, level=logging.INFO)
+        logging.basicConfig(filename=logname, level=logging.INFO, format=_format)
     elif verbosity == "debug":
-        logging.basicConfig(filename=logname, level=logging.DEBUG)
+        logging.basicConfig(filename=logname, level=logging.DEBUG, format=_format)
 
     handler = get_stdout_logging_handler()
     logger.addHandler(handler)
@@ -673,6 +675,7 @@ def manage_processes(batch_cfg):
 
 
 def main(batch_cfg):
+    os.remove("batch.log")
     configure_logger(logname="batch.log", **vars(batch_cfg))
     batch_cfg = load_batch_config(batch_cfg)
     manage_processes(batch_cfg)
