@@ -84,12 +84,11 @@ class Jobs:
         if job_count < 1e6:
             jobs = self.parse_arg_values(arg_changes)
             generator_cfg.n = len(jobs)
-            job_idx_generator = index_order_once
+            job_idx_generator = midpoint_gap_indices
         else:
             jobs, job_idx_generator = self.switch_to_random_sampling(job_count, generator_cfg)
-        
-        jobs = jobs
-        job_indices = list(job_idx_generator(generator_cfg)) * self.n_reruns
+
+        job_indices = list(job_idx_generator(generator_cfg))
 
         return jobs, job_indices
 
@@ -113,7 +112,7 @@ class Jobs:
             return None
 
         idx = self.job_indices[n_finished_simulations % len(self.jobs)]
-        print("Getting job index: ", n_finished_simulations)
+        print("Getting job index:", idx)
         if idx == 0:
             self.no_finished_rerun_cycles += 1
 
@@ -619,9 +618,6 @@ def load_batch_config(batch_cfg):
 
 
 def run_batch(batch_cfg, proc_id, sim_counter):
-    time_to_sleep = random.uniform(10, 15)
-    time.sleep(time_to_sleep)
-
     with sim_counter.get_lock():
         n_finished_simulations = sim_counter.value
         sim_counter.value += 1

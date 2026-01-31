@@ -7,6 +7,7 @@ from config import ParameterConfig
 import logging
 import itertools
 from collections import deque
+import heapq
 
 
 def get_stdout_logging_handler():
@@ -49,35 +50,48 @@ class Processes:
         return self.active_proc_count == 0
 
 
-def index_order_once(cfg):
-    queue = deque([(0, cfg.n - 1)])
-    seen = set()
+def midpoint_gap_indices(cfg):
+    """
+    Yield indices in an order where each next index is the midpoint of the
+    currently largest remaining gap between already-sampled indices.
 
-    while queue:
-        lo, hi = queue.popleft()
-        if lo > hi:
+    Starts with endpoints (0 and n-1), then repeatedly inserts midpoints of
+    the largest unsplit interval.
+    """
+    if cfg.n <= 0:
+        return
+    if cfg.n == 1:
+        yield 0
+        return
+
+    # yield endpoints first
+    yield 0
+    yield cfg.n - 1
+
+    # max-heap of intervals: (-length, lo, hi)
+    # We only split intervals that still contain unsampled indices (hi - lo >= 2).
+    heap = []
+    if cfg.n - 1 - 0 >= 2:
+        heapq.heappush(heap, (-(cfg.n - 1 - 0), 0, cfg.n - 1))
+
+    while heap:
+        _, lo, hi = heapq.heappop(heap)
+        if hi - lo < 2:
             continue
 
-        # candidates in desired priority
-        for i in (lo, hi, (lo + hi) // 2):
-            if lo <= i <= hi and i not in seen:
-                seen.add(i)
-                yield i
-
         mid = (lo + hi) // 2
+        yield mid
 
-        # push sub-intervals
-        queue.append((lo + 1, mid - 1))
-        queue.append((mid + 1, hi - 1))
+        # push left and right sub-intervals if they still have room for new points
+        if mid - lo >= 2:
+            heapq.heappush(heap, (-(mid - lo), lo, mid))
+        if hi - mid >= 2:
+            heapq.heappush(heap, (-(hi - mid), mid, hi))
 
 
 def get_random_int_generator(cfg):
     while True:
         yield cfg.rng.randint(cfg.low, cfg.high)
-
-
-def infinite_index_order(n):
-    return itertools.cycle(index_order_once(n))
 
 
 def add_kwargs(parser):
