@@ -3,7 +3,7 @@ from operator import ge
 import config
 import app
 from argparse import ArgumentParser
-from multiprocessing import Process
+from multiprocessing import Process, Value
 import file_handling as _io
 from time import time
 import os
@@ -25,11 +25,11 @@ class Jobs:
     def __init__(self, reruns=None, arguments=None, rng=None, **args):
         self.defaults = config.get_all_defaults()
         self.default_values = list(self.defaults.values())
-        self.reruns_per_job = reruns
-        self.job_runcount = 0
+        self.n_reruns = reruns
+        self.no_finished_rerun_cycles = 0
         self.rng = rng
         self.sampling_mode = "regular" # alternative: "random"
-        self.jobs, self.job_idx_generator = self.parse(arguments)
+        self.jobs, self.job_indices = self.parse(arguments)
 
     def get_key_idx(self, key):
         return list(self.defaults.keys()).index(key)
@@ -46,7 +46,7 @@ class Jobs:
 
     def convert_value_set_to_namespace(self, job_values):
         job = {}
-        for i, (key, _) in self.defaults.items():
+        for i, (key, _) in enumerate(self.defaults.items()):
             job[key] = job_values[i]
 
         return SimpleNamespace(**job)
@@ -62,19 +62,36 @@ class Jobs:
 
         return job_count
 
+    def switch_to_random_sampling(self, job_count, generator_cfg):
+        logger.warning(
+            f"Number of jobs ({job_count}) exceeds 1 million. \n" +
+            "I will therefore not precompute all job arguments. " +
+            "Instead, I will switch to random parameter sampling."
+        )
+        self.sampling_mode = "random"
+        jobs = []
+        generator_cfg.rng = self.rng
+        generator_cfg.low = 0
+        generator_cfg.high = job_count - 1
+        job_idx_generator = get_random_int_generator
+        
+        return jobs, job_idx_generator
+
     def parse(self, arg_changes):
         job_count = self.derive_unique_job_count(arg_changes)
-        print("Expecting a unique job count of :", job_count)
+        logger.info("Expecting {} unique jobs.".format(job_count))
+        generator_cfg = SimpleNamespace()
         if job_count < 1e6:
             jobs = self.parse_arg_values(arg_changes)
-            job_idx_generator = infinite_index_order(len(jobs))
+            generator_cfg.n = len(jobs)
+            job_idx_generator = index_order_once
         else:
-            logger.warning("Number of jobs ({}) exceeds 1 million. \nI will not precompute all job arguments. Instead, I will switch to random sampling.".format(job_count))
-            self.sampling_mode = "random"
-            jobs = []
-            job_idx_generator = get_random_int_generator(self.rng, 0, job_count - 1)
+            jobs, job_idx_generator = self.switch_to_random_sampling(job_count, generator_cfg)
+        
+        jobs = jobs
+        job_indices = list(job_idx_generator(generator_cfg)) * self.n_reruns
 
-        return jobs, job_idx_generator
+        return jobs, job_indices
 
     def parse_arg_values(self, arg_changes):
         value_sets = self.default_values.copy()
@@ -89,14 +106,18 @@ class Jobs:
         return self.convert_value_set_to_namespace(self.jobs[idx])
 
     def count(self):
-        return self.reruns_per_job * len(self.jobs)
+        return self.n_reruns * len(self.jobs)
 
-    def get(self):
-        idx = next(self.job_idx_generator)
+    def get(self, n_finished_simulations):
+        if n_finished_simulations == self.count():
+            return None
+
+        idx = self.job_indices[n_finished_simulations % len(self.jobs)]
+        print("Getting job index: ", n_finished_simulations)
         if idx == 0:
-            self.job_runcount += 1
+            self.no_finished_rerun_cycles += 1
 
-        if self.job_runcount > self.reruns_per_job:
+        if self.no_finished_rerun_cycles > self.n_reruns:
             return None
         else:
             return self.get_specific_job(idx)
@@ -177,7 +198,7 @@ def get_singlerun_name(type, sim_name, control_value, csv_parent_dir, secondary_
 
 
 def execute_single_run(
-        params, control_variable, control_value, csv_parent_dir, proc_id, no_processes, no_reruns, sim_name, total_results_csv, color_dict,
+        params, control_variable, control_value, csv_parent_dir, proc_id, no_processes, n_reruns, sim_name, total_results_csv, color_dict,
         extra_parameters, dependent_var, opti_mode, statistic, type, init_csv, export_to_parent_csv=True,
         secondary_variable=None, secondary_value=None, no_runs_for_current_parameter_set=None, rerun_idx=None
     ):
@@ -206,7 +227,7 @@ def execute_single_run(
     return dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, params
 
 
-def execute_multiple_runs(params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
+def execute_multiple_runs(params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, n_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
         dependent_var, opti_mode, statistic, type, init_csv, secondary_value=None, secondary_variable=None, dependent_result_range_mean=1, dependent_result_range_stdev=1
     ):
     
@@ -214,10 +235,10 @@ def execute_multiple_runs(params, primary_variable, primary_value, csv_parent_di
     params["report_state"] = "False"
     _params = SimpleNamespace(**params)
     dependent_values = []
-    for i in range(no_reruns):
-        print(f"Beginning run {i+1} of {no_reruns}")
+    for i in range(n_reruns):
+        print(f"Beginning run {i+1} of {n_reruns}")
         dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, _params = execute_single_run(
-            params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
+            params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, n_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
             dependent_var, opti_mode, statistic, type, init_csv, secondary_value=secondary_value, secondary_variable=secondary_variable, export_to_parent_csv=False
         )
         if dependent_var == "tree_cover_slope":
@@ -225,7 +246,7 @@ def execute_multiple_runs(params, primary_variable, primary_value, csv_parent_di
         else:
             dependent_values.append(getattr(dynamics, dependent_var))
         print("Current {}: ".format(dependent_var), tree_cover_slope)
-        if i < (no_reruns - 1):
+        if i < (n_reruns - 1):
             dynamics.free()
 
     print("Dependent values: ", dependent_values)
@@ -290,7 +311,7 @@ def hillclimb(latest_arg, latest_result, previous_arg, previous_result, secondar
     return val
 
 def execute_saddle_search(
-        params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, no_reruns, sim_name, total_results_csv, color_dict,
+        params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, n_reruns, sim_name, total_results_csv, color_dict,
         extra_parameters, dependent_var, opti_mode, statistic, secondary_variable, secondary_range, no_attempts
     ):
     no_attempts = int(no_attempts)
@@ -301,11 +322,11 @@ def execute_saddle_search(
     argmin = secondary_range[0]
     argmax = secondary_range[1]
     dynamics, tree_cover_slope, largest_absolute_slope, argmin_result, initial_no_dispersals, argmin_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev, _params = execute_multiple_runs(
-        params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, no_reruns, sim_name, total_results_csv,
+        params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, n_reruns, sim_name, total_results_csv,
         color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=argmin, secondary_variable=secondary_variable
     )
     dynamics, tree_cover_slope, largest_absolute_slope, argmax_result, initial_no_dispersals, argmax_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev, _params = execute_multiple_runs(
-        params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, no_reruns, sim_name, total_results_csv,
+        params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, n_reruns, sim_name, total_results_csv,
         color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=argmax, secondary_variable=secondary_variable
     )
     secondary_value_trajectory = {argmin:argmin_result, argmax:argmax_result}
@@ -344,7 +365,7 @@ def execute_saddle_search(
     for i in range(no_attempts - 2):
         print("Value trajectory so far: ", secondary_value_trajectory)
         dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, cur_initial_no_dispersals, _, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev, _params = execute_multiple_runs(
-            params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, no_reruns, sim_name, total_results_csv,
+            params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, n_reruns, sim_name, total_results_csv,
             color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=cur_secondary_value, secondary_variable=secondary_variable,
             dependent_result_range_mean=dependent_result_range_mean, dependent_result_range_stdev=dependent_result_range_stdev
         )
@@ -407,20 +428,20 @@ def get_secondary_value_if_applicable(secondary_variable, secondary_range):
             secondary_control_value += secondary_range[1] # New value is old value + step size
 
 
-def yield_rerun_idx_if_not_saddle_search(type, no_reruns):
+def yield_rerun_idx_if_not_saddle_search(type, n_reruns):
     if type == "saddle_search":
         yield None
         return
     else:
-        if no_reruns == 0 or no_reruns == 1:
+        if n_reruns == 0 or n_reruns == 1:
             yield 0
             return
         else:
-            for rerun_idx in range(no_reruns):
+            for rerun_idx in range(n_reruns):
                 yield rerun_idx
 
             
-def iterate_across_range(params, control_variable, control_range, csv_parent_dir, proc_id, no_processes, no_reruns, sim_name, total_results_csv, color_dict,
+def iterate_across_range(params, control_variable, control_range, csv_parent_dir, proc_id, no_processes, n_reruns, sim_name, total_results_csv, color_dict,
                         extra_parameters, type, dependent_var, opti_mode, statistic, secondary_variable, secondary_range, attempts=None):
     init_csv = True
     i = 0
@@ -433,9 +454,9 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
     with open(params_json_path, "w") as params_json_file:
         json.dump(params, params_json_file)
         
-    for rerun_idx in yield_rerun_idx_if_not_saddle_search(type, no_reruns):
+    for rerun_idx in yield_rerun_idx_if_not_saddle_search(type, n_reruns):
         control_value = control_value_minimum
-        print("\n\n\n\n ------- Received rerun index: ", rerun_idx, "for batch type: ", type, "and no_reruns: ", no_reruns)
+        print("\n\n\n\n ------- Received rerun index: ", rerun_idx, "for batch type: ", type, "and n_reruns: ", n_reruns)
         while (control_value < control_range[1]) or (type == "constant"):    
             print("\n\n\n\n---new control val:", control_value)
             run_starttime = time.time()
@@ -443,7 +464,7 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
                 for secondary_value in get_secondary_value_if_applicable(secondary_variable, secondary_range):
                     # Run the simulation and append its results to the total results csv
                     dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, _params = execute_single_run(
-                        params, control_variable, control_value, csv_parent_dir, proc_id, no_processes, no_reruns, sim_name, total_results_csv, color_dict, 
+                        params, control_variable, control_value, csv_parent_dir, proc_id, no_processes, n_reruns, sim_name, total_results_csv, color_dict, 
                         extra_parameters, dependent_var, opti_mode, statistic, type, init_csv, secondary_variable=secondary_variable, secondary_value=secondary_value, 
                         no_runs_for_current_parameter_set=1, rerun_idx=rerun_idx
                     )
@@ -456,7 +477,7 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
                     )
             elif (type == "saddle_search"):
                 secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, guess_result, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev, _params = execute_saddle_search(
-                    params, control_variable, control_value, csv_parent_dir, proc_id, no_processes, no_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
+                    params, control_variable, control_value, csv_parent_dir, proc_id, no_processes, n_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
                     dependent_var, opti_mode, statistic, secondary_variable, secondary_range, attempts
                 )
                 params = vars(_params) # Update params in case they were modified during the run
@@ -486,8 +507,8 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
             dynamics.free()
             init_csv = False
         
-            # If the batch type is constant, we terminate when we've performed a number of simulations equal to 'no_reruns'
-            if type == "constant" and no_runs_for_current_parameter_set > no_reruns:
+            # If the batch type is constant, we terminate when we've performed a number of simulations equal to 'n_reruns'
+            if type == "constant" and no_runs_for_current_parameter_set > n_reruns:
                 break
     
     print("Batch complete. Exiting..")
@@ -597,9 +618,16 @@ def load_batch_config(batch_cfg):
     return batch_cfg
 
 
-def run_batch(batch_cfg, proc_id):
+def run_batch(batch_cfg, proc_id, sim_counter):
     time_to_sleep = random.uniform(10, 15)
     time.sleep(time_to_sleep)
+
+    with sim_counter.get_lock():
+        n_finished_simulations = sim_counter.value
+        sim_counter.value += 1
+
+    job = batch_cfg.jobs.get(n_finished_simulations)
+ 
     return True
 
 
@@ -613,17 +641,19 @@ def parse_jobs(batch_cfg):
 def configure_logger(logname=None, verbosity=None, **_):
     if verbosity == "info":
         logging.basicConfig(filename=logname, level=logging.INFO)
+    elif verbosity == "debug":
+        logging.basicConfig(filename=logname, level=logging.DEBUG)
 
     handler = get_stdout_logging_handler()
     logger.addHandler(handler)
 
 
 def manage_processes(batch_cfg):
-    logging.basicConfig(filename="batch.log", level=logging.INFO)
     procs = Processes()
+    n_finished_simulations = Value("i", 0)
     logger.info("Starting processes...")
     for i in range(batch_cfg.no_processes):
-        procs.add(Process(target=run_batch, args=(batch_cfg, i)))
+        procs.add(Process(target=run_batch, args=(batch_cfg, i, n_finished_simulations)))
     logger.info("Finished starting processes.")
 
     while not procs.finished(print_progress=True):

@@ -44,13 +44,13 @@ class Processes:
     def finished(self, print_progress=False):
         _active_proc_count = sum(proc.is_alive() for proc in self.procs)
         if print_progress and _active_proc_count != self.active_proc_count:
-            logger.info(f"    {len(self.procs) - _active_proc_count} out of {len(self.procs)} processes have finished.")
+            logger.debug(f"    {len(self.procs) - _active_proc_count} out of {len(self.procs)} processes have finished.")
         self.active_proc_count = _active_proc_count
         return self.active_proc_count == 0
 
 
-def index_order_once(n):
-    queue = deque([(0, n - 1)])
+def index_order_once(cfg):
+    queue = deque([(0, cfg.n - 1)])
     seen = set()
 
     while queue:
@@ -71,9 +71,9 @@ def index_order_once(n):
         queue.append((mid + 1, hi - 1))
 
 
-def get_random_int_generator(rng, low, high):
+def get_random_int_generator(cfg):
     while True:
-        yield rng.randint(low, high)
+        yield cfg.rng.randint(cfg.low, cfg.high)
 
 
 def infinite_index_order(n):
