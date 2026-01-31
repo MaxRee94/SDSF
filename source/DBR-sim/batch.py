@@ -133,15 +133,24 @@ class Jobs:
         return expanded_argsets
 
 
-def get_csv_parent_dir(batch_cfg):
-    with open(os.path.join(config.cfg.DATA_OUT_DIR, "state_data/tmp/batchfolder_lookup_table.json"), "r") as lookup_table_file:
-        folder_lookup_table = json.load(lookup_table_file)
+def get_new_batch_folder():
+    batch_no = 1
+    batch_folder = config.cfg.DATA_OUT_DIR + "/state_data/batch_000001"
+    new_batch_folders = []
+    while os.path.exists(batch_folder):
+        batch_no += 1
+        batch_folder = batch_folder.split("batch_")[0] + "batch_" + str(batch_no).zfill(6)
 
-    csv_parent_dir = folder_lookup_table[str(batch_cfg.run)]
-    if not os.path.isdir(csv_parent_dir):
-        os.makedirs(csv_parent_dir)
-    
-    return csv_parent_dir
+    return batch_folder
+
+
+def determine_csv_parent_dir(batch_cfg):
+    batch_folder = get_new_batch_folder()
+    if not os.path.isdir(batch_folder):
+        os.makedirs(batch_folder)
+    batch_cfg.csv_parent_dir = batch_folder    
+
+    return batch_cfg
 
 
 def get_next_control_value(i, control_variable, control_value, control_range, proc_id, no_processes, dynamics, tree_cover_slope):
@@ -569,11 +578,16 @@ def determine_no_processes(batch_cfg):
     return batch_cfg
 
 
+def determine_total_results_csv(batch_cfg):
+    batch_cfg.total_results_csv = batch_cfg.csv_parent_dir + "/{}_results.csv".format(batch_cfg.csv_parent_dir.split("state_data/")[1])
+    return batch_cfg
+
+
 def load_batch_config(batch_cfg):
     batch_cfg = read_config_from_file(batch_cfg)
     batch_cfg = parse_jobs(batch_cfg)
-    batch_cfg.csv_parent_dir = get_csv_parent_dir(batch_cfg)
-    batch_cfg.total_results_csv = batch_cfg.csv_parent_dir + "/{}_results.csv".format(batch_cfg.csv_parent_dir.split("state_data/")[1])
+    batch_cfg = determine_csv_parent_dir(batch_cfg)
+    batch_cfg = determine_total_results_csv(batch_cfg) 
     batch_cfg = set_random_seeds(batch_cfg)
     batch_cfg = determine_no_processes(batch_cfg)
     batch_cfg.vis = vis.Visualiser(batch_cfg)
@@ -639,8 +653,8 @@ if __name__ == "__main__":
         main(cfg)
     except Exception as e:
         logger.error("An error occurred during execution of the batch module.")
-        parent_dir = get_csv_parent_dir(cfg)
-        csv_file = parent_dir + "/Error_log.txt";
+        determine_csv_parent_dir(cfg)
+        csv_file = cfg.csv_parent_dir + "/Error_log.txt";
         with open(csv_file, 'a') as f:
             f.write(str(e))
             f.write(traceback.format_exc())
