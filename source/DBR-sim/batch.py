@@ -514,7 +514,7 @@ def ensure_correct_arg_datatype(cfg):
     Returns:
         dict: Dictionary with the arguments and their values, with the correct datatypes.
     """
-    print("cfg: ", cfg)
+
     for key in cfg:
         cfg[key] = _ensure_correct_arg_datatype(cfg[key])
     
@@ -523,13 +523,12 @@ def ensure_correct_arg_datatype(cfg):
 
 def read_config_from_file(_batch_cfg):
     with open(os.path.join(config.cfg.SOURCE_DIR, "batch_config", _batch_cfg.config), "r") as f:
-        batch_cfg = json.load(f)
+        batch_cfg = json.load(f)     
 
     for k, v in vars(_batch_cfg).items():
         batch_cfg[k] = v
-    
-    return SimpleNamespace(**batch_cfg)
 
+    return SimpleNamespace(**batch_cfg)
 
 
 def create_color_dict(batch_cfg):
@@ -593,6 +592,8 @@ def run_batch(batch_cfg, proc_id):
 def parse_jobs(batch_cfg):
     batch_cfg.jobs = Jobs(**vars(batch_cfg))
     logger.info("Number of jobs to run: {}".format(batch_cfg.jobs.count()))
+    
+    return batch_cfg
 
 
 def configure_logger(logname=None, verbosity=None, **_):
@@ -633,7 +634,7 @@ if __name__ == "__main__":
     parser.add_argument('-rsf', '--firefreq_random_seed', type=str, default=-999, help="Random seed for fire frequencies for the batch. If != -999, each individual simulation may still get a unique random seed, but according to a reproducible sequence. If a random seed (!= -999) is provided in the batch config, this seed will be used for each simulation.")
     parser.add_argument('-vrb', '--verbosity', type=str, default="info", help="Verbosity level for the batch runs. Set to 0 to suppress console output.")
     cfg = parser.parse_args()
-    
+
     try:
         main(cfg)
     except Exception as e:
