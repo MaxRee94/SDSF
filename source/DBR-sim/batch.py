@@ -659,10 +659,10 @@ def parse_jobs(batch_cfg):
     return batch_cfg
 
 
-def configure_logger(logname=None, verbosity=None, _format="%(levelname)s:%(name)s:%(message)s", **_):
-    if verbosity == "info":
+def configure_logger(logname=None, batch_verbosity=None, _format="%(levelname)s:%(name)s:%(message)s", **_):
+    if batch_verbosity == "info":
         logging.basicConfig(filename=logname, level=logging.INFO, format=_format)
-    elif verbosity == "debug":
+    elif batch_verbosity == "debug":
         logging.basicConfig(filename=logname, level=logging.DEBUG, format=_format)
 
     handler = get_stdout_logging_handler()
@@ -708,7 +708,7 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--run', type=str, default=1, help="Unique run identifier in case of multiple runs per batch")
     parser.add_argument('-rs', '--random_seed', type=str, default=-999, help="Random seed for the batch. If seed != -999, each individual simulation may still get a unique random seed, but according to a reproducible sequence. If a random seed (!= -999) is provided in the batch config, this seed will be used for each simulation.")
     parser.add_argument('-rsf', '--firefreq_random_seed', type=str, default=-999, help="Random seed for fire frequencies for the batch. If != -999, each individual simulation may still get a unique random seed, but according to a reproducible sequence. If a random seed (!= -999) is provided in the batch config, this seed will be used for each simulation.")
-    parser.add_argument('-vrb', '--verbosity', type=str, default="info", help="Verbosity level for the batch runs. Set to 0 to suppress console output.")
+    parser.add_argument('-vrb', '--batch_verbosity', type=str, default="info", help="Verbosity level for the batch runs. Set to 0 to suppress console output.")
     cfg = parser.parse_args()
 
     try:
