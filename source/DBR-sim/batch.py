@@ -103,6 +103,10 @@ class Jobs:
             idx = self.get_key_idx(key)
             value_sets = self.add_range(value_sets, idx, vec)
 
+        # If we're doing a multi-dimensional sensitivity analysis, we shuffle the order of the jobs
+        if not type(value_sets[0]) == list:
+            self.rng.shuffle(value_sets)
+
         return value_sets
 
     def get_specific_job(self, idx):

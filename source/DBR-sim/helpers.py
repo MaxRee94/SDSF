@@ -45,7 +45,7 @@ class Processes:
     def finished(self, print_progress=False):
         _active_proc_count = sum(proc.is_alive() for proc in self.procs)
         if print_progress and _active_proc_count != self.active_proc_count:
-            logger.debug(f"    {len(self.procs) - _active_proc_count} out of {len(self.procs)} processes have finished.")
+            logger.info(f"    {len(self.procs) - _active_proc_count} out of {len(self.procs)} processes have finished.")
         self.active_proc_count = _active_proc_count
         return self.active_proc_count == 0
 
