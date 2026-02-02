@@ -506,27 +506,12 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
                 )
             else:
                 raise RuntimeError("Invalid batch type '{}'. Exiting..".format(type))
-        
-            init_csv = False
 
             # Get a color image representation of the final state
             img = vis.get_image_from_grid(dynamics.state.grid, color_dict, collect_states=1)
             vis.save_image(img, singlerun_image_path, get_max(dynamics.state.grid.width, 1000))
-        
-            # Get the next control value
-            no_runs_for_current_parameter_set += 1
-            if type != "constant" and (type in ["saddle_search", "range"]):
-                no_runs_for_current_parameter_set = 0
-                control_value = get_next_control_value(i, control_variable, control_value, control_range, proc_id, no_processes, dynamics, largest_absolute_slope)
-            i += no_runs_for_current_parameter_set == 0
- 
-            # Free memory
-            dynamics.free()
+
             init_csv = False
-        
-            # If the batch type is constant, we terminate when we've performed a number of simulations equal to 'n_reruns'
-            if type == "constant" and no_runs_for_current_parameter_set > n_reruns:
-                break
     
     print("Batch complete. Exiting..")
 
@@ -631,6 +616,7 @@ def load_batch_config(batch_cfg):
     batch_cfg.vis = vis.Visualiser(batch_cfg)
     batch_cfg.color_dict = create_color_dict(batch_cfg)
     batch_cfg.headless = True
+    batch_cfg.init_csv = True
 
     return batch_cfg
 
