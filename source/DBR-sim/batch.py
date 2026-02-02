@@ -49,11 +49,16 @@ class Jobs:
         return vec
 
     def convert_value_set_to_namespace(self, job_values):
+        job = self.convert_job_to_dict(job_values)
+
+        return SimpleNamespace(**job)
+
+    def convert_job_to_dict(self, job_values):
         job = {}
         for i, (key, _) in enumerate(self.defaults.items()):
             job[key] = job_values[i]
 
-        return SimpleNamespace(**job)
+        return job
     
     def derive_unique_job_count(self, arg_changes):
         job_count = 0
@@ -109,8 +114,11 @@ class Jobs:
 
         return value_sets
 
-    def get_specific_job(self, idx):
-        return self.convert_value_set_to_namespace(self.jobs[idx])
+    def get_specific_job(self, idx, return_dict=False):
+        if return_dict:
+            return self.convert_job_to_dict(self.jobs[idx])
+        else:
+            return self.convert_value_set_to_namespace(self.jobs[idx])
 
     def count(self):
         return self.n_reruns * len(self.jobs)
@@ -461,9 +469,7 @@ def iterate_across_range(params, control_variable, control_range, csv_parent_dir
     params["report_state"] = "False"
     control_value_minimum = control_range[0] + proc_id * (control_range[2] / (no_processes) )
     control_value = control_value_minimum
-    params_json_path = csv_parent_dir + "/parameters.json"
-    with open(params_json_path, "w") as params_json_file:
-        json.dump(params, params_json_file)
+    
         
     for rerun_idx in yield_rerun_idx_if_not_saddle_search(type, n_reruns):
         control_value = control_value_minimum
@@ -663,6 +669,15 @@ def configure_logger(logname=None, verbosity=None, _format="%(levelname)s:%(name
     logger.addHandler(handler)
 
 
+def export_args(batch_cfg):
+    args_json_path = batch_cfg.csv_parent_dir + "/parameters.json"
+    with open(args_json_path, "w") as args_json:
+        args = deepcopy(batch_cfg.jobs.get_specific_job(0, return_dict=True))
+        for k, v in batch_cfg.arguments.items():
+            args[k] = v
+        json.dump(args, args_json)
+
+
 def manage_processes(batch_cfg):
     procs = Processes()
     n_finished_simulations = Value("i", 0)
@@ -682,6 +697,7 @@ def main(batch_cfg):
     os.remove("batch.log")
     configure_logger(logname="batch.log", **vars(batch_cfg))
     batch_cfg = load_batch_config(batch_cfg)
+    export_args(batch_cfg)
     manage_processes(batch_cfg)
 
         
