@@ -1,5 +1,4 @@
 import numpy as np
-from rdfpy import rdf
 import sys
 import json
 import argparse
@@ -220,16 +219,6 @@ def apply_user_args_to_configuration(args, cfg):
     for key, value in vars(args).items():
         setattr(cfg, key, value)
     return cfg
-
-
-def compute_radial_distribution_function(dynamics, stepsize=0.02):
-    tree_positions = dynamics.state.get_tree_positions()
-    
-    print("Computing radial distribution function...")
-    g_r, radii = rdf(tree_positions, stepsize * dynamics.state.grid.width_r)
-    print("Finished computing radial distribution function.")
-    
-    return g_r, radii
 
 
 def is_number(inputString):
