@@ -459,61 +459,6 @@ def yield_rerun_idx_if_not_saddle_search(type, n_reruns):
             for rerun_idx in range(n_reruns):
                 yield rerun_idx
 
-            
-def iterate_across_range(params, control_variable, control_range, csv_parent_dir, proc_id, no_processes, n_reruns, sim_name, total_results_csv, color_dict,
-                        extra_parameters, type, dependent_var, opti_mode, statistic, secondary_variable, secondary_range, attempts=None):
-    init_csv = True
-    i = 0
-    time_budget_per_run = 60 * 60
-    no_runs_for_current_parameter_set = 0
-    params["report_state"] = "False"
-    control_value_minimum = control_range[0] + proc_id * (control_range[2] / (no_processes) )
-    control_value = control_value_minimum
-    
-        
-    for rerun_idx in yield_rerun_idx_if_not_saddle_search(type, n_reruns):
-        control_value = control_value_minimum
-        print("\n\n\n\n ------- Received rerun index: ", rerun_idx, "for batch type: ", type, "and n_reruns: ", n_reruns)
-        while (control_value < control_range[1]) or (type == "constant"):    
-            print("\n\n\n\n---new control val:", control_value)
-            run_starttime = time.time()
-            if (type == "range" or type == "constant"):
-                for secondary_value in get_secondary_value_if_applicable(secondary_variable, secondary_range):
-                    # Run the simulation and append its results to the total results csv
-                    dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, _params = execute_single_run(
-                        params, control_variable, control_value, csv_parent_dir, proc_id, no_processes, n_reruns, sim_name, total_results_csv, color_dict, 
-                        extra_parameters, dependent_var, opti_mode, statistic, type, init_csv, secondary_variable=secondary_variable, secondary_value=secondary_value, 
-                        no_runs_for_current_parameter_set=1, rerun_idx=rerun_idx
-                    )
-                    params = vars(_params) # Update params in case they were modified during the run
-
-                    _io.export_state(
-                        dynamics, total_results_csv, init_csv, initial_no_dispersals=initial_no_dispersals, control_variable=control_variable, control_value=control_value,
-                        tree_cover_slope=tree_cover_slope, secondary_variable=secondary_variable, secondary_value=secondary_value, extra_parameters=str(extra_parameters),
-                        cfg=SimpleNamespace(**params)
-                    )
-            elif (type == "saddle_search"):
-                secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, guess_result, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev, _params = execute_saddle_search(
-                    params, control_variable, control_value, csv_parent_dir, proc_id, no_processes, n_reruns, sim_name, total_results_csv, color_dict, extra_parameters,
-                    dependent_var, opti_mode, statistic, secondary_variable, secondary_range, attempts
-                )
-                params = vars(_params) # Update params in case they were modified during the run
-                
-                _io.export_state(
-                    dynamics, total_results_csv, init_csv, control_variable=control_variable, control_value=control_value,
-                    tree_cover_slope=tree_cover_slope, extra_parameters=str(extra_parameters), secondary_variable=secondary_variable, secondary_value=secondary_value,
-                    dependent_var=dependent_var, dependent_val=guess_result, dependent_result_range_stdev=dependent_result_range_stdev, cfg=SimpleNamespace(**params)
-                )
-            else:
-                raise RuntimeError("Invalid batch type '{}'. Exiting..".format(type))
-
-            # Get a color image representation of the final state
-            img = vis.get_image_from_grid(dynamics.state.grid, color_dict, collect_states=1)
-            vis.save_image(img, singlerun_image_path, get_max(dynamics.state.grid.width, 1000))
-
-            init_csv = False
-    
-    print("Batch complete. Exiting..")
 
 def _ensure_correct_arg_datatype(element):
     if not type(element) == str:
@@ -616,12 +561,26 @@ def load_batch_config(batch_cfg):
     batch_cfg.vis = vis.Visualiser(batch_cfg)
     batch_cfg.color_dict = create_color_dict(batch_cfg)
     batch_cfg.headless = True
-    batch_cfg.init_csv = True
 
     return batch_cfg
 
 
-def run_batch(batch_cfg, proc_id, sim_counter):
+def run_sim(batch_cfg, job, init_csv):
+    dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, sim_cfg = app.main(**job)
+
+    if init_csv.value == 1:
+        with init_csv.get_lock(): # Ensure the total results csv is only initialized once, by a single process.
+            _io.export_state(
+                dynamics, **batch_cfg, init_csv=init_csv.value, cfg=SimpleNamespace(**sim_cfg)
+            )
+            init_csv.value = 0
+    else:
+        _io.export_state(
+            dynamics, **batch_cfg, init_csv=False, cfg=SimpleNamespace(**sim_cfg)
+        )
+
+
+def run_batch(batch_cfg, proc_id, sim_counter, init_csv):
     configure_logger(logname="batch.log", format="%(levelname)s %(processName)s: %(message)s", **vars(batch_cfg))
 
     while True:
@@ -632,6 +591,8 @@ def run_batch(batch_cfg, proc_id, sim_counter):
         job = batch_cfg.jobs.get(n_finished_simulations)
         if not job:
             break
+
+        run_sim(batch_cfg, job, init_csv)
         
         logger.debug(f"\n\nProcess {proc_id} starting simulation {n_finished_simulations+1}/{batch_cfg.jobs.count()} with parameters: {job}")
  
@@ -667,9 +628,10 @@ def export_args(batch_cfg):
 def manage_processes(batch_cfg):
     procs = Processes()
     n_finished_simulations = Value("i", 0)
+    init_csv = Value("i", 1)
     logger.info("Starting processes...")
     for i in range(batch_cfg.no_processes):
-        procs.add(Process(target=run_batch, args=(batch_cfg, i, n_finished_simulations)))
+        procs.add(Process(target=run_batch, args=(batch_cfg, i, n_finished_simulations, init_csv)))
     logger.info("Finished starting processes.")
 
     while not procs.finished(print_progress=True):
