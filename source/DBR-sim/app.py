@@ -211,8 +211,8 @@ def termination_condition_satisfied(dynamics, start_time, cfg):
     condition = ""
     if (dynamics.time >= int(cfg.max_timesteps)):
         condition = f"Maximum number of timesteps ({cfg.max_timesteps}) reached."
-    if (cfg.termination_conditions == "all" and dynamics.state.grid.get_tree_cover() > 0.93):
-        condition = f"Tree cover exceeds 93%."
+    if (cfg.termination_conditions == "all" and dynamics.state.grid.get_tree_cover() > 0.98):
+        condition = f"Tree cover exceeds 98%."
     satisfied = len(condition) > 0
     if satisfied:
         print("\nSimulation terminated. Cause:", condition)
