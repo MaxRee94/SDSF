@@ -154,37 +154,7 @@ def create_directory_if_not_exists(_dir):
             raise RuntimeError("Failed to create directory: " + _dir)
 
 
-def export_state(
-        dynamics, path="", init_csv=True, control_variable=None, control_value=None, tree_cover_slope=0,
-        extra_parameters="", secondary_variable=None, secondary_value=None, dependent_var=None, dependent_val=None, initial_no_dispersals=None, dependent_result_range_stdev=None,
-        cfg=None
-    ):
-    fieldnames = [
-        "time", "treecover", "slope", "population_size", "#seeds_produced", "fires", "top_kills", "nonseedling_top_kills", "deaths",
-        "extra_parameters", "mean tree size", "stdev tree size",
-        "firefree_interval_mean", "firefree_interval_stdev", "firefree_interval_full_sim_mean", "firefree_interval_full_sim_stdev", "time_spent_moving",
-        "shaded_out", "outcompeted_by_seedlings", "outcompeted_by_oldstems", "initial_no_dispersals",
-        "recruits", "germination_attempts", "oldstem_competition_and_shading", "seedling_competition_and_shading", "perimeter_length", "perimeter-area_ratio",
-        "basal_area"
-    ]
-    if dependent_var:
-        fieldnames.insert(0, dependent_var)
-    if secondary_variable:
-        if secondary_variable == "treecover":
-            secondary_variable = "initial_tree_cover"
-        fieldnames.insert(0, secondary_variable)
-    if initial_no_dispersals:
-        fieldnames.insert(-3, "initial_number_of_dispersals")
-    if control_variable:
-        if control_variable == "treecover":
-            control_variable = "initial tree cover"
-        fieldnames.insert(0, control_variable)
-    if dependent_result_range_stdev:
-        fieldnames.insert(0, "dependent_result_range_stdev")
-    if not cfg.rotate_randomly:
-        fieldnames.insert(3, "global_rotation_offset")
-
-    # Collect tree ages and sizes
+def get_tree_histograms(dynamics, init_csv, fieldnames):
     if init_csv:
         tree_sizes, cfg.treesize_bins = get_tree_sizes(dynamics, "initialize", cfg=cfg)
         tree_ages, cfg.tree_age_bins = get_tree_ages(dynamics, "initialize")
@@ -199,8 +169,96 @@ def export_state(
         (age_lowb, age_highb) = (cfg.tree_age_bins[i], cfg.tree_age_bins[i+1])
         treesize_bins_strings.append("trees[dbh {0} - {1}]".format(round(size_lowb), round(size_highb)))
         tree_age_bins_strings.append("trees[age {0} - {1}]".format(round(age_lowb), round(age_highb)))
-        fieldnames.insert(5, treesize_bins_strings[i])
-        fieldnames.insert(6+i, tree_age_bins_strings[i])
+
+    fieldnames.insert(5, treesize_bins_strings[i])
+    fieldnames.insert(6+i, tree_age_bins_strings[i])
+
+    return treesize_bins_strings, tree_sizes, tree_age_bins_strings, tree_ages
+ 
+
+def obtain_state_variables(dynamics, control_vars, dependent_vars, extra_parameters, cfg, init_csv, fieldnames):
+    treesize_bins_strings, tree_sizes, tree_age_bins_strings, tree_ages = get_tree_histograms(dynamics, init_csv, fieldnames)
+    firefree_interval_mean, firefree_interval_stdev = get_firefree_interval_stats(dynamics, "current_iteration")
+    firefree_interval_fullsim_mean, firefree_interval_fullsim_stdev = get_firefree_interval_stats(dynamics, "average")
+    fires = dynamics.get_fires()
+    fires = "|".join([str(fire) for fire in fires])
+    result = {
+        "time": str(dynamics.time),
+        "treecover": str(dynamics.state.grid.get_tree_cover()), 
+        "population_size": str(dynamics.state.population.size()),
+        "#seeds_produced": str(dynamics.seeds_produced),
+        "fires": fires,
+        treesize_bins_strings[0]: str(tree_sizes[0]),
+        treesize_bins_strings[1]: str(tree_sizes[1]),
+        treesize_bins_strings[2]: str(tree_sizes[2]),
+        treesize_bins_strings[3]: str(tree_sizes[3]),
+        treesize_bins_strings[4]: str(tree_sizes[4]),
+        tree_age_bins_strings[0]: str(tree_ages[0]),
+        tree_age_bins_strings[1]: str(tree_ages[1]),
+        tree_age_bins_strings[2]: str(tree_ages[2]),
+        tree_age_bins_strings[3]: str(tree_ages[3]),
+        tree_age_bins_strings[4]: str(tree_ages[4]),
+        "mean tree size": str(np.mean(dynamics.state.get_tree_sizes())),
+        "stdev tree size": str(np.std(dynamics.state.get_tree_sizes())),
+        "top_kills": str(dynamics.get_no_fire_induced_topkills()),
+        "deaths": str(dynamics.get_no_fire_induced_deaths()),
+        "extra_parameters": str(extra_parameters),
+        "firefree_interval_mean": str(firefree_interval_mean),
+        "firefree_interval_stdev": str(firefree_interval_stdev),
+        "firefree_interval_full_sim_mean": str(firefree_interval_fullsim_mean),
+        "firefree_interval_full_sim_stdev": str(firefree_interval_fullsim_stdev),
+        "recruits": str(dynamics.get_no_recruits("all")),
+        "initial_no_dispersals": str(dynamics.get_initial_no_dispersals()),
+        "time_spent_moving": str(dynamics.get_fraction_time_spent_moving()),
+        "shaded_out": str(dynamics.get_fraction_seedlings_dead_due_to_shade()),
+        "nonseedling_top_kills": str(dynamics.get_no_fire_induced_nonseedling_topkills()),
+        "outcompeted_by_seedlings": str(dynamics.get_fraction_seedlings_outcompeted()),
+        "outcompeted_by_oldstems": str(dynamics.get_fraction_seedlings_outcompeted_by_older_trees()),
+        "germination_attempts": str(dynamics.get_no_germination_attempts()),
+        "oldstem_competition_and_shading": str(dynamics.get_fraction_cases_oldstem_competition_and_shading()),
+        "seedling_competition_and_shading": str(dynamics.get_fraction_cases_seedling_competition_and_shading()),
+        "perimeter-area_ratio": str(dynamics.get_perimeter_area_ratio()),
+        "perimeter_length": str(dynamics.get_forest_perimeter_length()),
+        "basal_area": str(dynamics.get_basal_area())
+    }
+    PAR_derived_area = float(result["perimeter_length"]) / float(result["perimeter-area_ratio"]) if float(result["perimeter-area_ratio"]) != 0 else 0
+    treecover_derived_area = float(result["treecover"]) * cfg.grid_width**2 * cfg.cell_width**2
+    #assert (PAR_derived_area == treecover_derived_area), f"Perimeter-length / Perimeter-area-ratio ({PAR_derived_area}) does not equal Tree-cover * Spatial domain area ({treecover_derived_area})."
+    if not cfg.rotate_randomly:
+        result["global_rotation_offset"] = str(cfg.global_rotation_offset)
+    for cv in control_vars.keys():
+        result[cv] = str(control_vars[cv])
+    for dv in dependent_vars.keys():
+        result[cv] = str(dependent_vars[cv])
+
+    return result
+
+
+def get_fieldnames(dynamics, control_vars, dependent_vars, extra_parameters, cfg):
+    fieldnames = [
+        "time", "treecover", "slope", "population_size", "#seeds_produced", "fires", "top_kills", "nonseedling_top_kills", "deaths",
+        "extra_parameters", "mean tree size", "stdev tree size",
+        "firefree_interval_mean", "firefree_interval_stdev", "firefree_interval_full_sim_mean", "firefree_interval_full_sim_stdev", "time_spent_moving",
+        "shaded_out", "outcompeted_by_seedlings", "outcompeted_by_oldstems", "initial_no_dispersals",
+        "recruits", "germination_attempts", "oldstem_competition_and_shading", "seedling_competition_and_shading", "perimeter_length", "perimeter-area_ratio",
+        "basal_area"
+    ]
+    for cv in control_vars.keys():
+        if cv == "treecover":
+            cv = "initial tree cover"
+        fieldnames.insert(0, cv)
+    for dv in dependent_vars.keys():
+        fieldnames.insert(0, dv)
+    if not cfg.rotate_randomly:
+        fieldnames.insert(3, "global_rotation_offset")
+
+    return fieldnames
+
+
+def export_state(
+        dynamics, path="", init_csv=True, control_vars=None, dependent_vars=None, extra_parameters="", cfg=None, **kwargs
+    ):
+    fieldnames = get_fieldnames(dynamics, control_vars, dependent_vars, extra_parameters, cfg)
 
     # Initialize CSV file with headers if it doesn't exist
     if init_csv and not os.path.exists(path):
@@ -213,65 +271,7 @@ def export_state(
 
     with open(path, 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        firefree_interval_mean, firefree_interval_stdev = get_firefree_interval_stats(dynamics, "current_iteration")
-        firefree_interval_fullsim_mean, firefree_interval_fullsim_stdev = get_firefree_interval_stats(dynamics, "average")
-        fires = dynamics.get_fires()
-        fires = "|".join([str(fire) for fire in fires])
-        result = {
-            "time": str(dynamics.time),
-            "treecover": str(dynamics.state.grid.get_tree_cover()), 
-            "slope": str(tree_cover_slope),
-            "population_size": str(dynamics.state.population.size()),
-            "#seeds_produced": str(dynamics.seeds_produced),
-            "fires": fires,
-            treesize_bins_strings[0]: str(tree_sizes[0]),
-            treesize_bins_strings[1]: str(tree_sizes[1]),
-            treesize_bins_strings[2]: str(tree_sizes[2]),
-            treesize_bins_strings[3]: str(tree_sizes[3]),
-            treesize_bins_strings[4]: str(tree_sizes[4]),
-            tree_age_bins_strings[0]: str(tree_ages[0]),
-            tree_age_bins_strings[1]: str(tree_ages[1]),
-            tree_age_bins_strings[2]: str(tree_ages[2]),
-            tree_age_bins_strings[3]: str(tree_ages[3]),
-            tree_age_bins_strings[4]: str(tree_ages[4]),
-            "mean tree size": str(np.mean(dynamics.state.get_tree_sizes())),
-            "stdev tree size": str(np.std(dynamics.state.get_tree_sizes())),
-            "top_kills": str(dynamics.get_no_fire_induced_topkills()),
-            "deaths": str(dynamics.get_no_fire_induced_deaths()),
-            "extra_parameters": str(extra_parameters),
-            "firefree_interval_mean": str(firefree_interval_mean),
-            "firefree_interval_stdev": str(firefree_interval_stdev),
-            "firefree_interval_full_sim_mean": str(firefree_interval_fullsim_mean),
-            "firefree_interval_full_sim_stdev": str(firefree_interval_fullsim_stdev),
-            "recruits": str(dynamics.get_no_recruits("all")),
-            "initial_no_dispersals": str(dynamics.get_initial_no_dispersals()),
-            "time_spent_moving": str(dynamics.get_fraction_time_spent_moving()),
-            "shaded_out": str(dynamics.get_fraction_seedlings_dead_due_to_shade()),
-            "nonseedling_top_kills": str(dynamics.get_no_fire_induced_nonseedling_topkills()),
-            "outcompeted_by_seedlings": str(dynamics.get_fraction_seedlings_outcompeted()),
-            "outcompeted_by_oldstems": str(dynamics.get_fraction_seedlings_outcompeted_by_older_trees()),
-            "germination_attempts": str(dynamics.get_no_germination_attempts()),
-            "oldstem_competition_and_shading": str(dynamics.get_fraction_cases_oldstem_competition_and_shading()),
-            "seedling_competition_and_shading": str(dynamics.get_fraction_cases_seedling_competition_and_shading()),
-            "perimeter-area_ratio": str(dynamics.get_perimeter_area_ratio()),
-            "perimeter_length": str(dynamics.get_forest_perimeter_length()),
-            "basal_area": str(dynamics.get_basal_area())
-        }
-        PAR_derived_area = float(result["perimeter_length"]) / float(result["perimeter-area_ratio"]) if float(result["perimeter-area_ratio"]) != 0 else 0
-        treecover_derived_area = float(result["treecover"]) * cfg.grid_width**2 * cfg.cell_width**2
-        #assert (PAR_derived_area == treecover_derived_area), f"Perimeter-length / Perimeter-area-ratio ({PAR_derived_area}) does not equal Tree-cover * Spatial domain area ({treecover_derived_area})."
-        if not cfg.rotate_randomly:
-            result["global_rotation_offset"] = str(cfg.global_rotation_offset)
-        if control_variable:
-            result[control_variable] = control_value
-        if secondary_variable:
-            result[secondary_variable] = secondary_value
-        if dependent_var:
-            result[dependent_var] = dependent_val
-        if initial_no_dispersals:
-            result["initial_number_of_dispersals"] = initial_no_dispersals
-        if dependent_result_range_stdev:
-            result["dependent_result_range_stdev"] = dependent_result_range_stdev
+        result = obtain_state_variables(dynamics, control_vars, dependent_vars, extra_parameters, cfg, fieldnames)
         writer.writerow(result)
     
     cfg.csv_path = path

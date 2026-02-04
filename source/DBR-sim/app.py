@@ -543,7 +543,14 @@ def updateloop(dynamics, color_dicts, cfg):
         cv2.destroyAllWindows()
         dynamics.free()
 
-    return dynamics, slope, largest_absolute_slope, initial_no_dispersals, cfg
+    if not hasattr(cfg, "dependent_vars"):
+        cfg.dependent_vars = {
+            "tree_cover_slope": slope, 
+            "largest_absolute_slope": largest_absolute_slope, 
+            "initial_no_dispersals": initial_no_dispersals
+        }
+
+    return dynamics, cfg
 
 
 def test_kernel():
