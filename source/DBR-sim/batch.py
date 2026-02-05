@@ -566,7 +566,7 @@ def load_batch_config(batch_cfg):
 
 
 def run_sim(batch_cfg, job, init_csv):
-    dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, sim_cfg = app.main(**job)
+    dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, sim_cfg = app.main(**vars(job))
 
     if init_csv.value == 1:
         with init_csv.get_lock(): # Ensure the total results csv is only initialized once, by a single process.
@@ -617,7 +617,7 @@ def configure_logger(logname=None, batch_verbosity=None, _format="%(levelname)s:
 
 
 def export_args(batch_cfg):
-    args_json_path = batch_cfg.csv_parent_dir + "/parameters.json"
+    args_json_path = batch_cfg.csv_parent_dir + "/configuration.json"
     with open(args_json_path, "w") as args_json:
         args = deepcopy(batch_cfg.jobs.get_specific_job(0, return_dict=True))
         for k, v in batch_cfg.arguments.items():

@@ -154,7 +154,7 @@ def create_directory_if_not_exists(_dir):
             raise RuntimeError("Failed to create directory: " + _dir)
 
 
-def get_tree_histograms(dynamics, init_csv, fieldnames):
+def get_tree_histograms(dynamics, init_csv, fieldnames, cfg):
     if init_csv:
         tree_sizes, cfg.treesize_bins = get_tree_sizes(dynamics, "initialize", cfg=cfg)
         tree_ages, cfg.tree_age_bins = get_tree_ages(dynamics, "initialize")
@@ -170,14 +170,16 @@ def get_tree_histograms(dynamics, init_csv, fieldnames):
         treesize_bins_strings.append("trees[dbh {0} - {1}]".format(round(size_lowb), round(size_highb)))
         tree_age_bins_strings.append("trees[age {0} - {1}]".format(round(age_lowb), round(age_highb)))
 
-    fieldnames.insert(5, treesize_bins_strings[i])
-    fieldnames.insert(6+i, tree_age_bins_strings[i])
+        fieldnames.insert(5, treesize_bins_strings[i])
+        fieldnames.insert(6+i, tree_age_bins_strings[i])
 
-    return treesize_bins_strings, tree_sizes, tree_age_bins_strings, tree_ages
+    return SimpleNamespace(
+        **{"treesize_bins_strings": treesize_bins_strings, "tree_sizes": tree_sizes,
+           "tree_age_bins_strings": tree_age_bins_strings, "tree_ages": tree_ages}
+    )
  
 
-def obtain_state_variables(dynamics, control_vars, dependent_vars, extra_parameters, cfg, init_csv, fieldnames):
-    treesize_bins_strings, tree_sizes, tree_age_bins_strings, tree_ages = get_tree_histograms(dynamics, init_csv, fieldnames)
+def obtain_state_variables(dynamics, control_vars, dependent_vars, tree_hist, extra_parameters, cfg, init_csv, fieldnames):
     firefree_interval_mean, firefree_interval_stdev = get_firefree_interval_stats(dynamics, "current_iteration")
     firefree_interval_fullsim_mean, firefree_interval_fullsim_stdev = get_firefree_interval_stats(dynamics, "average")
     fires = dynamics.get_fires()
@@ -188,16 +190,16 @@ def obtain_state_variables(dynamics, control_vars, dependent_vars, extra_paramet
         "population_size": str(dynamics.state.population.size()),
         "#seeds_produced": str(dynamics.seeds_produced),
         "fires": fires,
-        treesize_bins_strings[0]: str(tree_sizes[0]),
-        treesize_bins_strings[1]: str(tree_sizes[1]),
-        treesize_bins_strings[2]: str(tree_sizes[2]),
-        treesize_bins_strings[3]: str(tree_sizes[3]),
-        treesize_bins_strings[4]: str(tree_sizes[4]),
-        tree_age_bins_strings[0]: str(tree_ages[0]),
-        tree_age_bins_strings[1]: str(tree_ages[1]),
-        tree_age_bins_strings[2]: str(tree_ages[2]),
-        tree_age_bins_strings[3]: str(tree_ages[3]),
-        tree_age_bins_strings[4]: str(tree_ages[4]),
+        tree_hist.treesize_bins_strings[0]: str(tree_hist.tree_sizes[0]),
+        tree_hist.treesize_bins_strings[1]: str(tree_hist.tree_sizes[1]),
+        tree_hist.treesize_bins_strings[2]: str(tree_hist.tree_sizes[2]),
+        tree_hist.treesize_bins_strings[3]: str(tree_hist.tree_sizes[3]),
+        tree_hist.treesize_bins_strings[4]: str(tree_hist.tree_sizes[4]),
+        tree_hist.tree_age_bins_strings[0]: str(tree_hist.tree_ages[0]),
+        tree_hist.tree_age_bins_strings[1]: str(tree_hist.tree_ages[1]),
+        tree_hist.tree_age_bins_strings[2]: str(tree_hist.tree_ages[2]),
+        tree_hist.tree_age_bins_strings[3]: str(tree_hist.tree_ages[3]),
+        tree_hist.tree_age_bins_strings[4]: str(tree_hist.tree_ages[4]),
         "mean tree size": str(np.mean(dynamics.state.get_tree_sizes())),
         "stdev tree size": str(np.std(dynamics.state.get_tree_sizes())),
         "top_kills": str(dynamics.get_no_fire_induced_topkills()),
@@ -256,9 +258,10 @@ def get_fieldnames(dynamics, control_vars, dependent_vars, extra_parameters, cfg
 
 
 def export_state(
-        dynamics, path="", init_csv=True, control_vars=None, dependent_vars=None, extra_parameters="", cfg=None, **kwargs
+        dynamics, path="", init_csv=True, control_vars={}, dependent_vars={}, extra_parameters="", cfg=None, **kwargs
     ):
     fieldnames = get_fieldnames(dynamics, control_vars, dependent_vars, extra_parameters, cfg)
+    tree_hist = get_tree_histograms(dynamics, init_csv, fieldnames, cfg)
 
     # Initialize CSV file with headers if it doesn't exist
     if init_csv and not os.path.exists(path):
@@ -271,7 +274,10 @@ def export_state(
 
     with open(path, 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        result = obtain_state_variables(dynamics, control_vars, dependent_vars, extra_parameters, cfg, fieldnames)
+        result = obtain_state_variables(
+            dynamics, control_vars, dependent_vars, tree_hist,
+            extra_parameters, cfg, init_csv, fieldnames
+        )
         writer.writerow(result)
     
     cfg.csv_path = path

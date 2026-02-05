@@ -4,6 +4,8 @@
 #include "tests.h"
 
 
+#define PYBIND11_DETAILED_ERROR_MESSAGES
+
 using namespace std;
 namespace py = pybind11;
 
