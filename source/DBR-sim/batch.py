@@ -45,6 +45,11 @@ class Jobs:
             vec = [float(round(v, no_digits_after_comma)) for v in vec]
         elif arg_cfg["interpolation"] == "categorical":
             vec = arg_cfg["range"]
+        elif arg_cfg["interpolation"] == "none":
+            assert arg_cfg.get("value"), "Arg cfg with interpolation 'none' must have a 'value' key."
+            vec = arg_cfg["value"]
+            if type(vec) != list:
+                vec = [arg_cfg["value"]]
 
         return vec
 
@@ -566,7 +571,7 @@ def load_batch_config(batch_cfg):
 
 
 def run_sim(batch_cfg, job, init_csv):
-    dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, sim_cfg = app.main(**vars(job))
+    dynamics, sim_cfg = app.main(**vars(job))
 
     if init_csv.value == 1:
         with init_csv.get_lock(): # Ensure the total results csv is only initialized once, by a single process.

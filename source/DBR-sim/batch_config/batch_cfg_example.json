@@ -7,10 +7,13 @@
             "interpolation": "linear",
             "stepsize": 0.1
         },
-        "self_ignition_factor": {
-            "range":[5, 30],
-            "interpolation": "linear",
-            "stepsize": 3
+        "grid_width": {
+            "value": 100,
+            "interpolation": "none"
+        },
+        "burnin_duration": {
+            "value": 100,
+            "interpolation": "none"
         },
         "dispersal_mode": {
             "range": ["wind", "animal"],
@@ -24,7 +27,8 @@
             "stepsize": 0.1
         },
         "self_ignition_factor": {
-            "range":10
+            "range":10,
+            "interpolation": "none"
         },
         "dispersal_mode": {
             "range": ["wind", "animal"],
@@ -32,7 +36,7 @@
         },
         "verbosity": {
             "range": [0, 2],
-            "interpolation": "none",
+            "interpolation": "categorical",
             "stepsize": 1
         },
         "unsuppressed_flammability": {
