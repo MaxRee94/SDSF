@@ -228,6 +228,28 @@ Dynamics create_dynamics(py::dict dict) {
         return dict[key.c_str()];
     };
 
+    printf("timestep: %s\n", to_string(get("timestep").cast<int>()));
+    printf("cell_width: %s\n", to_string(get("cell_width").cast<float>()));
+    printf("self_ignition_factor: %s\n", to_string(get("self_ignition_factor").cast<float>()));
+    printf("rainfall: %s\n", to_string(get("rainfall").cast<float>()));
+    printf("seed_bearing_threshold: %s\n", to_string(get("seed_bearing_threshold").cast<float>()));
+    printf("growth_rate_multiplier: %s\n", to_string(get("growth_rate_multiplier").cast<float>()));
+    printf("unsuppressed_flammability: %s\n", to_string(get("unsuppressed_flammability").cast<float>()));
+    printf("max_dbh: %s\n", to_string(get("max_dbh").cast<float>()));
+    printf("saturation_threshold: %s\n", to_string(get("saturation_threshold").cast<float>()));
+    //printf("%s\n", to_string(get("fire_resistance_params").cast<map<string, float>>()));
+    printf("background_mortality: %s\n", to_string(get("background_mortality").cast<float>()));
+    //printf("%s\n", to_string(get("strategy_distribution_params").cast<map<string, map<string, float>>>()));
+    printf("resource_grid_width: %s\n", to_string(get("resource_grid_width").cast<int>()));
+    printf("mutation_rate: %s\n", to_string(get("mutation_rate").cast<float>()));
+    printf("STR: %s\n", to_string(get("STR").cast<float>()));
+    printf("verbosity: %s\n", to_string(get("verbosity").cast<int>()));
+    printf("random_seed: %s\n", to_string(get("random_seed").cast<int>()));
+    printf("firefreq_random_seed: %s\n", to_string(get("firefreq_random_seed").cast<int>()));
+    printf("enforce_no_recruits: %s\n", to_string(get("enforce_no_recruits").cast<float>()));
+    printf("animal_group_size: %s\n", to_string(get("animal_group_size").cast<int>()));
+    printf("display_fire_effects: %s\n", to_string(get("display_fire_effects").cast<bool>()));
+
     return Dynamics(
         get("timestep").cast<int>(),
         get("cell_width").cast<float>(),
