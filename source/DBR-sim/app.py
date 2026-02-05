@@ -572,7 +572,7 @@ def strategy_distribution_params_are_loaded(strategy_distribution_params):
     return type(strategy_distribution_params) == dict
 
 
-def main(batch_parameters=None, **user_args): 
+def main(**user_args): 
     
     global cfg
 
@@ -580,18 +580,6 @@ def main(batch_parameters=None, **user_args):
     if not strategy_distribution_params_are_loaded(user_args["strategy_distribution_params"]):
         with open(os.path.join(cfg.DATA_IN_DIR, user_args["strategy_distribution_params"]), "r") as sdp_jsonfile:
             user_args["strategy_distribution_params"] = json.load(sdp_jsonfile)
-    if batch_parameters:
-        print("-- Setting batch parameters: ", batch_parameters)
-        if (type(batch_parameters) == str):
-            batch_parameters = json.loads(batch_parameters)
-        if "strategies->" in batch_parameters["control_variable"]:
-            control_keys = unpack_control_keys(batch_parameters["control_variable"])
-            control_keys.remove("strategies")
-            user_args["strategy_distribution_params"][control_keys[0]][control_keys[1]] = batch_parameters["control_value"]
-        elif "<idx>" in batch_parameters["control_variable"]:
-            control_keys = unpack_control_keys(batch_parameters["control_variable"])
-            idx = int(control_keys[1].split("<idx>")[1])
-            user_args[control_keys[0]][idx] = batch_parameters["control_value"]
 
     args = SimpleNamespace(**user_args)
     cfg = apply_user_args_to_configuration(args, cfg)
