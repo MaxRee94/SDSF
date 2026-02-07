@@ -20,19 +20,19 @@
             "interpolation": "constant"
         },
         "dispersal_mode": {
-            "range": ["wind", "animal"],
-            "interpolation": "categorical"
+            "value": "wind",
+            "interpolation": "constant"
         }
     },
     "help": {
         "type": "The type of simulation batch to run. Currently only 'sensitivity_analysis' is supported, more types may be added later.",
         "runs": "The number of times that all simulation jobs with the given (range of) argument values should be executed. Set this to 1 if all jobs should run only once (no repetitions).",
         "arguments": {
-            "global explanation": "Use this dictionary to specify which arguments should be modified with respect to the defaults defined in config.py.",
+            "global explanation": "Use this dictionary to specify which arguments should be modified with respect to the defaults defined in config.py, and how. NOTE: If not specified here, the global random seed will vary between simulations (by default, each sim is given a randomly generated seed).",
             "options per argument": {
                 "interpolation": {
                     "global explanation": "Use this field to define the kind of interpolation I should use to compute a range of argument values. Currently supported options are listed below.",
-                    "constant": "Use this interpolation type if I should use a constant value across all simulations, but you do want it to be different from the default. NOTE: Instead of defining 'range', define 'value' when using this interpolation type.",
+                    "constant": "Use this interpolation type if I should use a constant value across all simulations, but you do want it to be different from the default defined in config.py. NOTE: Instead of defining 'range', define 'value' when using this interpolation type.",
                     "categorical": "Specify 'categorical' if the given value range is already complete (no interpolation needed) and/or if it cannot be interpolated (e.g., a list of strings, such as ['wind', 'animal']).",
                     "linear": [
                         "Use this interpolation type if I should linearly interpolate between the extremes defined in 'range': [<minimum>, <maximum>] with the step size defined in the field 'stepsize'.",
@@ -41,6 +41,12 @@
                     ]
                 }
             }
+        }
+    },
+    "arguments_examples": {
+        "dispersal_mode": {
+            "range": ["wind", "animal"],
+            "interpolation": "categorical"
         }
     }
 }
