@@ -1,6 +1,6 @@
 {
     "type": "sensitivity_analysis",
-    "reruns": 2,
+    "runs": 2,
     "arguments": {
         "treecover": {
             "range":[0.1, 0.8],
@@ -9,40 +9,38 @@
         },
         "grid_width": {
             "value": 100,
-            "interpolation": "none"
+            "interpolation": "constant"
         },
         "burnin_duration": {
-            "value": 100,
-            "interpolation": "none"
+            "value": 10,
+            "interpolation": "constant"
+        },
+        "max_timesteps": {
+            "value": 15,
+            "interpolation": "constant"
         },
         "dispersal_mode": {
             "range": ["wind", "animal"],
             "interpolation": "categorical"
         }
     },
-    "example": {
-        "treecover": {
-            "range":[0.1, 0.8],
-            "interpolation": "linear",
-            "stepsize": 0.1
-        },
-        "self_ignition_factor": {
-            "range":10,
-            "interpolation": "none"
-        },
-        "dispersal_mode": {
-            "range": ["wind", "animal"],
-            "interpolation": "categorical"
-        },
-        "verbosity": {
-            "range": [0, 2],
-            "interpolation": "categorical",
-            "stepsize": 1
-        },
-        "unsuppressed_flammability": {
-            "range":[0.2, 0.9],
-            "interpolation": "y=x^2",
-            "stepsize": 0.1
+    "help": {
+        "type": "The type of simulation batch to run. Currently only 'sensitivity_analysis' is supported, more types may be added later.",
+        "runs": "The number of times that all simulation jobs with the given (range of) argument values should be executed. Set this to 1 if all jobs should run only once (no repetitions).",
+        "arguments": {
+            "global explanation": "Use this dictionary to specify which arguments should be modified with respect to the defaults defined in config.py.",
+            "options per argument": {
+                "interpolation": {
+                    "global explanation": "Use this field to define the kind of interpolation I should use to compute a range of argument values. Currently supported options are listed below.",
+                    "constant": "Use this interpolation type if I should use a constant value across all simulations, but you do want it to be different from the default. NOTE: Instead of defining 'range', define 'value' when using this interpolation type.",
+                    "categorical": "Specify 'categorical' if the given value range is already complete (no interpolation needed) and/or if it cannot be interpolated (e.g., a list of strings, such as ['wind', 'animal']).",
+                    "linear": [
+                        "Use this interpolation type if I should linearly interpolate between the extremes defined in 'range': [<minimum>, <maximum>] with the step size defined in the field 'stepsize'.",
+                        "The interpolated range will include the given minimum, and if <maximum>-<minimum> is dividable by <stepsize>, then it will also include the maximum.",
+                        "E.g., range [0.1, 0.4] with stepsize 0.1 will give [0.1, 0.2, 0.3, 0.4], whereas the same range with stepsize 0.12 will give [0.1, 0.22, 0.34]"
+                    ]
+                }
+            }
         }
     }
 }
