@@ -291,7 +291,6 @@ public:
 				float val = tanh(pow((-dist * a_d_recipr), b_d));
 				dist_lookup_table[species][size * (cells[i].pos.first + cells[i].pos.second * width) + cells[j].pos.first + cells[j].pos.second * width] = val;
 			}
-			if (i % width == 0) printf("Finished row %i / %i\n", i / width, width);
 		}
 		printf("Computed dist lookup table for species %s \n", species.c_str());
 	}

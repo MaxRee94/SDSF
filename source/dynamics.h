@@ -156,7 +156,7 @@ public:
 	void set_global_animal_kernel(map<string, map<string, float>>& animal_kernel_params) {
 		global_kernels["animal"] = Kernel(1, "animal");
 		init_resource_grid(animal_kernel_params);
-		animal_dispersal.animals = Animals(& state, animal_kernel_params, animal_group_size);
+		animal_dispersal.animals = Animals(& state, animal_kernel_params, animal_group_size, verbosity);
 		animal_dispersal.animals.initialize_population();
 		pop->add_kernel("animal", global_kernels["animal"]);
 		pop->strategy_generator.set_constant_vector("animal");
