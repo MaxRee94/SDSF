@@ -137,6 +137,14 @@ class Jobs:
         
         return jobs, job_idx_generator
 
+    def do_post_processing(self, jobs, job_idx_generator, generator_cfg):
+        job_indices = list(job_idx_generator(generator_cfg))
+        jobs = [self.convert_value_set_to_namespace(job) for job in jobs]
+        for job in jobs:
+            check_cli_args(**vars(job))
+        
+        return jobs, job_indices
+
     def parse(self, arg_changes):
         job_count = self.derive_unique_job_count(arg_changes)
         logger.info("Expecting {} unique jobs.".format(job_count))
@@ -148,8 +156,7 @@ class Jobs:
         else:
             jobs, job_idx_generator = self.switch_to_random_sampling(job_count, generator_cfg)
 
-        job_indices = list(job_idx_generator(generator_cfg))
-        jobs = [self.convert_value_set_to_namespace(job) for job in jobs]
+        jobs, job_indices = self.do_post_processing(jobs, job_idx_generator, generator_cfg)
  
         return jobs, job_indices
 

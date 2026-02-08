@@ -7,9 +7,6 @@ import app
 from helpers import *
 
 
-def check_cli_args(**user_args):
-    assert (user_args["grid_width"] % user_args["resource_grid_width"] == 0), "Resource grid width must be a divisor of grid width."
-
 
 def main():
     """Set up and launch DBR-sim  either directly (using cli args) or by first showing the GUI."""

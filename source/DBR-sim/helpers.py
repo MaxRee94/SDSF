@@ -163,6 +163,12 @@ def inject_unknown_args(args, unknown_args):
     return args
 
 
+def check_cli_args(**user_args):
+    assert (user_args["grid_width"] % user_args["resource_grid_width"] == 0), (
+        f"Resource grid width (currently {user_args['resource_grid_width']}) must be a divisor of grid width (currently {user_args['grid_width']})."
+    )
+
+
 def parse_args(parser=None):
     """Parse commandline arguments.
 

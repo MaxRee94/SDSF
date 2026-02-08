@@ -3,7 +3,7 @@
     "runs": 2,
     "arguments": {
         "treecover": {
-            "range":[0.1, 0.8],
+            "range":[0.1, 0.3],
             "interpolation": "linear",
             "stepsize": 0.1
         },
@@ -13,6 +13,10 @@
         },
         "burnin_duration": {
             "value": 10,
+            "interpolation": "constant"
+        },
+        "resource_grid_width": {
+            "value": 50,
             "interpolation": "constant"
         },
         "max_timesteps": {
