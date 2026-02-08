@@ -31,10 +31,45 @@ class Jobs:
         self.n_runs = runs
         self.no_finished_rerun_cycles = 0
         self.rng = rng
+        self.firefreq_rng = rng
         self.sampling_mode = "regular" # alternative: "random"
         self.jobs, self.job_indices = self.parse(arguments)
+        self.jobs = self.generate_random_seeds()
+        self.arguments = arguments
 
-    def get_defaults(self):
+    def generate_random_seeds(self):
+        for job in self.jobs:
+            if job.random_seed == -999:
+                job.random_seed = int(self.rng.integers(0, 100000000))
+            if job.firefreq_random_seed == -999:
+                job.firefreq_random_seed = int(self.firefreq_rng.integers(0, 1000000))
+        
+        return self.jobs
+
+    def get_control_variables(self, job):
+        if isinstance(job, dict):
+            job_ns = SimpleNamespace(**job)
+        else: 
+            job_ns = job
+        
+        ctrl_vars = {}
+        for key, val in self.arguments.items():
+            # Only include control variables that vary across simulations.
+            if val["interpolation"] == "constant":
+                continue
+
+            value = getattr(job_ns, key)
+            if key == "treecover":
+                key = "initial tree cover"
+            ctrl_vars[key] = value
+            
+        # Add random seeds if they haven't been added yet
+        for rs in ["random_seed", "firefreq_random_seed"]:
+            if not rs in ctrl_vars:
+                ctrl_vars[rs] = getattr(job_ns, rs)
+
+        return ctrl_vars
+
     def get_defaults(self, args):
         defaults = config.get_all_defaults()
         defaults["headless"] = True
@@ -114,7 +149,8 @@ class Jobs:
             jobs, job_idx_generator = self.switch_to_random_sampling(job_count, generator_cfg)
 
         job_indices = list(job_idx_generator(generator_cfg))
-
+        jobs = [self.convert_value_set_to_namespace(job) for job in jobs]
+ 
         return jobs, job_indices
 
     def parse_arg_values(self, arg_changes):
@@ -132,9 +168,9 @@ class Jobs:
 
     def get_specific_job(self, idx, return_dict=False):
         if return_dict:
-            return self.convert_job_to_dict(self.jobs[idx])
+            return vars(self.jobs[idx])
         else:
-            return self.convert_value_set_to_namespace(self.jobs[idx])
+            return self.jobs[idx]
 
     def count(self):
         return self.n_runs * len(self.jobs)
@@ -532,7 +568,7 @@ def create_color_dict(batch_cfg):
     return color_dict
 
 
-def set_random_seeds(batch_cfg):
+def set_batch_random_seeds(batch_cfg):
     # Set random seed
     if (batch_cfg.random_seed == -999):
         batch_cfg.random_seed = random.randint(0, 100000000)
@@ -569,10 +605,10 @@ def determine_total_results_csv(batch_cfg):
 
 def load_batch_config(batch_cfg):
     batch_cfg = read_config_from_file(batch_cfg)
-    batch_cfg = parse_jobs(batch_cfg)
     batch_cfg = determine_csv_parent_dir(batch_cfg)
     batch_cfg = determine_total_results_csv(batch_cfg) 
-    batch_cfg = set_random_seeds(batch_cfg)
+    batch_cfg = set_batch_random_seeds(batch_cfg)
+    batch_cfg = parse_jobs(batch_cfg)
     batch_cfg = determine_no_processes(batch_cfg)
     batch_cfg.vis = vis.Visualiser(batch_cfg)
     batch_cfg.color_dict = create_color_dict(batch_cfg)
@@ -581,21 +617,24 @@ def load_batch_config(batch_cfg):
     return batch_cfg
 
 
+def export_state(batch_cfg, dynamics, job, sim_cfg, init_csv):
+    sim_cfg.control_vars = batch_cfg.jobs.get_control_variables(job)
+    initialize_csv = False
+    if init_csv.value == 1:
+        with init_csv.get_lock(): # We use a lock to ensure the total results csv is only initialized once, by a single process.
+            if init_csv.value == 1:
+                init_csv.value = 0
+                initialize_csv = True
+   
+    _io.export_state(
+        dynamics, path=batch_cfg.total_results_csv, init_csv=initialize_csv, cfg=sim_cfg
+    )
+
+
 def run_sim(batch_cfg, job, init_csv):
     dynamics, sim_cfg = app.main(**vars(job))
+    export_state(batch_cfg, dynamics, job, sim_cfg, init_csv)
 
-    if init_csv.value == 1:
-        with init_csv.get_lock(): # Ensure the total results csv is only initialized once, by a single process.
-            print(f"Exporting initial state (and initializing csv) to: {batch_cfg.total_results_csv}...")
-            _io.export_state(
-                dynamics, **vars(batch_cfg), init_csv=init_csv.value, cfg=sim_cfg
-            )
-            init_csv.value = 0
-    else:
-        print(f"Exporting initial state (NOT initializing csv) to: {batch_cfg.total_results_csv}...")
-        _io.export_state(
-            dynamics, **vars(batch_cfg), init_csv=False, cfg=sim_cfg
-        )
 
 def suppress_extraneous_console_output():
     # Ignore a numpy warning that pops up during visualization
@@ -621,8 +660,6 @@ def run_batch(batch_cfg, proc_id, sim_counter, init_csv):
             break
 
         run_sim(batch_cfg, job, init_csv)
-        
-        logger.debug(f"\n\nProcess {proc_id} starting simulation {n_finished_simulations+1}/{batch_cfg.jobs.count()} with parameters: {job}")
  
     return True
 
@@ -644,26 +681,49 @@ def configure_logger(logname=None, batch_verbosity=None, _format="%(levelname)s:
     logger.addHandler(handler)
 
 
-def export_args(batch_cfg):
+def export_batch_cfg(batch_cfg):
     args_json_path = batch_cfg.csv_parent_dir + "/configuration.json"
     with open(args_json_path, "w") as args_json:
+        # Get the arguments from one job as a representative set of arguments for the batch, and export these to json. 
+        # This way, we have a record of the arguments used for the batch, without having to export the arguments 
+        # of each individual simulation.
         args = deepcopy(batch_cfg.jobs.get_specific_job(0, return_dict=True))
-        for k, v in batch_cfg.arguments.items():
-            args[k] = v
-        json.dump(args, args_json)
+        batch_cfg_copy = vars(deepcopy(batch_cfg))
+        batch_cfg_copy["arguments"] = args
+        
+        # Remove non-serializable items from config to avoid issues when exporting to json
+        deletions = []
+        for k, v in batch_cfg_copy.items():
+            try:
+                json.dumps(v)
+            except TypeError:
+                deletions.append(k)
+        for k in deletions + ["help", "arguments_examples"]:
+            del batch_cfg_copy[k]
+            
+        # Export to json file
+        json.dump(batch_cfg_copy, args_json)
 
 
 def manage_processes(batch_cfg):
+    # Initialize processes-container and shared values
     procs = Processes()
     n_finished_simulations = Value("i", 0)
     init_csv = Value("i", 1)
+    
+    # Add processes to container and start them
+    n_finished_sims = 0
     logger.info("Starting processes...")
     for i in range(batch_cfg.no_processes):
         procs.add(Process(target=run_batch, args=(batch_cfg, i, n_finished_simulations, init_csv)))
     logger.info("Finished starting processes.")
 
     while not procs.finished(print_progress=True):
-        time.sleep(0.4)
+        time.sleep(0.5)
+        while (n_finished_simulations.value > n_finished_sims) and (n_finished_sims < batch_cfg.jobs.count()):
+            n_finished_sims += 1
+            cfg_str = json.dumps(batch_cfg.jobs.get_control_variables(batch_cfg.jobs.get(n_finished_sims-1)), indent=4)
+            print(f"\nFinished simulation {n_finished_sims}/{batch_cfg.jobs.count()} with arguments: \n{cfg_str}.")
     procs.join()
 
     logger.info("All processes have finished.")
@@ -673,7 +733,7 @@ def main(batch_cfg):
     os.remove("batch.log")
     configure_logger(logname="batch.log", **vars(batch_cfg))
     batch_cfg = load_batch_config(batch_cfg)
-    export_args(batch_cfg)
+    export_batch_cfg(batch_cfg)
     manage_processes(batch_cfg)
 
         

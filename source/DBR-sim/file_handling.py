@@ -179,7 +179,7 @@ def get_tree_histograms(dynamics, init_csv, fieldnames, cfg):
     )
  
 
-def obtain_state_variables(dynamics, control_vars, dependent_vars, tree_hist, extra_parameters, cfg, init_csv, fieldnames):
+def obtain_state_variables(dynamics, tree_hist, extra_parameters, cfg, init_csv, fieldnames):
     firefree_interval_mean, firefree_interval_stdev = get_firefree_interval_stats(dynamics, "current_iteration")
     firefree_interval_fullsim_mean, firefree_interval_fullsim_stdev = get_firefree_interval_stats(dynamics, "average")
     fires = dynamics.get_fires()
@@ -228,15 +228,14 @@ def obtain_state_variables(dynamics, control_vars, dependent_vars, tree_hist, ex
     #assert (PAR_derived_area == treecover_derived_area), f"Perimeter-length / Perimeter-area-ratio ({PAR_derived_area}) does not equal Tree-cover * Spatial domain area ({treecover_derived_area})."
     if not cfg.rotate_randomly:
         result["global_rotation_offset"] = str(cfg.global_rotation_offset)
-    for cv in control_vars.keys():
-        result[cv] = str(control_vars[cv])
-    for dv in dependent_vars.keys():
-        result[cv] = str(dependent_vars[cv])
+    if hasattr(cfg, "control_vars"):
+        for cv in cfg.control_vars.keys():
+            result[cv] = str(cfg.control_vars[cv])
 
     return result
 
 
-def get_fieldnames(dynamics, control_vars, dependent_vars, extra_parameters, cfg):
+def get_fieldnames(dynamics, extra_parameters, cfg):
     fieldnames = [
         "time", "treecover", "slope", "population_size", "#seeds_produced", "fires", "top_kills", "nonseedling_top_kills", "deaths",
         "extra_parameters", "mean tree size", "stdev tree size",
@@ -245,12 +244,9 @@ def get_fieldnames(dynamics, control_vars, dependent_vars, extra_parameters, cfg
         "recruits", "germination_attempts", "oldstem_competition_and_shading", "seedling_competition_and_shading", "perimeter_length", "perimeter-area_ratio",
         "basal_area"
     ]
-    for cv in control_vars.keys():
-        if cv == "treecover":
-            cv = "initial tree cover"
-        fieldnames.insert(0, cv)
-    for dv in dependent_vars.keys():
-        fieldnames.insert(0, dv)
+    if hasattr(cfg, "control_vars"):
+        for cv in cfg.control_vars.keys():
+            fieldnames.insert(0, cv)
     if not cfg.rotate_randomly:
         fieldnames.insert(3, "global_rotation_offset")
 
@@ -258,16 +254,16 @@ def get_fieldnames(dynamics, control_vars, dependent_vars, extra_parameters, cfg
 
 
 def export_state(
-        dynamics, path="", init_csv=True, control_vars={}, dependent_vars={}, extra_parameters="", cfg=None, **kwargs
+        dynamics, path="", init_csv=True, extra_parameters="", cfg=None, **kwargs
     ):
-    fieldnames = get_fieldnames(dynamics, control_vars, dependent_vars, extra_parameters, cfg)
+    fieldnames = get_fieldnames(dynamics, extra_parameters, cfg)
     tree_hist = get_tree_histograms(dynamics, init_csv, fieldnames, cfg)
 
     # Initialize CSV file with headers if it doesn't exist
     if init_csv and not os.path.exists(path):
         if path == "":
-            print("\n\nExport location:", cfg.EXPORT_DIR)
             path = os.path.join(cfg.EXPORT_DIR, "Simulation_" + str(datetime.datetime.now()).replace(":", "-") + ".csv")
+            print("\n\nExport location:", path)
         with open(path, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
@@ -275,7 +271,7 @@ def export_state(
     with open(path, 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         result = obtain_state_variables(
-            dynamics, control_vars, dependent_vars, tree_hist,
+            dynamics, tree_hist,
             extra_parameters, cfg, init_csv, fieldnames
         )
         writer.writerow(result)

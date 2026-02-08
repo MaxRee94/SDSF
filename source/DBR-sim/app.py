@@ -501,9 +501,8 @@ def updateloop(dynamics, color_dicts, cfg):
     
         print("-- Exporting state_data...") if verbose else None
         cfg = io.export_state(
-            dynamics, cfg.csv_path, init_csv,
-            tree_cover_slope=slope,
-            cfg=SimpleNamespace(**vars(cfg))
+            dynamics, path=cfg.csv_path, init_csv=init_csv,
+            tree_cover_slope=slope, cfg=cfg
         )
 
         print("-- Saving tree positions...") if verbose else None
