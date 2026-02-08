@@ -148,7 +148,7 @@ public:
 		if (cell->trees.size() == 0) {
 			if (recursion_depth > 10) {
 				if (try_fruit_agnostic_selection) {
-					printf("\n\n WARNING: No cell containing trees found after recursing 10 times. Selecting random location instead...\n\n");
+					if (verbose >= 0) printf("\n\n WARNING: No cell containing trees found after recursing 10 times. Selecting random location instead...\n\n");
 					return resource_grid->grid->get_random_real_position();
 				}
 				if (verbose > 0) printf("Trying fruit-agnostic selection...\n");
