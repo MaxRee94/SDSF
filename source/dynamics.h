@@ -27,10 +27,11 @@ public:
 		help::init_RNG(random_seed);
 		firefreq_RNG.seed(firefreq_random_seed);
 	};
-	void init_state(int gridsize, float dbh_q1, float dbh_q2, float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max,
+	void init_state(int grid_width, float dbh_q1, float dbh_q2, float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max,
 		float minimum_patch_size, float LAI_aggregation_radius) {
+		if (verbosity != -1) printf("\nInitializing grid with width %i and cell width %f.\n", grid_width, cell_width);
 		state = State(
-			gridsize, cell_width, max_dbh, dbh_q1, dbh_q2, seed_bearing_threshold, saturation_threshold, strategy_distribution_params,
+			grid_width, cell_width, max_dbh, dbh_q1, dbh_q2, seed_bearing_threshold, saturation_threshold, strategy_distribution_params,
 			mutation_rate, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max, minimum_patch_size, LAI_aggregation_radius
 		);
 		linear_disperser = Disperser();
@@ -45,7 +46,7 @@ public:
 	bool invalid_tree_ids() {
 		for (auto& [id, tree] : pop->members) {
 			if (id == -1 || tree.id == -1) {
-				printf("Key: %i, Tree id: %i \n", id, tree.id);
+				if (verbosity >= 2) printf("Key: %i, Tree id: %i \n", id, tree.id);
 				return true;
 			}
 		}
@@ -54,7 +55,7 @@ public:
 	void update() {
 		// Prepare next iteration
 		time++;
-		printf("\nTime: %i\n", time);
+		if (verbosity != -1) printf("\nTime: %i\n", time);
 		if (verbosity > 0) printf("Resetting state distr... \n");
 		grid->reset_state_distr();
 
@@ -98,7 +99,7 @@ public:
 			grid_memory_size += element_size;
 		}
 
-		printf("Tree cover: %f, Number of trees: %s \n", grid->get_tree_cover(), help::readable_number(pop->size()).c_str());
+		if (verbosity != -1) printf("Tree cover: %f, Number of trees: %s \n", grid->get_tree_cover(), help::readable_number(pop->size()).c_str());
 		if (verbosity == 2) for (auto& [id, tree] : pop->members) if (id % 500 == 0) printf("Radius of tree %i : %f \n", id, tree.radius);
 	}
 	void free() {
@@ -139,17 +140,17 @@ public:
 		for (int id : tree_deletion_schedule) {
 			pop->remove(id);
 		}
-		printf("-- No trees dead due to light limitation: %i \n", tree_deletion_schedule.size());
+		if (verbosity != -1) printf("-- No trees dead due to light limitation: %i \n", tree_deletion_schedule.size());
 	}
 	void set_global_linear_kernel(float lin_diffuse_q1, float lin_diffuse_q2, float min, float max) {
 		global_kernels["linear"] = Kernel(1, lin_diffuse_q1, lin_diffuse_q2, min, max);
 		pop->add_kernel("linear", global_kernels["linear"]);
-		cout << "Global kernel created (Linear diffusion). " << endl;
+		if (verbosity != -1) cout << "Global kernel created (Linear diffusion). " << endl;
 	}
 	void set_global_wind_kernel(float wspeed_gmean, float wspeed_stdev, float wind_direction, float wind_direction_stdev) {
 		global_kernels["wind"] = Kernel(1, grid->width_r * 2.0f, wspeed_gmean, wspeed_stdev, wind_direction, wind_direction_stdev);
 		pop->add_kernel("wind", global_kernels["wind"]);
-		cout << "Global kernel created (Wind dispersal). " << endl;
+		if (verbosity != -1) cout << "Global kernel created (Wind dispersal). " << endl;
 		pop->strategy_generator.set_constant_vector("wind");
 	}
 	void set_global_animal_kernel(map<string, map<string, float>>& animal_kernel_params) {
@@ -392,7 +393,8 @@ public:
 				);
 			}
 		}
-		timer.stop(); printf(
+		timer.stop(); 
+		if (verbosity != -1) printf(
 			"-- Dispersing %s wind-dispersed seeds and initializing %s fruits took %f seconds. \n",
 			help::readable_number(wind_seeds_dispersed).c_str(), help::readable_number(resource_grid.total_no_fruits).c_str(), timer.elapsedSeconds()
 		);
@@ -408,7 +410,8 @@ public:
 				enforce_no_recruits, 1
 			);
 		}
-		timer.stop(); printf("-- Dispersing %s animal seeds took %f seconds. \n", help::readable_number(no_seeds_to_disperse).c_str(), timer.elapsedSeconds());
+		timer.stop();
+		if (verbosity != -1) printf("-- Dispersing %s animal seeds took %f seconds. \n", help::readable_number(no_seeds_to_disperse).c_str(), timer.elapsedSeconds());
 	}
 	void remove_trees_up_to_age(int age_threshold) {
 		vector<int> tree_deletion_schedule = {};
@@ -420,7 +423,7 @@ public:
 		for (int id : tree_deletion_schedule) {
 			pop->remove(id);
 		}
-		printf("-- Number of trees removed up to and including age %i year: %i \n", age_threshold, tree_deletion_schedule.size());
+		if (verbosity != -1) printf("-- Number of trees removed up to and including age %i year: %i \n", age_threshold, tree_deletion_schedule.size());
 	}
 	void recruit() {
 		Timer timer; timer.start();
@@ -440,7 +443,7 @@ public:
 		no_recruits = pop->size() - pre_recruitment_popsize;
 		if (time == 1) initial_no_effective_dispersals = no_recruits; // The number of recruits is really the number of effective dispersals, since some seedlings may be burned right after germinating.
 		timer.stop();
-		printf("-- Recruitment of %s trees took %f seconds. \n", help::readable_number(no_recruits).c_str(), timer.elapsedSeconds());
+		if (verbosity != -1) printf("-- Recruitment of %s trees took %f seconds. \n", help::readable_number(no_recruits).c_str(), timer.elapsedSeconds());
 	}
 	int get_no_recruits(string type) {
 		if (type == "wind") return no_wind_seedlings;
@@ -484,7 +487,7 @@ public:
 		for (int id : tree_deletion_schedule) {
 			pop->remove(id);
 		}
-		printf("-- Number of trees dead due to background mortality: %i \n", tree_deletion_schedule.size());
+		if (verbosity != -1) printf("-- Number of trees dead due to background mortality: %i \n", tree_deletion_schedule.size());
 	}
 	shared_ptr<int[]> get_resource_grid_colors(string species, string type) {
 		return resource_grid.get_color_distribution(species, type);
@@ -519,16 +522,16 @@ public:
 			fires.push_back((float)_no_ash_cells * grid->cell_area);
 		}
 		no_fire_induced_deaths = popsize_before_burns - pop->size();
-		printf("no fire induced deaths (time = %i): %i \n", time, no_fire_induced_deaths);
-		printf("no fire induced topkills: %i \n", no_fire_induced_topkills);
-		printf("no fire induced topkills of non-seedlings: %i \n", no_fire_induced_nonseedling_topkills);
-		printf("no exposures of adults to fire: %i \n", no_exposures_of_adults_to_fire);
+		if (verbosity != -1) printf("no fire induced deaths (time = %i): %i \n", time, no_fire_induced_deaths);
+		if (verbosity != -1) printf("no fire induced topkills: %i \n", no_fire_induced_topkills);
+		if (verbosity != -1) printf("no fire induced topkills of non-seedlings: %i \n", no_fire_induced_nonseedling_topkills);
+		if (verbosity != -1) printf("no exposures of adults to fire: %i \n", no_exposures_of_adults_to_fire);
 		cout.precision(2);
-		printf(  
+		if (verbosity != -1) printf(
 			"-- Fires: %i, Topkills: %s, Kills: %s \n",
 			no_fires, help::readable_number(no_fire_induced_topkills).c_str(), help::readable_number(no_fire_induced_deaths).c_str()
 		);
-		cout <<
+		if (verbosity != -1) cout <<
 			"-- Fraction of domain burned: " << (float)no_ash_cells / (float)grid->no_cells << ", Area burned: " <<
 			scientific << (float)no_ash_cells * grid->cell_area << " / " << grid->area << " m^2 \n";
 		cout << fixed;

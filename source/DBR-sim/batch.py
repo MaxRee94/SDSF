@@ -23,8 +23,10 @@ logger = logging.getLogger(__name__)
 
 
 class Jobs:
-    def __init__(self, runs=None, arguments=None, rng=None, **args):
-        self.defaults = self.get_defaults()
+    """Parses and stores the set of argument values of each simulation job as a namespace object."""
+
+    def __init__(self, runs=None, arguments=None, rng=None, firefreq_rng=None, **args):
+        self.defaults = self.get_defaults(args)
         self.default_values = list(self.defaults.values())
         self.n_runs = runs
         self.no_finished_rerun_cycles = 0
@@ -33,8 +35,11 @@ class Jobs:
         self.jobs, self.job_indices = self.parse(arguments)
 
     def get_defaults(self):
+    def get_defaults(self, args):
         defaults = config.get_all_defaults()
         defaults["headless"] = True
+        defaults["verbosity"] = -1 # Suppress all non-critical print statements
+        defaults["EXPORT_DIR"] = args["csv_parent_dir"]
         
         return defaults
 
@@ -592,8 +597,18 @@ def run_sim(batch_cfg, job, init_csv):
             dynamics, **vars(batch_cfg), init_csv=False, cfg=sim_cfg
         )
 
+def suppress_extraneous_console_output():
+    # Ignore a numpy warning that pops up during visualization
+    np.seterr(invalid="ignore")
+    
+    # Redirect stdout to the null device, ensuring all python print statements are suppressed.
+    sys.stdout = open(os.devnull, "w")
+
 
 def run_batch(batch_cfg, proc_id, sim_counter, init_csv):
+    suppress_extraneous_console_output()
+
+    # Initialize the logger for this process.
     configure_logger(logname="batch.log", format="%(levelname)s %(processName)s: %(message)s", **vars(batch_cfg))
 
     while True:

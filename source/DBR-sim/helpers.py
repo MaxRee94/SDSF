@@ -7,6 +7,7 @@ import logging
 import itertools
 from collections import deque
 import heapq
+import warnings
 
 
 def get_stdout_logging_handler():
@@ -47,6 +48,12 @@ class Processes:
             logger.info(f"    {len(self.procs) - _active_proc_count} out of {len(self.procs)} processes have finished.")
         self.active_proc_count = _active_proc_count
         return self.active_proc_count == 0
+
+
+def suppress_warning(category=None, message=None):
+    assert category is not None and message is not None, "Both category and warning must be provided to suppress a warning."
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', category=category, message=message)
 
 
 def midpoint_gap_indices(cfg):
