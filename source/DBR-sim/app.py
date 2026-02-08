@@ -195,7 +195,7 @@ def init(cfg):
         for species in animal_species:
             lookup_table, fpath = io.get_lookup_table(species, cfg.grid_width, cfg.resource_grid_width * cfg.resource_grid_width)
             if lookup_table is None:
-                print(f"Lookup table file {fpath} not found. Creating new one...")
+                print(f"Lookup table file {fpath} not found. Creating new one... (might take some time).")
                 dynamics.precompute_resourcegrid_lookup_table(species)
                 lookup_table = dynamics.get_resource_grid_lookup_table(species)
                 io.export_lookup_table(lookup_table, cfg.grid_width, species)

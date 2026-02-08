@@ -1,5 +1,6 @@
 import __main__
 from operator import ge
+from tkinter import N
 import config
 import app
 from argparse import ArgumentParser
@@ -182,11 +183,11 @@ class Jobs:
     def count(self):
         return self.n_runs * len(self.jobs)
 
-    def get(self, n_finished_simulations):
-        if n_finished_simulations >= self.count():
+    def get(self, n_started_simulations):
+        if n_started_simulations >= self.count():
             return None
 
-        idx = self.job_indices[n_finished_simulations % len(self.jobs)]
+        idx = self.job_indices[n_started_simulations % len(self.jobs)]
         job = self.get_specific_job(idx)
 
         return job
@@ -651,7 +652,7 @@ def suppress_extraneous_console_output():
     sys.stdout = open(os.devnull, "w")
 
 
-def run_batch(batch_cfg, proc_id, sim_counter, init_csv):
+def run_batch(batch_cfg, proc_id, sim_counter, finished_sim_counter, init_csv):
     suppress_extraneous_console_output()
 
     # Initialize the logger for this process.
@@ -659,14 +660,16 @@ def run_batch(batch_cfg, proc_id, sim_counter, init_csv):
 
     while True:
         with sim_counter.get_lock():
-            n_finished_simulations = sim_counter.value
+            n_started_simulations = sim_counter.value
             sim_counter.value += 1        
 
-        job = batch_cfg.jobs.get(n_finished_simulations)
+        job = batch_cfg.jobs.get(n_started_simulations)
         if not job:
             break
 
         run_sim(batch_cfg, job, init_csv)
+        with finished_sim_counter.get_lock():
+            finished_sim_counter.value += 1
  
     return True
 
@@ -712,27 +715,35 @@ def export_batch_cfg(batch_cfg):
         json.dump(batch_cfg_copy, args_json)
 
 
+def report_sim_completions(batch_cfg, n_reported_completions, n_finished_simulations):
+    while (n_finished_simulations.value > n_reported_completions) and (n_reported_completions < batch_cfg.jobs.count()):
+        n_reported_completions += 1
+        cfg_str = json.dumps(batch_cfg.jobs.get_control_variables(batch_cfg.jobs.get(n_reported_completions-1)), indent=4)
+        print(f"\nFinished simulation {n_reported_completions}/{batch_cfg.jobs.count()} with arguments: \n{cfg_str}.")
+    
+    return n_reported_completions
+
+
 def manage_processes(batch_cfg):
-    # Initialize processes-container and shared values
+    # Initialize Processes-container and shared values
     procs = Processes()
+    n_started_simulations = Value("i", 0)
     n_finished_simulations = Value("i", 0)
     init_csv = Value("i", 1)
     
     # Add processes to container and start them
-    n_finished_sims = 0
+    n_reported_completions = 0
     logger.info("Starting processes...")
     for i in range(batch_cfg.no_processes):
-        procs.add(Process(target=run_batch, args=(batch_cfg, i, n_finished_simulations, init_csv)))
+        procs.add(Process(target=run_batch, args=(batch_cfg, i, n_started_simulations, n_finished_simulations, init_csv)))
     logger.info("Finished starting processes.")
 
+    # Wait for all processes to finish and report completed simulations in the meantime
     while not procs.finished(print_progress=True):
         time.sleep(0.5)
-        while (n_finished_simulations.value > n_finished_sims) and (n_finished_sims < batch_cfg.jobs.count()):
-            n_finished_sims += 1
-            cfg_str = json.dumps(batch_cfg.jobs.get_control_variables(batch_cfg.jobs.get(n_finished_sims-1)), indent=4)
-            print(f"\nFinished simulation {n_finished_sims}/{batch_cfg.jobs.count()} with arguments: \n{cfg_str}.")
+        n_reported_completions = report_sim_completions(batch_cfg, n_reported_completions, n_finished_simulations)
+        
     procs.join()
-
     logger.info("All processes have finished.")
 
 
