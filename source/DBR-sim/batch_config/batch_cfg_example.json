@@ -1,18 +1,18 @@
 {
     "type": "sensitivity_analysis",
-    "runs": 2,
+    "runs": 5,
     "arguments": {
-        "treecover": {
-            "range":[0.1, 0.3],
+        "self_ignition_factor": {
+            "range":[5, 30],
             "interpolation": "linear",
-            "stepsize": 0.1
+            "stepsize": 5
         },
         "grid_width": {
-            "value": 100,
+            "value": 250,
             "interpolation": "constant"
         },
         "burnin_duration": {
-            "value": 10,
+            "value": 150,
             "interpolation": "constant"
         },
         "resource_grid_width": {
@@ -20,11 +20,11 @@
             "interpolation": "constant"
         },
         "max_timesteps": {
-            "value": 15,
+            "value": 500,
             "interpolation": "constant"
         },
         "dispersal_mode": {
-            "value": "wind",
+            "value": ["animal", "wind"],
             "interpolation": "constant"
         }
     },
