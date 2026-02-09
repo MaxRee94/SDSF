@@ -1,10 +1,8 @@
 """Parse commandline arguments."""
 
 import sys
-import json
-from config import ParameterConfig
 import app
-from helpers import *
+import helpers as h
 
 
 
@@ -12,9 +10,9 @@ def main():
     """Set up and launch DBR-sim  either directly (using cli args) or by first showing the GUI."""
     cli_args_provided = len(sys.argv) > 1
     if cli_args_provided:
-        kwargs = parse_args()
-        kwargs = load_json_strings_if_any(kwargs)
-        check_cli_args(**kwargs)
+        kwargs = h.parse_args()
+        kwargs = h.load_json_strings_if_any(kwargs)
+        h.check_cli_args(**kwargs)
         tests = kwargs.pop("tests")
         if tests == "unit_tests":
             import unit_testing as ut
