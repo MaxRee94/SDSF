@@ -4,8 +4,6 @@ import json
 import argparse
 from config import ParameterConfig
 import logging
-import itertools
-from collections import deque
 import heapq
 import warnings
 
