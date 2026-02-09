@@ -3,24 +3,24 @@
     "runs": 5,
     "arguments": {
         "self_ignition_factor": {
-            "range":[5, 30],
+            "range":[5, 10],
             "interpolation": "linear",
             "stepsize": 5
         },
         "grid_width": {
-            "value": 250,
+            "value": 25,
             "interpolation": "constant"
         },
         "burnin_duration": {
-            "value": 150,
+            "value": 15,
             "interpolation": "constant"
         },
         "resource_grid_width": {
-            "value": 50,
+            "value": 5,
             "interpolation": "constant"
         },
         "max_timesteps": {
-            "value": 500,
+            "value": 20,
             "interpolation": "constant"
         },
         "dispersal_mode": {

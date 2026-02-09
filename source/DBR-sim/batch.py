@@ -1,24 +1,21 @@
-import __main__
-from operator import ge
-from tkinter import N
-import config
-import app
-from argparse import ArgumentParser
-from multiprocessing import Process, Value
-import file_handling as _io
-from time import time
-import os
-import visualization as vis
-from helpers import *
-import numpy as np
 import random
-import time
 import traceback
 import json
+import sys
 import logging
-import statistics as stats
 from types import SimpleNamespace
 from copy import deepcopy
+from argparse import ArgumentParser
+from multiprocessing import Process, Value
+import time
+import os
+import numpy as np
+
+import config
+import app
+import file_handling as _io
+import visualization as vis
+import helpers as h
 
 logger = logging.getLogger(__name__)
 
@@ -27,16 +24,21 @@ class Jobs:
     """Parses and stores the set of argument values of each simulation job as a namespace object."""
 
     def __init__(self, runs=None, arguments=None, rng=None, firefreq_rng=None, **args):
+        # Set from given args
+        self.n_runs = runs
+        self.arguments = arguments
+        self.rng = rng
+        self.firefreq_rng = firefreq_rng
+        
+        # Set class defaults
+        self.no_finished_rerun_cycles = 0
+        self.sampling_mode = "regular" # alternative: "random"
+        
+        # Compute/derive
         self.defaults = self.get_defaults(args)
         self.default_values = list(self.defaults.values())
-        self.n_runs = runs
-        self.no_finished_rerun_cycles = 0
-        self.rng = rng
-        self.firefreq_rng = rng
-        self.sampling_mode = "regular" # alternative: "random"
         self.jobs, self.job_indices = self.parse(arguments)
         self.jobs = self.generate_random_seeds()
-        self.arguments = arguments
 
     def generate_random_seeds(self):
         for job in self.jobs:
@@ -46,6 +48,14 @@ class Jobs:
                 job.firefreq_random_seed = int(self.firefreq_rng.integers(0, 1000000))
         
         return self.jobs
+
+    def get_comprehensive_jobs_summary(self):
+        summary = deepcopy(self.defaults)
+        for key, arg_cfg in self.arguments.items():
+            vec = self.get_vec(arg_cfg)
+            summary[key] = {"value(s)": vec}
+        
+        return summary
 
     def get_control_variables(self, job):
         if isinstance(job, dict):
@@ -86,9 +96,12 @@ class Jobs:
     def get_vec(arg_cfg):
         if arg_cfg["interpolation"] == "linear":
             minim, maxim, stepsize = arg_cfg["range"] + [arg_cfg["stepsize"]]
-            no_steps = int((maxim - minim) / stepsize)
             vec = list(np.arange(minim, maxim + stepsize/2, stepsize))
-            no_digits_after_comma = max(digits_after_decimal(minim), digits_after_decimal(maxim), digits_after_decimal(stepsize))
+            no_digits_after_comma = max(
+                h.digits_after_decimal(minim),
+                h.digits_after_decimal(maxim),
+                h.digits_after_decimal(stepsize)
+            )
             vec = [float(round(v, no_digits_after_comma)) for v in vec]
         elif arg_cfg["interpolation"] == "categorical":
             vec = arg_cfg["range"]
@@ -134,7 +147,7 @@ class Jobs:
         generator_cfg.rng = self.rng
         generator_cfg.low = 0
         generator_cfg.high = job_count - 1
-        job_idx_generator = get_random_int_generator
+        job_idx_generator = h.get_random_int_generator
         
         return jobs, job_idx_generator
 
@@ -142,7 +155,7 @@ class Jobs:
         job_indices = list(job_idx_generator(generator_cfg))
         jobs = [self.convert_value_set_to_namespace(job) for job in jobs]
         for job in jobs:
-            check_cli_args(**vars(job))
+            h.check_cli_args(**vars(job))
         
         return jobs, job_indices
 
@@ -153,7 +166,7 @@ class Jobs:
         if job_count < 1e6:
             jobs = self.parse_arg_values(arg_changes)
             generator_cfg.n = len(jobs)
-            job_idx_generator = midpoint_gap_indices
+            job_idx_generator = h.midpoint_gap_indices
         else:
             jobs, job_idx_generator = self.switch_to_random_sampling(job_count, generator_cfg)
 
@@ -236,7 +249,6 @@ class Jobs:
 def get_new_batch_folder():
     batch_no = 1
     batch_folder = config.cfg.DATA_OUT_DIR + "/state_data/batch_000001"
-    new_batch_folders = []
     while os.path.exists(batch_folder):
         batch_no += 1
         batch_folder = batch_folder.split("batch_")[0] + "batch_" + str(batch_no).zfill(6)
@@ -252,311 +264,6 @@ def determine_csv_parent_dir(batch_cfg):
 
     return batch_cfg
 
-
-def get_next_control_value(i, control_variable, control_value, control_range, proc_id, no_processes, dynamics, tree_cover_slope):
-    control_value = control_range[0] + control_range[2] * (i+1) + proc_id * (control_range[2] / no_processes)
-    return control_value
-
-
-def get_singlerun_name(type, sim_name, control_value, csv_parent_dir, secondary_variable=None, secondary_value=None, proc_id=None, no_runs_for_current_parameter_set=None, rerun_idx=None):
-    if type == "range" or type == "constant":
-        if secondary_variable:
-            singlerun_name = f"{sim_name}={str(control_value)}_process_{str(proc_id)}_2nd_var({secondary_variable})={str(secondary_value)}_run_{str(rerun_idx+1)}" 
-        else:
-            singlerun_name = f"{sim_name}={str(control_value)}_process_{str(proc_id)}_run_{str(rerun_idx+1)}"
-        print(f"\n ------- Beginning simulation with {singlerun_name} ------- \n")
-        singlerun_csv_path = csv_parent_dir + "/" + singlerun_name + ".csv"
-        singlerun_image_path = singlerun_csv_path.replace(".csv", ".png")
-    elif type == "saddle_search":
-        singlerun_name = f"{sim_name}={str(control_value)}, {secondary_variable}={str(secondary_value)}, process {str(proc_id)}"
-        print(f"\n ------- Beginning simulation with {singlerun_name} ------- \n")
-        singlerun_csv_path = csv_parent_dir + "/" + singlerun_name + ".csv"
-        singlerun_image_path = singlerun_csv_path.replace(".csv", ".png")
-    
-    return singlerun_name, singlerun_csv_path, singlerun_image_path
-
-
-def execute_single_run(
-        params, control_variable, control_value, csv_parent_dir, proc_id, no_processes, n_runs, sim_name, total_results_csv, color_dict,
-        extra_parameters, dependent_var, opti_mode, statistic, type, init_csv, export_to_parent_csv=True,
-        secondary_variable=None, secondary_value=None, no_runs_for_current_parameter_set=None, rerun_idx=None
-    ):
-    
-    _params = params.copy()
-    _params[control_variable] = control_value
-    if secondary_variable:
-        _params[secondary_variable] = secondary_value
-    print("rerun idx:", rerun_idx)
-    singlerun_name, singlerun_csv_path, singlerun_image_path = get_singlerun_name(
-        type, sim_name, control_value, csv_parent_dir, secondary_variable=secondary_variable, secondary_value=secondary_value, proc_id=proc_id,
-        no_runs_for_current_parameter_set=no_runs_for_current_parameter_set, rerun_idx=rerun_idx
-    )
-    _params["csv_path"] = singlerun_csv_path
-    if "->" in control_variable:
-        print("----- batch parameters -----: ", control_variable, control_value, "-----------------")
-        _params["batch_parameters"] = {"control_variable": control_variable, "control_value": control_value}
-    else:
-        _params[control_variable] = control_value
-
-    # Run the simulation and append its results to the total results csv
-    run_starttime = time.time()
-    dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, params = app.main(**_params) 
-    print(f"\n ------- Simulation {singlerun_name} complete. -------- \n")
-    
-    return dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, params
-
-
-def execute_multiple_runs(params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, n_runs, sim_name, total_results_csv, color_dict, extra_parameters,
-        dependent_var, opti_mode, statistic, type, init_csv, secondary_value=None, secondary_variable=None, dependent_result_range_mean=1, dependent_result_range_stdev=1
-    ):
-    
-    params[secondary_variable] = secondary_value
-    params["report_state"] = "False"
-    _params = SimpleNamespace(**params)
-    dependent_values = []
-    for i in range(n_runs):
-        print(f"Beginning run {i+1} of {n_runs}")
-        dynamics, tree_cover_slope, largest_absolute_slope, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, _params = execute_single_run(
-            params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, n_runs, sim_name, total_results_csv, color_dict, extra_parameters,
-            dependent_var, opti_mode, statistic, type, init_csv, secondary_value=secondary_value, secondary_variable=secondary_variable, export_to_parent_csv=False
-        )
-        if dependent_var == "tree_cover_slope":
-            dependent_values.append(tree_cover_slope)
-        else:
-            dependent_values.append(getattr(dynamics, dependent_var))
-        print("Current {}: ".format(dependent_var), tree_cover_slope)
-        if i < (n_runs - 1):
-            dynamics.free()
-
-    print("Dependent values: ", dependent_values)
-    result = 0
-    if (statistic == "mean"):
-        result = abs(stats.mean(dependent_values))
-    elif (statistic == "stdev"):
-        result = stats.stdev(dependent_values)
-    elif (statistic == "stdev_and_mean" and opti_mode == "minimize"):
-        result = (abs(stats.mean(dependent_values)) / dependent_result_range_mean) - (stats.stdev(dependent_values) / dependent_result_range_stdev)
-    else:
-        raise RuntimeError("Invalid statistic '{}'".format(statistic))
-    
-    if (dependent_var == "tree_cover_slope"):
-        tree_cover_slope = stats.mean(dependent_values)
-
-    dependent_result_range_stdev = stats.stdev(dependent_values)
-
-    return dynamics, tree_cover_slope, largest_absolute_slope, result, initial_no_dispersals, stats.stdev(dependent_values), singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev, _params
-
-
-def interpolate_secondary_value(argmin, argmax, argmin_result, argmax_result, opti_mode):
-    if opti_mode == "maximize":
-        return (argmin_result + argmax_result) / 2
-    elif opti_mode == "minimize":
-        cumulative_deviation = argmin_result + argmax_result
-        argmin_deviation = argmin_result / cumulative_deviation
-        return argmin + argmin_deviation * (argmax - argmin) # Linear interpolation between argmin and argmax
-
-
-def hillclimb(latest_arg, latest_result, previous_arg, previous_result, secondary_range, opti_mode, stepsize):
-    stepsize = stepsize * (secondary_range[1] - secondary_range[0])
-    print("Stepsize: ", stepsize)
-    if opti_mode == "minimize":
-        if latest_result > previous_result:
-            # Result in direction of latest argument is worse, since latest result is larger.
-            # Therefore, we should move back in the direction of the previous argument value
-            print("Moving toward previous best argument value (latest result = {}, latest arg: {}, previous best result = {}, previous best arg: {})".format(
-                    latest_result, latest_arg, previous_result, previous_arg
-                )
-            )
-            diff = previous_arg - latest_arg
-        else:
-            # The latest argument value is better, since the result is smaller.
-            # Therefore, we should continue moving in the same direction
-            print("Moving toward latest argument value, which is better than previous (latest result = {}, latest arg: {}, previous best result = {}, previous best arg: {})".format(
-                    latest_result, latest_arg, previous_result, previous_arg
-                )
-            )
-            diff = latest_arg - previous_arg
-            
-    print("Diff: {}, abs(diff): {}".format(diff, abs(diff)))
-    direction = diff / abs(diff)
-    val = latest_arg + stepsize * direction
-    if (val < secondary_range[0]):
-        val = (latest_arg + secondary_range[0]) / 2
-        print("-- latest arg: ", latest_arg, ", prev arg: ", previous_arg, ", lower bound: ", secondary_range[0], ", avg:", val)      
-    elif (val > secondary_range[1]):
-        val = (latest_arg + secondary_range[1]) / 2
-        print("-- latest arg: ", latest_arg, ", prev arg: ", previous_arg, ", upper bound: ", secondary_range[1], ", avg:", val)
-    
-    return val
-
-def execute_saddle_search(
-        params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, n_runs, sim_name, total_results_csv, color_dict,
-        extra_parameters, dependent_var, opti_mode, statistic, secondary_variable, secondary_range, no_attempts
-    ):
-    no_attempts = int(no_attempts)
-    print("\nExecuting saddle search with primary variable {} = {}".format(primary_variable, primary_value), "and secondary variable {} in {}".format(secondary_variable, secondary_range))
-    init_csv = True
-    
-    # Perform the first two attempts
-    argmin = secondary_range[0]
-    argmax = secondary_range[1]
-    dynamics, tree_cover_slope, largest_absolute_slope, argmin_result, initial_no_dispersals, argmin_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev, _params = execute_multiple_runs(
-        params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, n_runs, sim_name, total_results_csv,
-        color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=argmin, secondary_variable=secondary_variable
-    )
-    dynamics, tree_cover_slope, largest_absolute_slope, argmax_result, initial_no_dispersals, argmax_results_stdev, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev, _params = execute_multiple_runs(
-        params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, n_runs, sim_name, total_results_csv,
-        color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=argmax, secondary_variable=secondary_variable
-    )
-    secondary_value_trajectory = {argmin:argmin_result, argmax:argmax_result}
-    assert argmin_result != argmax_result, f"Mean of dependent variable is equal (specifically: {argmin_result}) for both extremes of the given secondary parameter range ({argmin}, {argmax}). Check whether parameter range is realistic and max_timesteps (currently {params['max_timesteps']}) is sufficiently long."
-    negative_value_trajectory = {}
-    if dependent_var == "tree_cover_slope":
-        if argmin_result < 0:
-            negative_value_trajectory = {argmin:argmin_result}
-        if argmax_result < 0:
-            negative_value_trajectory = {argmax:argmax_result}
-    print("Initial argmin_result and argmax_result:", argmin_result, argmax_result)
-    cur_secondary_value = interpolate_secondary_value(secondary_range[0], secondary_range[1], argmin_result, argmax_result, opti_mode)
-    
-    # Establish a secondary range-wide mean and stdev, for use in the stdev_and_mean statistic as a normalization factor
-    dependent_result_range_mean = (argmin_result + argmax_result) / 2
-    dependent_result_range_stdev = (argmin_results_stdev + argmax_results_stdev) / 2
-    
-    # Perform the remaining attempts using a hillclimbing algorithm
-    # -- Initialize 'previous' variables; secondary value with the most optimal result is chosen as the initial 'previous' value
-    stepsize = 0.5
-    min_and_max_argvalues = np.array([argmin, argmax])
-    min_and_max_results = np.array([argmin_result, argmax_result])
-    if opti_mode == "minimize":
-        prev_result = min_and_max_results[min_and_max_results.argmin()]
-        prev_secondary_value = min_and_max_argvalues[min_and_max_results.argmin()]
-    else:
-        raise RuntimeError("Currently unsupported opti mode '{}'".format(opti_mode))
-    
-    # -- Run the hillclimbing algorithm
-    best_result = prev_result
-    best_secondary_value = prev_secondary_value
-    best_negative_secondary_value = argmax
-    best_negative_secondary_result = argmax_result
-    best_positive_secondary_value = argmin
-    best_positive_secondary_result = argmin_result
-    for i in range(no_attempts - 2):
-        print("Value trajectory so far: ", secondary_value_trajectory)
-        dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, cur_initial_no_dispersals, _, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev, _params = execute_multiple_runs(
-            params, primary_variable, primary_value, csv_parent_dir, proc_id, no_processes, n_runs, sim_name, total_results_csv,
-            color_dict, extra_parameters, dependent_var, opti_mode, statistic, "saddle_search", init_csv, secondary_value=cur_secondary_value, secondary_variable=secondary_variable,
-            dependent_result_range_mean=dependent_result_range_mean, dependent_result_range_stdev=dependent_result_range_stdev
-        )
-        secondary_value_trajectory[cur_secondary_value] = cur_secondary_value_result
-        
-        # Get smallest and largest secondary values
-        secondary_values = np.array([cur_secondary_value, prev_secondary_value])
-        prev_and_current_results = np.array([cur_secondary_value_result, prev_result])
-        argmax = secondary_values[np.argmax(secondary_values)]
-        argmin = secondary_values[np.argmin(secondary_values)]
-        
-        # Obtain new secondary value
-        if opti_mode == "minimize" and dependent_var == "tree_cover_slope":
-            if tree_cover_slope > 0:
-                # Get average of latest argument and argument corresponding to best negative result
-                _secondary_value = (best_negative_secondary_value + cur_secondary_value) / 2
-                print("Moving in negative direction of dependent variable")
-            else:
-                # Get average of latest argument and argument corresponding to best positive result
-                _secondary_value = (best_positive_secondary_value + cur_secondary_value) / 2
-                print("Moving in positive direction of dependent variable")
-        else:
-            _secondary_value = hillclimb(cur_secondary_value, cur_secondary_value_result, best_secondary_value, best_result, secondary_range, opti_mode, stepsize)
-        prev_secondary_value = cur_secondary_value
-        prev_result = cur_secondary_value_result
-        stepsize *= 0.8 # Reduce stepsize asymptotically
-        
-        # Update best result and best secondary value
-        if opti_mode == "minimize":
-            if cur_secondary_value_result < best_result:
-                best_result = cur_secondary_value_result
-                best_secondary_value = cur_secondary_value
-                initial_no_dispersals = cur_initial_no_dispersals
-                if (dependent_var == "tree_cover_slope"):
-                    largest_absolute_slope = best_result
-                    if tree_cover_slope > 0:
-                        best_positive_secondary_value = cur_secondary_value
-                        best_positive_secondary_result = cur_secondary_value_result
-                    else:
-                        best_negative_secondary_value = cur_secondary_value
-                        best_negative_secondary_result = cur_secondary_value_result
-        else:
-            raise RuntimeError("Currently unsupported opti mode '{}'".format(opti_mode))
-        
-        # Update secondary value
-        cur_secondary_value = _secondary_value
-        
-    
-    return best_secondary_value, dynamics, tree_cover_slope, largest_absolute_slope, cur_secondary_value_result, initial_no_dispersals, singlerun_name, singlerun_csv_path, singlerun_image_path, dependent_result_range_stdev, _params
-
-
-def get_secondary_value_if_applicable(secondary_variable, secondary_range):
-    if secondary_variable is None:
-        yield None
-        return
-    else:
-        secondary_control_value = secondary_range[0]
-        while secondary_control_value <= secondary_range[2]:
-            yield secondary_control_value
-            secondary_control_value += secondary_range[1] # New value is old value + step size
-
-
-def yield_rerun_idx_if_not_saddle_search(type, n_runs):
-    if type == "saddle_search":
-        yield None
-        return
-    else:
-        if n_runs == 0 or n_runs == 1:
-            yield 0
-            return
-        else:
-            for rerun_idx in range(n_runs):
-                yield rerun_idx
-
-
-def _ensure_correct_arg_datatype(element):
-    if not type(element) == str:
-        return element
-    element = element.strip()
-    if element == "True":
-        result = True
-    elif element == "False":
-        element = False
-    elif element == "None":
-        element = None
-    elif is_number(element):
-        if "." in element:
-            element = float(element)
-        else:
-            element = int(element)
-    elif "[" in element:
-        stringlist = [x.strip() for x in element.split(",")]
-        element = [_ensure_correct_arg_datatype(x) for x in stringlist]
-    
-    return element
-
-
-def ensure_correct_arg_datatype(cfg):
-    """Ensure that the arguments are of the correct datatype.
-
-    cfg:
-        cfg (dict): Dictionary containing the arguments and their values.
-
-    Returns:
-        dict: Dictionary with the arguments and their values, with the correct datatypes.
-    """
-
-    for key in cfg:
-        cfg[key] = _ensure_correct_arg_datatype(cfg[key])
-    
-    return cfg
- 
 
 def read_config_from_file(_batch_cfg):
     with open(os.path.join(config.cfg.SOURCE_DIR, "batch_config", _batch_cfg.config), "r") as f:
@@ -597,11 +304,11 @@ def set_batch_random_seeds(batch_cfg):
     return batch_cfg
 
 
-def determine_no_processes(batch_cfg):
-    if batch_cfg.no_processes < 0:
+def determine_n_processes(batch_cfg):
+    if batch_cfg.n_processes < 0:
         cpu_count = os.cpu_count()
         logger.info(f"No number of processes set. Detected {cpu_count} CPU cores, will therefore use {cpu_count-1} processes.")
-        batch_cfg.no_processes = max(1, cpu_count - 1)
+        batch_cfg.n_processes = max(1, cpu_count - 1)
 
     return batch_cfg
 
@@ -617,7 +324,7 @@ def load_batch_config(batch_cfg):
     batch_cfg = determine_total_results_csv(batch_cfg) 
     batch_cfg = set_batch_random_seeds(batch_cfg)
     batch_cfg = parse_jobs(batch_cfg)
-    batch_cfg = determine_no_processes(batch_cfg)
+    batch_cfg = determine_n_processes(batch_cfg)
     batch_cfg.vis = vis.Visualiser(batch_cfg)
     batch_cfg.color_dict = create_color_dict(batch_cfg)
     batch_cfg.headless = True
@@ -644,16 +351,17 @@ def run_sim(batch_cfg, job, init_csv):
     export_state(batch_cfg, dynamics, job, sim_cfg, init_csv)
 
 
-def suppress_extraneous_console_output():
+def suppress_irrelevant_console_output():
     # Ignore a numpy warning that pops up during visualization
     np.seterr(invalid="ignore")
     
-    # Redirect stdout to the null device, ensuring all python print statements are suppressed.
+    # Redirect stdout to the null device, ensuring all console output of the child processes is suppressed.
     sys.stdout = open(os.devnull, "w")
 
 
 def run_batch(batch_cfg, proc_id, sim_counter, finished_sim_counter, init_csv):
-    suppress_extraneous_console_output()
+    # We don't want detailed information to pop up about every single simulation, so we suppress it.
+    suppress_irrelevant_console_output()
 
     # Initialize the logger for this process.
     configure_logger(logname="batch.log", format="%(levelname)s %(processName)s: %(message)s", **vars(batch_cfg))
@@ -687,8 +395,19 @@ def configure_logger(logname=None, batch_verbosity=None, _format="%(levelname)s:
     elif batch_verbosity == "debug":
         logging.basicConfig(filename=logname, level=logging.DEBUG, format=_format)
 
-    handler = get_stdout_logging_handler()
+    handler = h.get_stdout_logging_handler()
     logger.addHandler(handler)
+
+
+def remove_non_serializable_items(batch_cfg_copy):
+    deletions = []
+    for k, v in batch_cfg_copy.items():
+        try:
+            json.dumps(v)
+        except TypeError:
+            deletions.append(k)
+    for k in deletions + ["help", "arguments_examples"]:
+        del batch_cfg_copy[k]
 
 
 def export_batch_cfg(batch_cfg):
@@ -697,22 +416,15 @@ def export_batch_cfg(batch_cfg):
         # Get the arguments from one job as a representative set of arguments for the batch, and export these to json. 
         # This way, we have a record of the arguments used for the batch, without having to export the arguments 
         # of each individual simulation.
-        args = deepcopy(batch_cfg.jobs.get_specific_job(0, return_dict=True))
         batch_cfg_copy = vars(deepcopy(batch_cfg))
+        args = batch_cfg.jobs.get_comprehensive_jobs_summary()
         batch_cfg_copy["arguments"] = args
         
         # Remove non-serializable items from config to avoid issues when exporting to json
-        deletions = []
-        for k, v in batch_cfg_copy.items():
-            try:
-                json.dumps(v)
-            except TypeError:
-                deletions.append(k)
-        for k in deletions + ["help", "arguments_examples"]:
-            del batch_cfg_copy[k]
+        remove_non_serializable_items(batch_cfg_copy)
             
         # Export to json file
-        json.dump(batch_cfg_copy, args_json)
+        json.dump(batch_cfg_copy, args_json, indent=4)
 
 
 def report_sim_completions(batch_cfg, n_reported_completions, n_finished_simulations):
@@ -726,7 +438,7 @@ def report_sim_completions(batch_cfg, n_reported_completions, n_finished_simulat
 
 def manage_processes(batch_cfg):
     # Initialize Processes-container and shared values
-    procs = Processes()
+    procs = h.Processes()
     n_started_simulations = Value("i", 0)
     n_finished_simulations = Value("i", 0)
     init_csv = Value("i", 1)
@@ -734,7 +446,7 @@ def manage_processes(batch_cfg):
     # Add processes to container and start them
     n_reported_completions = 0
     logger.info("Starting processes...")
-    for i in range(batch_cfg.no_processes):
+    for i in range(batch_cfg.n_processes):
         procs.add(Process(target=run_batch, args=(batch_cfg, i, n_started_simulations, n_finished_simulations, init_csv)))
     logger.info("Finished starting processes.")
 
@@ -744,7 +456,7 @@ def manage_processes(batch_cfg):
         n_reported_completions = report_sim_completions(batch_cfg, n_reported_completions, n_finished_simulations)
         
     procs.join()
-    logger.info("All processes have finished.")
+    logger.info("Batch complete.")
 
 
 def main(batch_cfg):
@@ -756,9 +468,10 @@ def main(batch_cfg):
 
         
 if __name__ == "__main__":
+    print("Starting batch process...")
     parser = ArgumentParser()
     parser.add_argument('-cfg', '--config', default="constant_batch", type=str)
-    parser.add_argument('-np', '--no_processes', type=int, default=-1, help="Number of processes to run simultaneously.")
+    parser.add_argument('-np', '--n_processes', type=int, default=-1, help="Number of processes to run simultaneously.")
     parser.add_argument('-r', '--run', type=str, default=1, help="Unique run identifier in case of multiple runs per batch")
     parser.add_argument('-rs', '--random_seed', type=str, default=-999, help="Random seed for the batch. If seed != -999, each individual simulation may still get a unique random seed, but according to a reproducible sequence. If a random seed (!= -999) is provided in the batch config, this seed will be used for each simulation.")
     parser.add_argument('-rsf', '--firefreq_random_seed', type=str, default=-999, help="Random seed for fire frequencies for the batch. If != -999, each individual simulation may still get a unique random seed, but according to a reproducible sequence. If a random seed (!= -999) is provided in the batch config, this seed will be used for each simulation.")
