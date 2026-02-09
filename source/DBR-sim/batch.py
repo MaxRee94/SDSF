@@ -460,7 +460,9 @@ def manage_processes(batch_cfg):
 
 
 def main(batch_cfg):
-    os.remove("batch.log")
+    print("log exists?", "yes" if os.path.exists("batch.log") else "nope")
+    if os.path.exists("batch.log"):
+        os.remove("batch.log")
     configure_logger(logname="batch.log", **vars(batch_cfg))
     batch_cfg = load_batch_config(batch_cfg)
     export_batch_cfg(batch_cfg)
