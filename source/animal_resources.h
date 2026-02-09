@@ -41,7 +41,7 @@ public:
 	ResourceGrid() = default;
 	ResourceGrid(ResourceGrid&&) = default;
 	ResourceGrid& operator=(ResourceGrid&&) = default;
-	ResourceGrid(State* _state, int _width, float _cell_width, vector<string> _species, map<string, map<string, float>>& _animal_kernel_params): Grid(_width, _cell_width) {
+	ResourceGrid(State* _state, int _width, float _cell_width, vector<string> _species, map<string, map<string, float>>& _animal_kernel_params, int _verbosity): Grid(_width, _cell_width) {
 		width = _width;
 		state = _state;
 		grid = &state->grid;
@@ -51,6 +51,7 @@ public:
 		cells = make_shared<ResourceCell[]>(size);
 		selection_probabilities = DiscreteProbabilityModel(size);
 		species = _species;
+		verbosity = _verbosity;
 		animal_kernel_params = _animal_kernel_params;
 		init_property_distributions(species);
 		init_cells();
@@ -292,7 +293,7 @@ public:
 				dist_lookup_table[species][size * (cells[i].pos.first + cells[i].pos.second * width) + cells[j].pos.first + cells[j].pos.second * width] = val;
 			}
 		}
-		printf("Computed dist lookup table for species %s \n", species.c_str());
+		if (verbosity > 0) printf("Computed dist lookup table for species %s \n", species.c_str());
 	}
 	void set_dist_lookup_table(shared_ptr<float[]> lookup_table, string species) {
 		for (int i = 0; i < width * width * width * width; i++) {
@@ -370,6 +371,7 @@ public:
 	int iteration = -1;
 	int total_no_fruits = 0;
 	int lookup_table_size = 0;
+	int verbosity = 0;
 	int size = 0;
 	DiscreteProbabilityModel selection_probabilities;
 	shared_ptr<pair<float,float>[]> neighbor_offsets = 0;
