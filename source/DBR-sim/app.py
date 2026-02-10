@@ -28,17 +28,33 @@ import simple_noise_generator as sng
 from x64.Release import dbr_cpp as cpp
 
 
-def unpack_control_keys(control_variable):
-    control_keys = control_variable.split("->")
-    return control_keys
-
-
 def set_dispersal_kernel(
         dynamics, dispersal_mode, multi_disperser_params
     ):
-    animal_species = []
+    """Set the parameters for the dispersal kernel associated with the given dispersal_mode.
+
+    The parameters are loaded from the given JSON file into a dictionary. This JSON file can contain parameters
+    for multiple dispersal modes, though only the parameters of the requested dispersal mode will actually be used.
+    
+    Examples:
+    For wind dispersal, the parameters may be scalars defining wind speed and standard deviation, whereas
+    for animal dispersal, it will be separate dictionaries per species, containing parameter values for flight speed 
+    and such.
+
+    Input:
+        dynamics: The C++ object that contains the core logic of SDSF.
+        dispersal_mode (string): the dispersal mode used, such as animal or wind.
+        multi_disperser_params (str): Name of the JSON-file containing the parameters of the dispersal kernel. 
+    Return:
+        dynamics: The C++ object that contains the core logic of SDSF, now including or more initialized dispersal kernels.
+        animal_species (list): List of animal species for which the dispersal kernel has been initialized. If you did not
+            specify 'animal' or 'all' as your dispersal_mode, then this will be an empty list.
+    """
+
     with open(os.path.join(cfg.DATA_IN_DIR, multi_disperser_params), "r") as mdp_jsonfile:
         multi_disperser_params = json.load(mdp_jsonfile)
+
+    animal_species = []
     if (dispersal_mode == "linear_diffusion"):
         dynamics.set_global_linear_kernel(
             multi_disperser_params["linear"]["q1"], multi_disperser_params["linear"]["q2"],
@@ -58,8 +74,6 @@ def set_dispersal_kernel(
         animal_species = [species for species in animal_dispersal_params.keys() if species != "population"]
         multi_disperser_params.pop("animal")
         dynamics.set_global_kernels(multi_disperser_params, animal_dispersal_params)
-
-    print("finished setting dispersal kernel.")
 
     return dynamics, animal_species
 

@@ -70,7 +70,7 @@ cfg = derive_input_dirs(cfg)
 
 sys.path.append(cfg.BUILD_DIR)
 
-print("Preparing model run... (this may take some time)")
+print(f"Loading dbr_cpp from {cfg.BUILD_DIR} and reparing model run... (this may take some time)")
 
 
 defaults = {
