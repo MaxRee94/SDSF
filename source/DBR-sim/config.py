@@ -70,6 +70,8 @@ cfg = derive_input_dirs(cfg)
 
 sys.path.append(cfg.BUILD_DIR)
 
+print("Preparing model run... (this may take some time)")
+
 
 defaults = {
     "grid_width": 960,

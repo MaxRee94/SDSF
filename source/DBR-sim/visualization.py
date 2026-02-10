@@ -5,8 +5,12 @@ import matplotlib.pyplot as plt
 import math
 import time
 import colorsys
-import disk_pattern_generator as dpg
+import platform
+import subprocess
+import re
+import ctypes
 
+import disk_pattern_generator as dpg
 from helpers import *
 from config import *
 
@@ -234,10 +238,43 @@ class Visualiser:
         return self.get_image(img, color_dict_fire_freq, grid_width)
 
     def visualize(self, grid, image_width=1000, collect_states=True, color_dict=False):
-        img = self.get_image_from_grid(grid, color_dict, collect_states=collect_states)    
+        img = self.get_image_from_grid(grid, color_dict, collect_states=collect_states)   
+        _, screen_height = self.get_screen_resolution()
+        image_width = int(screen_height * 0.6)
         self.visualize_image(img, image_width)
     
         return img
+
+    def _get_windows_resolution(self):
+        # Win32 API via ctypes
+        user32 = ctypes.windll.user32
+        user32.SetProcessDPIAware()  # avoid DPI scaling issues
+        width = user32.GetSystemMetrics(0)
+        height = user32.GetSystemMetrics(1)
+        return width, height
+
+
+    def _get_macos_resolution(self):
+        # Query system_profiler and parse the resolution
+        output = subprocess.check_output(
+            ["system_profiler", "SPDisplaysDataType"], text=True
+        )
+        match = re.search(r"Resolution:\s*(\d+)\s*x\s*(\d+)", output)
+        if not match:
+            raise RuntimeError("Could not determine macOS screen resolution")
+        return int(match.group(1)), int(match.group(2))
+
+
+    def get_screen_resolution(self):
+        system = platform.system()
+
+        if system == "Windows":
+            return self._get_windows_resolution()
+
+        if system == "Darwin":
+            return self._get_macos_resolution()
+
+        raise NotImplementedError(f"Unsupported OS: {system}")
 
     def save_image(self, img, path, image_width = 1000, interpolation="none"):
         if interpolation == "linear":

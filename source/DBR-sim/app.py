@@ -300,7 +300,6 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         # Get a color image representation of the state
         img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["normal"], collect_states=1)
     else:
-        print("showing image..")
         # Get a color image representation of the state and show it.
         img = cfg.vis.visualize(
             dynamics.state.grid, cfg.image_width, collect_states=collect_states,
@@ -572,7 +571,6 @@ def strategy_distribution_params_are_loaded(strategy_distribution_params):
 
 
 def main(**user_args): 
-    
     global cfg
 
     # Set any given batch parameters
