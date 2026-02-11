@@ -66,7 +66,7 @@ class Jobs:
         ctrl_vars = {}
         for key, val in self.arguments.items():
             # Only include control variables that vary across simulations.
-            if val["interpolation"] == "constant":
+            if type(val) != dict:
                 continue
 
             value = getattr(job_ns, key)
@@ -94,7 +94,11 @@ class Jobs:
     
     @staticmethod
     def get_vec(arg_cfg):
-        if arg_cfg["interpolation"] == "linear":
+        if type(arg_cfg) != dict:
+            # If no dictionary is provided, we instead assume a constant value across all simulation jobs.
+            value = arg_cfg
+            vec = [value]
+        elif arg_cfg["interpolation"] == "linear":
             minim, maxim, stepsize = arg_cfg["range"] + [arg_cfg["stepsize"]]
             vec = list(np.arange(minim, maxim + stepsize/2, stepsize))
             no_digits_after_comma = max(
@@ -105,11 +109,6 @@ class Jobs:
             vec = [float(round(v, no_digits_after_comma)) for v in vec]
         elif arg_cfg["interpolation"] == "categorical":
             vec = arg_cfg["range"]
-        elif arg_cfg["interpolation"] == "constant":
-            assert arg_cfg.get("value"), "Arg cfg with interpolation 'constant' must have a 'value' key."
-            vec = arg_cfg["value"]
-            if type(vec) != list:
-                vec = [arg_cfg["value"]]
 
         return vec
 
@@ -460,7 +459,6 @@ def manage_processes(batch_cfg):
 
 
 def main(batch_cfg):
-    print("log exists?", "yes" if os.path.exists("batch.log") else "nope")
     if os.path.exists("batch.log"):
         os.remove("batch.log")
     configure_logger(logname="batch.log", **vars(batch_cfg))

@@ -234,115 +234,6 @@ def termination_condition_satisfied(dynamics, start_time, cfg):
     return satisfied
 
 
-def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, patches, patch_count_change, patch_color_ids, cfg):
-    if ("recruitment" in visualization_types):
-        print("Saving recruitment img...") if verbose else None
-        recruitment_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["recruitment"], collect_states=0)
-        imagepath_recruitment = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/recruitment/" + str(dynamics.time) + ".png")
-        cfg.vis.save_image(recruitment_img, imagepath_recruitment, get_max(1000, recruitment_img.shape[0]), interpolation="none")
-    
-    if ("fire_freq" in visualization_types):
-        fire_freq_arrays.append(dynamics.state.grid.get_distribution(0) == -5)
-        if dynamics.time > fire_no_timesteps:
-            print("Saving fire frequency img...") if verbose else None
-            fire_freq_img = cfg.vis.get_fire_freq_image(fire_freq_arrays[-fire_no_timesteps:], color_dicts["fire_freq"], dynamics.state.grid.width, fire_no_timesteps)
-            imagepath_fire_freq = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fire_frequencies/" + str(dynamics.time) + ".png")
-            cfg.vis.save_image(fire_freq_img, imagepath_fire_freq, get_max(1000, fire_freq_img.shape[0]))
-
-    def get_bbox(positions2d):
-        min_x = min(positions2d, key=lambda item: item[0])[0]
-        max_x = max(positions2d, key=lambda item: item[0])[0]
-        min_y = min(positions2d, key=lambda item: item[1])[1]
-        max_y = max(positions2d, key=lambda item: item[1])[1]
-        return (min_x, min_y), (max_x, max_y)
-
-    if ("colored_patches" in visualization_types):
-        print("Creating colored patches image...") if verbose else None
-
-        # Initialize color index array
-        patch_colors_indices = np.zeros((dynamics.state.grid.width, dynamics.state.grid.width), dtype=int) -1
-        
-        # Sort patches so that larger patches are assigned colors first
-        patches = sorted(patches, key=lambda patch: patch["area"], reverse=True)
-
-        minimum_considered_patch_size = 0 # m^2
-        forest_area = 0
-        central_patch = -1
-        max_no_colors = 1000
-        offset = -10
-
-        for i, patch in enumerate(patches):
-            if (len(patches) > 20) and dynamics.time == 0:
-                if i >= 100:
-                    print("Breaking patch coloring loop at patch no", i, f"for performance reasons (number of patches = {len(patches)}).")
-                    break
-                if i % 15 == 0:
-                    print(f"Coloring patch no {i}/{len(patches)}... Will be cut off at 100.")
-            if patch["area"] < minimum_considered_patch_size: # Only consider patches of a certain size
-                continue
-            patch_id = patch["id"]
-
-            if not patch_color_ids.get(str(patch_id)):
-                if (len(patches) > 30) and dynamics.time > 0:
-                    color_idx = cfg.vis.get_random_color_index(patch_color_ids.values(), max_no_colors, offset)
-                else:
-                    color_idx = cfg.vis.get_most_distinct_index(patch_color_ids.values(), max_no_colors, offset)
-                patch_color_ids[str(patch_id)] = color_idx # Assign a new color index to the patch
-            patch_color_id = patch_color_ids[str(patch_id)]
-            col=color_dicts["colored_patches"][patch_color_id]
-            forest_area += patch["area"] if patch["type"] == "forest" else 0
-            for cell in patch["cells"]:
-                patch_colors_indices[cell[1]][cell[0]] = patch_color_id
-
-        colored_patches_img = cfg.vis.get_image(patch_colors_indices, color_dicts["colored_patches"], dynamics.state.grid.width)
-        cfg.show_edges = False # Hardcoded for now
-        if cfg.show_edges:
-            for patch in patches:
-                if patch["area"] < minimum_considered_patch_size: # Only consider patches of a certain size
-                    continue
-                for edge in patch["perimeter"]:
-                    point1 = (edge[0][0], edge[0][1])
-                    point2 = (edge[1][0], edge[1][1])
-                    if get_2d_dist(point1, point2) > 0.5*dynamics.state.grid.width:
-                        continue # Skip drawing wrap-around edges for now.
-                    cv2.line(colored_patches_img, point1, point2, (0, 0, 0), 1)  # black line, thickness=2
-        imagepath_colored_patches = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/colored_patches/" + str(dynamics.time) + ".png")
-        cfg.vis.save_image(colored_patches_img, imagepath_colored_patches, get_max(1000, colored_patches_img.shape[0]), interpolation="none")
-
-    print("-- Visualizing image...") if verbose else None
-    if cfg.headless:
-        # Get a color image representation of the state
-        img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["normal"], collect_states=1)
-    else:
-        # Get a color image representation of the state and show it.
-        img = cfg.vis.visualize(
-            dynamics.state.grid, cfg.image_width, collect_states=collect_states,
-            color_dict=color_dicts["normal"]
-        )
-
-    print("-- Saving image...") if verbose else None
-    imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
-    cfg.vis.save_image(img, imagepath, get_max(1000, img.shape[0]), interpolation="none")
-    
-    if ("fuel" in visualization_types):
-        print("-- Saving fuel image...") if verbose else None
-        fuel_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel")
-        imagepath_fuel = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
-        cfg.vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
-
-    if ("aggr_tree_LAI" in visualization_types):
-        print("-- Saving aggregated tree LAI image...") if verbose else None
-        aggr_tree_LAI_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="aggr_tree_LAI", invert=False)
-        imagepath_aggr_tree_LAI = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/aggr_tree_LAI/" + str(dynamics.time) + ".png")
-        cfg.vis.save_image(aggr_tree_LAI_img, imagepath_aggr_tree_LAI, get_max(1000, aggr_tree_LAI_img.shape[0]))
-
-    if ("fuel_penetration" in visualization_types):
-        print("-- Saving fuel penetration image...") if verbose else None
-        fuel_penetration_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel_penetration")
-        imagepath_fuel_penetration = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel_penetration/" + str(dynamics.time) + ".png")
-        cfg.vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
-
-
 def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
     """Perform burn-in procedure to stabilize initial forest density and demography."""
     
@@ -506,7 +397,7 @@ def updateloop(dynamics, color_dicts, cfg):
     
         # Do visualizations
         if cfg.export_visualizations:
-            do_visualizations(
+            visualization.do_visualizations(
                 dynamics, fire_freq_arrays, fire_no_timesteps, verbose,
                 color_dicts, collect_states, visualization_types,
                 patches, patch_count_change, patch_colors, cfg
@@ -586,6 +477,9 @@ def strategy_distribution_params_are_loaded(strategy_distribution_params):
 
 def main(**user_args): 
     global cfg
+
+    if user_args["verbosity"] >= 0:
+        print(f"Loading dbr_cpp from {cfg.BUILD_DIR} and preparing model run... (this may take some time)")
 
     # Set any given batch parameters
     if not strategy_distribution_params_are_loaded(user_args["strategy_distribution_params"]):
