@@ -11,7 +11,6 @@ from types import SimpleNamespace
 
 # Define default global constants (can be overridden locally, see 'apply_local_overrides()')
 cwd = str(Path(__file__).resolve().parents[1])
-print("cwd:", cwd)
 if cwd.endswith("source"):
     cwd = cwd + "/DBR-sim"
 constants = {}
