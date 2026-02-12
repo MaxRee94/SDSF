@@ -224,8 +224,6 @@ def init(cfg):
     dynamics = cpp.create_dynamics(vars(cfg))
     dynamics.init_state(
         cfg.grid_width,
-        cfg.dbh_q1,
-        cfg.dbh_q2,
         cfg.growth_rate_multiplier_params[0],
         cfg.growth_rate_multiplier_params[1],
         cfg.growth_rate_multiplier_params[2],

@@ -72,27 +72,30 @@ cfg = derive_input_dirs(cfg)
 sys.path.append(cfg.BUILD_DIR)
 
 
-defaults = {
+defaults = {}
+
+# Add control constants
+defaults.update({
     "grid_width": 960,
-    "treecover": 0.5,
     "cell_width": 1,
-    "max_dbh": 44.3, # (Close to) Theoretical maximum due to density-dependent constraint on LAI (see 'Tree Allometric Relationships v03.xlsx' for details)
     "image_width": 1000,
+    "tests": "none",
+    "timelimit": 1e32,
+    "termination_conditions": "all",
+    "firefreq_random_seed": 0,
+    "random_seed": -999
+})
+
+defaults.update({
+    "treecover": 0.5,
+    "max_dbh": 44.3, # (Close to) Theoretical maximum of the pantropical growth model we use
     "timestep": 1,
     "patch_width": 170,
     "enforce_no_recruits": -1,
     "noise_octaves": 5,
-    "timelimit": 1e32,
     "self_ignition_factor": 3,
     "unsuppressed_flammability": 0.5,
-    "rainfall": 0.1,
-    "tests": "none",
-    "random_seed": -999,
-    "firefreq_random_seed": 0,
-    "termination_conditions": "all",
     "STR": 10000, # The number of seeds produced by a tree with a dbh of 30 cm
-    "dbh_q1": 1,
-    "dbh_q2": 0,
     "verbosity": 0,
     "growth_rate_multiplier_params": [0.5, 0.5, 2.13],
     "seed_bearing_threshold": 0.1, # dbh fraction of theoreftical maximum height. We assume all trees are seed bearing beyond this height, based on Minor and Kobe (2018), Figure 5.
@@ -151,7 +154,7 @@ defaults = {
     "burn": True,
     "burnin_duration": 100,
     "export_visualizations": True,
-}
+})
 
 gui_defaults = {
     "grid_width": defaults["grid_width"],
@@ -278,7 +281,7 @@ _parameter_config = {
         "settings": {
             "type": float,
             "help": (
-                "Determines the number of cells ignited per year by multiplication with rainfall levels."
+                "The Expected value of the number of cells ignited per year per square kilometer of grassland."
             ),
             "default": defaults["self_ignition_factor"],
         },
@@ -295,18 +298,6 @@ _parameter_config = {
             "default": defaults["unsuppressed_flammability"],
         },
     },
-    "rainfall": {
-        "keys": {
-            "cli": ["--rainfall", "-rf"]
-        },
-        "settings": {
-            "type": float,
-            "help": (
-                "Rainfall levels, kept constant across all timesteps."
-            ),
-            "default": defaults["rainfall"],
-        },
-    },
     "tests": {
         "keys": {
             "cli": ["--tests", "-tests"]
@@ -317,30 +308,6 @@ _parameter_config = {
                 "Whether or not to run unit or output tests. Possible options: 'none', 'unit_tests', 'end2end'."
             ),
             "default": defaults["tests"],
-        },
-    },
-    "dbh_q1": {
-        "keys": {
-            "cli": ["--dbh_q1", "-rq1"]
-        },
-        "settings": {
-            "type": float,
-            "help": (
-                "The relative probability of occurrence in the initial state of the smallest tree radius."
-            ),
-            "default": defaults["dbh_q1"],
-        },
-    },
-    "dbh_q2": {
-        "keys": {
-            "cli": ["--dbh_q2", "-rq2"]
-        },
-        "settings": {
-            "type": float,
-            "help": (
-                "The relative probability of occurrence in the initial state of the largest tree radius."
-            ),
-            "default": defaults["dbh_q2"],
         },
     },
     "seed_bearing_threshold": {

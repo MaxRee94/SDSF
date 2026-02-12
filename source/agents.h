@@ -417,9 +417,9 @@ public:
 class Population {
 public:
 	Population() = default;
-	Population(float _max_dbh, float _cellsize, float dbh_q1, float dbh_q2,
-		map<string, map<string, float>> strategy_parameters, float _mutation_rate, float _seed_bearing_threshold,
-		float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max
+	Population(float _max_dbh, float _cellsize, map<string, map<string, float>> strategy_parameters,
+		float _mutation_rate, float _seed_bearing_threshold, float growth_multiplier_stdev,
+		float growth_multiplier_min, float growth_multiplier_max
 	) : max_dbh(_max_dbh), cellsize(_cellsize), seed_bearing_threshold(_seed_bearing_threshold)
 	{
 		strategy_generator = StrategyGenerator(strategy_parameters);

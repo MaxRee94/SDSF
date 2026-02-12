@@ -4,7 +4,7 @@
 class Tests {
 public:
 	Tests() {};
-	Tests(int _timestep, float _cell_width, float _self_ignition_factor, float _rainfall, float _seed_bearing_threshold,
+	Tests(int _timestep, float _cell_width, float _self_ignition_factor, float _seed_bearing_threshold,
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _min_suppressed_flammability, float _max_suppressed_flammability,
 		float _radius_suppr_flamm_min, float radius_range_suppr_flamm, float _max_dbh, float _saturation_threshold, float _fire_resistance_argmin,
 		float _fire_resistance_argmax, float _fire_resistance_stretch, float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
@@ -12,7 +12,7 @@ public:
 		float growth_multiplier_min, float growth_multiplier_max, int random_seed, int firefreq_random_seed, float enforce_no_recruits, int animal_group_size
 	) {
 		// TODO: Re-implement using creation from python dict (see global.cpp)
-		/*dynamics = Dynamics(_timestep, _cell_width, _self_ignition_factor, _rainfall, _seed_bearing_threshold,
+		/*dynamics = Dynamics(_timestep, _cell_width, _self_ignition_factor, _seed_bearing_threshold,
 			_growth_rate_multiplier, _unsuppressed_flammability, _min_suppressed_flammability, _max_suppressed_flammability,
 			_radius_suppr_flamm_min, radius_range_suppr_flamm, _max_dbh, _saturation_threshold, _fire_resistance_argmin,
 			_fire_resistance_argmax, _fire_resistance_stretch, _background_mortality, _strategy_distribution_params,
