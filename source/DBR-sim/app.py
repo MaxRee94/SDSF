@@ -167,7 +167,7 @@ def set_random_seeds(cfg):
             random seed, which is used for all stochastic processes in the model except for the fire frequency
             probability distribution. cfg.firefreq_random_seed is the random seed specifically for the fire frequency
             probability distribution, which can be set separately to allow for independent reproducibility of temporal
-            patterns of fire frequency across different runs with the same global random seed.
+            patterns of fire frequency across different runs.
     """
 
     # Set random seed
