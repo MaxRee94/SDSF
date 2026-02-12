@@ -481,13 +481,6 @@ def do_update(dynamics, cfg):
         tree_cover_slope=cfg.treecover_slope, cfg=cfg
     )
 
-    # (TURNED OFF FOR NOW) Export tree positions and ages to a JSON file, which can be used to create 
-    # 3D visualizations in Blender .
-    # print("-- Saving tree positions...") if cfg.verbosity else None
-    # io.save_state(dynamics)
-    # if cfg.report_state in ["True", True]:
-    #     io.update_state_report(dynamics)
-
     # Update graphs 
     print("-- Showing graphs...") if cfg.verbosity else None
     if not cfg.headless:
