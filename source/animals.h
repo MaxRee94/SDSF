@@ -6,7 +6,7 @@
 class Animal {
 public:
 	Animal() = default;
-	Animal(map<string, float> _traits, string _species, int _animal_group_size) {
+	Animal(map<string, float> _traits, string _species, int _animal_group_size, int _verbose) {
 		traits = _traits;
 		traits["a_c_recipr"] = 1.0f / traits["a_c"];
 		traits["a_f_recipr"] = 1.0f / traits["a_f"];
@@ -14,6 +14,7 @@ public:
 		recipr_speed = 1.0f / traits["speed"];
 		init_prob_distributions();
 		animal_group_size = _animal_group_size;
+		verbose = _verbose;
 	}
 	void init_prob_distributions() {
 		gut_passage_time_distribution = GammaProbModel(traits["gut_passage_time_shape"], traits["gut_passage_time_scale"]);
@@ -147,10 +148,10 @@ public:
 		if (cell->trees.size() == 0) {
 			if (recursion_depth > 10) {
 				if (try_fruit_agnostic_selection) {
-					printf("\n\n WARNING: No cell containing trees found after recursing 10 times. Selecting random location instead...\n\n");
+					if (verbose >= 0) printf("\n\n WARNING: No cell containing trees found after recursing 10 times. Selecting random location instead...\n\n");
 					return resource_grid->grid->get_random_real_position();
 				}
-				printf("Trying fruit-agnostic selection...\n");
+				if (verbose > 0) printf("Trying fruit-agnostic selection...\n");
 				if (try_fruit_agnostic_selection == false) recursion_depth = 0; // Reset recursion counter if we are trying fruit-agnostic selection.
 				return select_destination(resource_grid, recursion_depth + 1, true);
 			}
@@ -210,19 +211,21 @@ public:
 	int verbosity = 0;
 	int total_no_seeds_consumed = 0;
 	bool moving = false;
+	int verbose = -1;
 };
 
 
 class Animals {
 public:
 	Animals() = default;
-	Animals(State* state, map<string, map<string, float>> _animal_kernel_params, int _animal_group_size) {
+	Animals(State* state, map<string, map<string, float>> _animal_kernel_params, int _animal_group_size, int _verbose) {
 		animal_kernel_params = _animal_kernel_params;
 		animal_group_size = _animal_group_size;
 		int pop_density = animal_kernel_params["population"]["density"];
 		total_no_animals = max(1, round(pop_density * (state->grid.area / 1e6)));
 		no_iterations = animal_kernel_params["population"]["no_iterations"];
 		animal_kernel_params.erase("population");
+		verbose = _verbose;
 	}
 	void print_animal_kernel_params(map<string, map<string, float>>& _animal_kernel_params) {
 		for (auto& [species, params] : animal_kernel_params) {
@@ -236,7 +239,7 @@ public:
 		vector<pair<string, float>> ordered_fractional_remainders = help::sort_descending(fractional_remainders);
 		for (auto& [species, remainder] : ordered_fractional_remainders) {
 			if (created_no_animals == target_no_animals) return;
-			Animal animal(animal_kernel_params[species], species, animal_group_size);
+			Animal animal(animal_kernel_params[species], species, animal_group_size, verbose);
 			total_animal_population[species].push_back(animal);
 			created_no_animals++;
 		}
@@ -271,7 +274,7 @@ public:
 		int popsize, vector<Animal>& species_population, map<string, float> traits, string species
 	) {
 		for (int i = 0; i < popsize; i++) {
-			Animal animal(traits, species, animal_group_size);
+			Animal animal(traits, species, animal_group_size, verbose);
 			species_population.push_back(animal);
 		}
 	}
@@ -324,13 +327,13 @@ public:
 				}
 				if (no_seeds_defecated < no_seeds_to_disperse) break;
 			}
-			if (iteration % 600 == 0 && iteration > 0) {
-				printf("-- Animal dispersal progress: %f %%\n", (float)no_seeds_defecated * 100.0f / (float)no_seeds_to_disperse);
+			if (iteration % 2000 == 0 && iteration > 0) {
+				if (verbose >= 0) printf("-- Animal dispersal progress: %f %%\n", (float)no_seeds_defecated * 100.0f / (float)no_seeds_to_disperse);
 			}
 			no_seeds_eaten += cur_no_seeds_eaten;
 			iteration++;
 		}
-		printf("-- Number of iterations spent dispersing fruits: %d\n", iteration);
+		if (verbose > 0) printf("-- Number of iterations spent dispersing fruits: %d\n", iteration);
 		fraction_time_spent_moving = time_spent_moving / (time_spent_moving + time_spent_resting);
 	}
 	int popsize() {

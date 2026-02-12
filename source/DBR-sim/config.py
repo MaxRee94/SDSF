@@ -18,6 +18,7 @@ constants["DATA_IN_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_in"
 constants["DATA_OUT_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_out"
 constants["DATA_INTERNAL_DIR"] = constants["REPOSITORY_BASEDIR"] + "/data_internal"
 constants["BUILD_DIR"] = constants["REPOSITORY_BASEDIR"] + "/build"
+constants["SOURCE_DIR"] = constants["REPOSITORY_BASEDIR"] + "/source/DBR-sim"
 
 cfg = SimpleNamespace(**constants)
 
@@ -100,12 +101,12 @@ defaults = {
     "dispersal_max": 300,
     "growth_rate_multiplier": 0.4,
     "saturation_threshold": 3,
-    "fire_resistance_params": "{\"argmin\": 8.5, \"argmax\": 50, \"stretch\": 2.857}", # See 'notes/fire_resistance_threshold_curve.xlsx' for details
+    "fire_resistance_params": {"argmin": 8.5, "argmax": 50, "stretch": 2.857}, # See 'notes/fire_resistance_threshold_curve.xlsx' for details
     "background_mortality": 0.01,
     "csv_path": "",
     "headless": False,
     "max_timesteps": 100,
-    "strategy_distribution_params": f"windkernel.json",
+    "strategy_distribution_params": "windkernel.json",
     "resource_grid_width": 48,
     "initial_pattern_image": "none",
     "mutation_rate": 0, # We do not incorporate mutation in this study.

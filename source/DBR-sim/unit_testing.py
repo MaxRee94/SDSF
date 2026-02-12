@@ -21,6 +21,21 @@ from config import *
 from x64.Release import dbr_cpp as cpp
 
 
+def test_kernel():
+    cpp.init_RNG()
+    dist_max = 200
+    windspeed_gmean = 10
+    windspeed_stdev = 5
+    seed_terminal_speed = 0.65
+    abscission_height = 30
+    wind_kernel = cpp.Kernel(1, dist_max, windspeed_gmean, windspeed_stdev, 0, 3600, seed_terminal_speed, abscission_height)
+    wind_kernel.build()
+    cfg.vis.visualize_kernel(wind_kernel, "Wind kernel. d_max = {}, w_gmean = {}, \n w_stdev = {}, v_t = {}, h = {}".format(
+        dist_max, windspeed_gmean, windspeed_stdev, seed_terminal_speed, abscission_height)
+    )
+    return
+
+
 def test_discrete_probmodel():
     cpp.init_RNG()
     # Get a list of probabilities (normal distributed)

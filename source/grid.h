@@ -360,7 +360,6 @@ class Grid {
 public:
 	Grid() = default;
 	Grid(int _width, float _cell_width, float _minimum_patch_size, float _LAI_aggregation_radius) {
-		printf("\nInitializing grid with width %i and cell width %f.\n", _width, _cell_width);
 		width = _width;
 		cell_width = _cell_width;
 		cell_width_inv = 1.0f / cell_width;

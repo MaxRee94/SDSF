@@ -75,7 +75,7 @@ class Test:
         self.rename_state_data_file()
 
     def run(self):
-        _, _, _, _, self.cfg = app.main(**vars(self.cfg))
+        _, self.cfg = app.main(**vars(self.cfg))
         self.do_post_test_filemanagement()
 
 

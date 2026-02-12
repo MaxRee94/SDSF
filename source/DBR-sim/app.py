@@ -18,7 +18,7 @@ from types import SimpleNamespace
 
 import visualization
 import file_handling as io
-from helpers import *
+import helpers as h
 from config import *
 import disk_pattern_generator as _dpg
 import sine_pattern_generator as spg
@@ -28,17 +28,33 @@ import simple_noise_generator as sng
 from x64.Release import dbr_cpp as cpp
 
 
-def unpack_control_keys(control_variable):
-    control_keys = control_variable.split("->")
-    return control_keys
-
-
 def set_dispersal_kernel(
         dynamics, dispersal_mode, multi_disperser_params
     ):
-    animal_species = []
+    """Set the parameters for the dispersal kernel associated with the given dispersal_mode.
+
+    The parameters are loaded from the given JSON file into a dictionary. This JSON file can contain parameters
+    for multiple dispersal modes, though only the parameters of the requested dispersal mode will actually be used.
+    
+    Examples:
+    For wind dispersal, the parameters may be scalars defining wind speed and standard deviation, whereas
+    for animal dispersal, it will be separate dictionaries per species, containing parameter values for flight speed 
+    and such.
+
+    Input:
+        dynamics: The C++ object that contains the core logic of SDSF.
+        dispersal_mode (string): the dispersal mode used, such as animal or wind.
+        multi_disperser_params (str): Name of the JSON-file containing the parameters of the dispersal kernel. 
+    Return:
+        dynamics: The C++ object that contains the core logic of SDSF, now including or more initialized dispersal kernels.
+        animal_species (list): List of animal species for which the dispersal kernel has been initialized. If you did not
+            specify 'animal' or 'all' as your dispersal_mode, then this will be an empty list.
+    """
+
     with open(os.path.join(cfg.DATA_IN_DIR, multi_disperser_params), "r") as mdp_jsonfile:
         multi_disperser_params = json.load(mdp_jsonfile)
+
+    animal_species = []
     if (dispersal_mode == "linear_diffusion"):
         dynamics.set_global_linear_kernel(
             multi_disperser_params["linear"]["q1"], multi_disperser_params["linear"]["q2"],
@@ -59,54 +75,100 @@ def set_dispersal_kernel(
         multi_disperser_params.pop("animal")
         dynamics.set_global_kernels(multi_disperser_params, animal_dispersal_params)
 
-    print("finished setting dispersal kernel.")
-
     return dynamics, animal_species
 
 
+def create_controlled_patches_image(cfg, dynamics):
+    """Create an image with patches whose perimeter-area, size, inter-patch distance
+    is determined by params in cfg."""
+
+    print("Generating controlled pattern image...")
+
+    _cfg = copy.copy(cfg)
+    img, cfg.cover_img_path, benchmark_cover = cfg.vis.generate_disk_pattern(**vars(_cfg))
+    img = cv2.resize(img, (cfg.grid_width, cfg.grid_width), interpolation=cv2.INTER_NEAREST)
+    img = img / 255
+
+    # If the user has set the override_image_treecover to 2, we will use the benchmark cover value from
+    # the controllable pattern image. The benchmark cover is the tree cover you would get if you would
+    # use circular patches.
+    if cfg.override_image_treecover == 2:
+        cfg.override_image_treecover = benchmark_cover
+
+    return img, dynamics, cfg
+
+
+def create_perlin_noise_image(cfg, dynamics):
+    """Create perlin noise image according to the parameters set in the cfg."""
+
+    print("Generating perlin noise image...")
+
+    cfg.cover_img_path = f"{cfg.PERLIN_NOISE_DIR}/" + cfg.initial_pattern_image + ".png"
+    noise_frequency = 5.0 / round(cfg.patch_width, 2) # Convert patch width to noise frequency
+    noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
+    img = cfg.vis.generate_perlin_noise_image(cfg.cover_img_path, frequency=noise_frequency, octaves=cfg.noise_octaves)
+
+    # Ensure the image is thresholded
+    img = cfg.vis.get_thresholded_image(img, cfg.treecover * img.shape[0] * img.shape[0] * 255 )
+    cv2.imwrite(cfg.cover_img_path.replace(".png", "_thresholded.png"), img)
+
+    return img, dynamics, cfg
+
+
+def load_homogeneous_image(cfg, dynamics):
+    """Load a pure white image so that no specific tree cover pattern is applied at the start of the simulation (i.e.,
+    trees are placed randomly)."""
+    
+    print("Loading pure white image...")
+
+    cfg.cover_img_path = f"{cfg.SIMPLE_PATTERNS_DIR}/uniform.png" # Pure white image
+    img = cv2.imread(cfg.cover_img_path, cv2.IMREAD_GRAYSCALE)
+
+    return img, dynamics, cfg
+
+
+def load_specified_existing_image(cfg, dynamics):
+    """Load the image whose name was specified in cfg.initial_pattern_image."""
+
+    cfg.cover_img_path = f"{cfg.DATA_IN_DIR}/state_patterns/" + cfg.initial_pattern_image
+    img = cv2.imread(cfg.cover_img_path, cv2.IMREAD_GRAYSCALE)
+    print(f"Path of the generated {cfg.initial_pattern_image} pattern image: ", cfg.cover_img_path) if cfg.initial_pattern_image in ["ctrl", "perlin_noise"] else None
+
+    return img, dynamics, cfg
+
+
 def set_initial_tree_cover(dynamics, cfg, color_dicts):
-    print("Initial pattern image:", cfg.initial_pattern_image)
+    """Generate- or load a black-and-white image and use it to set an initial pattern of forest cover."""
+    
     if cfg.initial_pattern_image == "ctrl":
-        _cfg = copy.copy(cfg)
-        img, cfg.cover_img_path, benchmark_cover = cfg.vis.generate_disk_pattern(**vars(_cfg))
-        img = cv2.resize(img, (cfg.grid_width, cfg.grid_width), interpolation=cv2.INTER_NEAREST)
-        img = img / 255
-
-        # If the user has set the override_image_treecover to 2, we will use the benchmark cover value from the controllable pattern image.
-        # The benchmark cover is the cover for a version of the pattern produced using the given parameters, but with a sine amplitude set to 0 (i.e., with circular disks).
-        if cfg.override_image_treecover == 2:
-            cfg.override_image_treecover = benchmark_cover
+        img, dynamics, cfg = create_controlled_patches_image(cfg, dynamics)
     elif cfg.initial_pattern_image == "perlin_noise":
-        cfg.cover_img_path = f"{cfg.PERLIN_NOISE_DIR}/" + cfg.initial_pattern_image + ".png"
-        noise_frequency = 5.0 / cfg.patch_width # Convert patch width to noise frequency
-        noise_frequency = round(noise_frequency, 2) # Conform noise frequency to 2 decimal places, to ensure periodicity of the noise pattern
-        img = cfg.vis.generate_perlin_noise_image(cfg.cover_img_path, frequency=noise_frequency, octaves=cfg.noise_octaves)
+        img, dynamics, cfg = create_perlin_noise_image(cfg, dynamics)
     elif cfg.initial_pattern_image == "none":
-        cfg.cover_img_path = f"{cfg.SIMPLE_PATTERNS_DIR}/uniform.png" # Pure white image
-        img = cv2.imread(cfg.cover_img_path, cv2.IMREAD_GRAYSCALE)
+        img, dynamics, cfg = load_homogeneous_image(cfg, dynamics)
     else:
-        print("Setting tree cover from image...")
-
-        cfg.cover_img_path = f"{cfg.DATA_IN_DIR}/state_patterns/" + cfg.initial_pattern_image
-        img = cv2.imread(cfg.cover_img_path, cv2.IMREAD_GRAYSCALE)
-        print(f"Path of the generated {cfg.initial_pattern_image} pattern image: ", cfg.cover_img_path) if cfg.initial_pattern_image in ["ctrl", "perlin_noise"] else None
-        
-        if ("perlin_noise" in cfg.cover_img_path) and (not "thresholded.png" in cfg.cover_img_path):
-            img = cfg.vis.get_thresholded_image(img, cfg.treecover * img.shape[0] * img.shape[0] * 255 )
-            cv2.imwrite(cfg.cover_img_path.replace(".png", "_thresholded.png"), img)
+        img, dynamics, cfg = load_specified_existing_image(cfg, dynamics)
  
+    # Resize the image to the dimensions of the grid
     img = cv2.resize(img, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_NEAREST)
 
-    # Do burn-in procedure to stabilize initial forest density and demography    
+    # Do burn-in procedure to allow forest demography to organically reach an equilibrium.   
     dynamics, cfg = do_burn_in(dynamics, cfg, img, color_dicts, target_treecover=cfg.treecover)
 
-    return dynamics, cfg
+    return dynamics
 
 
-def init(cfg):
-
-    # Make any changes to cfg if needed
-    cfg.patch_width = round(cfg.patch_width, 2)
+def set_random_seeds(cfg):
+    """Set random seeds for reproducibility. If -999 is given as the seed, a random seed will be generated and used.
+    
+    Args:
+        cfg (namespace): 
+            The configuration object containing the random seed settings. cfg.random_seed is the global
+            random seed, which is used for all stochastic processes in the model except for the fire frequency
+            probability distribution. cfg.firefreq_random_seed is the random seed specifically for the fire frequency
+            probability distribution, which can be set separately to allow for independent reproducibility of temporal
+            patterns of fire frequency across different runs with the same global random seed.
+    """
 
     # Set random seed
     if (cfg.random_seed == -999):
@@ -124,13 +186,41 @@ def init(cfg):
     else:
         print(f"Using given random seed ({cfg.firefreq_random_seed}) for fire frequency probability distribution.")
 
+    return cfg
+
+
+def generate_and_or_load_animal_dist_lookup_tables(dynamics, cfg, animal_species):
+    # Export resource grid lookup table
+    for species in animal_species:
+        lookup_table, fpath = io.get_lookup_table(species, cfg.grid_width, cfg.resource_grid_width * cfg.resource_grid_width)
+        if lookup_table is None:
+            print(f"Lookup table file {fpath} not found. Creating new one... (might take some time).")
+            dynamics.precompute_resourcegrid_lookup_table(species)
+            lookup_table = dynamics.get_resource_grid_lookup_table(species)
+            io.export_lookup_table(lookup_table, cfg.grid_width, species)
+        else:
+            print(f"Lookup table file {fpath} found. Loading...")
+            dynamics.set_resource_grid_lookup_table(lookup_table, species)
+
+
+def init(cfg):
+    """Initialize the model.
+
+    This includes setting random seeds, initializing the dynamics object, setting the parameters for the dispersal kernel,
+    creating an initial pattern of tree cover, and visualizing the initial state of the model. The function returns the
+    initialized dynamics object."""
+
+    # Set random seeds
+    cfg = set_random_seeds(cfg)
+
     # Initialize visualization tool
     cfg.vis = visualization.Visualiser(cfg)
     
     # Initialize disk pattern generator
     cfg.dpg = _dpg.DiskPatternGenerator(cfg)
 
-    # Initialize dynamics object and state
+    # Initialize dynamics object (containing process-related functionality) 
+    # and state (containing state variables and data-management functionality).
     dynamics = cpp.create_dynamics(vars(cfg))
     dynamics.init_state(
         cfg.grid_width,
@@ -143,198 +233,81 @@ def init(cfg):
         cfg.LAI_aggregation_radius
     )
     
-    # Set dispersal kernel
+    # Set the parameters for the dispersal kernel associated with the given dispersal_mode.
     dynamics, animal_species = set_dispersal_kernel(dynamics, cfg.dispersal_mode, cfg.multi_disperser_params)
     
-    # Create color dictionaries for visualizations
-    no_colors = 100
-    if cfg.display_fire_effects == 1:
-        color_dict = cfg.vis.get_color_dict(no_colors, begin=0.2, end=0.5, distr_type="normal_with_fire_effects")
-    else:
-        color_dict = cfg.vis.get_color_dict(no_colors, begin=0.2, end=0.5, distr_type="normal")
-    color_dict_recruitment = cfg.vis.get_color_dict(no_colors, begin=0.2, end=0.5, distr_type="recruitment")
-    color_dict_fire_freq = cfg.vis.get_color_dict(10, begin=0.2, end=0.5, distr_type="fire_freq")
-    color_dict_blackwhite = cfg.vis.get_color_dict(no_colors, distr_type="blackwhite")
-    color_dict_colored_patches = cfg.vis.get_color_dict(no_colors, distr_type="colored_patches")
-    color_dicts = {}
-    color_dicts["normal"] = color_dict
-    color_dicts["recruitment"] = color_dict_recruitment
-    color_dicts["fire_freq"] = color_dict_fire_freq
-    color_dicts["blackwhite"] = color_dict_blackwhite
-    color_dicts["colored_patches"] = color_dict_colored_patches
-    
+    # Create color dictionaries to be used in visualizations
+    visualization.create_color_dict(cfg)
+
     # Set input maps
     print("Setting heterogeneity maps...") if cfg.verbosity > 0 else None
-    dynamics, cfg = io.set_heterogeneity_maps(dynamics, cfg)
-    
+    dynamics = io.set_heterogeneity_maps(dynamics, cfg)
+
     # Set initial tree cover
     print("Setting initial tree cover...") if cfg.verbosity > 0 else None
-    dynamics, cfg = set_initial_tree_cover(dynamics, cfg, color_dicts)
+    dynamics = set_initial_tree_cover(dynamics, cfg, cfg.color_dicts)
     
     # Visualize the initial state
-    collect_states = True
-    print("Visualizing state at t = 0")
-    if not cfg.headless:
-        # Get a color image representation of the initial state and show it.
-        img = cfg.vis.visualize(
-            dynamics.state.grid, cfg.image_width, collect_states=collect_states,
-            color_dict=color_dict
-        )
-    else:
-        # Get a color image representation of the initial state
-        img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dict, collect_states=collect_states)
-   
-    # Export image file
-    imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
-    cfg.vis.save_image(img, imagepath)
+    visualization.visualize_initial_state(dynamics, cfg)
     
-    if cfg.dispersal_mode == "all" or cfg.dispersal_mode == "animal":
-
+    if cfg.dispersal_mode in ["animal", "all"]:
         # Export resource grid lookup table
-        print("animal species: ", animal_species)
-        for species in animal_species:
-            lookup_table, fpath = io.get_lookup_table(species, cfg.grid_width, cfg.resource_grid_width * cfg.resource_grid_width)
-            if lookup_table is None:
-                print(f"Lookup table file {fpath} not found. Creating new one...")
-                dynamics.precompute_resourcegrid_lookup_table(species)
-                lookup_table = dynamics.get_resource_grid_lookup_table(species)
-                io.export_lookup_table(lookup_table, cfg.grid_width, species)
-            else:
-                print(f"Lookup table file {fpath} found. Loading...")
-                dynamics.set_resource_grid_lookup_table(lookup_table, species)
+        generate_and_or_load_animal_dist_lookup_tables(dynamics, cfg, animal_species)
 
-    return dynamics, color_dicts, cfg
+    # Change cfg settings if these should be modified after initialization
+    cfg.visualization_types = [
+        "fire_freq", "recruitment", "fuel", "tree_LAI", "aggr_tree_LAI", "colored_patches", "fuel_penetration"
+    ]
+    cfg.init_csv = False
+
+    # Initialize variables for tracking compute time, tree cover trajectory, and patch dynamics
+    cfg.computer_start_time = time.time()
+    cfg.init_csv = False
+    cfg.prev_tree_cover = [cfg.treecover] * 60
+    cfg.treecover_slope = 0
+    cfg.largest_absolute_slope = 0
+    cfg.export_animal_resources = False
+    cfg.patches = {}
+    cfg.collect_states = 1
+    cfg.fire_no_timesteps = 1
+    cfg.patch_colors = {}
+    cfg.fire_freq_arrays = []
+
+    return dynamics
 
 
 def termination_condition_satisfied(dynamics, start_time, cfg):
+    """Check if any of the termination conditions specified in cfg have been satisfied.
+    return 'True' if the simulation should be terminated, and 'False' otherwise."""
+
     satisfied = False
-    condition = ""
+    satisifed_condition = ""
     if (dynamics.time >= int(cfg.max_timesteps)):
-        condition = f"Maximum number of timesteps ({cfg.max_timesteps}) reached."
-    if (cfg.termination_conditions == "all" and dynamics.state.grid.get_tree_cover() > 0.93):
-        condition = f"Tree cover exceeds 93%."
-    satisfied = len(condition) > 0
+        satisifed_condition = f"Maximum number of timesteps ({cfg.max_timesteps}) reached."
+    if (cfg.termination_conditions == "all" and dynamics.state.grid.get_tree_cover() > 0.99):
+        satisifed_condition = f"Tree cover exceeds 99%."
+
+    satisfied = len(satisifed_condition) > 0 # If 'satisfied_contion' is not an empty string, then a
+                                             # termination condition was satisfied.
     if satisfied:
-        print("\nSimulation terminated. Cause:", condition)
+        print("\nSimulation terminated. Cause:", satisifed_condition)
 
     return satisfied
 
 
-def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, patches, patch_count_change, patch_color_ids, cfg):
-    if ("recruitment" in visualization_types):
-        print("Saving recruitment img...") if verbose else None
-        recruitment_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["recruitment"], collect_states=0)
-        imagepath_recruitment = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/recruitment/" + str(dynamics.time) + ".png")
-        cfg.vis.save_image(recruitment_img, imagepath_recruitment, get_max(1000, recruitment_img.shape[0]), interpolation="none")
-    
-    if ("fire_freq" in visualization_types):
-        fire_freq_arrays.append(dynamics.state.grid.get_distribution(0) == -5)
-        if dynamics.time > fire_no_timesteps:
-            print("Saving fire frequency img...") if verbose else None
-            fire_freq_img = cfg.vis.get_fire_freq_image(fire_freq_arrays[-fire_no_timesteps:], color_dicts["fire_freq"], dynamics.state.grid.width, fire_no_timesteps)
-            imagepath_fire_freq = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fire_frequencies/" + str(dynamics.time) + ".png")
-            cfg.vis.save_image(fire_freq_img, imagepath_fire_freq, get_max(1000, fire_freq_img.shape[0]))
-
-    def get_bbox(positions2d):
-        min_x = min(positions2d, key=lambda item: item[0])[0]
-        max_x = max(positions2d, key=lambda item: item[0])[0]
-        min_y = min(positions2d, key=lambda item: item[1])[1]
-        max_y = max(positions2d, key=lambda item: item[1])[1]
-        return (min_x, min_y), (max_x, max_y)
-
-    if ("colored_patches" in visualization_types):
-        print("Creating colored patches image...") if verbose else None
-
-        # Initialize color index array
-        patch_colors_indices = np.zeros((dynamics.state.grid.width, dynamics.state.grid.width), dtype=int) -1
-        
-        # Sort patches so that larger patches are assigned colors first
-        patches = sorted(patches, key=lambda patch: patch["area"], reverse=True)
-
-        minimum_considered_patch_size = 0 # m^2
-        forest_area = 0
-        central_patch = -1
-        max_no_colors = 1000
-        offset = -10
-
-        for i, patch in enumerate(patches):
-            if (len(patches) > 20) and dynamics.time == 0:
-                if i >= 100:
-                    print("Breaking patch coloring loop at patch no", i, f"for performance reasons (number of patches = {len(patches)}).")
-                    break
-                if i % 15 == 0:
-                    print(f"Coloring patch no {i}/{len(patches)}... Will be cut off at 100.")
-            if patch["area"] < minimum_considered_patch_size: # Only consider patches of a certain size
-                continue
-            patch_id = patch["id"]
-
-            if not patch_color_ids.get(str(patch_id)):
-                if (len(patches) > 30) and dynamics.time > 0:
-                    color_idx = cfg.vis.get_random_color_index(patch_color_ids.values(), max_no_colors, offset)
-                else:
-                    color_idx = cfg.vis.get_most_distinct_index(patch_color_ids.values(), max_no_colors, offset)
-                patch_color_ids[str(patch_id)] = color_idx # Assign a new color index to the patch
-            patch_color_id = patch_color_ids[str(patch_id)]
-            col=color_dicts["colored_patches"][patch_color_id]
-            forest_area += patch["area"] if patch["type"] == "forest" else 0
-            for cell in patch["cells"]:
-                patch_colors_indices[cell[1]][cell[0]] = patch_color_id
-
-        colored_patches_img = cfg.vis.get_image(patch_colors_indices, color_dicts["colored_patches"], dynamics.state.grid.width)
-        cfg.show_edges = False # Hardcoded for now
-        if cfg.show_edges:
-            for patch in patches:
-                if patch["area"] < minimum_considered_patch_size: # Only consider patches of a certain size
-                    continue
-                for edge in patch["perimeter"]:
-                    point1 = (edge[0][0], edge[0][1])
-                    point2 = (edge[1][0], edge[1][1])
-                    if get_2d_dist(point1, point2) > 0.5*dynamics.state.grid.width:
-                        continue # Skip drawing wrap-around edges for now.
-                    cv2.line(colored_patches_img, point1, point2, (0, 0, 0), 1)  # black line, thickness=2
-        imagepath_colored_patches = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/colored_patches/" + str(dynamics.time) + ".png")
-        cfg.vis.save_image(colored_patches_img, imagepath_colored_patches, get_max(1000, colored_patches_img.shape[0]), interpolation="none")
-
-    print("-- Visualizing image...") if verbose else None
-    if cfg.headless:
-        # Get a color image representation of the state
-        img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["normal"], collect_states=1)
-    else:
-        print("showing image..")
-        # Get a color image representation of the state and show it.
-        img = cfg.vis.visualize(
-            dynamics.state.grid, cfg.image_width, collect_states=collect_states,
-            color_dict=color_dicts["normal"]
-        )
-
-    print("-- Saving image...") if verbose else None
-    imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
-    cfg.vis.save_image(img, imagepath, get_max(1000, img.shape[0]), interpolation="none")
-    
-    if ("fuel" in visualization_types):
-        print("-- Saving fuel image...") if verbose else None
-        fuel_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel")
-        imagepath_fuel = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
-        cfg.vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
-
-    if ("aggr_tree_LAI" in visualization_types):
-        print("-- Saving aggregated tree LAI image...") if verbose else None
-        aggr_tree_LAI_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="aggr_tree_LAI", invert=False)
-        imagepath_aggr_tree_LAI = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/aggr_tree_LAI/" + str(dynamics.time) + ".png")
-        cfg.vis.save_image(aggr_tree_LAI_img, imagepath_aggr_tree_LAI, get_max(1000, aggr_tree_LAI_img.shape[0]))
-
-    if ("fuel_penetration" in visualization_types):
-        print("-- Saving fuel penetration image...") if verbose else None
-        fuel_penetration_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel_penetration")
-        imagepath_fuel_penetration = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel_penetration/" + str(dynamics.time) + ".png")
-        cfg.vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
-
-
 def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
-    """Perform burn-in procedure to stabilize initial forest density and demography."""
+    """Perform burn-in procedure to stabilize initial forest density and demography.
     
+    Forest is dispersed and allowed to grow for a number of timesteps, while feedback control is applied to keep
+    tree cover close to the target tree cover. This allows the age distribution of trees to stabilize and prevents
+    the model from starting with an unrealistically high tree cover (if the initial pattern image is very dense)
+    or low tree cover (if the initial pattern image is very sparse). The burn-in procedure ends when either the
+    specified burn-in duration has been reached, or when the tree cover exceeds the target tree cover, whichever
+    comes later.
+    """
+
     print(f"Beginning burn-in for {cfg.burnin_duration} timesteps...")
-    init_csv = True
+    cfg.init_csv = True
     cfg.treesize_bins = "initialize"
     visualization_types = ["aggr_tree_LAI", "colored_patches"]
     fire_freq_arrays = []
@@ -351,8 +324,8 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
         dynamics.state.grid.reset_state_distr()
         dynamics.update_forest_patch_detection()
         dynamics.report_state()
-        cfg = io.export_state(dynamics, path=cfg.csv_path, init_csv=init_csv, cfg=cfg)
-        init_csv = False
+        cfg = io.export_state(dynamics, path=cfg.csv_path, init_csv=cfg.init_csv, cfg=cfg)
+        cfg.init_csv = False
 
         # Feedback control on tree cover during burn-in
         if dynamics.state.grid.get_tree_cover() > target_treecover:
@@ -366,11 +339,12 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
         if not cfg.headless:
             img = cfg.vis.visualize(
                 dynamics.state.grid, cfg.image_width, collect_states=1,
-                color_dict=color_dicts["normal"]
+                color_dict=color_dicts.normal
             )
         dynamics.time += 1
 
-    # Remove seedlings, then let trees disperse for one time step to create a realistic initial distribution of seedlings.
+    # Remove seedlings, then let trees disperse for one time step to create a realistic
+    # initial distribution of seedlings.
     dynamics.time -= 1
     dynamics.remove_trees_up_to_age(1)
     dynamics.state.repopulate_grid(0)
@@ -430,10 +404,6 @@ def do_iteration(dynamics, cfg):
 
     # Post-simulation cleanup and reporting
     dynamics.state.repopulate_grid(cfg.verbosity)
-
-    if cfg.verbosity > 1:
-        print("Redoing grid count...")
-
     dynamics.state.grid.redo_count()
     dynamics.report_state()
     dynamics.update_firefree_interval_averages()
@@ -442,155 +412,142 @@ def do_iteration(dynamics, cfg):
     return dynamics
 
 
-def updateloop(dynamics, color_dicts, cfg):
-    print("Beginning simulation...")
-    start = time.time()
-    treesize_bins = cfg.treesize_bins
-    visualization_types = ["fire_freq", "recruitment", "fuel", "tree_LAI", "aggr_tree_LAI", "colored_patches", "fuel_penetration"]
-    init_csv = False
-    prev_tree_cover = [cfg.treecover] * 60
-    slope = 0
-    largest_absolute_slope = 0
-    export_animal_resources = False
-    patches = {}
-    collect_states = 1
-    fire_no_timesteps = 1
-    patch_colors = {}
-    verbose = cfg.verbosity
-    fire_freq_arrays = []
-    color_dict_fire_freq = cfg.vis.get_color_dict(fire_no_timesteps, begin=0.2, end=0.5, distr_type="fire_freq")
-    color_dicts["fire_freq"] = color_dict_fire_freq
+def export_animal_resources(dynamics):
+    """Get color image representations of the resource grid."""
+
+    cover_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/cover/" + str(dynamics.time) + ".png")
+    fruits_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fruits/" + str(dynamics.time) + ".png")
+    visits_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/visits/" + str(dynamics.time) + ".png")
+    distance_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/distance/" + str(dynamics.time) + ".png")
+    distance_coarse_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/distance_coarse/" + str(dynamics.time) + ".png")
+    k_coarse_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/k_coarse/" + str(dynamics.time) + ".png")
+    k_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/k/" + str(dynamics.time) + ".png")
+
+    cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "cover", cover_path)
+    cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "fruits", fruits_path)
+    cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "visits", visits_path)
+    cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "distance_single", distance_path)
+    cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "distance_single_coarse", distance_coarse_path)
+    cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "k", k_path)
+    cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "k_coarse", k_coarse_path)
+
+
+def do_update(dynamics, cfg):
+    """Perform a single update of the model.
+
+    This includes running the processes of dispersal, growth, and burning, as well as updating the
+    state variables, creating visualizations, and exporting data to files. The function also checks if
+    any of the termination conditions have been satisfied, and returns 'True' if the simulation should
+    be terminated, and 'False' otherwise."""
+
+    print("-- Starting iteration...") if cfg.verbosity else None
+    dynamics = do_iteration(dynamics, cfg)
+    print("-- Finished update") if cfg.verbosity else None
+    
+    # Obtain initial number of recruits
+    if dynamics.time == 0:
+        cfg.initial_no_dispersals = dynamics.get_initial_no_dispersals()
+    
+    # Track tree cover trajectory
+    cfg.prev_tree_cover.append(dynamics.state.grid.get_tree_cover())
+    if dynamics.time > 10:
+        cfg.treecover_slope = (cfg.prev_tree_cover[-1] - cfg.treecover) / dynamics.time
+        single_tstep_slope = cfg.prev_tree_cover[-1] - cfg.prev_tree_cover[-2]
+        if abs(single_tstep_slope) > cfg.largest_absolute_slope:
+            cfg.largest_absolute_slope = abs(single_tstep_slope)
+    else:
+        cfg.treecover_slope = 0
+
+    # Track treecover trajectory
+    do_terminate = termination_condition_satisfied(dynamics, cfg.computer_start_time, cfg)
+    
+    # Obtain patches from simulation
+    cfg.old_no_patches = len(cfg.patches)
+    cfg.patches = dynamics.get_patches() 
+    cfg.patch_count_change =  len(cfg.patches) - cfg.old_no_patches
+    
+    # Create visualizations and export to image files
+    if cfg.export_visualizations:
+        visualization.do_visualizations(
+            dynamics, cfg.fire_freq_arrays, cfg.fire_no_timesteps, cfg.verbosity,
+            cfg.color_dicts, cfg.collect_states, cfg.visualization_types,
+            cfg.patches, cfg.patch_count_change, cfg.patch_colors, cfg
+        )
+    
+    # Export state variables to csv file
+    print("-- Exporting state_data...") if cfg.verbosity else None
+    cfg = io.export_state(
+        dynamics, path=cfg.csv_path, init_csv=cfg.init_csv,
+        tree_cover_slope=cfg.treecover_slope, cfg=cfg
+    )
+
+    # (TURNED OFF FOR NOW) Export tree positions and ages to a JSON file, which can be used to create 
+    # 3D visualizations in Blender .
+    # print("-- Saving tree positions...") if cfg.verbosity else None
+    # io.save_state(dynamics)
+    # if cfg.report_state in ["True", True]:
+    #     io.update_state_report(dynamics)
+
+    # Update graphs 
+    print("-- Showing graphs...") if cfg.verbosity else None
+    if not cfg.headless:
+        cfg.graphs.update()
+
+    if export_animal_resources and (cfg.dispersal_mode == "all" or cfg.dispersal_mode == "animal"):
+        export_animal_resources(dynamics)
+
+    if do_terminate:
+        return dynamics, True
+        
+    dynamics.time += 1
+
+    return dynamics, False
+
+
+def updateloop(dynamics, cfg):
+    """Run the main update loop of the model, which repeatedly calls
+    'do_update' until a termination condition is satisfied."""
 
     if not cfg.headless:
-        graphs = visualization.Graphs(dynamics)
+        cfg.graphs = visualization.Graphs(dynamics)
 
-    while True:
-        print("-- Starting iteration...") if verbose else None
-        dynamics = do_iteration(dynamics, cfg)
-        print("-- Finished update") if verbose else None
-    
-        # Obtain initial number of recruits
-        if dynamics.time == 0:
-            initial_no_dispersals = dynamics.get_initial_no_dispersals()
-    
-        # Track tree cover trajectory
-        prev_tree_cover.append(dynamics.state.grid.get_tree_cover())
-        if dynamics.time > 10:
-            slope = (prev_tree_cover[-1] - cfg.treecover) / dynamics.time
-            single_tstep_slope = prev_tree_cover[-1] - prev_tree_cover[-2]
-            if abs(single_tstep_slope) > largest_absolute_slope:
-                largest_absolute_slope = abs(single_tstep_slope)
-        else:
-            slope = 0
-
-        # Track treecover trajectory
-        do_terminate = termination_condition_satisfied(dynamics, start, cfg)
-    
-        # Obtain patches from simulation
-        old_no_patches = len(patches)
-        patches = dynamics.get_patches() 
-        patch_count_change =  len(patches) - old_no_patches
-    
-        # Do visualizations
-        if cfg.export_visualizations:
-            do_visualizations(
-                dynamics, fire_freq_arrays, fire_no_timesteps, verbose,
-                color_dicts, collect_states, visualization_types,
-                patches, patch_count_change, patch_colors, cfg
-            )
-    
-        print("-- Exporting state_data...") if verbose else None
-        cfg = io.export_state(
-            dynamics, cfg.csv_path, init_csv,
-            tree_cover_slope=slope,
-            cfg=SimpleNamespace(**vars(cfg))
-        )
-
-        print("-- Saving tree positions...") if verbose else None
-        # io.save_state(dynamics)
-    
-        if cfg.report_state == "True" or cfg.report_state is True:
-            io.update_state_report(dynamics)
-
-        print("-- Showing graphs...") if verbose else None
-        if not cfg.headless:
-            graphs.update()
-
-        if export_animal_resources and (cfg.dispersal_mode == "all" or cfg.dispersal_mode == "animal"):
-            # Get color image representations of the resource grid from the last iteration
-            cover_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/cover/" + str(dynamics.time) + ".png")
-            fruits_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fruits/" + str(dynamics.time) + ".png")
-            visits_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/visits/" + str(dynamics.time) + ".png")
-            distance_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/distance/" + str(dynamics.time) + ".png")
-            distance_coarse_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/distance_coarse/" + str(dynamics.time) + ".png")
-            k_coarse_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/k_coarse/" + str(dynamics.time) + ".png")
-            k_path = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/k/" + str(dynamics.time) + ".png")
-
-            cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "cover", cover_path)
-            cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "fruits", fruits_path)
-            cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "visits", visits_path)
-            cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "distance_single", distance_path)
-            cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "distance_single_coarse", distance_coarse_path)
-            cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "k", k_path)
-            cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "k_coarse", k_coarse_path)
-
-        if do_terminate:
-            break
-        
-        dynamics.time += 1
+    print("Beginning simulation...")
+    terminate_simulation = False
+    while not terminate_simulation:
+        dynamics, terminate_simulation = do_update(dynamics, cfg)
 
     if not cfg.headless:
         cv2.destroyAllWindows()
         dynamics.free()
 
-    return dynamics, slope, largest_absolute_slope, initial_no_dispersals, cfg
+    if not hasattr(cfg, "dependent_vars"):
+        cfg.dependent_vars = {
+            "tree_cover_slope": cfg.treecover_slope, 
+            "largest_absolute_slope": cfg.largest_absolute_slope,
+            "initial_no_dispersals": cfg.initial_no_dispersals
+        }
+
+    return dynamics, cfg
 
 
-def test_kernel():
-    cpp.init_RNG()
-    dist_max = 200
-    windspeed_gmean = 10
-    windspeed_stdev = 5
-    seed_terminal_speed = 0.65
-    abscission_height = 30
-    wind_kernel = cpp.Kernel(1, dist_max, windspeed_gmean, windspeed_stdev, 0, 3600, seed_terminal_speed, abscission_height)
-    wind_kernel.build()
-    cfg.vis.visualize_kernel(wind_kernel, "Wind kernel. d_max = {}, w_gmean = {}, \n w_stdev = {}, v_t = {}, h = {}".format(
-        dist_max, windspeed_gmean, windspeed_stdev, seed_terminal_speed, abscission_height)
-    )
-    return
+def main(**user_args):
+    """Initialize the model, run the simulation, and return the final state of the model and other tracked variables."""
 
-
-def strategy_distribution_params_are_loaded(strategy_distribution_params):
-    return type(strategy_distribution_params) == dict
-
-
-def main(batch_parameters=None, **user_args): 
-    
     global cfg
 
+    if user_args["verbosity"] >= 0:
+        print(f"Loading dbr_cpp from {cfg.BUILD_DIR} and preparing model run... (this may take some time)")
+
     # Set any given batch parameters
-    if not strategy_distribution_params_are_loaded(user_args["strategy_distribution_params"]):
+    if not h.strategy_distribution_params_are_loaded(user_args["strategy_distribution_params"]):
         with open(os.path.join(cfg.DATA_IN_DIR, user_args["strategy_distribution_params"]), "r") as sdp_jsonfile:
             user_args["strategy_distribution_params"] = json.load(sdp_jsonfile)
-    if batch_parameters:
-        print("-- Setting batch parameters: ", batch_parameters)
-        if (type(batch_parameters) == str):
-            batch_parameters = json.loads(batch_parameters)
-        if "strategies->" in batch_parameters["control_variable"]:
-            control_keys = unpack_control_keys(batch_parameters["control_variable"])
-            control_keys.remove("strategies")
-            user_args["strategy_distribution_params"][control_keys[0]][control_keys[1]] = batch_parameters["control_value"]
-        elif "<idx>" in batch_parameters["control_variable"]:
-            control_keys = unpack_control_keys(batch_parameters["control_variable"])
-            idx = int(control_keys[1].split("<idx>")[1])
-            user_args[control_keys[0]][idx] = batch_parameters["control_value"]
 
     args = SimpleNamespace(**user_args)
-    cfg = apply_user_args_to_configuration(args, cfg)
+    cfg = h.apply_user_args_to_configuration(args, cfg)
 
-    dynamics, color_dicts, cfg = init(cfg)
-    return updateloop(dynamics, color_dicts, cfg)
+    dynamics = init(cfg)
+    return updateloop(dynamics, cfg)
  
 
 

@@ -5,9 +5,13 @@ import matplotlib.pyplot as plt
 import math
 import time
 import colorsys
-import disk_pattern_generator as dpg
-from PIL import Image
+import platform
+import subprocess
+from types import SimpleNamespace
+import re
+import ctypes
 
+import disk_pattern_generator as dpg
 from helpers import *
 from config import *
 
@@ -235,10 +239,43 @@ class Visualiser:
         return self.get_image(img, color_dict_fire_freq, grid_width)
 
     def visualize(self, grid, image_width=1000, collect_states=True, color_dict=False):
-        img = self.get_image_from_grid(grid, color_dict, collect_states=collect_states)    
+        img = self.get_image_from_grid(grid, color_dict, collect_states=collect_states)   
+        _, screen_height = self.get_screen_resolution()
+        image_width = int(screen_height * 0.6)
         self.visualize_image(img, image_width)
     
         return img
+
+    def _get_windows_resolution(self):
+        # Win32 API via ctypes
+        user32 = ctypes.windll.user32
+        user32.SetProcessDPIAware()  # avoid DPI scaling issues
+        width = user32.GetSystemMetrics(0)
+        height = user32.GetSystemMetrics(1)
+        return width, height
+
+
+    def _get_macos_resolution(self):
+        # Query system_profiler and parse the resolution
+        output = subprocess.check_output(
+            ["system_profiler", "SPDisplaysDataType"], text=True
+        )
+        match = re.search(r"Resolution:\s*(\d+)\s*x\s*(\d+)", output)
+        if not match:
+            raise RuntimeError("Could not determine macOS screen resolution")
+        return int(match.group(1)), int(match.group(2))
+
+
+    def get_screen_resolution(self):
+        system = platform.system()
+
+        if system == "Windows":
+            return self._get_windows_resolution()
+
+        if system == "Darwin":
+            return self._get_macos_resolution()
+
+        raise NotImplementedError(f"Unsupported OS: {system}")
 
     def save_image(self, img, path, image_width = 1000, interpolation="none"):
         if interpolation == "linear":
@@ -406,8 +443,7 @@ class Graph:
         self.figure.canvas.draw()
  
         # This will run the GUI event
-        # loop until all UI events
-        # currently waiting have been processed
+        # loop until all UI events currently waiting have been processed
         self.figure.canvas.flush_events()
 
 
@@ -472,7 +508,152 @@ class Histogram:
         self.figure.canvas.flush_events()
      
 
+def create_color_dict(cfg):
+    """Create color tables for visualizations.
+    
+    These tables associate integer values produced by the simulation (these are the keys)
+    with predefined colors (values)."""
+    n_colors = 100
+    color_dicts = SimpleNamespace()
+    if cfg.display_fire_effects == 1:
+        color_dicts.normal = cfg.vis.get_color_dict(
+            n_colors, begin=0.2, end=0.5, distr_type="normal_with_fire_effects"
+        )
+    else:
+        color_dicts.normal = cfg.vis.get_color_dict(n_colors, begin=0.2, end=0.5, distr_type="normal")
+    color_dicts.recruitment = cfg.vis.get_color_dict(n_colors, begin=0.2, end=0.5, distr_type="recruitment")
+    color_dicts.fire_freq = cfg.vis.get_color_dict(10, begin=0.2, end=0.5, distr_type="fire_freq")
+    color_dicts.blackwhite = cfg.vis.get_color_dict(n_colors, distr_type="blackwhite")
+    color_dicts.colored_patches = cfg.vis.get_color_dict(n_colors, distr_type="colored_patches")
 
+    cfg.color_dicts = color_dicts
+
+
+def visualize_initial_state(dynamics, cfg):
+    # Visualize the initial state
+    print("Visualizing state at t = 0")
+    if not cfg.headless:
+        # Get a color image representation of the initial state and show it.
+        img = cfg.vis.visualize(
+            dynamics.state.grid, cfg.image_width, collect_states=True,
+            color_dict=cfg.color_dicts.normal
+        )
+    else:
+        # Get a color image representation of the initial state
+        img = cfg.vis.get_image_from_grid(dynamics.state.grid, cfg.color_dicts.normal, collect_states=True)
+   
+    # Export image file of timestep 0
+    imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
+    cfg.vis.save_image(img, imagepath)
+
+
+def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbosity, color_dicts, collect_states, visualization_types, patches, patch_count_change, patch_color_ids, cfg):
+    if ("recruitment" in visualization_types):
+        print("Saving recruitment img...") if verbosity else None
+        recruitment_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts.recruitment, collect_states=0)
+        imagepath_recruitment = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/recruitment/" + str(dynamics.time) + ".png")
+        cfg.vis.save_image(recruitment_img, imagepath_recruitment, get_max(1000, recruitment_img.shape[0]), interpolation="none")
+    
+    if ("fire_freq" in visualization_types):
+        fire_freq_arrays.append(dynamics.state.grid.get_distribution(0) == -5)
+        if dynamics.time > fire_no_timesteps:
+            print("Saving fire frequency img...") if verbosity else None
+            fire_freq_img = cfg.vis.get_fire_freq_image(fire_freq_arrays[-fire_no_timesteps:], color_dicts.fire_freq, dynamics.state.grid.width, fire_no_timesteps)
+            imagepath_fire_freq = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fire_frequencies/" + str(dynamics.time) + ".png")
+            cfg.vis.save_image(fire_freq_img, imagepath_fire_freq, get_max(1000, fire_freq_img.shape[0]))
+
+    def get_bbox(positions2d):
+        min_x = min(positions2d, key=lambda item: item[0])[0]
+        max_x = max(positions2d, key=lambda item: item[0])[0]
+        min_y = min(positions2d, key=lambda item: item[1])[1]
+        max_y = max(positions2d, key=lambda item: item[1])[1]
+        return (min_x, min_y), (max_x, max_y)
+
+    if ("colored_patches" in visualization_types):
+        print("Creating colored patches image...") if verbosity else None
+
+        # Initialize color index array
+        patch_colors_indices = np.zeros((dynamics.state.grid.width, dynamics.state.grid.width), dtype=int) -1
+        
+        # Sort patches so that larger patches are assigned colors first
+        patches = sorted(patches, key=lambda patch: patch["area"], reverse=True)
+
+        minimum_considered_patch_size = 0 # m^2
+        forest_area = 0
+        central_patch = -1
+        max_no_colors = 1000
+        offset = -10
+
+        for i, patch in enumerate(patches):
+            if (len(patches) > 20) and dynamics.time == 0:
+                if i >= 100:
+                    print("Breaking patch coloring loop at patch no", i, f"for performance reasons (number of patches = {len(patches)}).")
+                    break
+                if i % 15 == 0:
+                    print(f"Coloring patch no {i}/{len(patches)}... Will be cut off at 100.")
+            if patch["area"] < minimum_considered_patch_size: # Only consider patches of a certain size
+                continue
+            patch_id = patch["id"]
+
+            if not patch_color_ids.get(str(patch_id)):
+                if (len(patches) > 30) and dynamics.time > 0:
+                    color_idx = cfg.vis.get_random_color_index(patch_color_ids.values(), max_no_colors, offset)
+                else:
+                    color_idx = cfg.vis.get_most_distinct_index(patch_color_ids.values(), max_no_colors, offset)
+                patch_color_ids[str(patch_id)] = color_idx # Assign a new color index to the patch
+            patch_color_id = patch_color_ids[str(patch_id)]
+            col=color_dicts.colored_patches[patch_color_id]
+            forest_area += patch["area"] if patch["type"] == "forest" else 0
+            for cell in patch["cells"]:
+                patch_colors_indices[cell[1]][cell[0]] = patch_color_id
+
+        colored_patches_img = cfg.vis.get_image(patch_colors_indices, color_dicts.colored_patches, dynamics.state.grid.width)
+        cfg.show_edges = False # Hardcoded for now
+        if cfg.show_edges:
+            for patch in patches:
+                if patch["area"] < minimum_considered_patch_size: # Only consider patches of a certain size
+                    continue
+                for edge in patch["perimeter"]:
+                    point1 = (edge[0][0], edge[0][1])
+                    point2 = (edge[1][0], edge[1][1])
+                    if get_2d_dist(point1, point2) > 0.5*dynamics.state.grid.width:
+                        continue # Skip drawing wrap-around edges for now.
+                    cv2.line(colored_patches_img, point1, point2, (0, 0, 0), 1)  # black line, thickness=2
+        imagepath_colored_patches = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/colored_patches/" + str(dynamics.time) + ".png")
+        cfg.vis.save_image(colored_patches_img, imagepath_colored_patches, get_max(1000, colored_patches_img.shape[0]), interpolation="none")
+
+    print("-- Visualizing image...") if verbosity else None
+    if cfg.headless:
+        # Get a color image representation of the state
+        img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts.normal, collect_states=1)
+    else:
+        # Get a color image representation of the state and show it.
+        img = cfg.vis.visualize(
+            dynamics.state.grid, cfg.image_width, collect_states=collect_states,
+            color_dict=color_dicts.normal
+        )
+
+    print("-- Saving image...") if verbosity else None
+    imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
+    cfg.vis.save_image(img, imagepath, get_max(1000, img.shape[0]), interpolation="none")
+    
+    if ("fuel" in visualization_types):
+        print("-- Saving fuel image...") if verbosity else None
+        fuel_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts.blackwhite, img_type="fuel")
+        imagepath_fuel = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
+        cfg.vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
+
+    if ("aggr_tree_LAI" in visualization_types):
+        print("-- Saving aggregated tree LAI image...") if verbosity else None
+        aggr_tree_LAI_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts.blackwhite, img_type="aggr_tree_LAI", invert=False)
+        imagepath_aggr_tree_LAI = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/aggr_tree_LAI/" + str(dynamics.time) + ".png")
+        cfg.vis.save_image(aggr_tree_LAI_img, imagepath_aggr_tree_LAI, get_max(1000, aggr_tree_LAI_img.shape[0]))
+
+    if ("fuel_penetration" in visualization_types):
+        print("-- Saving fuel penetration image...") if verbosity else None
+        fuel_penetration_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts.blackwhite, img_type="fuel_penetration")
+        imagepath_fuel_penetration = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel_penetration/" + str(dynamics.time) + ".png")
+        cfg.vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
 
     
     

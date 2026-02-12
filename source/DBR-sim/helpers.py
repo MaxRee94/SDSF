@@ -1,9 +1,108 @@
 import numpy as np
-from rdfpy import rdf
 import sys
 import json
 import argparse
 from config import ParameterConfig
+import logging
+import heapq
+import warnings
+
+
+def get_stdout_logging_handler():
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(name)s %(levelname)s:    %(message)s')
+    handler.setFormatter(formatter)
+
+    return handler
+
+
+logger = logging.getLogger(__name__)
+handler = get_stdout_logging_handler()
+logger.addHandler(handler)
+
+
+class Processes:
+    def __init__(self):
+        self.procs = []
+        self.active_proc_count = 0
+
+    def add(self, proc):
+        self.procs.append(proc)
+        self.procs[-1].start()
+        self.active_proc_count += 1
+
+    def __getitem__(self, idx):
+        return self.procs[idx]
+
+    def join(self):
+        for proc in self.procs:
+            proc.join()
+        return True
+
+    def finished(self, print_progress=False):
+        _active_proc_count = sum(proc.is_alive() for proc in self.procs)
+        if print_progress and _active_proc_count != self.active_proc_count:
+            logger.info(f"    {len(self.procs) - _active_proc_count} out of {len(self.procs)} processes have finished.")
+        self.active_proc_count = _active_proc_count
+        return self.active_proc_count == 0
+
+
+def suppress_warning(category=None, message=None):
+    assert category is not None and message is not None, "Both category and warning must be provided to suppress a warning."
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', category=category, message=message)
+
+
+def midpoint_gap_indices(cfg):
+    """
+    Yield indices in an order where each next index is the midpoint of the
+    currently largest remaining gap between already-sampled indices.
+
+    Starts with endpoints (0 and n-1), then repeatedly inserts midpoints of
+    the largest unsplit interval.
+    """
+    if cfg.n <= 0:
+        return
+    if cfg.n == 1:
+        yield 0
+        return
+
+    # yield endpoints first
+    yield 0
+    yield cfg.n - 1
+
+    # max-heap of intervals: (-length, lo, hi)
+    # We only split intervals that still contain unsampled indices (hi - lo >= 2).
+    heap = []
+    if cfg.n - 1 - 0 >= 2:
+        heapq.heappush(heap, (-(cfg.n - 1 - 0), 0, cfg.n - 1))
+
+    while heap:
+        _, lo, hi = heapq.heappop(heap)
+        if hi - lo < 2:
+            continue
+
+        mid = (lo + hi) // 2
+        yield mid
+
+        # push left and right sub-intervals if they still have room for new points
+        if mid - lo >= 2:
+            heapq.heappush(heap, (-(mid - lo), lo, mid))
+        if hi - mid >= 2:
+            heapq.heappush(heap, (-(hi - mid), mid, hi))
+
+
+def get_random_int_generator(cfg):
+    while True:
+        yield cfg.rng.randint(cfg.low, cfg.high)
+
+
+def digits_after_decimal(num):
+    num = str(num)
+    if '.' in num:
+        return len(num.split('.', 1)[1])
+    return 0
 
 
 def add_kwargs(parser):
@@ -62,6 +161,12 @@ def inject_unknown_args(args, unknown_args):
     return args
 
 
+def check_cli_args(**user_args):
+    assert (user_args["grid_width"] % user_args["resource_grid_width"] == 0), (
+        f"Resource grid width (currently {user_args['resource_grid_width']}) must be a divisor of grid width (currently {user_args['grid_width']})."
+    )
+
+
 def parse_args(parser=None):
     """Parse commandline arguments.
 
@@ -85,6 +190,10 @@ def parse_args(parser=None):
     kwargs = vars(args)
         
     return kwargs
+
+
+def strategy_distribution_params_are_loaded(strategy_distribution_params):
+    return type(strategy_distribution_params) == dict
 
 
 def load_json_strings_if_any(kwargs):
@@ -125,16 +234,6 @@ def apply_user_args_to_configuration(args, cfg):
     for key, value in vars(args).items():
         setattr(cfg, key, value)
     return cfg
-
-
-def compute_radial_distribution_function(dynamics, stepsize=0.02):
-    tree_positions = dynamics.state.get_tree_positions()
-    
-    print("Computing radial distribution function...")
-    g_r, radii = rdf(tree_positions, stepsize * dynamics.state.grid.width_r)
-    print("Finished computing radial distribution function.")
-    
-    return g_r, radii
 
 
 def is_number(inputString):
