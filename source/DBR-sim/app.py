@@ -254,13 +254,10 @@ def init(cfg):
         # Export resource grid lookup table
         generate_and_or_load_animal_dist_lookup_tables(dynamics, cfg, animal_species)
 
-    # Change cfg settings if these should be modified after initialization
+    # Initialize variables for tracking compute time, tree cover trajectory, and patch dynamics
     cfg.visualization_types = [
         "fire_freq", "recruitment", "fuel", "tree_LAI", "aggr_tree_LAI", "colored_patches", "fuel_penetration"
     ]
-    cfg.init_csv = False
-
-    # Initialize variables for tracking compute time, tree cover trajectory, and patch dynamics
     cfg.computer_start_time = time.time()
     cfg.init_csv = False
     cfg.prev_tree_cover = [cfg.treecover] * 60
