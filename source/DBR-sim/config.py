@@ -3,13 +3,15 @@ import argparse
 import string
 import json
 import os
+from pathlib import Path
 import importlib.util
 import sys
 from types import SimpleNamespace
 
 
 # Define default global constants (can be overridden locally, see 'apply_local_overrides()')
-cwd = os.getcwd()
+cwd = str(Path(__file__).resolve().parents[1])
+print("cwd:", cwd)
 if cwd.endswith("source"):
     cwd = cwd + "/DBR-sim"
 constants = {}
