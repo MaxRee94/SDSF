@@ -7,6 +7,7 @@ import time
 import colorsys
 import platform
 import subprocess
+from types import SimpleNamespace
 import re
 import ctypes
 
@@ -507,18 +508,57 @@ class Histogram:
         self.figure.canvas.flush_events()
      
 
-def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, color_dicts, collect_states, visualization_types, patches, patch_count_change, patch_color_ids, cfg):
+def create_color_dict(cfg):
+    """Create color tables for visualizations.
+    
+    These tables associate integer values produced by the simulation (these are the keys)
+    with predefined colors (values)."""
+    n_colors = 100
+    color_dicts = SimpleNamespace()
+    if cfg.display_fire_effects == 1:
+        color_dicts.normal = cfg.vis.get_color_dict(
+            n_colors, begin=0.2, end=0.5, distr_type="normal_with_fire_effects"
+        )
+    else:
+        color_dicts.normal = cfg.vis.get_color_dict(n_colors, begin=0.2, end=0.5, distr_type="normal")
+    color_dicts.recruitment = cfg.vis.get_color_dict(n_colors, begin=0.2, end=0.5, distr_type="recruitment")
+    color_dicts.fire_freq = cfg.vis.get_color_dict(10, begin=0.2, end=0.5, distr_type="fire_freq")
+    color_dicts.blackwhite = cfg.vis.get_color_dict(n_colors, distr_type="blackwhite")
+    color_dicts.colored_patches = cfg.vis.get_color_dict(n_colors, distr_type="colored_patches")
+
+    cfg.color_dicts = color_dicts
+
+
+def visualize_initial_state(dynamics, cfg):
+    # Visualize the initial state
+    print("Visualizing state at t = 0")
+    if not cfg.headless:
+        # Get a color image representation of the initial state and show it.
+        img = cfg.vis.visualize(
+            dynamics.state.grid, cfg.image_width, collect_states=True,
+            color_dict=cfg.color_dicts.normal
+        )
+    else:
+        # Get a color image representation of the initial state
+        img = cfg.vis.get_image_from_grid(dynamics.state.grid, cfg.color_dicts.normal, collect_states=True)
+   
+    # Export image file of timestep 0
+    imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
+    cfg.vis.save_image(img, imagepath)
+
+
+def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbosity, color_dicts, collect_states, visualization_types, patches, patch_count_change, patch_color_ids, cfg):
     if ("recruitment" in visualization_types):
-        print("Saving recruitment img...") if verbose else None
-        recruitment_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["recruitment"], collect_states=0)
+        print("Saving recruitment img...") if verbosity else None
+        recruitment_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts.recruitment, collect_states=0)
         imagepath_recruitment = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/recruitment/" + str(dynamics.time) + ".png")
         cfg.vis.save_image(recruitment_img, imagepath_recruitment, get_max(1000, recruitment_img.shape[0]), interpolation="none")
     
     if ("fire_freq" in visualization_types):
         fire_freq_arrays.append(dynamics.state.grid.get_distribution(0) == -5)
         if dynamics.time > fire_no_timesteps:
-            print("Saving fire frequency img...") if verbose else None
-            fire_freq_img = cfg.vis.get_fire_freq_image(fire_freq_arrays[-fire_no_timesteps:], color_dicts["fire_freq"], dynamics.state.grid.width, fire_no_timesteps)
+            print("Saving fire frequency img...") if verbosity else None
+            fire_freq_img = cfg.vis.get_fire_freq_image(fire_freq_arrays[-fire_no_timesteps:], color_dicts.fire_freq, dynamics.state.grid.width, fire_no_timesteps)
             imagepath_fire_freq = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fire_frequencies/" + str(dynamics.time) + ".png")
             cfg.vis.save_image(fire_freq_img, imagepath_fire_freq, get_max(1000, fire_freq_img.shape[0]))
 
@@ -530,7 +570,7 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         return (min_x, min_y), (max_x, max_y)
 
     if ("colored_patches" in visualization_types):
-        print("Creating colored patches image...") if verbose else None
+        print("Creating colored patches image...") if verbosity else None
 
         # Initialize color index array
         patch_colors_indices = np.zeros((dynamics.state.grid.width, dynamics.state.grid.width), dtype=int) -1
@@ -562,12 +602,12 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
                     color_idx = cfg.vis.get_most_distinct_index(patch_color_ids.values(), max_no_colors, offset)
                 patch_color_ids[str(patch_id)] = color_idx # Assign a new color index to the patch
             patch_color_id = patch_color_ids[str(patch_id)]
-            col=color_dicts["colored_patches"][patch_color_id]
+            col=color_dicts.colored_patches[patch_color_id]
             forest_area += patch["area"] if patch["type"] == "forest" else 0
             for cell in patch["cells"]:
                 patch_colors_indices[cell[1]][cell[0]] = patch_color_id
 
-        colored_patches_img = cfg.vis.get_image(patch_colors_indices, color_dicts["colored_patches"], dynamics.state.grid.width)
+        colored_patches_img = cfg.vis.get_image(patch_colors_indices, color_dicts.colored_patches, dynamics.state.grid.width)
         cfg.show_edges = False # Hardcoded for now
         if cfg.show_edges:
             for patch in patches:
@@ -582,36 +622,36 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbose, co
         imagepath_colored_patches = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/colored_patches/" + str(dynamics.time) + ".png")
         cfg.vis.save_image(colored_patches_img, imagepath_colored_patches, get_max(1000, colored_patches_img.shape[0]), interpolation="none")
 
-    print("-- Visualizing image...") if verbose else None
+    print("-- Visualizing image...") if verbosity else None
     if cfg.headless:
         # Get a color image representation of the state
-        img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["normal"], collect_states=1)
+        img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts.normal, collect_states=1)
     else:
         # Get a color image representation of the state and show it.
         img = cfg.vis.visualize(
             dynamics.state.grid, cfg.image_width, collect_states=collect_states,
-            color_dict=color_dicts["normal"]
+            color_dict=color_dicts.normal
         )
 
-    print("-- Saving image...") if verbose else None
+    print("-- Saving image...") if verbosity else None
     imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
     cfg.vis.save_image(img, imagepath, get_max(1000, img.shape[0]), interpolation="none")
     
     if ("fuel" in visualization_types):
-        print("-- Saving fuel image...") if verbose else None
-        fuel_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel")
+        print("-- Saving fuel image...") if verbosity else None
+        fuel_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts.blackwhite, img_type="fuel")
         imagepath_fuel = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel/" + str(dynamics.time) + ".png")
         cfg.vis.save_image(fuel_img, imagepath_fuel, get_max(1000, fuel_img.shape[0]))
 
     if ("aggr_tree_LAI" in visualization_types):
-        print("-- Saving aggregated tree LAI image...") if verbose else None
-        aggr_tree_LAI_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="aggr_tree_LAI", invert=False)
+        print("-- Saving aggregated tree LAI image...") if verbosity else None
+        aggr_tree_LAI_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts.blackwhite, img_type="aggr_tree_LAI", invert=False)
         imagepath_aggr_tree_LAI = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/aggr_tree_LAI/" + str(dynamics.time) + ".png")
         cfg.vis.save_image(aggr_tree_LAI_img, imagepath_aggr_tree_LAI, get_max(1000, aggr_tree_LAI_img.shape[0]))
 
     if ("fuel_penetration" in visualization_types):
-        print("-- Saving fuel penetration image...") if verbose else None
-        fuel_penetration_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts["blackwhite"], img_type="fuel_penetration")
+        print("-- Saving fuel penetration image...") if verbosity else None
+        fuel_penetration_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts.blackwhite, img_type="fuel_penetration")
         imagepath_fuel_penetration = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel_penetration/" + str(dynamics.time) + ".png")
         cfg.vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
 

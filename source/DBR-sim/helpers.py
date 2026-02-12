@@ -192,6 +192,10 @@ def parse_args(parser=None):
     return kwargs
 
 
+def strategy_distribution_params_are_loaded(strategy_distribution_params):
+    return type(strategy_distribution_params) == dict
+
+
 def load_json_strings_if_any(kwargs):
     # Convert JSON strings to dicts
     for k, v in kwargs.items():

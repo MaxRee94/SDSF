@@ -106,7 +106,7 @@ def set_heterogeneity_maps(dynamics, cfg):
         image = image / 255  # Normalize to 0-1
         setter_func(image)
 
-    return dynamics, cfg
+    return dynamics
 
 
 
