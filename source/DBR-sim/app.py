@@ -170,21 +170,18 @@ def set_random_seeds(cfg):
             patterns of fire frequency across different runs.
     """
 
-    # Set random seed
-    if (cfg.random_seed == -999):
-        cfg.random_seed = random.randint(0, 100000000)
-        cfg.rng = np.random.default_rng(cfg.random_seed)
-        print(f"Generated new global random seed ({cfg.random_seed})")
-    else:
-        cfg.rng = np.random.default_rng(cfg.random_seed)
-        print(f"Using given global random seed ({cfg.random_seed})")
+    ### TODO: REMOVE THIS:
+    cfg.random_seed = random.randint(0, 1000000)
+    cfg.rng = np.random.default_rng(cfg.random_seed)
+    cfg.firefreq_random_seed = random.randint(0, 1000000)
 
-    # Set random seed for fire frequency probability distribution. If -999 is given, a random seed will be generated. Otherwise, the given seed will be used.
-    if cfg.firefreq_random_seed == -999:
-        cfg.firefreq_random_seed = random.randint(0, 1000000)
-        print(f"Generated new random seed ({cfg.firefreq_random_seed}) for fire frequency probability distribution: ", )
-    else:
-        print(f"Using given random seed ({cfg.firefreq_random_seed}) for fire frequency probability distribution.")
+    # Initialize the random number generator (cfg.rng) and set a global random seed (cfg.random_seed) 
+    ### TODO
+
+    # Do the same for the fire frequency random seed (cfg.firefreq_random_seed). The rng of this probability distribution
+    # will be initialized inside the C++ code, but we need to generate and/or store the random seed for it here in Python so that it can be
+    # passed to the C++ code.
+    ### TODO
 
     return cfg
 
