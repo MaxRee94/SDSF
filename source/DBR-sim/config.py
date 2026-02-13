@@ -71,53 +71,45 @@ cfg = derive_input_dirs(cfg)
 
 sys.path.append(cfg.BUILD_DIR)
 
-
 defaults = {}
 
 # Add control constants
 defaults.update({
-    "grid_width": 960,
+    "grid_width": 250,
     "cell_width": 1,
     "image_width": 1000,
+    "image_size":(1000, 1000),
     "tests": "none",
     "timelimit": 1e32,
     "termination_conditions": "all",
     "firefreq_random_seed": 0,
-    "random_seed": -999
+    "random_seed": -999,
+    "timestep": 1,
+    "fire_resistance_params": {"argmin": 8.5, "argmax": 50, "stretch": 2.857}, # See 'notes/fire_resistance_threshold_curve.xlsx' for details
+    "saturation_threshold": 3,
+    "headless": False,
+    "report_state": False,
+    "colored_patches": False,
+    "suppress_distance_warning": False,  # If True, suppresses the warning about distance uniformity in the cpg script.
+    "rotate_disks_randomly": False,
+    "enforce_area_constancy": True,
+    "override_image_treecover": -999,  # If set to a value other than -999, overrides the tree cover in the image (the fraction of white pixels) with this value.
+    "display_fire_effects": False,
+    "allow_unknown_args": False,
+    "grow": True,
+    "disperse": True,
+    "burn": True,
+    "burnin_duration": 100,
+    "export_visualizations": True,
+    "LAI_aggregation_radius": 3, # Radius (in m) around each cell used to aggregate tree LAI values. 
 })
 
+# Add initial conditions
 defaults.update({
     "treecover": 0.5,
-    "max_dbh": 44.3, # (Close to) Theoretical maximum of the pantropical growth model we use
-    "timestep": 1,
     "patch_width": 170,
     "enforce_no_recruits": -1,
     "noise_octaves": 5,
-    "self_ignition_factor": 3,
-    "unsuppressed_flammability": 0.5,
-    "STR": 10000, # The number of seeds produced by a tree with a dbh of 30 cm
-    "verbosity": 0,
-    "growth_rate_multiplier_params": [0.5, 0.5, 2.13],
-    "seed_bearing_threshold": 0.1, # dbh fraction of theoreftical maximum height. We assume all trees are seed bearing beyond this height, based on Minor and Kobe (2018), Figure 5.
-    "dispersal_mode": "all",
-    "multi_disperser_params": f"multi_disperser_params.json",
-    "dispersal_min": 0,
-    "dispersal_max": 300,
-    "growth_rate_multiplier": 0.4,
-    "saturation_threshold": 3,
-    "fire_resistance_params": {"argmin": 8.5, "argmax": 50, "stretch": 2.857}, # See 'notes/fire_resistance_threshold_curve.xlsx' for details
-    "background_mortality": 0.01,
-    "csv_path": "",
-    "headless": False,
-    "max_timesteps": 100,
-    "strategy_distribution_params": "windkernel.json",
-    "resource_grid_width": 48,
-    "initial_pattern_image": "none",
-    "mutation_rate": 0, # We do not incorporate mutation in this study.
-    "batch_parameters": "",
-    "report_state": False,
-    "animal_group_size": 10,
-    "image_size":(1000, 1000),
     "mean_radius":30,
     "cv_radius":0,
     "mean_distance":100,
@@ -134,26 +126,39 @@ defaults.update({
     "sin_stripe":False,
     "sin_stripe_amp":10,
     "sin_stripe_wavelength":100,
-    "grid_type":"square",
-    "override_image_treecover": -999,  # If set to a value other than -999, overrides the tree cover in the image (the fraction of white pixels) with this value.
-    "rotate_randomly": False,
-    "suppress_distance_warning": False,  # If True, suppresses the warning about distance uniformity in the cpg script.
-    "cur_image_fraction_pixels": None,
-    "circular_image_fraction_pixels": None,
     "global_area_normalization_factor": None,
     "global_rotation_offset": None,
-    "enforce_area_constancy": True,
-    "colored_patches": False,
+    "initial_pattern_image": "none",
+})
+
+# Add constants
+defaults.update({
+    "max_dbh": 44.3, # (Close to) Theoretical maximum of the pantropical growth model we use
+    "verbosity": 0,
+    "csv_path": "",
+})
+
+# Add parameters
+defaults.update({
+    "cur_image_fraction_pixels": None,
+    "circular_image_fraction_pixels": None,
+    "self_ignition_factor": 3,
+    "unsuppressed_flammability": 0.5,
+    "animal_group_size": 10,
+    "STR": 10000, # The number of seeds produced yearly by a tree with a dbh of 30 cm
+    "growth_rate_multiplier_params": [0, 1.0, 1.0],
+    "growth_rate_multiplier": 1,
+    "seed_bearing_threshold": 0.1, # dbh fraction of theoretical maximum height. We assume all trees are seed bearing beyond this height, based on Minor and Kobe (2018), Figure 5.
+    "dispersal_mode": "wind",
+    "multi_disperser_params": f"multi_disperser_params.json",
+    "background_mortality": 0.01,
+    "max_timesteps": 100,
+    "strategy_distribution_params": "windkernel.json",
+    "resource_grid_width": 50,
+    "mutation_rate": 0, # We do not incorporate mutation in this study.
+    "grid_type":"square",
     "minimum_patch_size":30, # Minimum size (in m^2) of patches that are retained when generating initial patterns from images. We assume 78 m^2 since this corresponds to the area of a tree with radius = 5 (the approximate maximum in our model), in line with the 30m resolution of the GFC dataset.
-    "LAI_aggregation_radius": 3, # Radius (in m) around each cell used to aggregate tree LAI values. 
-    "display_fire_effects": False,
     "heterogeneity": "heterogeneity_config.json",
-    "allow_unknown_args": False,
-    "grow": True,
-    "disperse": True,
-    "burn": True,
-    "burnin_duration": 100,
-    "export_visualizations": True,
 })
 
 gui_defaults = {
@@ -587,18 +592,6 @@ _parameter_config = {
             "default": defaults["growth_rate_multiplier_params"],
         },
     },
-    "batch_parameters": {
-        "keys": {
-            "cli": ["--batch_parameters", "-bp"]
-        },
-        "settings": {
-            "type": str,
-            "help": (
-                ("Parameter settings set through a batch script.")
-            ),
-            "default": defaults["batch_parameters"],
-        },
-    },
     "image_size": {
         "keys": {
             "cli": ["--image_size", "-isz"]
@@ -779,14 +772,14 @@ _parameter_config = {
             "default": defaults["grid_type"],
         },
     },
-    "rotate_randomly": {
+    "rotate_disks_randomly": {
         "keys": {
-            "cli": ["--rotate_randomly", "-rr"]
+            "cli": ["--rotate_disks_randomly", "-rr"]
         },
         "settings": {
             "type": bool,
             "help": "If True, randomly rotate disks to avoid orientation artifacts.",
-            "default": defaults["rotate_randomly"],
+            "default": defaults["rotate_disks_randomly"],
         }
     },
     "suppress_distance_warning": {

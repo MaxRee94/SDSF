@@ -226,7 +226,7 @@ def obtain_state_variables(dynamics, tree_hist, extra_parameters, cfg, init_csv,
     PAR_derived_area = float(result["perimeter_length"]) / float(result["perimeter-area_ratio"]) if float(result["perimeter-area_ratio"]) != 0 else 0
     treecover_derived_area = float(result["treecover"]) * cfg.grid_width**2 * cfg.cell_width**2
     #assert (PAR_derived_area == treecover_derived_area), f"Perimeter-length / Perimeter-area-ratio ({PAR_derived_area}) does not equal Tree-cover * Spatial domain area ({treecover_derived_area})."
-    if not cfg.rotate_randomly:
+    if not cfg.rotate_disks_randomly:
         result["global_rotation_offset"] = str(cfg.global_rotation_offset)
     if hasattr(cfg, "control_vars"):
         for cv in cfg.control_vars.keys():
@@ -247,7 +247,7 @@ def get_fieldnames(dynamics, extra_parameters, cfg):
     if hasattr(cfg, "control_vars"):
         for cv in cfg.control_vars.keys():
             fieldnames.insert(0, cv)
-    if not cfg.rotate_randomly:
+    if not cfg.rotate_disks_randomly:
         fieldnames.insert(3, "global_rotation_offset")
 
     return fieldnames

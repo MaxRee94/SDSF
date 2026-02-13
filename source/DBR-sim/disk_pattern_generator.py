@@ -85,12 +85,12 @@ class DiskPatternGenerator():
         return jittered
 
     def generate_disk(
-            self, center, base_radius, amp1=0, wave1=1, amp2=0, wave2=2, index=None, rotate_randomly=True, resolution=360,
+            self, center, base_radius, amp1=0, wave1=1, amp2=0, wave2=2, index=None, rotate_disks_randomly=True, resolution=360,
             global_area_normalization_factor=None, global_rotation_offset=None, **cfg
         ):
         angles = np.linspace(0, 2 * np.pi, resolution, endpoint=False)
         rotational_offset = 0
-        if rotate_randomly:
+        if rotate_disks_randomly:
             if global_rotation_offset is not None:
                 index *= global_rotation_offset
             local_rng = np.random.default_rng(self.local_rng_seed_multiplier * index)  # Ensure reproducibility for the same index
@@ -105,14 +105,14 @@ class DiskPatternGenerator():
         disk = self.normalize_disk(disk, center, base_radius, norm_factor)
         return disk
 
-    def draw_disk(self, img, center, radius, amp1, wave1, amp2, wave2, rotate_randomly, index, global_area_normalization_factor, global_rotation_offset=None):
-        contour = self.generate_disk(center, radius, amp1=amp1, wave1=wave1, amp2=amp2, wave2=wave2, rotate_randomly=rotate_randomly, index=index, 
+    def draw_disk(self, img, center, radius, amp1, wave1, amp2, wave2, rotate_disks_randomly, index, global_area_normalization_factor, global_rotation_offset=None):
+        contour = self.generate_disk(center, radius, amp1=amp1, wave1=wave1, amp2=amp2, wave2=wave2, rotate_disks_randomly=rotate_disks_randomly, index=index, 
                                 global_area_normalization_factor=global_area_normalization_factor, global_rotation_offset=global_rotation_offset)
         cv2.fillPoly(img, [contour], 255)
 
-    def draw_stripe(self, img, center1, center2, radius, rotate_randomly):
-        disk1 = self.generate_disk(center1, radius, rotate_randomly=rotate_randomly)
-        disk2 = self.generate_disk(center2, radius, rotate_randomly=rotate_randomly)
+    def draw_stripe(self, img, center1, center2, radius, rotate_disks_randomly):
+        disk1 = self.generate_disk(center1, radius, rotate_disks_randomly=rotate_disks_randomly)
+        disk2 = self.generate_disk(center2, radius, rotate_disks_randomly=rotate_disks_randomly)
         points = np.vstack([disk1, disk2])
         hull = ConvexHull(points)
         hull_points = points[hull.vertices]
@@ -340,7 +340,7 @@ class DiskPatternGenerator():
                 draw_center = (int(x + dx), int(y + dy))
                 self.draw_disk(
                     img, draw_center, radius, cfg.sine_amp1, cfg.sine_wave1, cfg.sine_amp2,
-                    cfg.sine_wave2, cfg.rotate_randomly, int(ids[i]), cfg.global_area_normalization_factor,
+                    cfg.sine_wave2, cfg.rotate_disks_randomly, int(ids[i]), cfg.global_area_normalization_factor,
                     global_rotation_offset = cfg.global_rotation_offset
                 )
 
@@ -357,7 +357,7 @@ class DiskPatternGenerator():
                         wavelength=cfg.sin_stripe_wavelength
                     )
                 else:
-                    self.draw_stripe(img, p1, p2, cfg.mean_radius, cfg.rotate_randomly)
+                    self.draw_stripe(img, p1, p2, cfg.mean_radius, cfg.rotate_disks_randomly)
 
         benchmark_cover = -1 # Set default to 0, this will ensure that main program will not use the benchmark cover (instead, the fraction of white pixels will be used)
         if cfg.enforce_area_constancy:
@@ -496,7 +496,7 @@ if __name__ == "__main__":
         "enforce_distance_uniformity": True,
         "enforce_area_constancy": True,
         "grid_type": "square",
-        "rotate_randomly": True,
+        "rotate_disks_randomly": True,
         "cur_image_fraction_pixels": None,
         "circular_image_fraction_pixels": None,
         "global_area_normalization_factor": None,
