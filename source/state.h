@@ -11,15 +11,14 @@ public:
 		population = Population();
 	}
 	State(
-		int grid_width, float cell_width, float max_dbh, float dbh_q1, float dbh_q2,
-		float seed_bearing_threshold, float _saturation_threshold,
-		map<string, map<string, float>>& strategy_distribution_params, float mutation_rate,
+		int grid_width, float cell_width, float max_dbh, float seed_bearing_threshold, 
+		float _saturation_threshold, map<string, map<string, float>>& strategy_distribution_params, float mutation_rate,
 		float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max,
 		float minimum_patch_size, float LAI_aggregation_radius
 	) {
 		saturation_threshold = _saturation_threshold;
 		population = Population(
-			max_dbh, cell_width, dbh_q1, dbh_q2, strategy_distribution_params, mutation_rate,
+			max_dbh, cell_width, strategy_distribution_params, mutation_rate,
 			seed_bearing_threshold, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max
 		);
 		grid = Grid(grid_width, cell_width, minimum_patch_size, LAI_aggregation_radius);

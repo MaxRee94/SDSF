@@ -232,7 +232,6 @@ Dynamics create_dynamics(py::dict dict) {
         get("timestep").cast<int>(),
         get("cell_width").cast<float>(),
         get("self_ignition_factor").cast<float>(),
-        get("rainfall").cast<float>(),
         get("seed_bearing_threshold").cast<float>(),
         get("growth_rate_multiplier").cast<float>(),
         get("unsuppressed_flammability").cast<float>(),
@@ -263,9 +262,11 @@ PYBIND11_MODULE(dbr_cpp, module) {
 
     py::class_<State>(module, "State")
         .def(py::init<>())
-        .def(py::init<const int&, const float&, const float&, const float&, const float&,
-            const float&, const float&, map<string, map<string, float>>&, const float&,
-            const float&, const float&, const float&, const float&, const float&>())
+        .def(
+            py::init<const int&, const float&, const float&, const float&, const float&,
+            map<string, map<string, float>>&, const float&, const float&, const float&, const float&,
+            const float&, const float&>()
+        )
         .def("repopulate_grid", [](State& state, int verbosity) {state.repopulate_grid(verbosity); })
         .def("set_tree_cover", &State::set_tree_cover)
         .def("set_cover_from_image", [](State& state, py::array_t<float>& img, float& override_image_treecover) {
@@ -508,13 +509,13 @@ PYBIND11_MODULE(dbr_cpp, module) {
 
     py::class_<Population>(module, "Population")
         .def(py::init<>())
-        .def(py::init<const float&, const float&, const float&, const float&, const map<string, map<string, float>>&, const float&, const float&, const float&,
-            const float&, const float& >())
+        .def(py::init<const float&, const float&, const map<string, map<string, float>>&, const float&,
+            const float&, const float&, const float&, const float& >())
         .def("size", &Population::size);
     
     py::class_<Tests>(module, "Tests")
         .def(py::init<>())
-        .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&, const float&,
+        .def(py::init<const int&, const float&, const float&, const float&, const float&, const float&,
             const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&, const float&,
             const float&, const map<string, map<string, float>>&, const float&, const float&, const float&, const int&, const int&, const float&, const float&,
             const float&, const float&, const float&, const int&, const int&, const float&, const int& >()

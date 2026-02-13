@@ -58,7 +58,7 @@ def init_tests(
     timestep=None, grid_width=None, cell_width=None, max_dbh=None, image_width=None,
     treecover=None, self_ignition_factor=None, flammability=None,
     rainfall=None, unsuppressed_flammability=None, 
-    verbosity=None, dbh_q1=None, dbh_q2=None, seed_bearing_threshold=None,
+    verbosity=None, seed_bearing_threshold=None,
     dispersal_mode=None, linear_diffusion_q1=None, linear_diffusion_q2=None,
     dispersal_min=None, dispersal_max=None, growth_rate_multiplier=None, 
     flammability_coefficients_and_constants=None, saturation_threshold=None, fire_resistance_params=None,
@@ -78,7 +78,7 @@ def init_tests(
         flammability_coefficients_and_constants[1], flammability_coefficients_and_constants[2], 
         flammability_coefficients_and_constants[3], max_dbh, saturation_threshold, fire_resistance_params[0],
         fire_resistance_params[1], fire_resistance_params[2], background_mortality, strategy_distribution_params, 
-        resource_grid_width, mutation_rate, verbosity, grid_width, dbh_q1, dbh_q2, growth_rate_multiplier_params[0],
+        resource_grid_width, mutation_rate, verbosity, grid_width, growth_rate_multiplier_params[0],
         growth_rate_multiplier_params[1], growth_rate_multiplier_params[2], random_seed, firefreq_random_seed,
         enforce_no_recruits
     )

@@ -8,14 +8,14 @@ public:
 	Dynamics(Dynamics&&) = default;
 	Dynamics& operator=(Dynamics&&) = default;
 	Dynamics(
-		int _timestep, float _cell_width, float _self_ignition_factor, float _rainfall, float _seed_bearing_threshold,
+		int _timestep, float _cell_width, float _self_ignition_factor, float _seed_bearing_threshold,
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _max_dbh, float _saturation_threshold, map<string, float> fire_resistance_params,
 		float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
 		int _resource_grid_width, float _mutation_rate, float _STR, int _verbosity, int random_seed, int firefreq_random_seed, float __enforce_no_recruits,
 		int _animal_group_size, bool _display_fire_effects
 	) :
 		timestep(_timestep), cell_width(_cell_width), unsuppressed_flammability(_unsuppressed_flammability),
-		self_ignition_factor(_self_ignition_factor), rainfall(_rainfall), seed_bearing_threshold(_max_dbh * _seed_bearing_threshold),
+		self_ignition_factor(_self_ignition_factor), seed_bearing_threshold(_max_dbh * _seed_bearing_threshold),
 		growth_rate_multiplier(_growth_rate_multiplier), 
 		max_dbh(_max_dbh), seedling_discard_dbh(0.05 * _max_dbh), verbosity(_verbosity), saturation_threshold(1.0f / _saturation_threshold),
 		fire_resistance_argmin(fire_resistance_params["argmin"]), fire_resistance_argmax(fire_resistance_params["argmax"]), 
@@ -27,12 +27,15 @@ public:
 		help::init_RNG(random_seed);
 		firefreq_RNG.seed(firefreq_random_seed);
 	};
-	void init_state(int grid_width, float dbh_q1, float dbh_q2, float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max,
-		float minimum_patch_size, float LAI_aggregation_radius) {
+	void init_state(
+		int grid_width, float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max,
+		float minimum_patch_size, float LAI_aggregation_radius
+	) {
 		if (verbosity != -1) printf("\nInitializing grid with width %i and cell width %f.\n", grid_width, cell_width);
 		state = State(
-			grid_width, cell_width, max_dbh, dbh_q1, dbh_q2, seed_bearing_threshold, saturation_threshold, strategy_distribution_params,
-			mutation_rate, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max, minimum_patch_size, LAI_aggregation_radius
+			grid_width, cell_width, max_dbh, seed_bearing_threshold, saturation_threshold, strategy_distribution_params,
+			mutation_rate, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max, minimum_patch_size, 
+			LAI_aggregation_radius
 		);
 		linear_disperser = Disperser();
 		wind_disperser = WindDispersal();
@@ -659,7 +662,6 @@ public:
 	float min_suppressed_flammability = 0;
 	float max_suppressed_flammability = 0;
 	float self_ignition_factor = 0;
-	float rainfall = 0;
 	float seed_bearing_threshold = 0;
 	float growth_rate_multiplier = 0;
 	float radius_suppr_flamm_min = 0;
