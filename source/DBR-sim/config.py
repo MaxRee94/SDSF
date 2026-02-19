@@ -73,7 +73,9 @@ sys.path.append(cfg.BUILD_DIR)
 
 defaults = {}
 
-# Argument type:
+### INPUTS ###
+
+# Input type:
 defaults.update({
     "grid_width": 250,
     "cell_width": 1,
@@ -104,7 +106,7 @@ defaults.update({
     "LAI_aggregation_radius": 3, # Radius (in m) around each cell used to aggregate tree LAI values. 
 })
 
-# Argument type:
+# Input type:
 defaults.update({
     "treecover": 0.5,
     "patch_width": 170,
@@ -131,14 +133,14 @@ defaults.update({
     "initial_pattern_image": "none",
 })
 
-# Argument type:
+# Input type:
 defaults.update({
     "max_dbh": 44.3, # (Close to) Theoretical maximum of the pantropical growth model we use
     "verbosity": 0,
     "csv_path": "",
 })
 
-# Argument type:
+# Input type:
 defaults.update({
     "cur_image_fraction_pixels": None,
     "circular_image_fraction_pixels": None,
