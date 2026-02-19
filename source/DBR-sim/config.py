@@ -73,6 +73,7 @@ sys.path.append(cfg.BUILD_DIR)
 
 defaults = {}
 
+# Argument type:
 defaults.update({
     "grid_width": 250,
     "cell_width": 1,
@@ -103,6 +104,7 @@ defaults.update({
     "LAI_aggregation_radius": 3, # Radius (in m) around each cell used to aggregate tree LAI values. 
 })
 
+# Argument type:
 defaults.update({
     "treecover": 0.5,
     "patch_width": 170,
@@ -129,12 +131,14 @@ defaults.update({
     "initial_pattern_image": "none",
 })
 
+# Argument type:
 defaults.update({
     "max_dbh": 44.3, # (Close to) Theoretical maximum of the pantropical growth model we use
     "verbosity": 0,
     "csv_path": "",
 })
 
+# Argument type:
 defaults.update({
     "cur_image_fraction_pixels": None,
     "circular_image_fraction_pixels": None,
@@ -157,15 +161,7 @@ defaults.update({
     "heterogeneity": "heterogeneity_config.json",
 })
 
-gui_defaults = {
-    "grid_width": defaults["grid_width"],
-    "treecover": defaults["treecover"],
-    "setting2": [
-        "default1",
-        "default2",
-        "default3"
-    ]
-}
+gui_defaults = {}
 
 _parameter_config = {
     "grid_width": {
