@@ -331,7 +331,7 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
         patches = dynamics.get_patches() 
 
         # Do visualizations
-        if not cfg.headless:
+        if ((dynamics.time % cfg.visualization_interval) == 0) and not cfg.headless:
             img = cfg.vis.visualize(
                 dynamics.state.grid, cfg.image_width, collect_states=1,
                 color_dict=color_dicts.normal
@@ -462,7 +462,7 @@ def do_update(dynamics, cfg):
     cfg.patch_count_change =  len(cfg.patches) - cfg.old_no_patches
     
     # Create visualizations and export to image files
-    if cfg.export_visualizations:
+    if (dynamics.time % cfg.visualization_interval) == 0:
         visualization.do_visualizations(
             dynamics, cfg.fire_freq_arrays, cfg.fire_no_timesteps, cfg.verbosity,
             cfg.color_dicts, cfg.collect_states, cfg.visualization_types,

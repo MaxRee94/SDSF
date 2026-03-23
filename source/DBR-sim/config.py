@@ -85,6 +85,7 @@ defaults.update({
     "firefreq_random_seed": 0,
     "random_seed": -999,
     "timestep": 1,
+    "visualization_interval": 1,
     "fire_resistance_params": {"argmin": 8.5, "argmax": 50, "stretch": 2.857}, # See 'notes/fire_resistance_threshold_curve.xlsx' for details
     "saturation_threshold": 3,
     "headless": False,
@@ -100,7 +101,6 @@ defaults.update({
     "disperse": True,
     "burn": True,
     "burnin_duration": 100,
-    "export_visualizations": True,
     "LAI_aggregation_radius": 3, # Radius (in m) around each cell used to aggregate tree LAI values. 
 })
 
@@ -129,6 +129,8 @@ defaults.update({
     "global_area_normalization_factor": None,
     "global_rotation_offset": None,
     "initial_pattern_image": "none",
+    "resource_grid_width": 50,
+    "max_timesteps": 100,
 })
 
 # Add constants
@@ -152,9 +154,7 @@ defaults.update({
     "dispersal_mode": "wind",
     "multi_disperser_params": f"multi_disperser_params.json",
     "background_mortality": 0.01,
-    "max_timesteps": 100,
     "strategy_distribution_params": "windkernel.json",
-    "resource_grid_width": 50,
     "mutation_rate": 0, # We do not incorporate mutation in this study.
     "grid_type":"square",
     "minimum_patch_size":30, # Minimum size (in m^2) of patches that are retained when generating initial patterns from images. We assume 78 m^2 since this corresponds to the area of a tree with radius = 5 (the approximate maximum in our model), in line with the 30m resolution of the GFC dataset.
@@ -963,14 +963,14 @@ _parameter_config = {
             "default": defaults["burnin_duration"],
         }
     },
-    "export_visualizations": {
+    "visualization_interval": {
         "keys": {
-            "cli": ["--export_visualizations", "-exp_vis"]
+            "cli": ["--visualization_interval", "-skvi"]
         },
         "settings": {
-            "action": argparse.BooleanOptionalAction,
-            "help": "Whether or not to export visualization images.",
-            "default": defaults["export_visualizations"],
+            "type": int,
+            "help": "The number of time steps between each set of visualizations.",
+            "default": defaults["burnin_duration"],
         }
     },
 }
