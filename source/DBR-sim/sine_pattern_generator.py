@@ -37,11 +37,11 @@ def generate(dimensions, sine_amplitude=1, sine_wavelength=100,
 
     if sine_type == "horizontal":
         # Peak at sine_offset ⇒ phase shift = -2π * offset / wavelength
-        phase = -2 * np.pi * sine_offset / sine_wavelength
+        phase = -2 * np.pi * (sine_offset / sine_wavelength - 0.25)
         pattern = np.sin(2 * np.pi * (Y / sine_wavelength) + phase)
 
     elif sine_type == "vertical":
-        phase = -2 * np.pi * sine_offset / sine_wavelength
+        phase = -2 * np.pi * (sine_offset / sine_wavelength - 0.25)
         pattern = np.sin(2 * np.pi * (X / sine_wavelength) + phase)
 
     elif sine_type == "radial":
@@ -58,7 +58,7 @@ def generate(dimensions, sine_amplitude=1, sine_wavelength=100,
         raise ValueError(f"Unknown sine_type: {sine_type}")
 
     # Scale to grayscale image
-    img = sine_amplitude * pattern + 128        # center around mid-gray
+    img = (pattern + sine_amplitude) * 255
     img = np.clip(img, 0, 255).astype(np.uint8)
 
     if show:

@@ -394,6 +394,9 @@ def do_iteration(dynamics, cfg):
     # -- BACKGROUND MORTALITY -- #
     dynamics.induce_background_mortality()
 
+    # -- MORTALITY TEMPLATE -- #
+    dynamics.invoke_mortality_template()
+
     if cfg.verbosity > 0:
         print("Induced background mortality. Repopulating grid...")
 

@@ -140,9 +140,7 @@ public:
 				tree_deletion_schedule.push_back(id);
 			}
 		}
-		for (int id : tree_deletion_schedule) {
-			pop->remove(id);
-		}
+		pop->remove(tree_deletion_schedule);
 		if (verbosity != -1) printf("-- No trees dead due to light limitation: %i \n", tree_deletion_schedule.size());
 	}
 	void set_global_linear_kernel(float lin_diffuse_q1, float lin_diffuse_q2, float min, float max) {
@@ -423,9 +421,7 @@ public:
 				tree_deletion_schedule.push_back(id);
 			}
 		}
-		for (int id : tree_deletion_schedule) {
-			pop->remove(id);
-		}
+		pop->remove(tree_deletion_schedule);
 		if (verbosity != -1) printf("-- Number of trees removed up to and including age %i year: %i \n", age_threshold, tree_deletion_schedule.size());
 	}
 	void recruit() {
@@ -481,16 +477,39 @@ public:
 		if (verbosity > 0) printf("-- Proportion wind dispersed trees: %f \n", no_wind_trees / (float)no_seed_bearing_trees);
 	}
 	void induce_background_mortality() {
+		// Induce background mortality by killing trees that have reached their life expectancy.
 		vector<int> tree_deletion_schedule = {};
 		for (auto& [id, tree] : pop->members) {
 			if (tree.life_expectancy <= tree.age) {
 				tree_deletion_schedule.push_back(id);
 			}
 		}
-		for (int id : tree_deletion_schedule) {
-			pop->remove(id);
+		pop->remove(tree_deletion_schedule);
+		if (verbosity != -1) printf(
+			"-- Number of trees dead due to background mortality: %i \n",
+			(int)tree_deletion_schedule.size()
+		);
+	}
+	void invoke_mortality_template() {
+		// ------------------------------------------------------------------------------------------
+		// This function induces mortality based on mortality probabilities predefined per grid cell.
+		// This can be used to simulate mortality due to spatially variant environmental stressors 
+		// such as drought.
+		// ------------------------------------------------------------------------------------------
+
+		vector<int> tree_deletion_schedule = {};
+		for (auto& [id, tree] : pop->members) {
+			Cell* cell = grid->get_cell_at_position(tree.position);
+			float mortality_probability = cell->get_mortality_probability();
+			if (help::get_rand_float(0, 1) < mortality_probability) {
+				tree_deletion_schedule.push_back(id);
+			}
 		}
-		if (verbosity != -1) printf("-- Number of trees dead due to background mortality: %i \n", tree_deletion_schedule.size());
+		pop->remove(tree_deletion_schedule);
+		if (verbosity != -1) printf(
+			"-- Number of trees dead due to environmental mortality template: %i \n",
+			(int)tree_deletion_schedule.size()
+		);
 	}
 	shared_ptr<int[]> get_resource_grid_colors(string species, string type) {
 		return resource_grid.get_color_distribution(species, type);

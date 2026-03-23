@@ -331,6 +331,12 @@ PYBIND11_MODULE(dbr_cpp, module) {
             convert_from_numpy_array(py_image, image, _width, _height);
             grid.set_local_growth_multipliers(image);
         })
+        .def("set_mortality_template", [](Grid& grid, py::array_t<float>& py_image) {
+            shared_ptr<float[]> image;
+            int _width, _height;
+            convert_from_numpy_array(py_image, image, _width, _height);
+            grid.set_mortality_template(image);
+		})
         .def("get_aggr_tree_LAI_distribution", [](Grid& grid) {
             shared_ptr<float[]> aggr_tree_LAI_distribution = grid.get_aggr_tree_LAI_distribution();
             return as_2d_numpy_array(aggr_tree_LAI_distribution, grid.width);
@@ -486,6 +492,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def("burn", &Dynamics::burn)
         .def("grow", &Dynamics::grow)
         .def("induce_background_mortality", &Dynamics::induce_background_mortality)
+        .def("invoke_mortality_template", &Dynamics::invoke_mortality_template)
         .def("report_state", &Dynamics::report_state)
         .def("update_firefree_interval_averages", &Dynamics::update_firefree_interval_averages)
         .def("update_forest_patch_detection", &Dynamics::update_forest_patch_detection)

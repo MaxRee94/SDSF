@@ -2,6 +2,7 @@ import csv
 import os
 from pathlib import Path
 import datetime
+from re import M
 from shutil import ExecError
 import cv2
 import time
@@ -82,9 +83,14 @@ def set_heterogeneity_maps(dynamics, cfg):
     map_types = {
         "grass_carrying_capacity": dynamics.state.grid.set_grass_carrying_capacity,
         "local_growth_multipliers": dynamics.state.grid.set_local_growth_multipliers,
+        "mortality": dynamics.state.grid.set_mortality_template,
     }
     for map_type, setter_func in map_types.items():
-        m_cfg = heterogeneity_map_cfg[map_type]
+        m_cfg = heterogeneity_map_cfg.get(map_type)
+        if m_cfg is None:
+            print(f"No configuration found for {map_type} map. Using default homogeneous map.")
+            continue
+
         m_cfg = helpers.overwrite_from_global_arguments(m_cfg, vars(cfg))
         map_dir = os.path.join(map_root_dir, map_type)
         if m_cfg.get("filename"):
@@ -93,16 +99,23 @@ def set_heterogeneity_maps(dynamics, cfg):
             print(f"Read {map_type} map from image file:", impath)
         else:
             if m_cfg["type"] == "sine":
-                image = cfg.spg.generate((dynamics.state.grid.width, dynamics.state.grid.width), **m_cfg)
+                image = spg.generate(
+                    (dynamics.state.grid.width, dynamics.state.grid.width), **m_cfg
+                )
+                print("image min:", image.min(), "image max:", image.max())
+                print("im size:", image.shape)
             elif m_cfg["type"] == "noise":
                 image = sng.generate(grid_width=dynamics.state.grid.width, cfg=cfg, **m_cfg)
             else:
                 raise ValueError(f"Unknown {map_type} pattern type: {m_cfg['type']}")
-            impath = os.path.join(map_dir, f"{map_type}.png")
+            impath = os.path.join(map_dir, f"generated_{map_type}.png")
             cv2.imwrite(impath, image)
             print(f"Generated {map_type} map saved to:", impath)
 
-        image = cv2.resize(image, (dynamics.state.grid.width, dynamics.state.grid.width), interpolation=cv2.INTER_NEAREST)
+        image = cv2.resize(
+            image, (dynamics.state.grid.width, dynamics.state.grid.width), 
+            interpolation=cv2.INTER_NEAREST
+        )
         image = image / 255  # Normalize to 0-1
         setter_func(image)
 

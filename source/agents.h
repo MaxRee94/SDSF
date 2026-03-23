@@ -509,6 +509,13 @@ public:
 		removed = removed && delete_kernel(id);
 		return removed;
 	}
+	bool remove(vector<int>& ids) {
+		bool all_removed = true;
+		for (int id : ids) {
+			all_removed = all_removed && remove(id);
+		}
+		return all_removed;
+	}
 	bool delete_kernel(int id) {
 		//if (get_kernel(id)->type == "wind") delete[] kernels_individual[id].cdf;
 		return kernels_individual.erase(id);

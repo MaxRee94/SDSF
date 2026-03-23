@@ -39,8 +39,14 @@ public:
 	float get_growth_multiplier() {
 		return growth_multiplier;
 	}
+	float get_mortality_probability() {
+		return mortality_probability;
+	}
 	void set_growth_multiplier(float _growth_multiplier) {
 		growth_multiplier = _growth_multiplier;
+	}
+	void set_mortality_probability(float prob) {
+		mortality_probability = prob;
 	}
 	void update_grass_LAI(float tree_LAI_local_neighborhood) {
 		grass_LAI = compute_grass_LAI(tree_LAI_local_neighborhood);
@@ -213,6 +219,7 @@ private:
 	float LAI = 0; // Cumulative Leaf Area Index (LAI) of all trees in the cell.
 	float grass_LAI = 0;
 	float growth_multiplier = 1.0f;
+	float mortality_probability = 0.0f;
 };
 
 
@@ -1159,6 +1166,11 @@ public:
 	void set_local_growth_multipliers(shared_ptr<float[]> distr) {
 		for (int i = 0; i < no_cells; i++) {
 			distribution[i].set_growth_multiplier(distr[i]);
+		}
+	}
+	void set_mortality_template(shared_ptr<float[]> distr) {
+		for (int i = 0; i < no_cells; i++) {
+			distribution[i].set_mortality_probability(distr[i]);
 		}
 	}
 	int width = 0;
