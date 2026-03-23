@@ -137,7 +137,7 @@ class DiskPatternGenerator():
         with all neighbor distances within ±1% of the adjusted mean distance.
         """
         w, h = image_size
-        assert target_distance < w, f"Mean distance between patches (currently {target_distance}) must be smaller than width of spatial domain ({w})."
+        assert target_distance <= w, f"Mean distance between patches (currently {target_distance}) must be smaller than width of spatial domain ({w})."
         target_no_squares = int(w / target_distance)
         new_target_distance = w / target_no_squares
 
