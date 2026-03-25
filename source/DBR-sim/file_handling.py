@@ -96,6 +96,7 @@ def set_heterogeneity_maps(dynamics, cfg):
         if m_cfg.get("filename"):
             impath = os.path.join(map_dir, m_cfg["filename"])
             image = cv2.imread(impath, cv2.IMREAD_GRAYSCALE)
+            image = (image.astype(np.float32) / 255.0) + m_cfg["minimum"] + m_cfg["maximum"] # Rescale to desired range
             print(f"Read {map_type} map from image file:", impath)
         else:
             if m_cfg["type"] == "sine":
@@ -109,14 +110,15 @@ def set_heterogeneity_maps(dynamics, cfg):
             else:
                 raise ValueError(f"Unknown {map_type} pattern type: {m_cfg['type']}")
             impath = os.path.join(map_dir, f"generated_{map_type}.png")
-            cv2.imwrite(impath, image)
+            img_rescaled = (image - image.min()) / (image.max() - image.min()) * 255 if image.max() > image.min() else np.zeros_like(image)
+            cv2.imwrite(impath, img_rescaled)
             print(f"Generated {map_type} map saved to:", impath)
 
         image = cv2.resize(
             image, (dynamics.state.grid.width, dynamics.state.grid.width), 
             interpolation=cv2.INTER_NEAREST
         )
-        image = image / 255  # Normalize to 0-1
+        print("image min after resize:", image.min(), "image max after resize:", image.max())
         setter_func(image)
 
     return dynamics

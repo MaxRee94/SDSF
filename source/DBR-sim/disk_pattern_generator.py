@@ -413,6 +413,9 @@ class DiskPatternGenerator():
             
                 return best_version
 
+        # Rescale
+        img = img / 255
+
         return img, positions, radii, stripe_metadata, benchmark_cover
 
     def periodic_distance(self, p1, p2, box):

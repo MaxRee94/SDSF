@@ -48,15 +48,14 @@ def generate(amplitude=0.3, scale=1, show=False, binary_connectivity=-1, offset=
         interpolation=cv2.INTER_LINEAR
     )
 
-    # Convert to uint8 grayscale image
-    img_uint8 = (img * 255).astype(np.uint8)
 
     if show:
-        cv2.imshow("Uniform Macropixel Noise", img_uint8)
+        img_uint8 = (img * 255).astype(np.uint8)
+        cv2.imshow("Uniform Macropixel Noise", img)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
-    return img_uint8
+    return img
 
 
 if __name__ == "__main__":

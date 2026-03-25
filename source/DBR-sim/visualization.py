@@ -339,6 +339,8 @@ class Visualiser:
         if write:
             cv2.imwrite(path, img)
 
+        img = img / 255
+
         return img
 
     def visualize_kernel(self, kernel, title="Kernel"):

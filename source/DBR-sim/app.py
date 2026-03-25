@@ -87,7 +87,6 @@ def create_controlled_patches_image(cfg, dynamics):
     _cfg = copy.copy(cfg)
     img, cfg.cover_img_path, benchmark_cover = cfg.vis.generate_disk_pattern(**vars(_cfg))
     img = cv2.resize(img, (cfg.grid_width, cfg.grid_width), interpolation=cv2.INTER_NEAREST)
-    img = img / 255
 
     # If the user has set the override_image_treecover to 2, we will use the benchmark cover value from
     # the controllable pattern image. The benchmark cover is the tree cover you would get if you would
@@ -109,7 +108,7 @@ def create_perlin_noise_image(cfg, dynamics):
     img = cfg.vis.generate_perlin_noise_image(cfg.cover_img_path, frequency=noise_frequency, octaves=cfg.noise_octaves)
 
     # Ensure the image is thresholded
-    img = cfg.vis.get_thresholded_image(img, cfg.treecover * img.shape[0] * img.shape[0] * 255 )
+    img = cfg.vis.get_thresholded_image(img * 255, cfg.treecover * img.shape[0] * img.shape[0] * 255 )
     cv2.imwrite(cfg.cover_img_path.replace(".png", "_thresholded.png"), img)
 
     return img, dynamics, cfg
