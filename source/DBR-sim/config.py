@@ -81,7 +81,7 @@ defaults.update({
     "image_size":(1000, 1000),
     "tests": "none",
     "timelimit": 1e32,
-    "termination_conditions": "all",
+    "termination_conditions": "any",
     "firefreq_random_seed": 0,
     "random_seed": -999,
     "timestep": 1,

@@ -278,7 +278,7 @@ def termination_condition_satisfied(dynamics, start_time, cfg):
     satisifed_condition = ""
     if (dynamics.time >= int(cfg.max_timesteps)):
         satisifed_condition = f"Maximum number of timesteps ({cfg.max_timesteps}) reached."
-    if (cfg.termination_conditions == "all" and dynamics.state.grid.get_tree_cover() > 0.99):
+    if (cfg.termination_conditions == "any" and dynamics.state.grid.get_tree_cover() > 0.99):
         satisifed_condition = f"Tree cover exceeds 99%."
 
     satisfied = len(satisifed_condition) > 0 # If 'satisfied_contion' is not an empty string, then a
@@ -394,7 +394,7 @@ def do_iteration(dynamics, cfg):
     dynamics.induce_background_mortality()
 
     # -- MORTALITY TEMPLATE -- #
-    #dynamics.invoke_mortality_template()
+    dynamics.invoke_mortality_template()
 
     if cfg.verbosity > 0:
         print("Induced background mortality. Repopulating grid...")

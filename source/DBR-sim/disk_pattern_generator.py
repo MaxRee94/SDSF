@@ -411,10 +411,10 @@ class DiskPatternGenerator():
                 print("Relative deviation from target area ratio:", best_version.pop(0))
                 print("Fraction of white pixels in generated image:", self.fraction_white_pixels(best_version[0]))
             
-                return best_version
+                # Rescale
+                best_version = best_version / 255
 
-        # Rescale
-        img = img / 255
+                return best_version
 
         return img, positions, radii, stripe_metadata, benchmark_cover
 
