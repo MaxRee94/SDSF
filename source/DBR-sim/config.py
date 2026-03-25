@@ -896,7 +896,7 @@ _parameter_config = {
             "cli": ["--display_fire_effects", "-dispfe"]
         },
         "settings": {
-            "type": bool,
+            "action": argparse.BooleanOptionalAction,
             "help": "Specify if you want to display fire as red pixels, burned trees as black, and fire-exposed but unburned trees as purple.",
             "default": defaults["display_fire_effects"],
         }

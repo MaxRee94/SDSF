@@ -191,7 +191,8 @@ class Visualiser:
             new_img = np.zeros((width, height, 3), np.uint8)
             for i in range(width):
                 for j in range(height):
-                    new_img[i, j] = color_dict[img[i, j]]
+                    img_idx = img[i, j]
+                    new_img[i, j] = color_dict[img_idx]
             img = new_img.copy()
             
         img = img.astype(np.uint8)
