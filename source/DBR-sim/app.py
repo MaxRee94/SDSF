@@ -255,6 +255,7 @@ def init(cfg):
     cfg.visualization_types = [
         "fire_freq", "recruitment", "fuel", "tree_LAI", "aggr_tree_LAI", "colored_patches", "fuel_penetration"
     ]
+    cfg.visualization_types = []
     cfg.computer_start_time = time.time()
     cfg.init_csv = False
     cfg.prev_tree_cover = [cfg.treecover] * 60
@@ -303,29 +304,36 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
     print(f"Beginning burn-in for {cfg.burnin_duration} timesteps...")
     cfg.init_csv = True
     cfg.treesize_bins = "initialize"
-    visualization_types = ["aggr_tree_LAI", "colored_patches"]
+    #visualization_types = ["aggr_tree_LAI", "colored_patches"]
+    visualization_types = []
     fire_freq_arrays = []
     fire_no_timesteps = 1
     patch_colors = {}
-    while dynamics.time < cfg.burnin_duration or dynamics.state.grid.get_tree_cover() > target_treecover:
+    while dynamics.time < cfg.burnin_duration or (cfg.initial_pattern_image == "none" and dynamics.state.grid.get_tree_cover() > target_treecover):
         print(f"Burn-in timestep:    {dynamics.time})")
         dynamics.disperse_within_forest(forest_mask)
         dynamics.grow()
         dynamics.induce_background_mortality()
+        print("repopulating grid..")
         dynamics.state.repopulate_grid(cfg.verbosity)
-        dynamics.prune(forest_mask)
-        dynamics.state.repopulate_grid(cfg.verbosity)
-        dynamics.state.grid.reset_state_distr()
-        dynamics.update_forest_patch_detection()
+        #dynamics.state.repopulate_grid(cfg.verbosity)
+        if dynamics.time > (cfg.burnin_duration - 2):
+            print("pruning..")
+            dynamics.prune(forest_mask)
+            print("repopulating grid..")
+            dynamics.state.repopulate_grid(cfg.verbosity)
+            print("resetting state distr..")
+            dynamics.state.grid.reset_state_distr()
+        
         dynamics.report_state()
         cfg = io.export_state(dynamics, path=cfg.csv_path, init_csv=cfg.init_csv, cfg=cfg)
         cfg.init_csv = False
 
         # Feedback control on tree cover during burn-in
-        if dynamics.state.grid.get_tree_cover() > target_treecover:
+        if cfg.initial_pattern_image == "none" and dynamics.state.grid.get_tree_cover() > target_treecover:
             prune_fraction = dynamics.state.grid.get_tree_cover() - target_treecover
             dynamics.prune_randomly(prune_fraction)
-        
+
         # Obtain patches from simulation
         patches = dynamics.get_patches() 
 
@@ -333,7 +341,7 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
         if ((dynamics.time % cfg.visualization_interval) == 0) and not cfg.headless:
             img = cfg.vis.visualize(
                 dynamics.state.grid, cfg.image_width, collect_states=1,
-                color_dict=color_dicts.normal
+                color_dict=color_dicts.normal, cheap_visualization=True
             )
         dynamics.time += 1
 
@@ -342,6 +350,7 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
     dynamics.time -= 1
     dynamics.remove_trees_up_to_age(1)
     dynamics.state.repopulate_grid(0)
+    dynamics.update_forest_patch_detection()
 
     dynamics.time = 0
 

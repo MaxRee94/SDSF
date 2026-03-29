@@ -337,9 +337,12 @@ public:
 		while (current_cover > target_cover) {
 			Tree* tree = pop->get_random_tree();
 			grid->kill_tree_domain(tree, false);
-			grid->update_aggr_LAIs(tree);
 			pop->remove(tree->id);
-			if (chunksize > chunksize_threshold) current_cover = grid->get_tree_cover();
+			if (chunksize > chunksize_threshold) {
+				grid->update_aggr_LAIs(tree);
+				current_cover = grid->get_tree_cover();
+				chunksize = 0;
+			}
 			chunksize++;
 		}
 	}

@@ -208,7 +208,7 @@ class Visualiser:
         distr = normalized_distr * (_range[1] - _range[0]) + _range[0]
         return distr
 
-    def get_image_from_grid(self, grid, color_dict, collect_states=None, img_type=None, invert=False):
+    def get_image_from_grid(self, grid, color_dict, collect_states=None, img_type=None, invert=False, cheap_visualization=False):
         if img_type:
             if img_type == "fuel":
                 img = grid.get_fuel_distribution()
@@ -227,7 +227,13 @@ class Visualiser:
                 raise ValueError(f"Unknown img_type: {img_type}")
         else:
             img = grid.get_distribution(collect_states)
-        img = self.get_image(img, color_dict, grid.width)
+            
+        if cheap_visualization:
+            minim = img.min()
+            maxim = img.max()
+            img = ((img - minim) / (maxim - minim) * 255).astype(np.uint8) # Normalize to 0-255 for visualization, regardless of the original value range
+        else:
+            img = self.get_image(img, color_dict, grid.width)
 
         if invert:
             img = ~img
@@ -239,8 +245,8 @@ class Visualiser:
             img += fire_freq_arr
         return self.get_image(img, color_dict_fire_freq, grid_width)
 
-    def visualize(self, grid, image_width=1000, collect_states=True, color_dict=False):
-        img = self.get_image_from_grid(grid, color_dict, collect_states=collect_states)   
+    def visualize(self, grid, image_width=1000, collect_states=True, color_dict=False, cheap_visualization=False):
+        img = self.get_image_from_grid(grid, color_dict, collect_states=collect_states, cheap_visualization=cheap_visualization)   
         _, screen_height = self.get_screen_resolution()
         image_width = int(screen_height * 0.6)
         self.visualize_image(img, image_width)
@@ -539,7 +545,7 @@ def visualize_initial_state(dynamics, cfg):
         # Get a color image representation of the initial state and show it.
         img = cfg.vis.visualize(
             dynamics.state.grid, cfg.image_width, collect_states=True,
-            color_dict=cfg.color_dicts.normal
+            color_dict=cfg.color_dicts.normal, cheap_visualization=True
         )
     else:
         # Get a color image representation of the initial state
@@ -633,7 +639,7 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbosity, 
         # Get a color image representation of the state and show it.
         img = cfg.vis.visualize(
             dynamics.state.grid, cfg.image_width, collect_states=collect_states,
-            color_dict=color_dicts.normal
+            color_dict=color_dicts.normal, cheap_visualization=False
         )
 
     print("-- Saving image...") if verbosity else None
