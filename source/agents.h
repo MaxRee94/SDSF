@@ -525,7 +525,7 @@ public:
 		return (it != members.end());
 	}
 	bool is_population_member(int tree_id) {
-		return members.find(tree_id) != members.end();
+		return members.find(tree_id) != members.end() && members[tree_id].id == tree_id;
 	}
 	void free() {
 		for (auto& [id, tree] : members) {
@@ -545,8 +545,15 @@ public:
 		help::sort(ids_and_trait_values, sorted_population);
 	}
 	Tree* get_random_tree() {
-		int id = help::get_random_key(members);
-		return &members[id];
+		int id;
+		while (true) {
+			int id = help::get_rand_int(0, no_created_trees - 1);
+			bool exists = is_population_member(id);
+			if (exists) {
+				Tree* tree = get(id);
+				return tree;
+			}
+		}
 	}
 	
 	unordered_map<int, Tree> members;
