@@ -334,9 +334,6 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
             prune_fraction = dynamics.state.grid.get_tree_cover() - target_treecover
             dynamics.prune_randomly(prune_fraction)
 
-        # Obtain patches from simulation
-        patches = dynamics.get_patches() 
-
         # Do visualizations
         if ((dynamics.time % cfg.visualization_interval) == 0) and not cfg.headless:
             img = cfg.vis.visualize(
@@ -403,7 +400,8 @@ def do_iteration(dynamics, cfg):
     dynamics.induce_background_mortality()
 
     # -- MORTALITY TEMPLATE -- #
-    dynamics.invoke_mortality_template()
+    if dynamics.time > 400:
+        dynamics.invoke_mortality_template()
 
     if cfg.verbosity > 0:
         print("Induced background mortality. Repopulating grid...")
