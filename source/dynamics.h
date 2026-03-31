@@ -120,6 +120,7 @@ public:
 	void grow() {
 		vector<int> tree_deletion_schedule = {};
 		map<float, int> increment_counts;
+		int no_trees_that_became_reproductive = 0;
 		for (int i = 0; i < grid->no_cells; i++) {
 			Cell* cell = &grid->distribution[i];
 			if (cell->stem.second <= 0) continue; // If no stem is present, skip this cell.
@@ -134,6 +135,7 @@ public:
 			// Grow tree
 			float shade = state.compute_shade_on_individual_tree(&tree);
 			auto [became_reproductive, dies_due_to_light_limitation] = tree.grow(seed_bearing_threshold, shade, local_growth_multiplier);
+			no_trees_that_became_reproductive += became_reproductive;
 
 			// Add dying trees to deletion schedule
 			if (dies_due_to_light_limitation) {
@@ -142,6 +144,7 @@ public:
 		}
 		pop->remove(tree_deletion_schedule);
 		if (verbosity != -1) printf("-- No trees dead due to light limitation: %i \n", tree_deletion_schedule.size());
+		if (verbosity != -1) printf("-- Number of trees that became reproductive: %i \n", no_trees_that_became_reproductive);
 	}
 	void set_global_linear_kernel(float lin_diffuse_q1, float lin_diffuse_q2, float min, float max) {
 		global_kernels["linear"] = Kernel(1, lin_diffuse_q1, lin_diffuse_q2, min, max);
@@ -235,11 +238,16 @@ public:
 		Timer timer; timer.start();
 
 		int no_seeds_to_disperse = 0;
+		float largest_dbh = 0;
 		for (auto& [id, tree] : pop->members) {
 			if (tree.life_phase == 2) {
-				no_seeds_to_disperse += pop->get_crop(id)->no_seeds;
+				Crop* crop = pop->get_crop(id);
+				crop->update(tree, STR);
+				no_seeds_to_disperse += crop->no_seeds;
 			}
+			if (tree.dbh > largest_dbh) largest_dbh = tree.dbh;
 		}
+		printf("Number of seeds to disperse: %s, largest dbh: %f \n", help::readable_number(no_seeds_to_disperse).c_str(), largest_dbh);
 		if (time < 100) {
 			no_seeds_to_disperse = no_seeds_to_disperse = max(1, grid->no_cells / 100);
 		}

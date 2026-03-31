@@ -138,6 +138,9 @@ defaults.update({
     "max_dbh": 44.3, # (Close to) Theoretical maximum of the pantropical growth model we use
     "verbosity": 0,
     "csv_path": "",
+    "seed_bearing_threshold": 0.1, # dbh fraction of theoretical maximum height. We assume all trees are seed bearing beyond this height, based on Minor and Kobe (2018), Figure 5.
+    "STR": 10000, # The number of seeds produced yearly by a tree with a dbh of 30 cm
+    "animal_group_size": 10,
 })
 
 # Add parameters
@@ -146,11 +149,8 @@ defaults.update({
     "circular_image_fraction_pixels": None,
     "self_ignition_factor": 3,
     "unsuppressed_flammability": 0.5,
-    "animal_group_size": 10,
-    "STR": 10000, # The number of seeds produced yearly by a tree with a dbh of 30 cm
     "growth_rate_multiplier_params": [0, 1.0, 1.0],
     "growth_rate_multiplier": 1,
-    "seed_bearing_threshold": 0.1, # dbh fraction of theoretical maximum height. We assume all trees are seed bearing beyond this height, based on Minor and Kobe (2018), Figure 5.
     "dispersal_mode": "wind",
     "multi_disperser_params": f"multi_disperser_params.json",
     "background_mortality": 0.01,
