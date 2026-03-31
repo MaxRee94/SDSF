@@ -202,13 +202,13 @@ public:
 			deposition_location.second = help::get_rand_float(0, grid->width_r - 0.51f * grid->cell_width);
 			int grid_idx = grid->pos_2_idx(deposition_location);
 
+			i++;
 			if (mask[grid_idx] < 1) continue;
 
 			// Germinate random seed at location
 			bool germinated = germinate_random_seedling(deposition_location, no_germinated_seedlings);
 			if (germinated) no_germinated_seedlings++;
 
-			i++;
 		}
 	}
 	bool germinate_random_seedling(pair<float, float> deposition_location, int& no_germinated_seedlings) {
@@ -234,7 +234,15 @@ public:
 		int pre_dispersal_popsize = pop->size();
 		Timer timer; timer.start();
 
-		int no_seeds_to_disperse = max(1, grid->no_cells / 100);
+		int no_seeds_to_disperse = 0;
+		for (auto& [id, tree] : pop->members) {
+			if (tree.life_phase == 2) {
+				no_seeds_to_disperse += pop->get_crop(id)->no_seeds;
+			}
+		}
+		if (time < 100) {
+			no_seeds_to_disperse = no_seeds_to_disperse = max(1, grid->no_cells / 100);
+		}
 		disperse_uniformly(mask, no_seeds_to_disperse);
 		recruit();
 	}
