@@ -121,6 +121,7 @@ public:
 		vector<int> tree_deletion_schedule = {};
 		map<float, int> increment_counts;
 		int no_trees_that_became_reproductive = 0;
+		float largest_dbh = 0; float largest_dbh_shade = 0; int largest_id = -1;
 		for (int i = 0; i < grid->no_cells; i++) {
 			Cell* cell = &grid->distribution[i];
 			if (cell->stem.second <= 0) continue; // If no stem is present, skip this cell.
@@ -134,6 +135,13 @@ public:
 			
 			// Grow tree
 			float shade = state.compute_shade_on_individual_tree(&tree);
+
+			if (tree.dbh > largest_dbh) {
+				largest_dbh = tree.dbh;
+				largest_dbh_shade = shade;
+				largest_id = tree.id;
+			}
+
 			auto [became_reproductive, dies_due_to_light_limitation] = tree.grow(seed_bearing_threshold, shade, local_growth_multiplier);
 			no_trees_that_became_reproductive += became_reproductive;
 
@@ -143,6 +151,8 @@ public:
 			}
 		}
 		pop->remove(tree_deletion_schedule);
+		Tree* largest_tree = &pop->members[largest_id];
+		printf("Largest dbh: %f, Shade on largest tree (id %i): %f, height: %f, LAI: %f, age: %i, crown radius: %f \n", largest_dbh, largest_id, largest_dbh_shade, largest_tree->height, largest_tree->LAI, largest_tree->age, largest_tree->radius);
 		if (verbosity != -1) printf("-- No trees dead due to light limitation: %i \n", tree_deletion_schedule.size());
 		if (verbosity != -1) printf("-- Number of trees that became reproductive: %i \n", no_trees_that_became_reproductive);
 	}

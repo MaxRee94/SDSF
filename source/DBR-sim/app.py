@@ -255,7 +255,6 @@ def init(cfg):
     cfg.visualization_types = [
         "fire_freq", "recruitment", "fuel", "tree_LAI", "aggr_tree_LAI", "colored_patches", "fuel_penetration"
     ]
-    cfg.visualization_types = []
     cfg.computer_start_time = time.time()
     cfg.init_csv = False
     cfg.prev_tree_cover = [cfg.treecover] * 60

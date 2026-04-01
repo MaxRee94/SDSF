@@ -276,7 +276,6 @@ public:
 		stem_increment *= (5.0f - LAI_shade) / 5.0f;	// LAI-dependent growth reduction to introduce density dependence. Multiplication factor: ((LAI_max - LAI) / LAI_max) 
 		// From Hoffman et al (2012), Appendix 2.
 
-
 		return stem_increment;
 	}
 	float get_survival_probability(float& fire_resistance_argmin, float& fire_resistance_argmax, float& fire_resistance_stretch) {

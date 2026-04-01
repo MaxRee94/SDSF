@@ -135,7 +135,7 @@ defaults.update({
 
 # Add constants
 defaults.update({
-    "max_dbh": 44.3, # (Close to) Theoretical maximum of the pantropical growth model we use
+    "max_dbh": 150, # (Close to) Theoretical maximum of the pantropical growth model we use
     "verbosity": 0,
     "csv_path": "",
     "seed_bearing_threshold": 0.1, # dbh fraction of theoretical maximum height. We assume all trees are seed bearing beyond this height, based on Minor and Kobe (2018), Figure 5.

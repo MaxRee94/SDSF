@@ -158,20 +158,28 @@ public:
 		}
 		return shade;
 	}
-	float get_LAI_of_taller_trees(Tree* tree, Population* population) {
+	float get_LAI_of_taller_trees(Tree* tree, Population* population, int verbosity = 0) {
 		if (population == nullptr) {
+			printf("Returning total LAI of the cell.\n");
 			return get_LAI();
 		}
 		float LAI_taller_trees = 0;
-		float crown_reach = tree->height - tree->lowest_branch;
 		for (int tree_id : trees) {
 			Tree* neighbor = population->get(tree_id);
-			if (neighbor->height > tree->height) LAI_taller_trees += neighbor->LAI;
+			if (neighbor->id == tree->id) continue;
+			if (neighbor->height > tree->height) {
+				LAI_taller_trees += neighbor->LAI;
+				if (verbosity > 0) printf(
+					"Tree %i is taller (%f m) than tree %i (%f m). Adding its LAI (%f) to the total LAI of taller trees (%f). \n",
+					neighbor->id, neighbor->height, tree->id, tree->height, neighbor->LAI, LAI_taller_trees
+				);
+			}
 		}
+		if (verbosity > 0) printf("Total LAI of taller trees than tree %i: %f \n", tree->id, LAI_taller_trees);
 		return LAI_taller_trees;
 	}
-	float get_shading_on_tree(Tree* tree, Population* population = 0) {
-		return get_LAI_of_taller_trees(tree, population) + tree->LAI;
+	float get_shading_on_tree(Tree* tree, Population* population = 0, int verbosity = 0) {
+		return get_LAI_of_taller_trees(tree, population, verbosity);
 	}
 	float get_LAI() {
 		return LAI;

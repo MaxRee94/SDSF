@@ -65,25 +65,27 @@ public:
 		grid.redo_count();
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
-	float compute_shade_on_individual_tree(Tree* tree) {
-		float LAI_shade = 0;
+	float compute_shade_on_individual_tree(Tree* tree, int verbosity = 0) {
+		float cumulative_shade = 0;
 		float no_cells = 0;
 		TreeDomainIterator it(grid.cell_width, tree);
 		while (it.next()) {
 			if (tree->radius_spans(it.real_cell_position)) {
 				Cell* cell = grid.get_cell_at_position(it.gb_cell_position);
-				float _LAI_shade = cell->get_shading_on_tree(tree, &population);
-				LAI_shade += _LAI_shade;
-				if (_LAI_shade < tree->LAI) printf(" -- Shade is less than tree LAI. Shade: %f, tree LAI: %f\n", _LAI_shade, tree->LAI);
-				no_cells += 1;
+				float shade_in = cell->get_shading_on_tree(tree, &population, verbosity);
+				cumulative_shade += shade_in;
+				no_cells++;
 			}
 		}
 		if (no_cells == 0) {
 			int center_idx = grid.get_capped_center_idx(it.tree_center_gb);
 			return grid.distribution[center_idx].get_shading_on_tree(tree, &population);
 		}
-		return LAI_shade / no_cells;	// We obtain mean LAI of trees above the given tree by dividing by the tree's crown area.
-										// We use this as a measure of shading on the tree.
+		if (verbosity > 0) printf("Cumulative shade on tree %i: %f, no_cells: %f \n", tree->id, cumulative_shade, no_cells);
+		float shade_average = cumulative_shade / no_cells;	// We obtain mean LAI of trees above the given tree by dividing by the tree's crown area.
+														// We use this as a measure of shading on the tree.
+
+		return shade_average;
 	}
 	float get_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
 		vector<float> dists = { help::get_manhattan_dist(a, b) };
