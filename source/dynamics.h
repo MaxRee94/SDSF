@@ -152,7 +152,7 @@ public:
 		}
 		pop->remove(tree_deletion_schedule);
 		Tree* largest_tree = &pop->members[largest_id];
-		printf("Largest dbh: %f, Shade on largest tree (id %i): %f, height: %f, LAI: %f, age: %i, crown radius: %f \n", largest_dbh, largest_id, largest_dbh_shade, largest_tree->height, largest_tree->LAI, largest_tree->age, largest_tree->radius);
+		//printf("Largest dbh: %f, Shade on largest tree (id %i): %f, height: %f, LAI: %f, age: %i, crown radius: %f \n", largest_dbh, largest_id, largest_dbh_shade, largest_tree->height, largest_tree->LAI, largest_tree->age, largest_tree->radius);
 		if (verbosity != -1) printf("-- No trees dead due to light limitation: %i \n", tree_deletion_schedule.size());
 		if (verbosity != -1) printf("-- Number of trees that became reproductive: %i \n", no_trees_that_became_reproductive);
 	}
@@ -257,7 +257,6 @@ public:
 			}
 			if (tree.dbh > largest_dbh) largest_dbh = tree.dbh;
 		}
-		printf("Number of seeds to disperse: %s, largest dbh: %f \n", help::readable_number(no_seeds_to_disperse).c_str(), largest_dbh);
 		if (time < 100) {
 			no_seeds_to_disperse = no_seeds_to_disperse = max(1, grid->no_cells / 100);
 		}

@@ -78,8 +78,7 @@ def set_heterogeneity_maps(dynamics, cfg):
         cfg(SimpleNamespace): User arguments
     """
     map_root_dir = f"{cfg.DATA_IN_DIR}/heterogeneity/"
-    json_path = os.path.join(map_root_dir, cfg.heterogeneity)
-    heterogeneity_map_cfg = load_json_config(json_path)
+    heterogeneity_map_cfg = cfg.heterogeneity
     map_types = {
         "grass_carrying_capacity": dynamics.state.grid.set_grass_carrying_capacity,
         "local_growth_multipliers": dynamics.state.grid.set_local_growth_multipliers,
