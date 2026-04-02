@@ -347,7 +347,7 @@ public:
 				for (int tree_id : trees_to_remove) {
 					Tree* tree = pop->get(tree_id);
 					grid->kill_tree_domain(tree, false);
-					grid->update_aggr_LAIs(tree);
+					grid->update_aggr_LAIs(pop, tree);
 					pop->remove(tree_id);
 				}
 			}
@@ -364,7 +364,7 @@ public:
 			grid->kill_tree_domain(tree, false);
 			pop->remove(tree->id);
 			if (chunksize > chunksize_threshold) {
-				grid->update_aggr_LAIs(tree);
+				grid->update_aggr_LAIs(pop, tree);
 				current_cover = grid->get_tree_cover();
 				chunksize = 0;
 			}

@@ -60,8 +60,8 @@ public:
 			}*/
 			i++;
 		}
-		grid.update_grass_LAIs();
-		grid.update_aggr_LAIs();
+		grid.update_aggr_LAIs(&population);
+		grid.update_grass_LAIs(&population);
 		grid.redo_count();
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
@@ -107,6 +107,17 @@ public:
 		}
 		else dist = help::get_dist(a, b);
 		return dist;
+	}
+	shared_ptr<int[]> get_state_distribution(bool collect_states) {
+		return grid.get_state_distribution(&population, collect_states);
+	}
+	shared_ptr<float[]> get_aggr_tree_LAI_distribution() {
+		grid.update_aggr_LAIs(&population);
+		return grid.aggr_tree_LAI_distribution;
+	}
+	shared_ptr<float[]> get_stand_density_distribution() {
+		grid.update_stand_densities(&population, false);
+		return grid.stand_density_distribution;
 	}
 	vector<Tree*> get_tree_neighbors(pair<float, float> baseposition, float search_radius, int& closest_idx, int base_id = -1, bool stop_on_1 = false) {
 		vector<Tree*> neighbors;
@@ -185,14 +196,14 @@ public:
 				population.remove(tree->id);
 				continue;
 			}
-			grid.populate_tree_domain(tree, true);
+			grid.populate_tree_domain(tree, &population, true);
 			if (!grid.complies_with_aggr_LAI_domain(tree, image)) {
 				// Remove tree if its addition causes the grid to violate the aggregated LAI domain defined by the image.
 				grid.kill_tree_domain(tree, false);
-				grid.update_aggr_LAIs(tree);
+				grid.update_aggr_LAIs(&population, tree);
 				population.remove(tree->id);
 			}
-			grid.update_grass_LAIs_for_individual_tree(tree);
+			grid.update_grass_LAIs_for_individual_tree(&population, tree);
 			if (population.size() % 10000 == 0) {
 				float mean_LAI_of_allowed_domain = grid.get_mean_LAI_of_allowed_domain(image, integral_image_cover);
 				printf("mean LAI of allowed domain: %f\n", mean_LAI_of_allowed_domain);
@@ -229,7 +240,7 @@ public:
 				continue;
 			}
 			if (tree->id == -1) population.remove(population.no_created_trees - 1); // HOTFIX: Sometimes trees are not initialized properly and need to be removed.
-			grid.populate_tree_domain(tree,	true);
+			grid.populate_tree_domain(tree, &population, true);
 			if (population.get_crop(tree->id)->strategy.vector == "wind") {
 				wind_trees++;
 			}

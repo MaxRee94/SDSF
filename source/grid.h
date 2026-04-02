@@ -212,6 +212,9 @@ public:
 	{
 		return pos == cell.pos;
 	}
+	bool has_significant_stem() {
+		return stem.first > 5.0f; // A stem with dbh > 5.0 cm is considered significant for competition with other trees.
+	}
 private:
 	float get_leaf_area_over_cell_area(Tree* tree, float cell_area) {
 		return (tree->LAI * tree->crown_area) / cell_area;
@@ -552,7 +555,7 @@ public:
 		}
 		return true;
 	}
-	bool populate_tree_domain(Tree* tree, bool update_tree_LAI_neighborhood=false) {
+	bool populate_tree_domain(Tree* tree, Population* population = 0, bool update_tree_LAI_neighborhood=false) {
 		TreeDomainIterator it(cell_width, tree);
 		while (it.next()) {
 			if (tree->crown_area < cell_area_half) break; // Do not populate cells with trees that are smaller than half the cell area.
@@ -563,7 +566,7 @@ public:
 		int center_idx = get_capped_center_idx(it.tree_center_gb);
 		distribution[center_idx].insert_stem(tree, cell_area, cell_halfdiagonal_sqrt);
 		if (update_tree_LAI_neighborhood) {
-			update_aggr_LAIs(tree);
+			update_aggr_LAIs(population, tree);
 		}
 		return true;
 	}
@@ -660,6 +663,7 @@ public:
 	void initialize_neighborhood_area_normalization_factor() {
 		int n_cells_in_neighborhood = neighborhood_lookup_table.size();
 		neighborhood_area = cell_area * (float)n_cells_in_neighborhood;
+		neighborhood_area_inv = 1.0f / neighborhood_area;
 		float area_to_normalize_to = 10000.0f; // Normalize to neighborhood area of 1 hectare (10,000 m^2)
 		neighborhood_area_normalization_factor = area_to_normalize_to / neighborhood_area;
 	}
@@ -670,35 +674,24 @@ public:
 			pair<int, int> neighbor_pos = cell->pos + neighbor_offset;
 			cap(neighbor_pos);
 			Cell* neighbor = get_cell_at_position(neighbor_pos);
-			num_stems_in_neighborhood += neighbor->stem.first > 10.0f; // Check whether there is a tree with DBH > 10 cm in the cell.
+			num_stems_in_neighborhood += (int)neighbor->has_significant_stem();
 		}
 		return (float)num_stems_in_neighborhood * neighborhood_area_normalization_factor;
 	}
-	float get_tree_LAI_of_local_neighborhood(Cell* cell, bool debug=false) {
-		// Use a circular neighborhood with specified radius.
-		float radius = local_neighborhood_radius;
-		float LAI_sum = 0;
-		int no_cells_in_radius = 0;
-		int min_x = (int)(cell->pos.first - radius);
-		int max_x = (int)(cell->pos.first + radius);
-		int min_y = (int)(cell->pos.second - radius);
-		int max_y = (int)(cell->pos.second + radius);
-		pair<float, float> cell_real_pos = get_real_cell_position(cell);
-		for (int x = min_x; x <= max_x; x++) {
-			for (int y = min_y; y <= max_y; y++) {
-				pair<int, int> neighbor_pos = pair<int, int>(x, y);
-				cap(neighbor_pos);
-				pair<float, float> neighbor_real_pos = get_real_cell_position(get_cell_at_position(neighbor_pos));
-				float dist = help::get_dist(pair<float, float>(cell->pos.first, cell->pos.second), neighbor_pos);
-				if (dist <= radius) {
-					Cell* neighbor = get_cell_at_position(pair<int, int>(x, y));
-					LAI_sum += neighbor->get_LAI();
-					no_cells_in_radius++;
-				}
+	float get_tree_LAI_of_local_neighborhood(Population* population, Cell* cell, bool debug=false) {
+		float leaf_area_sum = 0;
+		for (pair<int, int> neighbor_offset : neighborhood_lookup_table) {
+			pair<int, int> neighbor_pos = cell->pos + neighbor_offset;
+			cap(neighbor_pos);
+			Cell* neighbor = get_cell_at_position(neighbor_pos);
+			if (neighbor->has_significant_stem()) {
+				int tree_id = neighbor->stem.second;
+				Tree* tree = population->get(tree_id);
+				leaf_area_sum += tree->get_leaf_area();
 			}
 		}
-		if (no_cells_in_radius == 0) return cell->get_LAI();
-		return LAI_sum / (float)no_cells_in_radius;
+		float LAI_over_neighborhood = leaf_area_sum * neighborhood_area_inv;
+		return LAI_over_neighborhood;
 	}
 	bool is_forest(float neighborhood_tree_LAI) {
 		return neighborhood_tree_LAI > 1.0f;
@@ -716,25 +709,25 @@ public:
 		float tree_LAI_local_neighborhood = aggr_tree_LAI_distribution[idx];
 		return is_forest(tree_LAI_local_neighborhood);
 	}
-	void update_grass_LAI(Cell* cell) {
-		float tree_LAI_local_neighborhood = get_tree_LAI_of_local_neighborhood(cell);
+	void update_grass_LAI(Population* population, Cell* cell) {
+		float tree_LAI_local_neighborhood = get_tree_LAI_of_local_neighborhood(population, cell);
 		cell->update_grass_LAI(tree_LAI_local_neighborhood);
 	}
-	void update_grass_LAIs() {
+	void update_grass_LAIs(Population* population) {
 		for (int i = 0; i < no_cells; i++) {
-			update_grass_LAI(&distribution[i]);
+			update_grass_LAI(population, &distribution[i]);
 		}
 		redo_state_assignment();
 		redo_count();
 	}
-	void update_grass_LAIs_for_individual_tree(Tree* tree) {
+	void update_grass_LAIs_for_individual_tree(Population* population, Tree* tree) {
 		TreeDomainIterator it(cell_width, tree);
 		while (it.next()) {
 			Cell* cell = get_cell_at_position(it.gb_cell_position);
-			update_grass_LAI(cell);
+			update_grass_LAI(population, cell);
 		}
 	}
-	shared_ptr<int[]> get_state_distribution(int collect = 0) {
+	shared_ptr<int[]> get_state_distribution(Population* population, int collect = 0) {
 		if (collect > 0) {
 			for (int i = 0; i < no_cells; i++) {
 				if (collect == 1 && (state_distribution[i] >= 0) || (state_distribution[i] == -7)) { // Do not overwrite fire-affected cells (but do overwrite "recruitment"-labelled (-7) cells).
@@ -745,7 +738,7 @@ public:
 					state_distribution[i] = distribution[i].query_grass_LAI() * 33;
 				}
 				else if (collect == 3) {
-					float neighborhood_LAI = get_tree_LAI_of_local_neighborhood(&distribution[i]);
+					float neighborhood_LAI = get_tree_LAI_of_local_neighborhood(population, &distribution[i]);
 					state_distribution[i] = max(99.0f - (neighborhood_LAI * 19.0f), 1);
 					if (neighborhood_LAI < 1.0f) state_distribution[i] = 0;
 				}
@@ -759,21 +752,17 @@ public:
 		}
 		return fuel_load_distribution;
 	}
-	shared_ptr<float[]> get_aggr_tree_LAI_distribution() {
-		update_aggr_LAIs();
-		return aggr_tree_LAI_distribution;
-	}
-	void update_aggr_LAIs() {
+	void update_aggr_LAIs(Population* population) {
 		for (int i = 0; i < no_cells; i++) {
-			aggr_tree_LAI_distribution[i] = get_tree_LAI_of_local_neighborhood(&distribution[i]);
+			aggr_tree_LAI_distribution[i] = get_tree_LAI_of_local_neighborhood(population, &distribution[i]);
 		}
 	}
-	void update_aggr_LAIs(Tree* tree) {
+	void update_aggr_LAIs(Population* population, Tree* tree) {
 		TreeDomainIterator it(cell_width, tree, tree->radius + local_neighborhood_radius);
 		while (it.next()) {
 			cap(it.gb_cell_position);
 			int idx = pos_2_idx(it.gb_cell_position);
-			aggr_tree_LAI_distribution[idx] = get_tree_LAI_of_local_neighborhood(&distribution[idx]);
+			aggr_tree_LAI_distribution[idx] = get_tree_LAI_of_local_neighborhood(population, &distribution[idx]);
 
 			// If the cell was not previously classified as forest, check if it should be reclassified now.
 			if (is_forest(&distribution[idx])) {
@@ -787,13 +776,12 @@ public:
 			}
 		}
 	}
-	shared_ptr<float[]> get_stand_density_distribution() {
-		update_stand_densities();
-		return stand_density_distribution;
-	}
-	void update_stand_densities() {
+	void update_stand_densities(Population* population, bool update_LAIs = true) {
 		for (int i = 0; i < no_cells; i++) {
 			stand_density_distribution[i] = get_local_stand_density(&distribution[i]);
+			if (update_LAIs) {
+				aggr_tree_LAI_distribution[i] = get_tree_LAI_of_local_neighborhood(population, &distribution[i]);
+			}
 		}
 	}
 	void update_stand_densities(Tree* tree) {
@@ -802,8 +790,6 @@ public:
 			cap(it.gb_cell_position);
 			int idx = pos_2_idx(it.gb_cell_position);
 			stand_density_distribution[idx] = get_local_stand_density(&distribution[idx]);
-
-			// TODO: Update aggr LAIs here as well, and check if the cell should be reclassified as forest/savanna based on the updated aggregated LAI.
 		}
 	}
 	void set_state_distribution(int* distr) {
@@ -1254,6 +1240,7 @@ public:
 	float minimum_patch_size = 0;
 	float local_neighborhood_radius = 0;
 	float neighborhood_area = 0;
+	float neighborhood_area_inv = 0;
 	float neighborhood_area_normalization_factor = 0;
 	map<int, Patch> forest_patches;
 	map<int, Patch> savanna_patches;

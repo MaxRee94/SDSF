@@ -337,7 +337,7 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
         # Do visualizations
         if ((dynamics.time % cfg.visualization_interval) == 0) and not cfg.headless:
             img = cfg.vis.visualize(
-                dynamics.state.grid, cfg.image_width, collect_states=1,
+                dynamics.state, cfg.image_width, collect_states=1,
                 color_dict=color_dicts.normal, cheap_visualization=True
             )
         dynamics.time += 1
