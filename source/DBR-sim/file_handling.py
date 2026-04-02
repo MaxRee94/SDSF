@@ -117,7 +117,6 @@ def set_heterogeneity_maps(dynamics, cfg):
             image, (dynamics.state.grid.width, dynamics.state.grid.width), 
             interpolation=cv2.INTER_NEAREST
         )
-        print("image min after resize:", image.min(), "image max after resize:", image.max())
         setter_func(image)
 
     return dynamics

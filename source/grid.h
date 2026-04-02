@@ -374,11 +374,11 @@ public:
 class Grid {
 public:
 	Grid() = default;
-	Grid(int _width, float _cell_width, float _minimum_patch_size, float _LAI_aggregation_radius) {
+	Grid(int _width, float _cell_width, float _minimum_patch_size, float _local_neighborhood_radius) {
 		width = _width;
 		cell_width = _cell_width;
 		cell_width_inv = 1.0f / cell_width;
-		LAI_aggregation_radius = _LAI_aggregation_radius;
+		local_neighborhood_radius = _local_neighborhood_radius;
 		cell_half_width = cell_width * 0.5f;
 		width_r = (float)width * cell_width;
 		no_cells = width * width;
@@ -393,6 +393,8 @@ public:
 		cell_halfdiagonal_sqrt = help::get_dist(pair<float, float>(0, 0), pair<float, float>(0.5f * cell_width, 0.5f * cell_width));
 		cell_area_half = cell_area * 0.5f;	
 		minimum_patch_size = _minimum_patch_size;
+		initialize_neighborhood_lookup_table();
+		initialize_neighborhood_area_normalization_factor();
 	}
 	Grid(int _width, float _cell_width) : Grid(_width, _cell_width, 0, 0) {}
 	void init_patch_memberships() {
@@ -411,6 +413,7 @@ public:
 		state_distribution = make_shared<int[]>(no_cells);
 		fuel_load_distribution = make_shared<float[]>(no_cells);
 		aggr_tree_LAI_distribution = make_shared<float[]>(no_cells);
+		stand_density_distribution = make_shared<float[]>(no_cells);
 	}
 	void init_neighbor_offsets() {
 		neighbor_offsets = make_shared<pair<int, int>[]>(8);
@@ -537,7 +540,7 @@ public:
 		return mean_LAI_of_allowed_domain / allowed_domain_integral;
 	}
 	bool complies_with_aggr_LAI_domain(Tree* tree, shared_ptr<float[]> allowed_domain) {
-		TreeDomainIterator it(cell_width, tree, tree->radius + LAI_aggregation_radius);
+		TreeDomainIterator it(cell_width, tree, tree->radius + local_neighborhood_radius);
 		while (it.next()) {
 			cap(it.gb_cell_position);
 			int idx = pos_2_idx(it.gb_cell_position);
@@ -637,9 +640,43 @@ public:
 		}
 		return LAI_sum;
 	}
+	void initialize_neighborhood_lookup_table() {
+		// Use a circular neighborhood with specified radius.
+		float radius = local_neighborhood_radius;
+		pair<float, float> central_cell_real_pos(0, 0);
+		neighborhood_lookup_table.clear();
+		for (int x = -(int)radius; x <= (int)radius; x++) {
+			for (int y = -(int)radius; y <= (int)radius; y++) {
+				pair<int, int> neighbor_pos = pair<int, int>(x, y);
+				cap(neighbor_pos);
+				pair<float, float> neighbor_real_pos = get_real_cell_position(get_cell_at_position(neighbor_pos));
+				float dist = help::get_dist(central_cell_real_pos, neighbor_pos);
+				if (dist <= radius) {
+					neighborhood_lookup_table.push_back(neighbor_pos);
+				}
+			}
+		}
+	}
+	void initialize_neighborhood_area_normalization_factor() {
+		int n_cells_in_neighborhood = neighborhood_lookup_table.size();
+		neighborhood_area = cell_area * (float)n_cells_in_neighborhood;
+		float area_to_normalize_to = 10000.0f; // Normalize to neighborhood area of 1 hectare (10,000 m^2)
+		neighborhood_area_normalization_factor = area_to_normalize_to / neighborhood_area;
+	}
+	float get_local_stand_density(Cell* cell, bool debug = false) {
+		int num_stems_in_neighborhood = 0;
+		pair<float, float> cell_real_pos = get_real_cell_position(cell);
+		for (pair<int, int> neighbor_offset : neighborhood_lookup_table) {
+			pair<int, int> neighbor_pos = cell->pos + neighbor_offset;
+			cap(neighbor_pos);
+			Cell* neighbor = get_cell_at_position(neighbor_pos);
+			num_stems_in_neighborhood += neighbor->stem.first > 10.0f; // Check whether there is a tree with DBH > 10 cm in the cell.
+		}
+		return (float)num_stems_in_neighborhood * neighborhood_area_normalization_factor;
+	}
 	float get_tree_LAI_of_local_neighborhood(Cell* cell, bool debug=false) {
 		// Use a circular neighborhood with specified radius.
-		float radius = LAI_aggregation_radius;
+		float radius = local_neighborhood_radius;
 		float LAI_sum = 0;
 		int no_cells_in_radius = 0;
 		int min_x = (int)(cell->pos.first - radius);
@@ -732,7 +769,7 @@ public:
 		}
 	}
 	void update_aggr_LAIs(Tree* tree) {
-		TreeDomainIterator it(cell_width, tree, tree->radius + LAI_aggregation_radius);
+		TreeDomainIterator it(cell_width, tree, tree->radius + local_neighborhood_radius);
 		while (it.next()) {
 			cap(it.gb_cell_position);
 			int idx = pos_2_idx(it.gb_cell_position);
@@ -748,6 +785,25 @@ public:
 				// Set the cell state to forest.
 				distribution[idx].state = 1;
 			}
+		}
+	}
+	shared_ptr<float[]> get_stand_density_distribution() {
+		update_stand_densities();
+		return stand_density_distribution;
+	}
+	void update_stand_densities() {
+		for (int i = 0; i < no_cells; i++) {
+			stand_density_distribution[i] = get_local_stand_density(&distribution[i]);
+		}
+	}
+	void update_stand_densities(Tree* tree) {
+		TreeDomainIterator it(cell_width, tree, tree->radius + local_neighborhood_radius);
+		while (it.next()) {
+			cap(it.gb_cell_position);
+			int idx = pos_2_idx(it.gb_cell_position);
+			stand_density_distribution[idx] = get_local_stand_density(&distribution[idx]);
+
+			// TODO: Update aggr LAIs here as well, and check if the cell should be reclassified as forest/savanna based on the updated aggregated LAI.
 		}
 	}
 	void set_state_distribution(int* distr) {
@@ -1196,14 +1252,18 @@ public:
 	float cell_area_half = 0;
 	float cell_halfdiagonal_sqrt = 0;
 	float minimum_patch_size = 0;
-	float LAI_aggregation_radius = 0;
+	float local_neighborhood_radius = 0;
+	float neighborhood_area = 0;
+	float neighborhood_area_normalization_factor = 0;
 	map<int, Patch> forest_patches;
 	map<int, Patch> savanna_patches;
 	shared_ptr<Cell[]> distribution = 0;
 	shared_ptr<int[]> state_distribution = 0;
 	shared_ptr<float[]> fuel_load_distribution = 0;
 	shared_ptr<float[]> aggr_tree_LAI_distribution = 0;
+	shared_ptr<float[]> stand_density_distribution = 0;
 	shared_ptr<int[]> patch_memberships;
+	vector<pair<int, int>> neighborhood_lookup_table;
 	vector<pair<int, int>> directions = {
 		{1,0}, {-1,0}, {0,1}, {0,-1} // Directions for 4-neighbor connectivity
 	};

@@ -227,7 +227,7 @@ def init(cfg):
         cfg.growth_rate_multiplier_params[1],
         cfg.growth_rate_multiplier_params[2],
         cfg.minimum_patch_size,
-        cfg.LAI_aggregation_radius
+        cfg.local_neighborhood_radius
     )
     
     # Set the parameters for the dispersal kernel associated with the given dispersal_mode.
@@ -253,7 +253,8 @@ def init(cfg):
 
     # Initialize variables for tracking compute time, tree cover trajectory, and patch dynamics
     cfg.visualization_types = [
-        "fire_freq", "recruitment", "fuel", "tree_LAI", "aggr_tree_LAI", "colored_patches", "fuel_penetration"
+        "fire_freq", "recruitment", "fuel", "tree_LAI", "aggr_tree_LAI", "colored_patches",
+        "fuel_penetration", "stand_density"
     ]
     cfg.computer_start_time = time.time()
     cfg.init_csv = False

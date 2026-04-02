@@ -101,7 +101,7 @@ defaults.update({
     "disperse": True,
     "burn": True,
     "burnin_duration": 100,
-    "LAI_aggregation_radius": 3, # Radius (in m) around each cell used to aggregate tree LAI values. 
+    "local_neighborhood_radius": 3, # Radius (in m) around each cell used to aggregate tree LAI values. 
 })
 
 # Add initial conditions
@@ -898,16 +898,16 @@ _parameter_config = {
             "default": defaults["minimum_patch_size"],
         }
     },
-    "LAI_aggregation_radius": {
+    "local_neighborhood_radius": {
         "keys": {
-            "cli": ["--LAI_aggregation_radius", "-laiar"]
+            "cli": ["--local_neighborhood_radius", "-laiar"]
         },
         "settings": {
             "type": float,
             "help": """
                 This radius determines the size of the area around a grid cell x for which the mean LAI is calculated and assigned to x.
             """,
-            "default": defaults["LAI_aggregation_radius"],
+            "default": defaults["local_neighborhood_radius"],
         }
     },
     "display_fire_effects": {

@@ -29,13 +29,13 @@ public:
 	};
 	void init_state(
 		int grid_width, float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max,
-		float minimum_patch_size, float LAI_aggregation_radius
+		float minimum_patch_size, float local_neighborhood_radius
 	) {
 		if (verbosity != -1) printf("\nInitializing grid with width %i and cell width %f.\n", grid_width, cell_width);
 		state = State(
 			grid_width, cell_width, max_dbh, seed_bearing_threshold, saturation_threshold, strategy_distribution_params,
 			mutation_rate, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max, minimum_patch_size, 
-			LAI_aggregation_radius
+			local_neighborhood_radius
 		);
 		linear_disperser = Disperser();
 		wind_disperser = WindDispersal();
@@ -276,7 +276,7 @@ public:
 		map<int, float> LAI_contributions_to_cell;
 
 		// Use a circular neighborhood with specified radius.
-		float radius = grid->LAI_aggregation_radius;
+		float radius = grid->local_neighborhood_radius;
 		int no_cells_in_radius = 0;
 		int min_x = (int)(cell->pos.first - radius);
 		int max_x = (int)(cell->pos.first + radius);

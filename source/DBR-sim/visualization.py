@@ -217,6 +217,10 @@ class Visualiser:
                 img = grid.get_aggr_tree_LAI_distribution()
                 img = (img * 14).astype(int) # Assume max LAI is ~7, normalize to 0-99
                 img.clip(0, 99, out=img)
+            elif img_type == "stand_density":
+                img = grid.get_stand_density_distribution()
+                img = (img * 0.0247).astype(int) # Assume max stand density is ~4000, normalize to 0-99
+                img.clip(0, 99, out=img)
             elif img_type == "fuel_penetration":
                 fuel = grid.get_fuel_distribution()
                 img = (fuel * 99).astype(int) # Normalize to 0-99
@@ -663,6 +667,13 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbosity, 
         fuel_penetration_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts.blackwhite, img_type="fuel_penetration")
         imagepath_fuel_penetration = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/fuel_penetration/" + str(dynamics.time) + ".png")
         cfg.vis.save_image(fuel_penetration_img, imagepath_fuel_penetration, get_max(1000, fuel_penetration_img.shape[0]))
+
+    if ("stand_density" in visualization_types):
+        print("-- Saving fuel penetration image...") if verbosity else None
+        stand_density_img = cfg.vis.get_image_from_grid(dynamics.state.grid, color_dicts.blackwhite, img_type="stand_density")
+        imagepath_stand_density = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/stand_density/" + str(dynamics.time) + ".png")
+        cfg.vis.save_image(stand_density_img, imagepath_stand_density, get_max(1000, stand_density_img.shape[0]))
+
 
     
     

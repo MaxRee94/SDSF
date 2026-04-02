@@ -341,6 +341,10 @@ PYBIND11_MODULE(dbr_cpp, module) {
             shared_ptr<float[]> aggr_tree_LAI_distribution = grid.get_aggr_tree_LAI_distribution();
             return as_2d_numpy_array(aggr_tree_LAI_distribution, grid.width);
         })
+        .def("get_stand_density_distribution", [](Grid& grid) {
+            shared_ptr<float[]> stand_density_distribution = grid.get_stand_density_distribution();
+            return as_2d_numpy_array(stand_density_distribution, grid.width);
+        })
         .def("get_fuel_distribution", [](Grid& grid) {
             shared_ptr<float[]> fuel_load_distribution = grid.get_fuel_load_distribution();
             return as_2d_numpy_array(fuel_load_distribution, grid.width);
