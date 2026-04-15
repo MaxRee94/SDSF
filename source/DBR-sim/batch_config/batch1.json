@@ -1,108 +1,210 @@
 {
     "type": "sensitivity_analysis",
-    "runs": 5,
+    "runs": 20,
     "arguments": {
         "grid_width": 300,
         "dispersal_mode": "wind",
-        "burnin_duration": 2000,
+        "burnin_duration": 3000,
         "resource_grid_width": 100,
         "display_fire_effects": 1,
-        "max_timesteps": 10000,
+        "max_timesteps": 5000,
         "termination_conditions": "timelimit",
         "self_ignition_factor": {
             "interpolation": "linear",
-            "range": [0, 3],
-            "stepsize": 0.5
+            "range": [0, 9],
+            "stepsize": 1
         },
         "STR": 1000,
-        "treecover": 1.0,
-        "visualization_interval": 10,
+        "treecover": 0.5,
+        "visualization_interval": 100,
         "heterogeneity": {
             "interpolation": "categorical",
             "range": [
                 {
                     "grass_carrying_capacity": {
-                        "type": "noise",
-                        "scale": 1,
-                        "binary_connectivity": 0.8,
-                        "minimum": 0,
-                        "maximum": 1
-                    },
-                    "mortality": {
+                        "type": "sine",
+"sine_type": "vertical",
+"sine_offset": 75,
+"sine_wavelength": 150,
+"sine_amplitude": 0.3,
+"mean": 0.5                    },
+                    "local_growth_multipliers": {
                         "type": "sine",
                         "sine_type": "vertical",
                         "sine_offset": 0,
-                        "sine_wavelength": 200,
-                        "sine_amplitude": 0.035,
-                        "minimum": 0
+                        "sine_wavelength": 300,
+                        "sine_amplitude": 0.0,
+                        "mean": 0.5
                     }
                 },
                 {
                     "grass_carrying_capacity": {
-                        "type": "noise",
-                        "scale": 1,
-                        "binary_connectivity": 0.8,
-                        "minimum": 0,
-                        "maximum": 1
-                    },
-                    "mortality": {
+                        "type": "sine",
+"sine_type": "vertical",
+"sine_offset": 75,
+"sine_wavelength": 150,
+"sine_amplitude": 0.3,
+"mean": 0.5                    },
+                    "local_growth_multipliers": {
                         "type": "sine",
                         "sine_type": "vertical",
                         "sine_offset": 0,
-                        "sine_wavelength": 200,
-                        "sine_amplitude": 0.055,
-                        "minimum": 0
+                        "sine_wavelength": 300,
+                        "sine_amplitude": 0.05,
+                        "mean": 0.5
                     }
                 },
                 {
                     "grass_carrying_capacity": {
-                        "type": "noise",
-                        "scale": 1,
-                        "binary_connectivity": 0.8,
-                        "minimum": 0,
-                        "maximum": 1
-                    },
-                    "mortality": {
+                        "type": "sine",
+"sine_type": "vertical",
+"sine_offset": 75,
+"sine_wavelength": 150,
+"sine_amplitude": 0.3,
+"mean": 0.5                    },
+                    "local_growth_multipliers": {
                         "type": "sine",
                         "sine_type": "vertical",
                         "sine_offset": 0,
-                        "sine_wavelength": 200,
-                        "sine_amplitude": 0.075,
-                        "minimum": 0
+                        "sine_wavelength": 300,
+                        "sine_amplitude": 0.1,
+                        "mean": 0.5
                     }
                 },
                 {
                     "grass_carrying_capacity": {
-                        "type": "noise",
-                        "scale": 1,
-                        "binary_connectivity": 0.8,
-                        "minimum": 0,
-                        "maximum": 1
-                    },
-                    "mortality": {
+                        "type": "sine",
+"sine_type": "vertical",
+"sine_offset": 75,
+"sine_wavelength": 150,
+"sine_amplitude": 0.3,
+"mean": 0.5                    },
+                    "local_growth_multipliers": {
                         "type": "sine",
                         "sine_type": "vertical",
                         "sine_offset": 0,
-                        "sine_wavelength": 200,
-                        "sine_amplitude": 0.095,
-                        "minimum": 0
+                        "sine_wavelength": 300,
+                        "sine_amplitude": 0.15,
+                        "mean": 0.5
                     }
                 },
                 {
                     "grass_carrying_capacity": {
-                        "type": "noise",
-                        "scale": 1,
-                        "binary_connectivity": 0.8,
-                        "minimum": 0,
-                        "maximum": 1
-                    },
-                    "mortality": {
+                        "type": "sine",
+"sine_type": "vertical",
+"sine_offset": 75,
+"sine_wavelength": 150,
+"sine_amplitude": 0.3,
+"mean": 0.5                    },
+                    "local_growth_multipliers": {
                         "type": "sine",
                         "sine_type": "vertical",
                         "sine_offset": 0,
-                        "sine_wavelength": 200,
-                        "sine_amplitude": 0.115,
-                        "minimum": 0
+                        "sine_wavelength": 300,
+                        "sine_amplitude": 0.3,
+                        "mean": 0.5
+                    }
+                },
+                {
+                    "grass_carrying_capacity": {
+                        "type": "sine",
+"sine_type": "vertical",
+"sine_offset": 75,
+"sine_wavelength": 150,
+"sine_amplitude": 0.3,
+"mean": 0.5                    },
+                    "local_growth_multipliers": {
+                        "type": "sine",
+                        "sine_type": "vertical",
+                        "sine_offset": 0,
+                        "sine_wavelength": 300,
+                        "sine_amplitude": 0.25,
+                        "mean": 0.5
+                    }
+                },
+                {
+                    "grass_carrying_capacity": {
+                        "type": "sine",
+"sine_type": "vertical",
+"sine_offset": 75,
+"sine_wavelength": 150,
+"sine_amplitude": 0.3,
+"mean": 0.5                    },
+                    "local_growth_multipliers": {
+                        "type": "sine",
+                        "sine_type": "vertical",
+                        "sine_offset": 0,
+                        "sine_wavelength": 300,
+                        "sine_amplitude": 0.2,
+                        "mean": 0.5
+                    }
+                },
+                {
+                    "grass_carrying_capacity": {
+                        "type": "sine",
+"sine_type": "vertical",
+"sine_offset": 75,
+"sine_wavelength": 150,
+"sine_amplitude": 0.3,
+"mean": 0.5                    },
+                    "local_growth_multipliers": {
+                        "type": "sine",
+                        "sine_type": "vertical",
+                        "sine_offset": 0,
+                        "sine_wavelength": 300,
+                        "sine_amplitude": 0.35,
+                        "mean": 0.5
+                    }
+                },
+                {
+                    "grass_carrying_capacity": {
+                        "type": "sine",
+"sine_type": "vertical",
+"sine_offset": 75,
+"sine_wavelength": 150,
+"sine_amplitude": 0.3,
+"mean": 0.5                    },
+                    "local_growth_multipliers": {
+                        "type": "sine",
+                        "sine_type": "vertical",
+                        "sine_offset": 0,
+                        "sine_wavelength": 300,
+                        "sine_amplitude": 0.4,
+                        "mean": 0.5
+                    }
+                },
+                {
+                    "grass_carrying_capacity": {
+                        "type": "sine",
+"sine_type": "vertical",
+"sine_offset": 75,
+"sine_wavelength": 150,
+"sine_amplitude": 0.3,
+"mean": 0.5                    },
+                    "local_growth_multipliers": {
+                        "type": "sine",
+                        "sine_type": "vertical",
+                        "sine_offset": 0,
+                        "sine_wavelength": 300,
+                        "sine_amplitude": 0.45,
+                        "mean": 0.5
+                    }
+                },
+                {
+                    "grass_carrying_capacity": {
+                        "type": "sine",
+"sine_type": "vertical",
+"sine_offset": 75,
+"sine_wavelength": 150,
+"sine_amplitude": 0.3,
+"mean": 0.5                    },
+                    "local_growth_multipliers": {
+                        "type": "sine",
+                        "sine_type": "vertical",
+                        "sine_offset": 0,
+                        "sine_wavelength": 300,
+                        "sine_amplitude": 0.5,
+                        "mean": 0.5
                     }
                 }
             ]

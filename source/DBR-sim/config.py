@@ -171,8 +171,8 @@ defaults.update({
             "sine_type": "vertical",
             "sine_offset": 0,
             "sine_wavelength": 1000,
-            "sine_amplitude": 0.003,
-            "mean": 0.005
+            "sine_amplitude": 0.075,
+            "mean": 0
     }
 }
 
