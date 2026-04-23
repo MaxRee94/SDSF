@@ -68,7 +68,7 @@ public:
 	float compute_shade_on_individual_tree(Tree* tree, int verbosity = 0) {
 		pair<int, int> gb_stem_position = grid.get_gridbased_position(tree->position);
 		float leaf_area_sum = 0;
-		float area = 0;
+		float area = tree->get_leaf_area();
 		for (auto neighbor_offset : grid.neighborhood_lookup_table) {
 			pair<int, int> neighbor_gb_position = gb_stem_position + neighbor_offset;
 			grid.cap(neighbor_gb_position);
@@ -82,11 +82,10 @@ public:
 			}
 			area += grid.cell_area;
 		}
-		float LAI_taller_trees = leaf_area_sum / area;		// We obtain mean LAI of trees above the given tree by dividing by the tree's crown area.
-															// We use this as a proxy of shading on the tree.
-		if (verbosity > 0) printf("Shade (i.e., cumulative LAI of neighboring trees taller than tree %i): %f, area: %f \n", tree->id, LAI_taller_trees, area);
+		float LAI_taller_trees_plus_self = leaf_area_sum / area;  // A proxy of shading based on mean leaf area index (LAI) of given tree AND trees taller than it.
+		if (verbosity > 1) printf("Shade (i.e., cumulative LAI of neighboring trees taller than tree %i): %f, area: %f \n", tree->id, LAI_taller_trees_plus_self, area);
 
-		return LAI_taller_trees;
+		return LAI_taller_trees_plus_self;
 	}
 	float get_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
 		vector<float> dists = { help::get_manhattan_dist(a, b) };
