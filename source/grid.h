@@ -623,16 +623,17 @@ public:
 	void initialize_neighborhood_lookup_table() {
 		// Use a circular neighborhood with specified radius.
 		float radius = local_neighborhood_radius;
-		pair<float, float> central_cell_real_pos(0, 0);
 		neighborhood_lookup_table.clear();
-		for (int x = -(int)radius; x <= (int)radius; x++) {
-			for (int y = -(int)radius; y <= (int)radius; y++) {
+		pair<float, float> central_cell_real_pos(radius, radius);
+		pair<int, int> center_offset = pair<int, int>((int)radius, (int)radius);
+		for (int x = 0; x <= (int)radius * 2; x++) {
+			for (int y = 0; y <= (int)radius * 2; y++) {
 				pair<int, int> neighbor_pos = pair<int, int>(x, y);
 				cap(neighbor_pos);
 				pair<float, float> neighbor_real_pos = get_real_cell_position(get_cell_at_position(neighbor_pos));
-				float dist = help::get_dist(central_cell_real_pos, neighbor_pos);
+				float dist = help::get_dist(central_cell_real_pos, neighbor_real_pos);
 				if (dist <= radius) {
-					neighborhood_lookup_table.push_back(neighbor_pos);
+					neighborhood_lookup_table.push_back(neighbor_pos - center_offset);
 				}
 			}
 		}
