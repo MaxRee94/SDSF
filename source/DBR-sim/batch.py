@@ -38,16 +38,18 @@ class Jobs:
         self.defaults = self.get_defaults(args)
         self.default_values = list(self.defaults.values())
         self.jobs, self.job_indices = self.parse(arguments)
-        self.jobs = self.generate_random_seeds()
 
-    def generate_random_seeds(self):
-        for job in self.jobs:
-            if job.random_seed == -999:
-                job.random_seed = int(self.rng.integers(0, 100000000))
-            if job.firefreq_random_seed == -999:
-                job.firefreq_random_seed = int(self.firefreq_rng.integers(0, 1000000))
+    def generate_and_apply_random_seeds(self, job):
+        # Apply new random seeds to a copy of the job, so that the original job remains unchanged (otherwise each rerun of a job will have the same seed)
         
-        return self.jobs
+        job_copy = deepcopy(job)
+        if job.random_seed == -999:
+            print("generating random seed for job...")
+            job_copy.random_seed = int(self.rng.integers(0, 100000000))
+        if job.firefreq_random_seed == -999:
+            job_copy.firefreq_random_seed = int(self.firefreq_rng.integers(0, 1000000))
+        
+        return job_copy
 
     def get_comprehensive_jobs_summary(self):
         summary = deepcopy(self.defaults)
@@ -65,7 +67,7 @@ class Jobs:
         
         ctrl_vars = {}
         for key, val in self.arguments.items():
-            # Only include control variables that vary across simulations.
+            # Only include control variables that vary across simulations (these are dictionaries).
             if type(val) != dict:
                 continue
 
@@ -201,8 +203,9 @@ class Jobs:
 
         idx = self.job_indices[n_started_simulations % len(self.jobs)]
         job = self.get_specific_job(idx)
+        job_copy = self.generate_and_apply_random_seeds(job)
 
-        return job
+        return job_copy
 
     @staticmethod
     def apply_single_arg_change(argsets, is_single_argset, idx, value):
