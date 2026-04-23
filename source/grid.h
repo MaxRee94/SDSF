@@ -3,6 +3,40 @@
 #include "grid_agent.forward.h"
 
 
+class CellNeighborhoodIterator {
+public:
+	CellNeighborhoodIterator() = default;
+	CellNeighborhoodIterator(
+		pair<int, int> center_gb, vector<pair<int, int>>* _neighborhood_lookup_table
+	) {
+		center_gb = center_gb;
+		neighborhood_lookup_table = _neighborhood_lookup_table;
+	}
+	bool can_increment() {
+		i++;
+		if (i >= neighborhood_lookup_table->size()) {
+			return false;
+		}
+		return true;
+	}
+	bool next() {
+		if (begin) {
+			begin = false; // If this is the first time 'next' is called, we leave the initialized x, y coordinates unchanged.
+		}
+		else if (!can_increment()) {
+			return false;
+		}
+		pair<int, int> offset = (*neighborhood_lookup_table)[i];
+		gb_cell_position.first = center_gb.first + offset.first;
+		gb_cell_position.second = center_gb.second + offset.second;
+		return true;
+	}
+	bool begin = true;
+	int i = 0;
+	pair<int, int> center_gb;
+	pair<int, int> gb_cell_position;
+	vector<pair<int, int>>* neighborhood_lookup_table = nullptr;
+};
 
 class Cell {
 public:
