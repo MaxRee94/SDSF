@@ -3,40 +3,6 @@
 #include "grid_agent.forward.h"
 
 
-class CellNeighborhoodIterator {
-public:
-	CellNeighborhoodIterator() = default;
-	CellNeighborhoodIterator(
-		pair<int, int> center_gb, vector<pair<int, int>>* _neighborhood_lookup_table
-	) {
-		center_gb = center_gb;
-		neighborhood_lookup_table = _neighborhood_lookup_table;
-	}
-	bool can_increment() {
-		i++;
-		if (i >= neighborhood_lookup_table->size()) {
-			return false;
-		}
-		return true;
-	}
-	bool next() {
-		if (begin) {
-			begin = false; // If this is the first time 'next' is called, we leave the initialized x, y coordinates unchanged.
-		}
-		else if (!can_increment()) {
-			return false;
-		}
-		pair<int, int> offset = (*neighborhood_lookup_table)[i];
-		gb_cell_position.first = center_gb.first + offset.first;
-		gb_cell_position.second = center_gb.second + offset.second;
-		return true;
-	}
-	bool begin = true;
-	int i = 0;
-	pair<int, int> center_gb;
-	pair<int, int> gb_cell_position;
-	vector<pair<int, int>>* neighborhood_lookup_table = nullptr;
-};
 
 class Cell {
 public:
@@ -191,29 +157,6 @@ public:
 			}
 		}
 		return shade;
-	}
-	float get_LAI_of_taller_trees(Tree* tree, Population* population, int verbosity = 0) {
-		if (population == nullptr) {
-			printf("Returning total LAI of the cell.\n");
-			return get_LAI();
-		}
-		float LAI_taller_trees = 0;
-		for (int tree_id : trees) {
-			Tree* neighbor = population->get(tree_id);
-			if (neighbor->id == tree->id) continue;
-			if (neighbor->height > tree->height) {
-				LAI_taller_trees += neighbor->LAI;
-				if (verbosity > 0) printf(
-					"Tree %i is taller (%f m) than tree %i (%f m). Adding its LAI (%f) to the total LAI of taller trees (%f). \n",
-					neighbor->id, neighbor->height, tree->id, tree->height, neighbor->LAI, LAI_taller_trees
-				);
-			}
-		}
-		if (verbosity > 0) printf("Total LAI of taller trees than tree %i: %f \n", tree->id, LAI_taller_trees);
-		return LAI_taller_trees;
-	}
-	float get_shading_on_tree(Tree* tree, Population* population = 0, int verbosity = 0) {
-		return get_LAI_of_taller_trees(tree, population, verbosity);
 	}
 	float get_LAI() {
 		return LAI;
@@ -714,10 +657,10 @@ public:
 	}
 	float get_tree_LAI_of_local_neighborhood(Population* population, Cell* cell, bool debug=false) {
 		float leaf_area_sum = 0;
-		CellNeighborhoodIterator it(cell->pos, &neighborhood_lookup_table);
-		while (it.next()) {
-			cap(it.gb_cell_position);
-			Cell* neighbor = get_cell_at_position(it.gb_cell_position);
+		for (auto neighbor_offset : neighborhood_lookup_table) {
+			pair<int, int> neighbor_gb_position = cell->pos + neighbor_offset;
+			cap(neighbor_gb_position);
+			Cell* neighbor = get_cell_at_position(neighbor_gb_position);
 			if (neighbor->has_significant_stem()) {
 				int tree_id = neighbor->stem.second;
 				Tree* tree = population->get(tree_id);

@@ -66,26 +66,27 @@ public:
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
 	float compute_shade_on_individual_tree(Tree* tree, int verbosity = 0) {
-		float cumulative_shade = 0;
-		float no_cells = 0;
-		TreeDomainIterator it(grid.cell_width, tree);
-		while (it.next()) {
-			if (tree->radius_spans(it.real_cell_position)) {
-				Cell* cell = grid.get_cell_at_position(it.gb_cell_position);
-				float shade_in = cell->get_shading_on_tree(tree, &population, verbosity);
-				cumulative_shade += shade_in;
-				no_cells++;
+		pair<int, int> gb_stem_position = grid.get_gridbased_position(tree->position);
+		float leaf_area_sum = 0;
+		float area = 0;
+		for (auto neighbor_offset : grid.neighborhood_lookup_table) {
+			pair<int, int> neighbor_gb_position = gb_stem_position + neighbor_offset;
+			grid.cap(neighbor_gb_position);
+			Cell* cell = grid.get_cell_at_position(neighbor_gb_position);
+			if (cell->has_significant_stem()) {
+				int tree_id = cell->stem.second;
+				Tree* neighboring_tree = population.get(tree_id);
+				if (neighboring_tree->height > tree->height) { // Only consider taller trees
+					leaf_area_sum += neighboring_tree->get_leaf_area();
+				}
 			}
+			area += grid.cell_area;
 		}
-		if (no_cells == 0) {
-			int center_idx = grid.get_capped_center_idx(it.tree_center_gb);
-			return grid.distribution[center_idx].get_shading_on_tree(tree, &population);
-		}
-		if (verbosity > 0) printf("Cumulative shade on tree %i: %f, no_cells: %f \n", tree->id, cumulative_shade, no_cells);
-		float shade_average = cumulative_shade / no_cells;	// We obtain mean LAI of trees above the given tree by dividing by the tree's crown area.
-														// We use this as a measure of shading on the tree.
+		float LAI_taller_trees = leaf_area_sum / area;		// We obtain mean LAI of trees above the given tree by dividing by the tree's crown area.
+															// We use this as a proxy of shading on the tree.
+		if (verbosity > 0) printf("Shade (i.e., cumulative LAI of neighboring trees taller than tree %i): %f, area: %f \n", tree->id, LAI_taller_trees, area);
 
-		return shade_average;
+		return LAI_taller_trees;
 	}
 	float get_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
 		vector<float> dists = { help::get_manhattan_dist(a, b) };

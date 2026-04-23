@@ -134,7 +134,7 @@ public:
 			float local_growth_multiplier = cell->get_growth_multiplier();
 			
 			// Grow tree
-			float shade = state.compute_shade_on_individual_tree(&tree);
+			float shade = state.compute_shade_on_individual_tree(&tree, verbosity);
 
 			if (tree.dbh > largest_dbh) {
 				largest_dbh = tree.dbh;
