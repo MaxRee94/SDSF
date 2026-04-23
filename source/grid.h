@@ -714,10 +714,10 @@ public:
 	}
 	float get_tree_LAI_of_local_neighborhood(Population* population, Cell* cell, bool debug=false) {
 		float leaf_area_sum = 0;
-		for (pair<int, int> neighbor_offset : neighborhood_lookup_table) {
-			pair<int, int> neighbor_pos = cell->pos + neighbor_offset;
-			cap(neighbor_pos);
-			Cell* neighbor = get_cell_at_position(neighbor_pos);
+		CellNeighborhoodIterator it(cell->pos, &neighborhood_lookup_table);
+		while (it.next()) {
+			cap(it.gb_cell_position);
+			Cell* neighbor = get_cell_at_position(it.gb_cell_position);
 			if (neighbor->has_significant_stem()) {
 				int tree_id = neighbor->stem.second;
 				Tree* tree = population->get(tree_id);
