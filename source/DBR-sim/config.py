@@ -158,26 +158,7 @@ defaults.update({
     "mutation_rate": 0, # We do not incorporate mutation in this study.
     "grid_type":"square",
     "minimum_patch_size":30, # Minimum size (in m^2) of patches that are retained when generating initial patterns from images. We assume 78 m^2 since this corresponds to the area of a tree with radius = 5 (the approximate maximum in our model), in line with the 30m resolution of the GFC dataset.
-    "heterogeneity": {
-        "grass_carrying_capacity": {
-            "type": "noise",
-            "scale": 1,
-            "binary_connectivity": 0.8,
-            "minimum": 0,
-            "maximum": 1
-        },
-        "mortality": {
-            "type": "sine",
-            "sine_type": "vertical",
-            "sine_offset": 0,
-            "sine_wavelength": 1000,
-            "sine_amplitude": 0.075,
-            "mean": 0
-    }
-}
-
-
-,
+    "heterogeneity": {}
 })
 
 gui_defaults = {
