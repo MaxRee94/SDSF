@@ -227,7 +227,7 @@ def init(cfg):
         cfg.growth_rate_multiplier_params[1],
         cfg.growth_rate_multiplier_params[2],
         cfg.minimum_patch_size,
-        cfg.LAI_aggregation_radius
+        cfg.local_neighborhood_radius
     )
     
     # Set the parameters for the dispersal kernel associated with the given dispersal_mode.
@@ -253,7 +253,8 @@ def init(cfg):
 
     # Initialize variables for tracking compute time, tree cover trajectory, and patch dynamics
     cfg.visualization_types = [
-        "fire_freq", "recruitment", "fuel", "tree_LAI", "aggr_tree_LAI", "colored_patches", "fuel_penetration"
+        "fire_freq", "recruitment", "fuel", "tree_LAI", "aggr_tree_LAI", "colored_patches",
+        "fuel_penetration", "stand_density"
     ]
     cfg.computer_start_time = time.time()
     cfg.init_csv = False
@@ -336,7 +337,7 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
         # Do visualizations
         if ((dynamics.time % cfg.visualization_interval) == 0) and not cfg.headless:
             img = cfg.vis.visualize(
-                dynamics.state.grid, cfg.image_width, collect_states=1,
+                dynamics.state, cfg.image_width, collect_states=1,
                 color_dict=color_dicts.normal, cheap_visualization=True
             )
         dynamics.time += 1

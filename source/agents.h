@@ -309,11 +309,6 @@ public:
 		return exp(0.865 + 0.760 * ln_dbh - 0.0340 * (ln_dbh * ln_dbh)); // From Chave et al (2014), equation 6a. Value of E obtained by calculating mean of E
 		// values for bistable study sites.
 	}
-	void derive_dbh_from_age_assuming_onobstructed_growth() {
-		// I = I_max(1-e^(-g * D)), from Hoffman et al (2012), Appendix 1, page 1.
-		// Current stem dbh and increment in cm.
-		dbh = max(0, 2.5f + ((float)age - 4.0f) * 0.2); // We assume a constant growth rate of 2.0 mm for saplings older than 5 years.
-	}
 	float get_lowest_branch_height() {
 		return height * 0.4f; // We assume the tree's crown begins at 40% its height.
 		// TODO: Perhaps make this fraction a function of dbh for added realism.

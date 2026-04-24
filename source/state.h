@@ -14,14 +14,14 @@ public:
 		int grid_width, float cell_width, float max_dbh, float seed_bearing_threshold, 
 		float _saturation_threshold, map<string, map<string, float>>& strategy_distribution_params, float mutation_rate,
 		float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max,
-		float minimum_patch_size, float LAI_aggregation_radius
+		float minimum_patch_size, float local_neighborhood_radius
 	) {
 		saturation_threshold = _saturation_threshold;
 		population = Population(
 			max_dbh, cell_width, strategy_distribution_params, mutation_rate,
 			seed_bearing_threshold, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max
 		);
-		grid = Grid(grid_width, cell_width, minimum_patch_size, LAI_aggregation_radius);
+		grid = Grid(grid_width, cell_width, minimum_patch_size, local_neighborhood_radius);
 	}
 	bool check_grid_for_tree_presence(int tree_id, int verbose = 0) {
 		bool presence = false;
@@ -60,32 +60,30 @@ public:
 			}*/
 			i++;
 		}
-		grid.update_grass_LAIs();
-		grid.update_aggr_LAIs();
+		grid.update_aggr_LAIs(&population);
+		grid.update_grass_LAIs(&population);
 		grid.redo_count();
 		if (verbosity == 2) cout << "Repopulated grid." << endl;
 	}
 	float compute_shade_on_individual_tree(Tree* tree, int verbosity = 0) {
-		float cumulative_shade = 0;
-		float no_cells = 0;
-		TreeDomainIterator it(grid.cell_width, tree);
-		while (it.next()) {
-			if (tree->radius_spans(it.real_cell_position)) {
-				Cell* cell = grid.get_cell_at_position(it.gb_cell_position);
-				float shade_in = cell->get_shading_on_tree(tree, &population, verbosity);
-				cumulative_shade += shade_in;
-				no_cells++;
-			}
-		}
-		if (no_cells == 0) {
-			int center_idx = grid.get_capped_center_idx(it.tree_center_gb);
-			return grid.distribution[center_idx].get_shading_on_tree(tree, &population);
-		}
-		if (verbosity > 0) printf("Cumulative shade on tree %i: %f, no_cells: %f \n", tree->id, cumulative_shade, no_cells);
-		float shade_average = cumulative_shade / no_cells;	// We obtain mean LAI of trees above the given tree by dividing by the tree's crown area.
-														// We use this as a measure of shading on the tree.
+		// Get average LAI of taller trees in local neighborhood of the given tree.
+		// This is a proxy of shading, which is one of the main drivers of competition in the model.
 
-		return shade_average;
+		pair<int, int> gb_stem_position = grid.get_gridbased_position(tree->position);
+		float cumulative_LAI = 0;
+		float area = 0;
+		for (auto neighbor_offset : grid.neighborhood_lookup_table) {
+			pair<int, int> neighbor_gb_position = gb_stem_position + neighbor_offset;
+			grid.cap(neighbor_gb_position);
+			Cell* neighbor = grid.get_cell_at_position(neighbor_gb_position);
+			cumulative_LAI += neighbor->get_LAI_of_taller_trees_plus_self(tree, &population);
+			area += grid.cell_area;
+		}
+
+		float LAI_taller_trees_plus_self = cumulative_LAI / area;  // A proxy of shading based on mean leaf area index (LAI) of given tree AND trees taller than it.
+		if (verbosity > 1) printf("Shade (i.e., cumulative LAI of neighboring trees taller than tree %i): %f, area: %f \n", tree->id, LAI_taller_trees_plus_self, area);
+
+		return LAI_taller_trees_plus_self;
 	}
 	float get_dist(pair<float, float> a, pair<float, float> b, bool verbose = false) {
 		vector<float> dists = { help::get_manhattan_dist(a, b) };
@@ -107,6 +105,17 @@ public:
 		}
 		else dist = help::get_dist(a, b);
 		return dist;
+	}
+	shared_ptr<int[]> get_state_distribution(bool collect_states) {
+		return grid.get_state_distribution(&population, collect_states);
+	}
+	shared_ptr<float[]> get_aggr_tree_LAI_distribution() {
+		grid.update_aggr_LAIs(&population);
+		return grid.aggr_tree_LAI_distribution;
+	}
+	shared_ptr<float[]> get_stand_density_distribution() {
+		grid.update_stand_densities(&population, false);
+		return grid.stand_density_distribution;
 	}
 	vector<Tree*> get_tree_neighbors(pair<float, float> baseposition, float search_radius, int& closest_idx, int base_id = -1, bool stop_on_1 = false) {
 		vector<Tree*> neighbors;
@@ -185,14 +194,14 @@ public:
 				population.remove(tree->id);
 				continue;
 			}
-			grid.populate_tree_domain(tree, true);
+			grid.populate_tree_domain(tree, &population, true);
 			if (!grid.complies_with_aggr_LAI_domain(tree, image)) {
 				// Remove tree if its addition causes the grid to violate the aggregated LAI domain defined by the image.
 				grid.kill_tree_domain(tree, false);
-				grid.update_aggr_LAIs(tree);
+				grid.update_aggr_LAIs(&population, tree);
 				population.remove(tree->id);
 			}
-			grid.update_grass_LAIs_for_individual_tree(tree);
+			grid.update_grass_LAIs_for_individual_tree(&population, tree);
 			if (population.size() % 10000 == 0) {
 				float mean_LAI_of_allowed_domain = grid.get_mean_LAI_of_allowed_domain(image, integral_image_cover);
 				printf("mean LAI of allowed domain: %f\n", mean_LAI_of_allowed_domain);
@@ -229,7 +238,7 @@ public:
 				continue;
 			}
 			if (tree->id == -1) population.remove(population.no_created_trees - 1); // HOTFIX: Sometimes trees are not initialized properly and need to be removed.
-			grid.populate_tree_domain(tree,	true);
+			grid.populate_tree_domain(tree, &population, true);
 			if (population.get_crop(tree->id)->strategy.vector == "wind") {
 				wind_trees++;
 			}

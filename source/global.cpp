@@ -301,6 +301,18 @@ PYBIND11_MODULE(dbr_cpp, module) {
             delete[] tree_ages;
             return np_arr;
         })
+        .def("get_distribution", [](State& state, int& collect_states) {
+            shared_ptr<int[]> state_distribution = state.get_state_distribution(collect_states);
+            return as_2d_numpy_array(state_distribution, state.grid.width);
+        })
+        .def("get_aggr_tree_LAI_distribution", [](State& state) {
+            shared_ptr<float[]> aggr_tree_LAI_distribution = state.get_aggr_tree_LAI_distribution();
+            return as_2d_numpy_array(aggr_tree_LAI_distribution, state.grid.width);
+        })
+        .def("get_stand_density_distribution", [](State& state) {
+            shared_ptr<float[]> stand_density_distribution = state.get_stand_density_distribution();
+            return as_2d_numpy_array(stand_density_distribution, state.grid.width);
+        })
         .def_readwrite("grid", &State::grid)
         .def_readwrite("population", &State::population)
         .def_readwrite("initial_tree_cover", &State::initial_tree_cover);
@@ -315,10 +327,7 @@ PYBIND11_MODULE(dbr_cpp, module) {
         .def_readwrite("no_cells", &Grid::no_cells)
         .def_readwrite("width_r", &Grid::width_r)
         .def_readwrite("tree_cover", &Grid::tree_cover)
-        .def("get_distribution", [](Grid& grid, int& collect_states) {
-            shared_ptr<int[]> state_distribution = grid.get_state_distribution(collect_states);
-            return as_2d_numpy_array(state_distribution, grid.width);
-        })
+        
         .def("set_grass_carrying_capacity", [](Grid& grid, py::array_t<float>& py_image) {
             shared_ptr<float[]> image;
             int _width, _height;
@@ -337,10 +346,6 @@ PYBIND11_MODULE(dbr_cpp, module) {
             convert_from_numpy_array(py_image, image, _width, _height);
             grid.set_mortality_template(image);
 		})
-        .def("get_aggr_tree_LAI_distribution", [](Grid& grid) {
-            shared_ptr<float[]> aggr_tree_LAI_distribution = grid.get_aggr_tree_LAI_distribution();
-            return as_2d_numpy_array(aggr_tree_LAI_distribution, grid.width);
-        })
         .def("get_fuel_distribution", [](Grid& grid) {
             shared_ptr<float[]> fuel_load_distribution = grid.get_fuel_load_distribution();
             return as_2d_numpy_array(fuel_load_distribution, grid.width);

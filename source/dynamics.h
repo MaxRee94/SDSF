@@ -29,13 +29,13 @@ public:
 	};
 	void init_state(
 		int grid_width, float growth_multiplier_stdev, float growth_multiplier_min, float growth_multiplier_max,
-		float minimum_patch_size, float LAI_aggregation_radius
+		float minimum_patch_size, float local_neighborhood_radius
 	) {
 		if (verbosity != -1) printf("\nInitializing grid with width %i and cell width %f.\n", grid_width, cell_width);
 		state = State(
 			grid_width, cell_width, max_dbh, seed_bearing_threshold, saturation_threshold, strategy_distribution_params,
 			mutation_rate, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max, minimum_patch_size, 
-			LAI_aggregation_radius
+			local_neighborhood_radius
 		);
 		linear_disperser = Disperser();
 		wind_disperser = WindDispersal();
@@ -134,7 +134,7 @@ public:
 			float local_growth_multiplier = cell->get_growth_multiplier();
 			
 			// Grow tree
-			float shade = state.compute_shade_on_individual_tree(&tree);
+			float shade = state.compute_shade_on_individual_tree(&tree, verbosity);
 
 			if (tree.dbh > largest_dbh) {
 				largest_dbh = tree.dbh;
@@ -276,7 +276,7 @@ public:
 		map<int, float> LAI_contributions_to_cell;
 
 		// Use a circular neighborhood with specified radius.
-		float radius = grid->LAI_aggregation_radius;
+		float radius = grid->local_neighborhood_radius;
 		int no_cells_in_radius = 0;
 		int min_x = (int)(cell->pos.first - radius);
 		int max_x = (int)(cell->pos.first + radius);
@@ -347,7 +347,7 @@ public:
 				for (int tree_id : trees_to_remove) {
 					Tree* tree = pop->get(tree_id);
 					grid->kill_tree_domain(tree, false);
-					grid->update_aggr_LAIs(tree);
+					grid->update_aggr_LAIs(pop, tree);
 					pop->remove(tree_id);
 				}
 			}
@@ -364,7 +364,7 @@ public:
 			grid->kill_tree_domain(tree, false);
 			pop->remove(tree->id);
 			if (chunksize > chunksize_threshold) {
-				grid->update_aggr_LAIs(tree);
+				grid->update_aggr_LAIs(pop, tree);
 				current_cover = grid->get_tree_cover();
 				chunksize = 0;
 			}
