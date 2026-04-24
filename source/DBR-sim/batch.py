@@ -1,3 +1,4 @@
+from ast import arg
 import random
 import traceback
 import json
@@ -96,6 +97,15 @@ class Jobs:
     
     @staticmethod
     def get_vec(arg_cfg):
+        def round_to_significant_digits(vec, minim, maxim, stepsize):
+            no_digits_after_comma = max(
+                h.digits_after_decimal(minim),
+                h.digits_after_decimal(maxim),
+                h.digits_after_decimal(stepsize)
+            )
+            vec = [float(round(v, no_digits_after_comma)) for v in vec]
+            return vec
+
         if type(arg_cfg) != dict:
             # If no dictionary is provided, we instead assume a constant value across all simulation jobs.
             value = arg_cfg
@@ -103,12 +113,12 @@ class Jobs:
         elif arg_cfg["interpolation"] == "linear":
             minim, maxim, stepsize = arg_cfg["range"] + [arg_cfg["stepsize"]]
             vec = list(np.arange(minim, maxim + stepsize/2, stepsize))
-            no_digits_after_comma = max(
-                h.digits_after_decimal(minim),
-                h.digits_after_decimal(maxim),
-                h.digits_after_decimal(stepsize)
-            )
-            vec = [float(round(v, no_digits_after_comma)) for v in vec]
+            vec = round_to_significant_digits(vec, minim, maxim, stepsize)
+        elif arg_cfg["interpolation"] == "powerten":
+            minim, maxim, stepsize = arg_cfg["range"] + [arg_cfg["stepsize"]]
+            exponents = list(np.arange(minim, maxim + stepsize/2, stepsize))
+            vec = [10**p for p in exponents]
+            vec = round_to_significant_digits(vec, minim, maxim, stepsize)
         elif arg_cfg["interpolation"] == "categorical":
             vec = arg_cfg["range"]
 
