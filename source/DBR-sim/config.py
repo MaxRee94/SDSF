@@ -165,19 +165,8 @@ defaults.update({
             "binary_connectivity": 0.8,
             "minimum": 0,
             "maximum": 1
-        },
-        "mortality": {
-            "type": "sine",
-            "sine_type": "vertical",
-            "sine_offset": 0,
-            "sine_wavelength": 1000,
-            "sine_amplitude": 0.075,
-            "mean": 0
+        }
     }
-}
-
-
-,
 })
 
 gui_defaults = {
