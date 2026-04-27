@@ -282,7 +282,8 @@ public:
 		return help::get_sigmoid(bark_thickness, fire_resistance_argmin, fire_resistance_argmax, fire_resistance_stretch); // Sigmoid based on Hoffman et al (2012), figure 2a.
 	}
 	float get_leaf_area() {
-		return 0.147 * pow(dbh, 2.053); // From Hoffman et al (2012), figure 5b. Leaf area in m^2
+		//return 0.147 * pow(dbh, 2.053); // From Hoffman et al (2012), figure 5b. Leaf area in m^2
+		return max(0, exp(- 1.256 + 1.807 * log(dbh))); // From Sirri et al (2019), table 1 (dbh-based model of form a + b * ln(X))
 	}
 	float compute_crown_area() {
 		return 0.551f * pow(dbh, 1.28f);	// Crown area in m^2. y = b x^a. Parameters of a and b are averages of fits for 5 trees presented in Blanchard et al (2015),
