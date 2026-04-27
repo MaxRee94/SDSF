@@ -51,6 +51,25 @@ public:
 	void update_grass_LAI(float tree_LAI_local_neighborhood) {
 		grass_LAI = compute_grass_LAI(tree_LAI_local_neighborhood);
 	}
+	float get_LAI_of_taller_trees_plus_self(Tree* tree, Population* population, int verbosity = 0) {
+		if (population == nullptr) {
+			printf("Returning total LAI of the cell.\n");
+			return get_LAI();
+		}
+		float LAI_taller_trees = 0;
+		for (int tree_id : trees) {
+			Tree* neighbor = population->get(tree_id);
+			if (neighbor->id == tree->id || neighbor->height > tree->height) {
+				LAI_taller_trees += neighbor->LAI;
+				if (verbosity > 0) printf(
+					"Tree %i is taller (%f m) than tree %i (%f m). Adding its LAI (%f) to the total LAI of taller trees (%f). \n",
+					neighbor->id, neighbor->height, tree->id, tree->height, neighbor->LAI, LAI_taller_trees
+				);
+			}
+		}
+		if (verbosity > 0) printf("Total LAI of taller trees than tree %i (plus the tree itself): %f \n", tree->id, LAI_taller_trees);
+		return LAI_taller_trees;
+	}
 	bool is_hospitable(
 		pair<float, int> tree_proxy, int& no_seedlings_dead_due_to_shade, int& no_seedling_competitions,
 		int& no_competitions_with_older_trees, int& no_cases_seedling_competition_and_shading, int& no_cases_oldstem_competition_and_shading
@@ -662,11 +681,7 @@ public:
 			pair<int, int> neighbor_gb_position = cell->pos + neighbor_offset;
 			cap(neighbor_gb_position);
 			Cell* neighbor = get_cell_at_position(neighbor_gb_position);
-			if (neighbor->has_significant_stem()) {
-				int tree_id = neighbor->stem.second;
-				Tree* tree = population->get(tree_id);
-				leaf_area_sum += tree->get_leaf_area();
-			}
+			leaf_area_sum += neighbor->get_LAI();
 		}
 		float LAI_over_neighborhood = leaf_area_sum * neighborhood_area_inv;
 		return LAI_over_neighborhood;
