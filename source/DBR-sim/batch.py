@@ -45,7 +45,6 @@ class Jobs:
         
         job_copy = deepcopy(job)
         if job.random_seed == -999:
-            print("generating random seed for job...")
             job_copy.random_seed = int(self.rng.integers(0, 100000000))
         if job.firefreq_random_seed == -999:
             job_copy.firefreq_random_seed = int(self.firefreq_rng.integers(0, 1000000))

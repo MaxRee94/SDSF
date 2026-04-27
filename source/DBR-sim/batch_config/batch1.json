@@ -6,15 +6,15 @@
         "dispersal_mode": "wind",
         "burnin_duration": 3000,
         "resource_grid_width": 50,
-        "max_timesteps": 100,
+        "max_timesteps": 1000,
         "termination_conditions": "timelimit",
         "self_ignition_factor": {
             "interpolation": "powerten",
-            "range": [-1, 5],
-            "stepsize": 1
+            "range": [0, 5],
+            "stepsize": 0.5
         },
         "STR": 1000,
-        "treecover": 0.5,
+        "treecover": 1.0,
         "visualization_interval": 100
     },
     "help": {
