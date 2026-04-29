@@ -196,6 +196,18 @@ def strategy_distribution_params_are_loaded(strategy_distribution_params):
     return type(strategy_distribution_params) == dict
 
 
+def set_nested_dict_value(d, sub_keys, value):
+    sub_key_hierarchy = sub_keys.split(":") if sub_keys else []
+    if len(sub_key_hierarchy) == 1:
+        d[sub_key_hierarchy[0]] = value
+    elif len(sub_key_hierarchy) == 2:
+        d[sub_key_hierarchy[0]][sub_key_hierarchy[1]] = value
+    elif len(sub_key_hierarchy) == 3:
+        d[sub_key_hierarchy[0]][sub_key_hierarchy[1]][sub_key_hierarchy[2]] = value
+    elif len(sub_key_hierarchy) == 4:
+        d[sub_key_hierarchy[0]][sub_key_hierarchy[1]][sub_key_hierarchy[2]][sub_key_hierarchy[3]] = value
+
+
 def load_json_strings_if_any(kwargs):
     # Convert JSON strings to dicts
     for k, v in kwargs.items():

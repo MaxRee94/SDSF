@@ -37,8 +37,11 @@ class Jobs:
         
         # Compute/derive
         self.defaults = self.get_defaults(args)
-        self.default_values = list(self.defaults.values())
+        self.update_default_values()
         self.jobs, self.job_indices = self.parse(arguments)
+
+    def update_default_values(self):
+        self.default_values = list(self.defaults.values())
 
     def generate_and_apply_random_seeds(self, job):
         # Apply new random seeds to a copy of the job, so that the original job remains unchanged (otherwise each rerun of a job will have the same seed)
@@ -93,9 +96,8 @@ class Jobs:
 
     def get_key_idx(self, key):
         return list(self.defaults.keys()).index(key)
-    
-    @staticmethod
-    def get_vec(arg_cfg):
+
+    def get_vec(self, arg_cfg):
         def round_to_significant_digits(vec, minim, maxim, stepsize):
             no_digits_after_comma = max(
                 h.digits_after_decimal(minim),
@@ -120,6 +122,12 @@ class Jobs:
             vec = round_to_significant_digits(vec, minim, maxim, stepsize)
         elif arg_cfg["interpolation"] == "categorical":
             vec = arg_cfg["range"]
+        elif arg_cfg["interpolation"] == "nested":
+            # Create a dictionary containing the sub-arguments and their associated value ranges.
+            vec = {}
+            for sub_arg_name, sub_arg_cfg in arg_cfg["sub_arguments"]:
+                sub_vec = self.get_vec(sub_arg_cfg) # Parse the sub-arg config just like a normal arg config.
+                vec[sub_arg_name] = sub_vec
 
         return vec
 
@@ -189,7 +197,14 @@ class Jobs:
         for key, arg_cfg in arg_changes.items():
             vec = self.get_vec(arg_cfg)
             idx = self.get_key_idx(key)
-            value_sets = self.add_range(value_sets, idx, vec)
+            if type(vec) == dict:
+                # Obtain base dictionary and update the defaults accordingly
+                base_dict = arg_cfg["base"]
+                self.apply_single_arg_change(value_sets, len(value_sets) == 1, idx, base_dict)
+                for sub_arg_name, sub_vec in vec.items():
+                    value_sets = self.add_range(value_sets, idx, sub_vec, sub_keys=sub_arg_name)
+            else:
+                value_sets = self.add_range(value_sets, idx, vec)
 
         # If we're doing a multi-dimensional sensitivity analysis, we shuffle the order of the jobs
         if not type(value_sets[0]) == list:
@@ -216,22 +231,30 @@ class Jobs:
 
         return job_copy
 
-    @staticmethod
-    def apply_single_arg_change(argsets, is_single_argset, idx, value):
+    def apply_single_arg_change(self, argsets, is_single_argset, idx, value, sub_keys=None):
         if is_single_argset:
+            if sub_keys:
+                main_value = deepcopy(argsets[idx])
+                sub_value = value
+                h.set_nested_dict_value(main_value, sub_keys, sub_value)
             argsets[idx] = value
         else:
             for argset in argsets:
+                if sub_keys:
+                    main_value = deepcopy(argset[idx])
+                    sub_value = value
+                    h.set_nested_dict_value(main_value, sub_keys, sub_value)
                 argset[idx] = value
 
         return argsets
 
-    def add_range(self, argsets, idx, vec):
+    def add_range(self, argsets, idx, vec, sub_keys=None):
         """Add a range of values (i.e., a vector) to the argument sets at position idx.
         
         vec (list): Range of values to add.
         idx (int): Index into each argument list (='argset') of the argument to modify.
         argsets (list): list of argument lists (='argset'), or a single, flat argument list if no arg changes have yet been made.
+        sub_keys (str): Coded name of the sub-argument to modify in case of nested argument changes. Format: "<sub_key>:<sub_sub_key>:...:etc".
         """
 
         is_single_argset = type(argsets[0]) != list
@@ -244,7 +267,7 @@ class Jobs:
 
         stepsize = len(argsets)
         for i, value in enumerate(vec):
-            argsets = self.apply_single_arg_change(deepcopy(argsets), is_single_argset, idx, value)
+            argsets = self.apply_single_arg_change(deepcopy(argsets), is_single_argset, idx, value, sub_keys=sub_keys)
             begin = i * stepsize
             end = begin + stepsize
             if is_single_argset:

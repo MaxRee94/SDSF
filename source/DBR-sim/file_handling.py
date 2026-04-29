@@ -102,8 +102,6 @@ def set_heterogeneity_maps(dynamics, cfg):
                 image = spg.generate(
                     (dynamics.state.grid.width, dynamics.state.grid.width), **m_cfg
                 )
-                print("image min:", image.min(), "image max:", image.max())
-                print("im size:", image.shape)
             elif m_cfg["type"] == "noise":
                 image = sng.generate(grid_width=dynamics.state.grid.width, cfg=cfg, **m_cfg)
             else:

@@ -4,32 +4,18 @@
     "arguments": {
         "grid_width": 100,
         "dispersal_mode": "wind",
-        "burnin_duration": 100,
+        "burnin_duration": 3000,
         "resource_grid_width": 50,
-        "max_timesteps": 100,
+        "max_timesteps": 1000,
         "termination_conditions": "timelimit",
+        "self_ignition_factor": {
+            "interpolation": "powerten",
+            "range": [0, 5],
+            "stepsize": 0.5
+        },
         "STR": 1000,
         "treecover": 1.0,
-        "visualization_interval": 100,
-        "heterogeneity": {
-            "base": {
-                "mortality": {
-                    "type": "sine",
-                    "sine_wavelength": 100,
-                    "sine_type": "vertical",
-                    "sine_offset": 50,
-                    "minimum": 0
-                }
-            },
-            "sub-argument": {
-                "mortality:sine_amplitude": {
-                    "range": [0, 0.025],
-                    "stepsize": 0.005,
-                    "interpolation": "linear"
-                }
-            },
-            "interpolation": "nested"
-        }
+        "visualization_interval": 100
     },
     "help": {
         "type": "The type of simulation batch to run. Currently only 'sensitivity_analysis' is supported, more types may be added later.",
@@ -43,30 +29,18 @@
             "options per argument": {
                 "interpolation": {
                     "global explanation": "Use this field to define the kind of interpolation I should use to compute a range of argument values. Currently supported options are listed below.",
-                    "categorical": [
-                        "Specify 'categorical' if the given value range is already complete (no interpolation needed) and/or if it cannot be interpolated (e.g., a list of strings, such ",
-                        "as ['wind', 'animal'])."
-                    ],
+                    "categorical": "Specify 'categorical' if the given value range is already complete (no interpolation needed) and/or if it cannot be interpolated (e.g., a list of strings, such as ['wind', 'animal']).",
                     "linear": [
                         "Use this interpolation type if I should linearly interpolate between the extremes defined in 'range': [<minimum>, <maximum>] with the step size defined in the field 'stepsize'.",
                         "The interpolated range will include the given minimum, and if <maximum>-<minimum> is dividable by <stepsize>, then it will also include the maximum.",
                         "E.g., range [0.1, 0.4] with stepsize 0.1 will give [0.1, 0.2, 0.3, 0.4], whereas the same range with stepsize 0.12 will give [0.1, 0.22, 0.34]"
                     ],
                     "powerten": [
-                        "Use this interpolation type if I should interpolate between the extremes defined in 'range': [<minimum>, <maximum>] using a power of ten scale with the step size defined in ",
-                        "the field 'stepsize'. The interpolated range will include the given minimum, and if <maximum>-<minimum> is dividable by <stepsize>, then it will also include the maximum.",
+                        "Use this interpolation type if I should interpolate between the extremes defined in 'range': [<minimum>, <maximum>] using a power of ten scale with the step size defined in the field 'stepsize'.",
+                        "The interpolated range will include the given minimum, and if <maximum>-<minimum> is dividable by <stepsize>, then it will also include the maximum.",
                         "E.g., range [0, 2] with stepsize 1 will give [10^0, 10^1, 10^2], whereas the same range with stepsize 0.5 will give [10^0, 10^0.5, 10^1, 10^1.5, 10^2]"
                      ]
-                },
-                "range": "Use this field to define the minimum and maximum values for the given argument. The interpretation of these values depends on the interpolation type defined in the field 'interpolation'.",
-                "stepsize": [
-                    "Use this field to define the step size for interpolation. The interpretation of this value depends on the interpolation type defined in the ",
-                    "field 'interpolation'. For categorical variables, step size is ignored."
-                ] ,
-                "base": [
-                    "In case of dictionary arguments, use this field to define the default value for the given argument. Keys of this dictionary (and any nested dictionaries) will be replaced by 'sub-argument' and ",
-                    "the values associated with it. (with interpolation if specified) to create a range of argument values."
-                ]
+                }
             }
         }
     },

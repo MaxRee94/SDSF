@@ -165,6 +165,14 @@ defaults.update({
             "binary_connectivity": 0.8,
             "minimum": 0,
             "maximum": 1
+        },
+        "mortality": {
+            "type": "sine",
+            "sine_amplitude": 0.05,
+            "sine_wavelength": 100,
+            "sine_type": "vertical",
+            "sine_offset": 50,
+            "mean": 0
         }
     }
 })
