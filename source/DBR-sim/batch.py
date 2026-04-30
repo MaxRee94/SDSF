@@ -125,7 +125,7 @@ class Jobs:
         elif arg_cfg["interpolation"] == "nested":
             # Create a dictionary containing the sub-arguments and their associated value ranges.
             vec = {}
-            for sub_arg_name, sub_arg_cfg in arg_cfg["sub_arguments"]:
+            for sub_arg_name, sub_arg_cfg in arg_cfg["sub_arguments"].items():
                 sub_vec = self.get_vec(sub_arg_cfg) # Parse the sub-arg config just like a normal arg config.
                 vec[sub_arg_name] = sub_vec
 
@@ -200,7 +200,8 @@ class Jobs:
             if type(vec) == dict:
                 # Obtain base dictionary and update the defaults accordingly
                 base_dict = arg_cfg["base"]
-                self.apply_single_arg_change(value_sets, len(value_sets) == 1, idx, base_dict)
+                is_single_value_set = type(value_sets[0]) != list
+                self.apply_single_arg_change(value_sets, is_single_value_set, idx, base_dict)
                 for sub_arg_name, sub_vec in vec.items():
                     value_sets = self.add_range(value_sets, idx, sub_vec, sub_keys=sub_arg_name)
             else:
@@ -231,53 +232,55 @@ class Jobs:
 
         return job_copy
 
-    def apply_single_arg_change(self, argsets, is_single_argset, idx, value, sub_keys=None):
-        if is_single_argset:
+    def apply_single_arg_change(self, value_sets, is_single_value_set, idx, value, sub_keys=None):
+        if is_single_value_set:
             if sub_keys:
-                main_value = deepcopy(argsets[idx])
+                main_value = deepcopy(value_sets[idx])
                 sub_value = value
                 h.set_nested_dict_value(main_value, sub_keys, sub_value)
-            argsets[idx] = value
+            value_sets[idx] = value
         else:
-            for argset in argsets:
+            for value_set in value_sets:
                 if sub_keys:
-                    main_value = deepcopy(argset[idx])
+                    parent_dictionary = deepcopy(value_set[idx])
                     sub_value = value
-                    h.set_nested_dict_value(main_value, sub_keys, sub_value)
-                argset[idx] = value
+                    h.set_nested_dict_value(parent_dictionary, sub_keys, sub_value)
+                    value_set[idx] = parent_dictionary
+                else:
+                    value_set[idx] = value
 
-        return argsets
+        return value_sets
 
-    def add_range(self, argsets, idx, vec, sub_keys=None):
+    def add_range(self, value_sets, idx, vec, sub_keys=None):
         """Add a range of values (i.e., a vector) to the argument sets at position idx.
         
         vec (list): Range of values to add.
-        idx (int): Index into each argument list (='argset') of the argument to modify.
-        argsets (list): list of argument lists (='argset'), or a single, flat argument list if no arg changes have yet been made.
+        idx (int): Index into each argument list (='value_set') of the argument to modify.
+        value_sets (list): list of argument lists (each sublist is a 'value_set'), or a single, flat value list if no arg changes have yet been made.
         sub_keys (str): Coded name of the sub-argument to modify in case of nested argument changes. Format: "<sub_key>:<sub_sub_key>:...:etc".
         """
 
-        is_single_argset = type(argsets[0]) != list
-        if is_single_argset:
-            expanded_argsets = [argsets.copy() for i in range(len(vec))]
+        is_single_value_set = type(value_sets[0]) != list
+        if is_single_value_set:
+            expanded_value_sets = [value_sets.copy() for i in range(len(vec))]
         else:
-            expanded_argsets = []
+            expanded_value_sets = []
             for i in range(len(vec)):
-                expanded_argsets += deepcopy(argsets)
+                expanded_value_sets += deepcopy(value_sets)
 
-        stepsize = len(argsets)
+        stepsize = len(value_sets)
         for i, value in enumerate(vec):
-            argsets = self.apply_single_arg_change(deepcopy(argsets), is_single_argset, idx, value, sub_keys=sub_keys)
+            value_sets = self.apply_single_arg_change(deepcopy(value_sets), is_single_value_set, idx, value, sub_keys=sub_keys)
             begin = i * stepsize
             end = begin + stepsize
-            if is_single_argset:
-                _argsets = [argsets]
+            if is_single_value_set:
+                _value_sets = [value_sets]
             else:
-                _argsets = argsets
+                _value_sets = value_sets
                 
-            expanded_argsets[begin:end] = _argsets
+            expanded_value_sets[begin:end] = _value_sets
 
-        return expanded_argsets
+        return expanded_value_sets
 
 
 def get_new_batch_folder():

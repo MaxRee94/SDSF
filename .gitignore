@@ -256,3 +256,4 @@ data_in/heterogeneity/heterogeneity_config.json
 .vs/CMakeWorkspaceSettings.json
 source/DBR-sim/batch_master_8_processes.ps1
 source/DBR-sim/batch_master_singleprocess.ps1
+source/DBR-sim/start_batch_cfg_example.ps1

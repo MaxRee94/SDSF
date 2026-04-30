@@ -21,7 +21,7 @@
                     "minimum": 0
                 }
             },
-            "sub-argument": {
+            "sub_arguments": {
                 "mortality:sine_amplitude": {
                     "range": [0, 0.025],
                     "stepsize": 0.005,
@@ -66,6 +66,9 @@
                 "base": [
                     "In case of dictionary arguments, use this field to define the default value for the given argument. Keys of this dictionary (and any nested dictionaries) will be replaced by 'sub-argument' and ",
                     "the values associated with it. (with interpolation if specified) to create a range of argument values."
+                ],
+                "sub_arguments": [
+                    "Use this field if you have a dictionary argument whose nested values you want to vary. Deeply nested keys can be specified using the format 'key1:key2:key3:etc.'"
                 ]
             }
         }
