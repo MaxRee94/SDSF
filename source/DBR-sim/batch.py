@@ -86,8 +86,6 @@ class Jobs:
                 continue
             
             ctrl_vars[key] = value
-        
-        print("Control vars: ", ctrl_vars)
             
         # Add random seeds if they haven't been added yet
         for rs in ["random_seed", "firefreq_random_seed"]:
@@ -398,17 +396,9 @@ def run_sim(batch_cfg, job, init_csv):
     export_state(batch_cfg, dynamics, job, sim_cfg, init_csv)
 
 
-def suppress_irrelevant_console_output():
-    # Ignore a numpy warning that pops up during visualization
-    np.seterr(invalid="ignore")
-    
-    # Redirect stdout to the null device, ensuring all console output of the child processes is suppressed.
-    sys.stdout = open(os.devnull, "w")
-
-
 def run_batch(batch_cfg, proc_id, sim_counter, finished_sim_counter, init_csv):
     # We don't want detailed information to pop up about every single simulation, so we suppress it.
-    suppress_irrelevant_console_output()
+    #h.suppress_irrelevant_console_output()
 
     # Initialize the logger for this process.
     configure_logger(logname="batch.log", format="%(levelname)s %(processName)s: %(message)s", **vars(batch_cfg))

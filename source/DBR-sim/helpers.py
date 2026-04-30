@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import sys
 import json
 import argparse
@@ -165,6 +166,19 @@ def check_cli_args(**user_args):
     assert (user_args["grid_width"] % user_args["resource_grid_width"] == 0), (
         f"Resource grid width (currently {user_args['resource_grid_width']}) must be a divisor of grid width (currently {user_args['grid_width']})."
     )
+
+
+def suppress_irrelevant_console_output():
+    # Ignore a numpy warning that pops up during visualization
+    np.seterr(invalid="ignore")
+    
+    # Redirect stdout to the null device, ensuring all console output of the child processes is suppressed.
+    sys.stdout = open(os.devnull, "w")
+
+
+def lift_console_output_suppression():    
+    # Direct stdout back to the normal stdout.
+    sys.stdout = sys.stdout = sys.__stdout__
 
 
 def parse_args(parser=None):

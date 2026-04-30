@@ -7,7 +7,7 @@ from shutil import ExecError
 import cv2
 import time
 from config import *
-import helpers
+import helpers as h
 import numpy as np
 import shutil, errno
 from glob import glob
@@ -90,7 +90,7 @@ def set_heterogeneity_maps(dynamics, cfg):
             print(f"No configuration found for {map_type} map. Using default homogeneous map.")
             continue
 
-        m_cfg = helpers.overwrite_from_global_arguments(m_cfg, vars(cfg))
+        m_cfg = h.overwrite_from_global_arguments(m_cfg, vars(cfg))
         map_dir = os.path.join(map_root_dir, map_type)
         if m_cfg.get("filename"):
             impath = os.path.join(map_dir, m_cfg["filename"])
@@ -264,6 +264,20 @@ def get_fieldnames(dynamics, extra_parameters, cfg):
     return fieldnames
 
 
+def get_sim_name(cfg):
+    if hasattr(cfg, "control_vars"):
+        name = "Ctrl_vars__"
+        for key, value in cfg.control_vars.items():
+            if ("random_seed" in key): # Ignore random seeds when composing a name
+                continue
+            name += f"{key.replace(':', '-')}=={str(value)}__"
+        name += ".csv"
+    else:
+        name = "Sim_date__" + str(datetime.datetime.now()).replace(":", "-") + ".csv"
+    
+    return name
+
+
 def export_state(
         dynamics, path="", init_csv=True, extra_parameters="", cfg=None, **kwargs
     ):
@@ -272,13 +286,24 @@ def export_state(
 
     # Initialize CSV file with headers if it doesn't exist
     if init_csv and not os.path.exists(path):
+        h.lift_console_output_suppression() # TEMP
+        sim_name = get_sim_name(cfg)
+        export_dir = cfg.EXPORT_DIR
+        if hasattr(cfg, "simulation_sub_directory"):
+            simulation_sub_directory = os.path.join(cfg.EXPORT_DIR, sim_name.replace(".csv", ""))
+            print("sim sub dir:", simulation_sub_directory)
+            if not os.path.exists(simulation_sub_directory):
+                os.makedirs(simulation_sub_directory)
+            export_dir = simulation_sub_directory
+            
         if path == "":
-            path = os.path.join(cfg.EXPORT_DIR, "Simulation_" + str(datetime.datetime.now()).replace(":", "-") + ".csv")
-            print("\n\nExport location:", path)
+            path = os.path.join(export_dir, sim_name)
         with open(path, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
-
+    
+    h.suppress_irrelevant_console_output() # TEMP
+    
     with open(path, 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         result = obtain_state_variables(
