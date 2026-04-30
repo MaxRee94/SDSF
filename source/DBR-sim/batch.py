@@ -27,7 +27,7 @@ class Jobs:
     def __init__(self, runs=None, arguments=None, rng=None, firefreq_rng=None, **args):
         # Set from given args
         self.n_runs = runs
-        self.arguments = arguments
+        self.arg_changes = arguments
         self.rng = rng
         self.firefreq_rng = firefreq_rng
         
@@ -56,7 +56,7 @@ class Jobs:
 
     def get_comprehensive_jobs_summary(self):
         summary = deepcopy(self.defaults)
-        for key, arg_cfg in self.arguments.items():
+        for key, arg_cfg in self.arg_changes.items():
             vec = self.get_vec(arg_cfg)
             summary[key] = {"value(s)": vec}
         
@@ -69,15 +69,25 @@ class Jobs:
             job_ns = job
         
         ctrl_vars = {}
-        for key, val in self.arguments.items():
+        for key, _val in self.arg_changes.items():
             # Only include control variables that vary across simulations (these are dictionaries).
-            if type(val) != dict:
+            if type(_val) != dict:
                 continue
 
+            # Handle special arguments
             value = getattr(job_ns, key)
             if key == "treecover":
                 key = "initial tree cover"
+            elif _val.get("sub_arguments"): # Nested arguments
+                sub_args = _val["sub_arguments"]
+                for sub_arg_key in sub_args.keys():
+                    sub_value = h.get_nested_dict_value(value, sub_arg_key)
+                    ctrl_vars[key + ":" + sub_arg_key] = sub_value
+                continue
+            
             ctrl_vars[key] = value
+        
+        print("Control vars: ", ctrl_vars)
             
         # Add random seeds if they haven't been added yet
         for rs in ["random_seed", "firefreq_random_seed"]:
@@ -125,9 +135,9 @@ class Jobs:
         elif arg_cfg["interpolation"] == "nested":
             # Create a dictionary containing the sub-arguments and their associated value ranges.
             vec = {}
-            for sub_arg_name, sub_arg_cfg in arg_cfg["sub_arguments"].items():
+            for sub_arg_key, sub_arg_cfg in arg_cfg["sub_arguments"].items():
                 sub_vec = self.get_vec(sub_arg_cfg) # Parse the sub-arg config just like a normal arg config.
-                vec[sub_arg_name] = sub_vec
+                vec[sub_arg_key] = sub_vec
 
         return vec
 
@@ -202,8 +212,8 @@ class Jobs:
                 base_dict = arg_cfg["base"]
                 is_single_value_set = type(value_sets[0]) != list
                 self.apply_single_arg_change(value_sets, is_single_value_set, idx, base_dict)
-                for sub_arg_name, sub_vec in vec.items():
-                    value_sets = self.add_range(value_sets, idx, sub_vec, sub_keys=sub_arg_name)
+                for sub_arg_key, sub_vec in vec.items():
+                    value_sets = self.add_range(value_sets, idx, sub_vec, sub_keys=sub_arg_key)
             else:
                 value_sets = self.add_range(value_sets, idx, vec)
 
@@ -377,7 +387,7 @@ def export_state(batch_cfg, dynamics, job, sim_cfg, init_csv):
             if init_csv.value == 1:
                 init_csv.value = 0
                 initialize_csv = True
-   
+
     _io.export_state(
         dynamics, path=batch_cfg.total_results_csv, init_csv=initialize_csv, cfg=sim_cfg
     )

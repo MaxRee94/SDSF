@@ -240,8 +240,8 @@ def obtain_state_variables(dynamics, tree_hist, extra_parameters, cfg, init_csv,
     if not cfg.rotate_disks_randomly:
         result["global_rotation_offset"] = str(cfg.global_rotation_offset)
     if hasattr(cfg, "control_vars"):
-        for cv in cfg.control_vars.keys():
-            result[cv] = str(cfg.control_vars[cv])
+        for controlvar, controlvalue in cfg.control_vars.items():
+            result[controlvar] = str(controlvalue)
 
     return result
 

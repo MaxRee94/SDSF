@@ -4,9 +4,9 @@
     "arguments": {
         "grid_width": 100,
         "dispersal_mode": "wind",
-        "burnin_duration": 100,
+        "burnin_duration": 300,
         "resource_grid_width": 50,
-        "max_timesteps": 100,
+        "max_timesteps": 300,
         "termination_conditions": "timelimit",
         "STR": 1000,
         "treecover": 1.0,
@@ -18,13 +18,13 @@
                     "sine_wavelength": 100,
                     "sine_type": "vertical",
                     "sine_offset": 50,
-                    "minimum": 0
+                    "mean": 0
                 }
             },
             "sub_arguments": {
                 "mortality:sine_amplitude": {
-                    "range": [0, 0.025],
-                    "stepsize": 0.005,
+                    "range": [0, 0.5],
+                    "stepsize": 0.05,
                     "interpolation": "linear"
                 }
             },
