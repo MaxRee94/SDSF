@@ -286,7 +286,6 @@ def export_state(
 
     # Initialize CSV file with headers if it doesn't exist
     if init_csv and not os.path.exists(path):
-        h.lift_console_output_suppression() # TEMP
         sim_name = get_sim_name(cfg)
         export_dir = cfg.EXPORT_DIR
         if hasattr(cfg, "simulation_sub_directory"):
@@ -301,8 +300,6 @@ def export_state(
         with open(path, 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
-    
-    h.suppress_irrelevant_console_output() # TEMP
     
     with open(path, 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)

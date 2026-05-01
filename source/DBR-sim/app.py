@@ -314,7 +314,7 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
         dynamics.disperse_within_forest(forest_mask)
         dynamics.grow()
         dynamics.induce_background_mortality()
-        print("repopulating grid..")
+        print("Repopulating grid..")
         dynamics.state.repopulate_grid(cfg.verbosity)
         #dynamics.state.repopulate_grid(cfg.verbosity)
         if dynamics.time > (cfg.burnin_duration - 2):
@@ -543,6 +543,7 @@ def main(**user_args):
     cfg = h.apply_user_args_to_configuration(args, cfg)
 
     dynamics = init(cfg)
+    
     return updateloop(dynamics, cfg)
  
 

@@ -62,7 +62,7 @@ class Jobs:
         
         return summary
 
-    def get_control_variables(self, job):
+    def attach_control_variables(self, job):
         if isinstance(job, dict):
             job_ns = SimpleNamespace(**job)
         else: 
@@ -92,7 +92,10 @@ class Jobs:
             if not rs in ctrl_vars:
                 ctrl_vars[rs] = getattr(job_ns, rs)
 
-        return ctrl_vars
+        # Attach to job namespace
+        job_ns.control_vars = ctrl_vars
+                
+        return job_ns
 
     def get_defaults(self, args):
         defaults = config.get_all_defaults()
@@ -237,6 +240,7 @@ class Jobs:
         idx = self.job_indices[n_started_simulations % len(self.jobs)]
         job = self.get_specific_job(idx)
         job_copy = self.generate_and_apply_random_seeds(job)
+        job_copy = self.attach_control_variables(job_copy)
 
         return job_copy
 
@@ -378,7 +382,6 @@ def load_batch_config(batch_cfg):
 
 
 def export_state(batch_cfg, dynamics, job, sim_cfg, init_csv):
-    sim_cfg.control_vars = batch_cfg.jobs.get_control_variables(job)
     initialize_csv = False
     if init_csv.value == 1:
         with init_csv.get_lock(): # We use a lock to ensure the total results csv is only initialized once, by a single process.
@@ -398,7 +401,7 @@ def run_sim(batch_cfg, job, init_csv):
 
 def run_batch(batch_cfg, proc_id, sim_counter, finished_sim_counter, init_csv):
     # We don't want detailed information to pop up about every single simulation, so we suppress it.
-    #h.suppress_irrelevant_console_output()
+    h.suppress_irrelevant_console_output()
 
     # Initialize the logger for this process.
     configure_logger(logname="batch.log", format="%(levelname)s %(processName)s: %(message)s", **vars(batch_cfg))
@@ -467,7 +470,7 @@ def export_batch_cfg(batch_cfg):
 def report_sim_completions(batch_cfg, n_reported_completions, n_finished_simulations):
     while (n_finished_simulations.value > n_reported_completions) and (n_reported_completions < batch_cfg.jobs.count()):
         n_reported_completions += 1
-        cfg_str = json.dumps(batch_cfg.jobs.get_control_variables(batch_cfg.jobs.get(n_reported_completions-1)), indent=4)
+        cfg_str = json.dumps(batch_cfg.jobs.get(n_reported_completions-1).control_vars, indent=4)
         print(f"\nFinished simulation {n_reported_completions}/{batch_cfg.jobs.count()} with arguments: \n{cfg_str}.")
     
     return n_reported_completions
