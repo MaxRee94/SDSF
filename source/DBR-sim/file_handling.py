@@ -294,7 +294,7 @@ def get_sim_name(cfg, extra_short=False):
 def init_image_path(cfg, curtime):
     if hasattr(cfg, "sim_name"):
         image_dir = os.path.join(cfg.DATA_OUT_DIR, "Images")
-        imagepath = os.path.join(image_dir, cfg.sim_name.replace("Ctrl", f"TIME={curtime}") + ".png")
+        imagepath = os.path.join(image_dir, cfg.sim_name.replace("SIM", f"TIME={curtime}") + ".png")
     else:
         image_dir = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries")
         imagepath = os.path.join(image_dir, str(curtime) + ".png")
