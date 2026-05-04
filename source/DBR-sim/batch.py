@@ -94,11 +94,23 @@ class Jobs:
 
         # Attach to job namespace
         job_ns.control_vars = ctrl_vars
-                
+ 
         return job_ns
+
+    def attach_sim_name(self, job):
+        full_sim_name = _io.get_sim_name(job)
+        job.sim_name = _io.get_sim_name(job, extra_short=True)
+
+        # Ensure all data is written to sim directory
+        job.EXPORT_DIR = os.path.join(job.EXPORT_DIR, full_sim_name)
+        job.DATA_OUT_DIR = job.EXPORT_DIR
+        
+        return job
 
     def get_defaults(self, args):
         defaults = config.get_all_defaults()
+        
+        # Overwrite some defaults that are required for a batch run.
         defaults["headless"] = True
         defaults["verbosity"] = -1 # Suppress all non-critical print statements
         defaults["EXPORT_DIR"] = args["csv_parent_dir"]
@@ -241,6 +253,7 @@ class Jobs:
         job = self.get_specific_job(idx)
         job_copy = self.generate_and_apply_random_seeds(job)
         job_copy = self.attach_control_variables(job_copy)
+        job_copy = self.attach_sim_name(job_copy)
 
         return job_copy
 
@@ -394,9 +407,25 @@ def export_state(batch_cfg, dynamics, job, sim_cfg, init_csv):
     )
 
 
+def init_sim_dir(job):
+    if not os.path.isdir(job.EXPORT_DIR):
+        os.makedirs(job.EXPORT_DIR)
+
+
+def export_sim_cfg(sim_cfg):
+    with open(sim_cfg.EXPORT_DIR + "/sim_configuration.json", "w") as f:
+        cfg = remove_non_serializable_items(deepcopy(vars(sim_cfg)))
+        for key in ["patches", "color_dict"]:
+            if key in cfg.keys():
+                del cfg[key]
+        json.dump(cfg, f)
+
+
 def run_sim(batch_cfg, job, init_csv):
+    init_sim_dir(job)
     dynamics, sim_cfg = app.main(**vars(job))
     export_state(batch_cfg, dynamics, job, sim_cfg, init_csv)
+    export_sim_cfg(sim_cfg)
 
 
 def run_batch(batch_cfg, proc_id, sim_counter, finished_sim_counter, init_csv):
@@ -439,19 +468,25 @@ def configure_logger(logname=None, batch_verbosity=None, _format="%(levelname)s:
     logger.addHandler(handler)
 
 
-def remove_non_serializable_items(batch_cfg_copy):
+def remove_non_serializable_items(mydict):
+    """Remove non serializable items from given dict. 
+    Modifies in-place but also returns the modified dict for convenience."""
+
     deletions = []
-    for k, v in batch_cfg_copy.items():
+    for k, v in mydict.items():
         try:
             json.dumps(v)
         except TypeError:
             deletions.append(k)
     for k in deletions + ["help", "arguments_examples"]:
-        del batch_cfg_copy[k]
+        if k in list(mydict.keys()):
+            del mydict[k]
+
+    return mydict
 
 
 def export_batch_cfg(batch_cfg):
-    args_json_path = batch_cfg.csv_parent_dir + "/configuration.json"
+    args_json_path = batch_cfg.csv_parent_dir + "/batch_configuration.json"
     with open(args_json_path, "w") as args_json:
         # Get the arguments from one job as a representative set of arguments for the batch, and export these to json. 
         # This way, we have a record of the arguments used for the batch, without having to export the arguments 

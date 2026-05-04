@@ -13,6 +13,7 @@ import ctypes
 
 import disk_pattern_generator as dpg
 from helpers import *
+import file_handling as io
 from config import *
 
 
@@ -646,8 +647,8 @@ def do_visualizations(dynamics, fire_freq_arrays, fire_no_timesteps, verbosity, 
             color_dict=color_dicts.normal, cheap_visualization=False
         )
 
-    print("-- Saving image...") if verbosity else None
-    imagepath = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries/" + str(dynamics.time) + ".png")
+    # Save 'normal color' image
+    imagepath = io.init_image_path(cfg, dynamics.time)        
     cfg.vis.save_image(img, imagepath, get_max(1000, img.shape[0]), interpolation="none")
     
     if ("fuel" in visualization_types):

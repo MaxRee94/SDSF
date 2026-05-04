@@ -264,37 +264,60 @@ def get_fieldnames(dynamics, extra_parameters, cfg):
     return fieldnames
 
 
-def get_sim_name(cfg):
-    if hasattr(cfg, "control_vars"):
-        name = "Ctrl_vars__"
+def get_sim_name(cfg, extra_short=False):
+    """Create a name for the simulation composed of either the provided sim name, the provided control variables, or the date and time."""
+    
+    if hasattr(cfg, "sim_name"):
+        name = cfg.sim_name
+    elif hasattr(cfg, "control_vars"):
+        name = "SIM__"
         for key, value in cfg.control_vars.items():
             if ("random_seed" in key): # Ignore random seeds when composing a name
                 continue
-            name += f"{key.replace(':', '-')}=={str(value)}__"
-        name += ".csv"
+            key_components = key.split(":")
+            shortened_key_components = []
+            kc_length = 2 if extra_short else 6
+            for i, kc in enumerate(key_components):
+                _kc_length = max(2, kc_length-(len(key_components)-(i+1))) # Shorten the first words most, but ensure a minimum of 2 characters per word.
+                shortened_kc = "".join([word[0:_kc_length].capitalize() for word in kc.split("_") if True])
+                shortened_key_components.append(shortened_kc)
+
+            name += "-".join(shortened_key_components)
+            name += f"=={str(value)}__"
+        name = name[:-2] # Remove the last "__"
     else:
-        name = "Sim_date__" + str(datetime.datetime.now()).replace(":", "-") + ".csv"
+        name = "Sim_date__" + str(datetime.datetime.now()).replace(":", "-")
     
     return name
+
+
+def init_image_path(cfg, curtime):
+    if hasattr(cfg, "sim_name"):
+        image_dir = os.path.join(cfg.DATA_OUT_DIR, "Images")
+        imagepath = os.path.join(image_dir, cfg.sim_name.replace("Ctrl", f"TIME={curtime}") + ".png")
+    else:
+        image_dir = os.path.join(cfg.DATA_OUT_DIR, "image_timeseries")
+        imagepath = os.path.join(image_dir, str(curtime) + ".png")
+    
+    if not os.path.exists(image_dir):
+        os.makedirs(image_dir)
+
+    return imagepath
 
 
 def export_state(
         dynamics, path="", init_csv=True, extra_parameters="", cfg=None, **kwargs
     ):
+    """Export the current values of the state variables of interest to a csv file."""
+
     fieldnames = get_fieldnames(dynamics, extra_parameters, cfg)
     tree_hist = get_tree_histograms(dynamics, init_csv, fieldnames, cfg)
 
     # Initialize CSV file with headers if it doesn't exist
     if init_csv and not os.path.exists(path):
-        sim_name = get_sim_name(cfg)
+        sim_name = get_sim_name(cfg) + ".csv"
         export_dir = cfg.EXPORT_DIR
-        if hasattr(cfg, "simulation_sub_directory"):
-            simulation_sub_directory = os.path.join(cfg.EXPORT_DIR, sim_name.replace(".csv", ""))
-            print("sim sub dir:", simulation_sub_directory)
-            if not os.path.exists(simulation_sub_directory):
-                os.makedirs(simulation_sub_directory)
-            export_dir = simulation_sub_directory
-            
+
         if path == "":
             path = os.path.join(export_dir, sim_name)
         with open(path, 'w', newline='') as csvfile:

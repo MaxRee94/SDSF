@@ -270,6 +270,17 @@ def get_max(val1, val2):
         return val1
     else:
         return val2
+
+
+class TemporaryStdout:
+    def __init__(self):
+        pass
+    
+    def __enter__(self):
+        lift_console_output_suppression()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        suppress_irrelevant_console_output()
     
 
 def get_2d_dist(p1, p2):

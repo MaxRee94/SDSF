@@ -10,7 +10,7 @@
         "termination_conditions": "timelimit",
         "STR": 1000,
         "treecover": 1.0,
-        "visualization_interval": 100,
+        "visualization_interval": 10,
         "heterogeneity": {
             "base": {
                 "mortality": {
