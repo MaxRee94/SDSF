@@ -168,10 +168,13 @@ class Jobs:
     
     def derive_unique_job_count(self, arg_changes):
         job_count = 0
+        if job_count == 0:
+            job_count = 1
         for key, arg_cfg in arg_changes.items():
             vec = self.get_vec(arg_cfg)
-            if job_count == 0:
-                job_count = len(vec)
+            if type(vec) == dict: # Handle nested arguments
+                for sub_vec in vec.values():
+                    job_count *= len(sub_vec)
             else:
                 job_count *= len(vec)
 

@@ -83,6 +83,40 @@
             "range": ["wind", "animal"],
             "interpolation": "categorical"
         },
+        "treecover": {
+            "range": [0, 0.5],
+            "stepsize": 0.1,
+            "interpolation": "linear"
+        },
+        "self_ignition_factor": {
+            "range": [0, 4],
+            "stepsize": 1,
+            "interpolation": "powerten"
+        },
+        "heterogeneity": {
+            "base": {
+                "mortality": {
+                    "type": "sine",
+                    "sine_wavelength": 100,
+                    "sine_type": "vertical",
+                    "sine_offset": 50,
+                    "mean": 0
+                }
+            },
+            "sub_arguments": {
+                "mortality:sine_amplitude": {
+                    "range": [0, 0.5],
+                    "stepsize": 0.05,
+                    "interpolation": "linear"
+                },
+                "mortality:sine_wavelength": {
+                    "range": [30, 50],
+                    "stepsize": 10,
+                    "interpolation": "linear"
+                }
+            },
+            "interpolation": "nested"
+        },
         "grid_width": 25,
         "burnin_duration": 15
     }
