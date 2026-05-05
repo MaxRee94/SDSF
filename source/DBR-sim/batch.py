@@ -164,7 +164,7 @@ class Jobs:
             for keyframe in arg_cfg["keyframes"]:
                 time = keyframe["time"]
                 keyframe_vec = self.get_vec(keyframe)
-                keyframe_vecs[f"keytime={time}"] = keyframe_vec
+                keyframe_vecs[time] = keyframe_vec
                 if len(keyframe_vec) > len(longest_kfv):
                     longest_kfv = keyframe_vec
             
@@ -204,7 +204,8 @@ class Jobs:
     
     def contains_keyframes(self, vec):
         if type(vec) == list and type(vec[0]) == dict:
-            if "keytime=" in list(vec[0].keys())[0]:
+            first_subkey_of_first_value = list(vec[0].keys())[0]
+            if type(first_subkey_of_first_value) == int:
                 return True
         return False
     
@@ -218,7 +219,6 @@ class Jobs:
         for key, arg_cfg in arg_changes.items():
             vec = self.get_vec(arg_cfg)
             if self.contains_keyframes(vec):
-                print(f"argument {key} contains keyframes:", vec) # TEMP
                 job_count *= len(vec)
             elif self.contains_nested_args(vec):
                 for sub_vec in vec.values():
@@ -291,9 +291,9 @@ class Jobs:
         for key, expanded_cfg in expanded_arguments.items():
             if key == "keyframes":
                 # Create base dictionary and update the default dictionary accordingly
-                base_dict = {subkey:{} for subkey in expanded_cfg.keys()}   # Store an empty dictionary for each subkey.
-                                                                            # A 'subkey' is the name of an argument, stored inside
-                                                                            # the keyframes dict.
+                base_dict = {subkey:{} for subkey in expanded_cfg.keys() if subkey != "idx"}    # Store an empty dictionary for each subkey.
+                                                                                                # A 'subkey' is the name of an argument, stored inside
+                                                                                                # the keyframes dict.
                 is_single_value_set = type(value_sets[0]) != list
                 self.apply_single_arg_change(value_sets, is_single_value_set, expanded_cfg["idx"], base_dict)
                 
@@ -342,14 +342,15 @@ class Jobs:
     def apply_single_arg_change(self, value_sets, is_single_value_set, idx, value, sub_keys=None):
         if is_single_value_set:
             if sub_keys:
-                main_value = deepcopy(value_sets[idx])
+                parent_dictionary = deepcopy(value_sets[idx]) # Obtain 'base' dict
                 sub_value = value
-                h.set_nested_dict_value(main_value, sub_keys, sub_value)
+                h.set_nested_dict_value(parent_dictionary, sub_keys, sub_value)
+                value = parent_dictionary
             value_sets[idx] = value
         else:
             for value_set in value_sets:
                 if sub_keys:
-                    parent_dictionary = deepcopy(value_set[idx])
+                    parent_dictionary = deepcopy(value_set[idx]) # Obtain 'base' dict
                     sub_value = value
                     h.set_nested_dict_value(parent_dictionary, sub_keys, sub_value)
                     value_set[idx] = parent_dictionary
@@ -368,8 +369,6 @@ class Jobs:
         """
 
         is_single_value_set = type(value_sets[0]) != list
-        if type(vec) == int:
-            print("Int vec:", vec)
         if is_single_value_set:
             expanded_value_sets = [value_sets.copy() for i in range(len(vec))]
         else:

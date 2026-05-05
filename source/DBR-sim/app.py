@@ -433,6 +433,32 @@ def export_animal_resources(dynamics):
     cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "distance_single_coarse", distance_coarse_path)
     cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "k", k_path)
     cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "k_coarse", k_coarse_path)
+   
+
+def apply_keyframes(curtime, cfg):
+    if hasattr(cfg, "keyframes"):
+        for attr, keyframes in cfg.keyframes.items():
+            keytimes = sorted(keyframes) # Sort keyframes in ascending order of time
+            for i, keytime in enumerate(keytimes):
+                if curtime <= keytime:
+                    if i == 0:
+                        # If the current time is before the first keyframe, set the attribute to the value of the first keyframe
+                        setattr(cfg, attr, keyframes[keytime])
+                    else:
+                        # Linearly interpolate between the previous and next keyframe values based on the current time
+                        prev_keytime = keytimes[i-1]
+                        prev_value = keyframes[prev_keytime]
+                        next_value = keyframes[keytime]
+                        difference = next_value - prev_value
+                        time_fractional_difference = (curtime - prev_keytime) / (keytime - prev_keytime)
+                        interp_value = prev_value + difference * time_fractional_difference
+                        setattr(cfg, attr, interp_value)
+                    break
+            else:
+                # If the current time is after the last keyframe, set the attribute to the value of the last keyframe
+                setattr(cfg, attr, keyframes[keytimes[-1]])
+
+    return cfg
 
 
 def do_update(dynamics, cfg):
@@ -444,10 +470,7 @@ def do_update(dynamics, cfg):
     be terminated, and 'False' otherwise."""
 
     # Apply any keyframe updates from cfg
-    with h.TemporaryStdout():
-        if hasattr(cfg, "keyframes"):
-            for attr, keyframes in cfg.keyframes.items():
-                pass
+    apply_keyframes(dynamics.time, cfg)
 
     print("-- Starting iteration...") if cfg.verbosity else None
     dynamics = do_iteration(dynamics, cfg)

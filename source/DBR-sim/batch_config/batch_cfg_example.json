@@ -2,6 +2,11 @@
     "type": "sensitivity_analysis",
     "runs": 20,
     "arguments": {
+        "treecover": {
+            "range": [0.2, 0.6],
+            "stepsize": 0.2,
+            "interpolation": "linear"
+        },
         "grid_width": 100,
         "dispersal_mode": "wind",
         "burnin_duration": 100,
@@ -24,7 +29,6 @@
             ],
             "interpolation": "keyframed"
         },
-        "treecover": 1.0,
         "visualization_interval": 10,
         "heterogeneity": {
             "base": {
