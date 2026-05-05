@@ -745,6 +745,11 @@ public:
 		}
 		return fuel_load_distribution;
 	}
+	void get_grass_carrying_capacity(shared_ptr<float[]>& grass_carrying_capacity) {
+		for (int i = 0; i < no_cells; i++) {
+			grass_carrying_capacity[i] = distribution[i].get_fuel_load();
+		}
+	}
 	void update_aggr_LAIs(Population* population) {
 		for (int i = 0; i < no_cells; i++) {
 			aggr_tree_LAI_distribution[i] = get_tree_LAI_of_local_neighborhood(population, &distribution[i]);

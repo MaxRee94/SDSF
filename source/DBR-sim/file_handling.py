@@ -4,6 +4,7 @@ from pathlib import Path
 import datetime
 from re import M
 from shutil import ExecError
+from tkinter import Image
 import cv2
 import time
 from config import *
@@ -70,6 +71,45 @@ def load_json_config(file_path):
     return config
 
 
+def generate_heterogeneity_image(dynamics, map_type, map_dir, m_cfg):
+    if m_cfg["type"] == "sine":
+        image = spg.generate(
+            (dynamics.state.grid.width, dynamics.state.grid.width), **m_cfg
+        )
+    elif m_cfg["type"] == "noise":
+        image = sng.generate(grid_width=dynamics.state.grid.width, cfg=cfg, **m_cfg)
+    else:
+        raise ValueError(f"Unknown {map_type} pattern type: {m_cfg['type']}")
+    impath = os.path.join(map_dir, f"generated_{map_type}.png")
+    img_rescaled = (image - image.min()) / (image.max() - image.min()) * 255 if image.max() > image.min() else np.zeros_like(image)
+    cv2.imwrite(impath, img_rescaled)
+
+    return image
+
+
+def generate_or_read_heterogeneity_image(dynamics, map_root_dir, heterogeneity_map_cfg, map_type, cfg):
+    m_cfg = heterogeneity_map_cfg.get(map_type)
+    if m_cfg is None:
+        print(f"No configuration found for {map_type} map. Using default homogeneous map.")
+        return None
+
+    m_cfg = h.overwrite_from_global_arguments(m_cfg, vars(cfg))
+    map_dir = os.path.join(map_root_dir, map_type)
+    if m_cfg.get("filename"):
+        impath = os.path.join(map_dir, m_cfg["filename"])
+        image = cv2.imread(impath, cv2.IMREAD_GRAYSCALE)
+        image = (image.astype(np.float32) / 255.0) + m_cfg["minimum"] + m_cfg["maximum"] # Rescale to desired range
+    else:
+        image = generate_heterogeneity_image(dynamics, map_type, map_dir, m_cfg)
+
+    image = cv2.resize(
+        image, (dynamics.state.grid.width, dynamics.state.grid.width), 
+        interpolation=cv2.INTER_NEAREST
+    )
+
+    return image
+
+
 def set_heterogeneity_maps(dynamics, cfg):
     """Set input maps from cfg if provided.
     
@@ -79,46 +119,38 @@ def set_heterogeneity_maps(dynamics, cfg):
     """
     map_root_dir = f"{cfg.DATA_IN_DIR}/heterogeneity/"
     heterogeneity_map_cfg = cfg.heterogeneity
-    map_types = {
+    heterogeneity_map_storage = {}
+    map_setters = {
         "grass_carrying_capacity": dynamics.state.grid.set_grass_carrying_capacity,
         "local_growth_multipliers": dynamics.state.grid.set_local_growth_multipliers,
         "mortality": dynamics.state.grid.set_mortality_template,
     }
-    for map_type, setter_func in map_types.items():
-        m_cfg = heterogeneity_map_cfg.get(map_type)
-        if m_cfg is None:
-            print(f"No configuration found for {map_type} map. Using default homogeneous map.")
-            continue
-
-        m_cfg = h.overwrite_from_global_arguments(m_cfg, vars(cfg))
-        map_dir = os.path.join(map_root_dir, map_type)
-        if m_cfg.get("filename"):
-            impath = os.path.join(map_dir, m_cfg["filename"])
-            image = cv2.imread(impath, cv2.IMREAD_GRAYSCALE)
-            image = (image.astype(np.float32) / 255.0) + m_cfg["minimum"] + m_cfg["maximum"] # Rescale to desired range
-            print(f"Read {map_type} map from image file:", impath)
-        else:
-            if m_cfg["type"] == "sine":
-                image = spg.generate(
-                    (dynamics.state.grid.width, dynamics.state.grid.width), **m_cfg
-                )
-            elif m_cfg["type"] == "noise":
-                image = sng.generate(grid_width=dynamics.state.grid.width, cfg=cfg, **m_cfg)
-            else:
-                raise ValueError(f"Unknown {map_type} pattern type: {m_cfg['type']}")
-            impath = os.path.join(map_dir, f"generated_{map_type}.png")
-            img_rescaled = (image - image.min()) / (image.max() - image.min()) * 255 if image.max() > image.min() else np.zeros_like(image)
-            cv2.imwrite(impath, img_rescaled)
-            print(f"Generated {map_type} map saved to:", impath)
-
-        image = cv2.resize(
-            image, (dynamics.state.grid.width, dynamics.state.grid.width), 
-            interpolation=cv2.INTER_NEAREST
-        )
-        setter_func(image)
+    for map_type, setter_func in map_setters.items():
+        map_img = generate_or_read_heterogeneity_image(dynamics, map_root_dir, heterogeneity_map_cfg, map_type, cfg)
+        print("setting..")
+        if map_img is not None:
+            setter_func(map_img)
+        print("finsihed setting.")
+        
+        # Store current map
+        heterogeneity_map_storage[map_type] = {"image": map_img, "setter": setter_func}
+        
+    # Store map images in cfg
+    setattr(cfg, "heterogeneity_stored", heterogeneity_map_storage)
 
     return dynamics
 
+
+def get_current_heterogeneity_map(dynamics, cfg, map_type):
+    map_getters = {
+        "grass_carrying_capacity": dynamics.state.grid.get_grass_carrying_capacity,
+        #"local_growth_multipliers": dynamics.state.grid.get_local_growth_multipliers, # not implemented yet
+        #"mortality": dynamics.state.grid.get_mortality_template # not implemented yet
+    }
+    getter_func = map_getters[map_type]
+    current_map = getter_func()
+    
+    return current_map
 
 
 def copy_tree_if_needed(src, dst):

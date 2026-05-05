@@ -346,6 +346,11 @@ PYBIND11_MODULE(dbr_cpp, module) {
             convert_from_numpy_array(py_image, image, _width, _height);
             grid.set_mortality_template(image);
 		})
+        .def("get_grass_carrying_capacity", [](Grid& grid) {
+            shared_ptr<float[]> grass_carrying_capacity = make_shared<float[]>(grid.no_cells);
+            grid.get_grass_carrying_capacity(grass_carrying_capacity);
+            return as_2d_numpy_array(grass_carrying_capacity, grid.width);
+        })
         .def("get_fuel_distribution", [](Grid& grid) {
             shared_ptr<float[]> fuel_load_distribution = grid.get_fuel_load_distribution();
             return as_2d_numpy_array(fuel_load_distribution, grid.width);
