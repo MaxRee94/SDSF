@@ -151,6 +151,8 @@ class Jobs:
             for sub_arg_key, sub_arg_cfg in arg_cfg["sub_arguments"].items():
                 sub_vec = self.get_vec(sub_arg_cfg) # Parse the sub-arg config just like a normal arg config.
                 vec[sub_arg_key] = sub_vec
+        elif arg_cfg["interpolation"] == "keyframed":
+            vec = [0]
 
         return vec
 
@@ -195,13 +197,20 @@ class Jobs:
         
         return jobs, job_idx_generator
 
-    def do_post_processing(self, jobs, job_idx_generator, generator_cfg):
+    def do_post_processing(self, jobs, job_idx_generator, generator_cfg, arg_changes):
         job_indices = list(job_idx_generator(generator_cfg))
         jobs = [self.convert_value_set_to_namespace(job) for job in jobs]
         for job in jobs:
             h.check_cli_args(**vars(job))
+            job = self.add_attachments(job, arg_changes)
         
         return jobs, job_indices
+    
+    def add_attachments(self, job, arg_changes):
+        job = self.attach_control_variables(job)
+        job = self.attach_sim_name(job)
+        
+        return job
 
     def parse(self, arg_changes):
         job_count = self.derive_unique_job_count(arg_changes)
@@ -214,7 +223,7 @@ class Jobs:
         else:
             jobs, job_idx_generator = self.switch_to_random_sampling(job_count, generator_cfg)
 
-        jobs, job_indices = self.do_post_processing(jobs, job_idx_generator, generator_cfg)
+        jobs, job_indices = self.do_post_processing(jobs, job_idx_generator, generator_cfg, arg_changes)
  
         return jobs, job_indices
 
@@ -255,8 +264,6 @@ class Jobs:
         idx = self.job_indices[n_started_simulations % len(self.jobs)]
         job = self.get_specific_job(idx)
         job_copy = self.generate_and_apply_random_seeds(job)
-        job_copy = self.attach_control_variables(job_copy)
-        job_copy = self.attach_sim_name(job_copy)
 
         return job_copy
 
@@ -417,7 +424,7 @@ def init_sim_dir(job):
 
 def export_sim_cfg(sim_cfg):
     with open(sim_cfg.EXPORT_DIR + "/sim_configuration.json", "w") as f:
-        cfg = remove_non_serializable_items(deepcopy(vars(sim_cfg)))
+        cfg = remove_non_serializable_items(vars(sim_cfg))
         for key in ["patches", "color_dict"]:
             if key in cfg.keys():
                 del cfg[key]
@@ -472,20 +479,21 @@ def configure_logger(logname=None, batch_verbosity=None, _format="%(levelname)s:
 
 
 def remove_non_serializable_items(mydict):
-    """Remove non serializable items from given dict. 
-    Modifies in-place but also returns the modified dict for convenience."""
+    """Remove non serializable items from given dict."""
 
-    deletions = []
+    new_dict = {}
     for k, v in mydict.items():
         try:
             json.dumps(v)
+            new_dict[k] = v
         except TypeError:
-            deletions.append(k)
-    for k in deletions + ["help", "arguments_examples"]:
+            pass
+    
+    for k in ["help", "arguments_examples"]:
         if k in list(mydict.keys()):
-            del mydict[k]
+            del new_dict[k]
 
-    return mydict
+    return new_dict
 
 
 def export_batch_cfg(batch_cfg):
@@ -499,7 +507,7 @@ def export_batch_cfg(batch_cfg):
         batch_cfg_copy["arguments"] = args
         
         # Remove non-serializable items from config to avoid issues when exporting to json
-        remove_non_serializable_items(batch_cfg_copy)
+        batch_cfg_copy = remove_non_serializable_items(batch_cfg_copy)
             
         # Export to json file
         json.dump(batch_cfg_copy, args_json, indent=4)

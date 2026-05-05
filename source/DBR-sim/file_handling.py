@@ -315,7 +315,7 @@ def get_sim_name(cfg, extra_short=False):
                 shortened_key_components.append(shortened_kc)
 
             name += "-".join(shortened_key_components)
-            name += f"=={str(value)}__"
+            name += f"={str(value)}__"
         name = name[:-2] # Remove the last "__"
     else:
         name = "Sim_date__" + str(datetime.datetime.now()).replace(":", "-")
