@@ -10,14 +10,20 @@
         "termination_conditions": "timelimit",
         "self_ignition_factor": {
             "keyframes": [
-                {"time": 50, "value": 0},
-                {"time": 100, "range": [0, 100], "stepsize": 10},
-                {"time": 450, "range": [0, 100], "stepsize": 10},
-                {"time": 500, "value": 0}
+                {"time": 50, "value": 0, "interpolation": "constant"},
+                {"time": 100, "range": [0, 100], "stepsize": 10, "interpolation": "linear"},
+                {"time": 450, "range": [0, 100], "stepsize": 10, "interpolation": "linear"},
+                {"time": 500, "value": 0, "interpolation": "constant"}
             ],
             "interpolation": "keyframed"
         },
-        "STR": 1000,
+        "STR": {
+            "keyframes": [
+                {"time": 200, "value": 100, "interpolation": "constant"},
+                {"time": 300, "value": 1000, "interpolation": "constant"}
+            ],
+            "interpolation": "keyframed"
+        },
         "treecover": 1.0,
         "visualization_interval": 10,
         "heterogeneity": {

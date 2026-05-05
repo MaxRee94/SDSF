@@ -443,6 +443,12 @@ def do_update(dynamics, cfg):
     any of the termination conditions have been satisfied, and returns 'True' if the simulation should
     be terminated, and 'False' otherwise."""
 
+    # Apply any keyframe updates from cfg
+    with h.TemporaryStdout():
+        if hasattr(cfg, "keyframes"):
+            for attr, keyframes in cfg.keyframes.items():
+                pass
+
     print("-- Starting iteration...") if cfg.verbosity else None
     dynamics = do_iteration(dynamics, cfg)
     print("-- Finished update") if cfg.verbosity else None
