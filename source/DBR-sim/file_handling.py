@@ -273,6 +273,8 @@ def obtain_state_variables(dynamics, tree_hist, extra_parameters, cfg, init_csv,
         result["global_rotation_offset"] = str(cfg.global_rotation_offset)
     if hasattr(cfg, "control_vars"):
         for controlvar, controlvalue in cfg.control_vars.items():
+            if hasattr(cfg, controlvar): # Use updated value from cfg in case it exists; useful for keyframes that dynamically change control variables.
+                controlvalue = getattr(cfg, controlvar)
             result[controlvar] = str(controlvalue)
 
     return result
@@ -308,17 +310,24 @@ def get_sim_name(cfg, extra_short=False):
                 continue
             key_components = key.split(":")
             shortened_key_components = []
-            kc_length = 2 if extra_short else 6
+            kc_length = 2 if extra_short else 5
             for i, kc in enumerate(key_components):
                 _kc_length = max(2, kc_length-(len(key_components)-(i+1))) # Shorten the first words most, but ensure a minimum of 2 characters per word.
                 shortened_kc = "".join([word[0:_kc_length].capitalize() for word in kc.split("_") if True])
                 shortened_key_components.append(shortened_kc)
 
             name += "-".join(shortened_key_components)
-            name += f"={str(value)}__"
+            value = str(value).replace(':', '-')
+            if len(value) > 8:
+                value = value[:8] + "!!" # Truncate long values
+            name += f"={value}_"
         name = name[:-2] # Remove the last "__"
     else:
         name = "Sim_date__" + str(datetime.datetime.now()).replace(":", "-")
+        
+    # Overall truncation
+    if len(name) > 60:
+        name = name[:60] + "!TRUNC!"
     
     return name
 

@@ -71,15 +71,27 @@ class Jobs:
             job_ns = job
         
         ctrl_vars = {}
-        for key, _val in self.arg_changes.items():
+        control_config = deepcopy(self.arg_changes)
+        control_config["keyframes"] = {} # Add keyframes field with '{}' as placeholder
+        for key, _val in control_config.items():
             # Only include control variables that vary across simulations (these are dictionaries).
             if type(_val) != dict:
                 continue
+            
+            # Ignore default settings of keyframed arguments. These will be overwritten by the corresponding keyframe list.
+            if key in list(job_ns.keyframes.keys()):
+                continue
 
-            # Handle special arguments
+            # Get job-specific value of given control variable
             value = getattr(job_ns, key)
+            
+            # Handle special arguments
             if key == "treecover":
                 key = "initial tree cover"
+            if key == "keyframes":
+                for keyframe_arg, keyframe_vec in job_ns.keyframes.items():
+                    ctrl_vars[keyframe_arg] = keyframe_vec
+                continue
             elif _val.get("sub_arguments"): # Nested arguments
                 sub_args = _val["sub_arguments"]
                 for sub_arg_key in sub_args.keys():
