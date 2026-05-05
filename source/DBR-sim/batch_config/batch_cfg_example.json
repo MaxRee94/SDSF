@@ -8,6 +8,15 @@
         "resource_grid_width": 50,
         "max_timesteps": 100,
         "termination_conditions": "timelimit",
+        "self_ignition_factor": {
+            "keyframes": [
+                {"time": 50, "value": 0},
+                {"time": 100, "range": [0, 100], "stepsize": 10},
+                {"time": 450, "range": [0, 100], "stepsize": 10},
+                {"time": 500, "value": 0}
+            ],
+            "interpolation": "keyframed"
+        },
         "STR": 1000,
         "treecover": 1.0,
         "visualization_interval": 10,
