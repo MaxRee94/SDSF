@@ -36,6 +36,9 @@
             "interpolation": "nested"
         }
     },
+    "timedependent_actions": {
+        "heterogeneity['mortality']": "min(1, max(0, dynamics.time - 100)) * heterogeneity_stored['mortality']"
+    },
     "help": {
         "type": "The type of simulation batch to run. Currently only 'sensitivity_analysis' is supported, more types may be added later.",
         "runs": "The number of times that all simulation jobs with the given (range of) argument values should be executed. Set this to 1 if all jobs should run only once (no repetitions).",
