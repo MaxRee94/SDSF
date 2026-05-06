@@ -8,6 +8,7 @@ from tkinter import Image
 import cv2
 import time
 from config import *
+import random as random_DO_NOT_USE_DURING_SIM
 import helpers as h
 import numpy as np
 import shutil, errno
@@ -300,7 +301,7 @@ def get_fieldnames(dynamics, extra_parameters, cfg):
 
 def get_sim_name(cfg, extra_short=False):
     """Create a name for the simulation composed of either the provided sim name, the provided control variables, or the date and time."""
-    
+
     if hasattr(cfg, "sim_name"):
         name = cfg.sim_name
     elif hasattr(cfg, "control_vars"):
@@ -327,8 +328,14 @@ def get_sim_name(cfg, extra_short=False):
         
     # Overall truncation
     if len(name) > 60:
-        name = name[:60] + "!TRUNC!"
+        name = name[:60] + "--!!"
     
+    # Add unique identifier to ensure name is unique
+    unique_identifier = random_DO_NOT_USE_DURING_SIM.choices(
+        string.ascii_uppercase + string.digits + string.ascii_lowercase, k=4
+    )
+    name += "_ID=" + "".join(unique_identifier)
+
     return name
 
 

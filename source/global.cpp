@@ -416,6 +416,8 @@ PYBIND11_MODULE(dbr_cpp, module) {
             std::map<string, std::map<string, float>> animal_kernel_params = py::cast<std::map<string, std::map<string, float>>>(_animal_kernel_params);
             dynamics.set_global_kernels(nonanimal_kernel_params, animal_kernel_params);
         })
+        .def("set_self_ignition_factor", &Dynamics::set_self_ignition_factor)
+        .def("set_STR", &Dynamics::set_STR)
         .def("get_resource_grid_colors", [](Dynamics& dynamics, string& species, string& type, int& verbosity) {
             shared_ptr<int[]> color_distribution = dynamics.resource_grid.get_color_distribution(species, type, verbosity);
             return as_2d_numpy_array(color_distribution, dynamics.resource_grid.width);

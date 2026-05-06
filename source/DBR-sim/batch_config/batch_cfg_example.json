@@ -24,8 +24,9 @@
         },
         "STR": {
             "keyframes": [
-                {"time": 20, "value": 100, "interpolation": "constant"},
-                {"time": 30, "value": 1000, "interpolation": "constant"}
+                {"time": 20, "value": 0, "interpolation": "constant"},
+                {"time": 30, "value": 1000, "interpolation": "constant"},
+                {"time": 80, "value": 0, "interpolation": "constant"}
             ],
             "interpolation": "keyframed"
         },

@@ -181,6 +181,15 @@ def lift_console_output_suppression():
     sys.stdout = sys.stdout = sys.__stdout__
 
 
+def create_function_from_string(func_str):
+    func_creator = lambda mystring: lambda:eval(mystring)
+    return func_creator(func_str)
+
+
+def evaluate_stringified_object(mystring):
+    return create_function_from_string(mystring)()
+
+
 def parse_args(parser=None):
     """Parse commandline arguments.
 

@@ -306,6 +306,7 @@ _parameter_config = {
             ),
             "default": defaults["self_ignition_factor"],
         },
+        "setter": ["dynamics", "set_self_ignition_factor"]
     },
     "unsuppressed_flammability": {
         "keys": {
@@ -510,6 +511,7 @@ _parameter_config = {
             ),
             "default": defaults["STR"],
         },
+        "setter": ["dynamics", "set_STR"]
     },
     "termination_conditions": {
         "keys": {
@@ -990,6 +992,18 @@ _parameter_config = {
         }
     },
 }
+
+def get_setter(arg_key):
+    """Return the setter function associated with the given argument key, if it exists.
+    Args:
+        arg_key (str): The argument key to look up the setter function for.
+    Returns:
+        function or None: The setter function associated with the argument key, or None if no setter is defined.
+    """
+    param_cfg = _parameter_config.get(arg_key)
+    cpp_object_string, setter = param_cfg.get("setter", [None, None])
+    return cpp_object_string, setter
+
 
 class ParameterConfig():
     """Wrapper class for _parameter_config."""

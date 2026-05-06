@@ -435,28 +435,42 @@ def export_animal_resources(dynamics):
     cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "k_coarse", k_coarse_path)
    
 
-def apply_keyframes(curtime, cfg):
+def apply_keyframes(dynamics, cfg):
     if hasattr(cfg, "keyframes"):
-        for attr, keyframes in cfg.keyframes.items():
+        for arg_key, keyframes in cfg.keyframes.items():
+            old_value = copy.deepcopy(getattr(cfg, arg_key))
             keytimes = sorted(keyframes) # Sort keyframes in ascending order of time
             for i, keytime in enumerate(keytimes):
-                if curtime <= keytime:
+                if dynamics.time <= keytime:
                     if i == 0:
-                        # If the current time is before the first keyframe, set the attribute to the value of the first keyframe
-                        setattr(cfg, attr, keyframes[keytime])
+                        # If the current time is before the first keyframe, set the arg_key to the value of the first keyframe
+                        setattr(cfg, arg_key, keyframes[keytime])
                     else:
                         # Linearly interpolate between the previous and next keyframe values based on the current time
                         prev_keytime = keytimes[i-1]
                         prev_value = keyframes[prev_keytime]
                         next_value = keyframes[keytime]
                         difference = next_value - prev_value
-                        time_fractional_difference = (curtime - prev_keytime) / (keytime - prev_keytime)
+                        time_fractional_difference = (dynamics.time - prev_keytime) / (keytime - prev_keytime)
                         interp_value = prev_value + difference * time_fractional_difference
-                        setattr(cfg, attr, interp_value)
+                        setattr(cfg, arg_key, interp_value)
                     break
             else:
                 # If the current time is after the last keyframe, set the attribute to the value of the last keyframe
-                setattr(cfg, attr, keyframes[keytimes[-1]])
+                setattr(cfg, arg_key, keyframes[keytimes[-1]])
+            
+            # If the value has been changed in cfg, update it in the dynamics object as well (if applicable) 
+            new_value = getattr(cfg, arg_key)
+            if old_value != new_value:
+                # Get function string of setter for this argument
+                cpp_object_string, setter = get_setter(arg_key)
+                cpp_object = eval(cpp_object_string)
+                if setter is not None:
+                    setter_func = getattr(cpp_object, setter) # Use the setter to change the value in the cpp object.
+                    setter_func(new_value)
+                    print(f"Updated {arg_key} to {new_value} based on keyframe at time {dynamics.time}.")
+                else:
+                    print(f"Warning: No setter function found for {arg_key}. Updated value in cfg but not in dynamics object.")
 
     return cfg
 
@@ -470,7 +484,7 @@ def do_update(dynamics, cfg):
     be terminated, and 'False' otherwise."""
 
     # Apply any keyframe updates from cfg
-    apply_keyframes(dynamics.time, cfg)
+    apply_keyframes(dynamics, cfg)
 
     print("-- Starting iteration...") if cfg.verbosity else None
     dynamics = do_iteration(dynamics, cfg)

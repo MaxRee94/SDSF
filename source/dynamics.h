@@ -539,6 +539,12 @@ public:
 			(int)tree_deletion_schedule.size()
 		);
 	}
+	void set_self_ignition_factor(float _self_ignition_factor) {
+		self_ignition_factor = _self_ignition_factor;
+	}
+	void set_STR(float _STR) {
+		STR = _STR;
+	}
 	shared_ptr<int[]> get_resource_grid_colors(string species, string type) {
 		return resource_grid.get_color_distribution(species, type);
 	}
