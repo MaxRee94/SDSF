@@ -43,9 +43,12 @@
             },
             "sub_arguments": {
                 "mortality:sine_amplitude": {
-                    "range": [0, 0.5],
-                    "stepsize": 0.05,
-                    "interpolation": "linear"
+                    "keyframes": [
+                        {"time": 20, "value": 0, "interpolation": "constant"},
+                        {"time": 30, "range": [0, 0.5], "stepsize": 0.05, "interpolation": "linear"},
+                        {"time": 80, "value": 0, "interpolation": "constant"}
+                    ],
+                    "interpolation": "keyframed"
                 },
                 "mortality:sine_wavelength": {
                     "range": [30, 50],

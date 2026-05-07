@@ -135,6 +135,39 @@ class Jobs:
     def get_key_idx(self, key):
         return list(self.defaults.keys()).index(key)
 
+    def get_keyframe_vec(self, arg_cfg):
+        # Expand keyframe vectors based on batch config settings.
+        keyframe_vecs = {}
+        longest_kfv = {}
+        for keyframe in arg_cfg["keyframes"]:
+            time = keyframe["time"]
+            keyframe_vec = self.get_vec(keyframe)
+            keyframe_vecs[time] = keyframe_vec
+            if len(keyframe_vec) > len(longest_kfv):
+                longest_kfv = keyframe_vec
+            
+        # Duplicate constant keyframe values to construct a vector with a length equal to that of any interpolated keyframe vectors.
+        # If no interpolated keyframe vectors exist, no duplication will occur and the constant keyframe vectors will simply be of length 1.
+        keyframe_vecs_extended = {}
+        for kf_time, kfv in keyframe_vecs.items():
+            if len(kfv) < len(longest_kfv):
+                kfv = kfv * len(longest_kfv)
+            keyframe_vecs_extended[kf_time] = kfv
+                
+        # Check that each keyframe vector is of equal length now
+        for _, kfv in keyframe_vecs_extended.items():
+            assert(len(kfv) == len(longest_kfv)), "All non-constant keyframes should have an equal number of values. Check batch config JSON."
+                
+        # 'Transpose', to obtain keyframes for each individual simulation (rather than a list of values across all sims, for each keytime).
+        vec = []
+        for sim_idx in range(len(longest_kfv)):
+            sim_keyframes = {}
+            for keytime, kfv in keyframe_vecs_extended.items():
+                sim_keyframes[keytime] = kfv[sim_idx] # The i-th value of each keyframe vector belongs to the corresponding sim.
+            vec.append(sim_keyframes)
+
+        return vec
+
     def get_vec(self, arg_cfg):
         def round_to_significant_digits(vec, minim, maxim, stepsize):
             no_digits_after_comma = max(
@@ -169,36 +202,9 @@ class Jobs:
             for sub_arg_key, sub_arg_cfg in arg_cfg["sub_arguments"].items():
                 sub_vec = self.get_vec(sub_arg_cfg) # Parse the sub-arg config just like a normal arg config.
                 vec[sub_arg_key] = sub_vec
+            print("nested vec:", vec)
         elif arg_cfg["interpolation"] == "keyframed":
-            # Expand keyframe vectors based on batch config settings.
-            keyframe_vecs = {}
-            longest_kfv = {}
-            for keyframe in arg_cfg["keyframes"]:
-                time = keyframe["time"]
-                keyframe_vec = self.get_vec(keyframe)
-                keyframe_vecs[time] = keyframe_vec
-                if len(keyframe_vec) > len(longest_kfv):
-                    longest_kfv = keyframe_vec
-            
-            # Duplicate constant keyframe values to construct a vector with a length equal to that of any interpolated keyframe vectors.
-            # If no interpolated keyframe vectors exist, no duplication will occur and the constant keyframe vectors will simply be of length 1.
-            keyframe_vecs_extended = {}
-            for kf_time, kfv in keyframe_vecs.items():
-                if len(kfv) < len(longest_kfv):
-                    kfv = kfv * len(longest_kfv)
-                keyframe_vecs_extended[kf_time] = kfv
-                
-            # Check that each keyframe vector is of equal length now
-            for _, kfv in keyframe_vecs_extended.items():
-                assert(len(kfv) == len(longest_kfv)), "All non-constant keyframes should have an equal number of values. Check batch config JSON."
-                
-            # 'Transpose', to obtain keyframes for each individual simulation (rather than a list of values across all sims, for each keytime).
-            vec = []
-            for sim_idx in range(len(longest_kfv)):
-                sim_keyframes = {}
-                for keytime, kfv in keyframe_vecs_extended.items():
-                    sim_keyframes[keytime] = kfv[sim_idx] # The i-th value of each keyframe vector belongs to the corresponding sim.
-                vec.append(sim_keyframes)
+            vec = self.get_keyframe_vec(arg_cfg)
 
         return vec
 
@@ -219,6 +225,10 @@ class Jobs:
             first_subkey_of_first_value = list(vec[0].keys())[0]
             if type(first_subkey_of_first_value) == int:
                 return True
+        if type(vec) == dict:
+            for value in vec.values():
+                if self.contains_keyframes(value):
+                    return True
         return False
     
     def contains_nested_args(self, vec):
@@ -282,6 +292,7 @@ class Jobs:
             jobs, job_idx_generator = self.switch_to_random_sampling(job_count, generator_cfg)
 
         jobs, job_indices = self.do_post_processing(jobs, job_idx_generator, generator_cfg, arg_changes)
+        print("second job heterogen:", jobs[1].heterogeneity)
  
         return jobs, job_indices
 
@@ -294,18 +305,27 @@ class Jobs:
             vec = self.get_vec(arg_cfg)
             idx = self.get_key_idx(key)
             if self.contains_keyframes(vec):
-                expanded_arguments["keyframes"][key] = vec
-                constant_default_value = self.defaults[key]
-                vec = [constant_default_value] # Set to a constant default value; it will be overwritten by the keyframe values during simulation.
+                if self.contains_nested_args(vec):
+                    for subkey, sub_vec in deepcopy(vec).items():
+                        if self.contains_keyframes(sub_vec):
+                            expanded_arguments["keyframes"][key + ":" + subkey] = sub_vec
+                            vec[key + ":" + subkey] = ["KEYFRAMED"] # Placeholder will be overwritten by self.apply_first_keyframes()
+                            del vec[subkey]
+                else:
+                    expanded_arguments["keyframes"][key] = vec
+                    vec = ["KEYFRAMED"] # Placeholder will be overwritten by self.apply_first_keyframes()
             expanded_arguments[key] = {"vec": vec, "idx": idx, "arg_cfg": arg_cfg}
+            if self.contains_nested_args(vec):
+                print(f"nested args: key={key}, vec={vec}")
         
-        # Project expanded argument values across existing simulation jobs.
+        # Add an additional dimension to the jobs tensor, and apply the newly expanded argument values across all existing jobs.
         for key, expanded_cfg in expanded_arguments.items():
             if key == "keyframes":
                 # Create base dictionary and update the default dictionary accordingly
-                base_dict = {subkey:{} for subkey in expanded_cfg.keys() if subkey != "idx"}    # Store an empty dictionary for each subkey.
-                                                                                                # A 'subkey' is the name of an argument, stored inside
-                                                                                                # the keyframes dict.
+                base_dict = {subkey : {} for subkey in expanded_cfg.keys() if subkey != "idx"}    # Store an empty dictionary for each subkey.
+                                                                                                                # A 'subkey' is the name of an argument, stored inside
+                                                                                                                # the keyframes dict.
+                print("base dict:", base_dict)
                 is_single_value_set = type(value_sets[0]) != list
                 self.apply_single_arg_change(value_sets, is_single_value_set, expanded_cfg["idx"], base_dict)
                 
@@ -313,7 +333,8 @@ class Jobs:
                 for subkey, keyframe_sets in expanded_cfg.items():
                     if subkey == "idx":
                         continue
-                    value_sets = self.add_range(value_sets, expanded_cfg["idx"], keyframe_sets, sub_keys=subkey)
+                    print("subkey:", subkey, "    split:", subkey.split(":"))
+                    value_sets = self.add_range(value_sets, expanded_cfg["idx"], keyframe_sets, subkey=subkey, has_nested_keyframes=len(subkey.split(":")) > 1)
             elif self.contains_nested_args(expanded_cfg["vec"]):
                 # Obtain base dictionary and update the default dictionary accordingly
                 base_dict = expanded_cfg["arg_cfg"]["base"]
@@ -322,7 +343,9 @@ class Jobs:
                 
                 # Apply ranges of sub-arguments
                 for sub_arg_key, sub_vec in expanded_cfg["vec"].items():
-                    value_sets = self.add_range(value_sets, expanded_cfg["idx"], sub_vec, sub_keys=sub_arg_key)
+                    if "KEYFRAMED" in sub_vec:
+                        continue # If there are nested args that are keyframed, skip these (will be handled by 'if key == "keyframes"' block).
+                    value_sets = self.add_range(value_sets, expanded_cfg["idx"], sub_vec, subkey=sub_arg_key)
             else:
                 value_sets = self.add_range(value_sets, expanded_cfg["idx"], expanded_cfg["vec"])
 
@@ -348,36 +371,50 @@ class Jobs:
         idx = self.job_indices[n_started_simulations % len(self.jobs)]
         job = self.get_specific_job(idx)
         job_copy = self.generate_and_apply_random_seeds(job)
+        job_copy = self.apply_first_keyframes(job_copy)
 
         return job_copy
 
-    def apply_single_arg_change(self, value_sets, is_single_value_set, idx, value, sub_keys=None):
+    def apply_first_keyframes(self, job):
+        if job.keyframes:
+            for arg_key, keyframes in job.keyframes.items():
+                keytimes = sorted(keyframes) # Sort keyframes in ascending order of time
+                first_keyframe_value = keyframes[keytimes[0]] # Get value of first keyframe (i.e., the keyframe with the earliest time)]
+                setattr(job, arg_key, first_keyframe_value)
+
+    def apply_single_arg_change(self, value_sets, is_single_value_set, idx, value, subkey=None, has_nested_keyframes=False):
         if is_single_value_set:
-            if sub_keys:
-                parent_dictionary = deepcopy(value_sets[idx]) # Obtain 'base' dict
+            if subkey:
+                parent_dict = deepcopy(value_sets[idx]) # Obtain 'base' dict
                 sub_value = value
-                h.set_nested_dict_value(parent_dictionary, sub_keys, sub_value)
-                value = parent_dictionary
+                if has_nested_keyframes:
+                    parent_dict[subkey] = sub_value
+                else:
+                    h.set_nested_dict_value(parent_dict, subkey, sub_value)
+                value = parent_dict
             value_sets[idx] = value
         else:
             for value_set in value_sets:
-                if sub_keys:
-                    parent_dictionary = deepcopy(value_set[idx]) # Obtain 'base' dict
+                if subkey:
+                    parent_dict = deepcopy(value_set[idx]) # Obtain 'base' dict
                     sub_value = value
-                    h.set_nested_dict_value(parent_dictionary, sub_keys, sub_value)
-                    value_set[idx] = parent_dictionary
+                    if has_nested_keyframes:
+                        parent_dict[subkey] = sub_value
+                    else:
+                        h.set_nested_dict_value(parent_dict, subkey, sub_value)
+                    value_set[idx] = parent_dict
                 else:
                     value_set[idx] = value
 
         return value_sets
 
-    def add_range(self, value_sets, idx, vec, sub_keys=None):
+    def add_range(self, value_sets, idx, vec, subkey=None, has_nested_keyframes=False):
         """Add a range of values (i.e., a vector) to the argument sets at position idx.
         
         vec (list): Range of values to add.
         idx (int): Index into each argument list (='value_set') of the argument to modify.
         value_sets (list): list of argument lists (each sublist is a 'value_set'), or a single, flat value list if no arg changes have yet been made.
-        sub_keys (str): Coded name of the sub-argument to modify in case of nested argument changes. Format: "<sub_key>:<sub_sub_key>:...:etc".
+        subkey (str): Coded name of the sub-argument to modify in case of nested argument changes. Format: "<subkey>:<sub_subkey>:...:etc".
         """
 
         is_single_value_set = type(value_sets[0]) != list
@@ -389,8 +426,13 @@ class Jobs:
                 expanded_value_sets += deepcopy(value_sets)
 
         stepsize = len(value_sets)
+
         for i, value in enumerate(vec):
-            value_sets = self.apply_single_arg_change(deepcopy(value_sets), is_single_value_set, idx, value, sub_keys=sub_keys)
+            print("has nested keyframes?", has_nested_keyframes)
+            value_sets = self.apply_single_arg_change(
+                deepcopy(value_sets), is_single_value_set, idx, value,
+                subkey=subkey, has_nested_keyframes=has_nested_keyframes
+            )
             begin = i * stepsize
             end = begin + stepsize
             if is_single_value_set:

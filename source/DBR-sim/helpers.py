@@ -219,36 +219,39 @@ def strategy_distribution_params_are_loaded(strategy_distribution_params):
     return type(strategy_distribution_params) == dict
 
 
-def set_nested_dict_value(d, sub_keys, value):
-    sub_key_hierarchy = sub_keys.split(":") if sub_keys else []
-    if len(sub_key_hierarchy) == 1:
-        d[sub_key_hierarchy[0]] = value
-    elif len(sub_key_hierarchy) == 2:
-        d[sub_key_hierarchy[0]][sub_key_hierarchy[1]] = value
-    elif len(sub_key_hierarchy) == 3:
-        d[sub_key_hierarchy[0]][sub_key_hierarchy[1]][sub_key_hierarchy[2]] = value
-    elif len(sub_key_hierarchy) == 4:
-        d[sub_key_hierarchy[0]][sub_key_hierarchy[1]][sub_key_hierarchy[2]][sub_key_hierarchy[3]] = value
-    elif len(sub_key_hierarchy) == 5:
-        d[sub_key_hierarchy[0]][sub_key_hierarchy[1]][sub_key_hierarchy[2]][sub_key_hierarchy[3]][sub_key_hierarchy[4]] = value
-    elif len(sub_key_hierarchy) == 6:
-        d[sub_key_hierarchy[0]][sub_key_hierarchy[1]][sub_key_hierarchy[2]][sub_key_hierarchy[3]][sub_key_hierarchy[4]][sub_key_hierarchy[5]] = value
+def set_nested_dict_value(d, subkeys, value):
+    subkey_hierarchy = subkeys.split(":") if subkeys else []
+    if len(subkey_hierarchy) == 1:
+        d[subkey_hierarchy[0]] = value
+    elif len(subkey_hierarchy) == 2:
+        d[subkey_hierarchy[0]][subkey_hierarchy[1]] = value
+    elif len(subkey_hierarchy) == 3:
+        d[subkey_hierarchy[0]][subkey_hierarchy[1]][subkey_hierarchy[2]] = value
+    elif len(subkey_hierarchy) == 4:
+        d[subkey_hierarchy[0]][subkey_hierarchy[1]][subkey_hierarchy[2]][subkey_hierarchy[3]] = value
+    elif len(subkey_hierarchy) == 5:
+        d[subkey_hierarchy[0]][subkey_hierarchy[1]][subkey_hierarchy[2]][subkey_hierarchy[3]][subkey_hierarchy[4]] = value
+    elif len(subkey_hierarchy) == 6:
+        d[subkey_hierarchy[0]][subkey_hierarchy[1]][subkey_hierarchy[2]][subkey_hierarchy[3]][subkey_hierarchy[4]][subkey_hierarchy[5]] = value
 
 
-def get_nested_dict_value(d, sub_keys):
-    sub_key_hierarchy = sub_keys.split(":") if sub_keys else []
-    if len(sub_key_hierarchy) == 1:
-        return d[sub_key_hierarchy[0]]
-    elif len(sub_key_hierarchy) == 2:
-        return d[sub_key_hierarchy[0]][sub_key_hierarchy[1]]
-    elif len(sub_key_hierarchy) == 3:
-        return d[sub_key_hierarchy[0]][sub_key_hierarchy[1]][sub_key_hierarchy[2]]
-    elif len(sub_key_hierarchy) == 4:
-        return d[sub_key_hierarchy[0]][sub_key_hierarchy[1]][sub_key_hierarchy[2]][sub_key_hierarchy[3]]
-    elif len(sub_key_hierarchy) == 5:
-        return d[sub_key_hierarchy[0]][sub_key_hierarchy[1]][sub_key_hierarchy[2]][sub_key_hierarchy[3]][sub_key_hierarchy[4]]
-    elif len(sub_key_hierarchy) == 6:
-        return d[sub_key_hierarchy[0]][sub_key_hierarchy[1]][sub_key_hierarchy[2]][sub_key_hierarchy[3]][sub_key_hierarchy[4]][sub_key_hierarchy[5]]
+def get_nested_dict_value(d, subkeys):
+    subkey_hierarchy = subkeys.split(":") if subkeys else []
+    try:
+        if len(subkey_hierarchy) == 1:
+            return d[subkey_hierarchy[0]]
+        elif len(subkey_hierarchy) == 2:
+            return d[subkey_hierarchy[0]][subkey_hierarchy[1]]
+        elif len(subkey_hierarchy) == 3:
+            return d[subkey_hierarchy[0]][subkey_hierarchy[1]][subkey_hierarchy[2]]
+        elif len(subkey_hierarchy) == 4:
+            return d[subkey_hierarchy[0]][subkey_hierarchy[1]][subkey_hierarchy[2]][subkey_hierarchy[3]]
+        elif len(subkey_hierarchy) == 5:
+            return d[subkey_hierarchy[0]][subkey_hierarchy[1]][subkey_hierarchy[2]][subkey_hierarchy[3]][subkey_hierarchy[4]]
+        elif len(subkey_hierarchy) == 6:
+            return d[subkey_hierarchy[0]][subkey_hierarchy[1]][subkey_hierarchy[2]][subkey_hierarchy[3]][subkey_hierarchy[4]][subkey_hierarchy[5]]
+    except KeyError:
+        return None
 
 
 def load_json_strings_if_any(kwargs):
