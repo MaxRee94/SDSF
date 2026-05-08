@@ -202,7 +202,6 @@ class Jobs:
             for sub_arg_key, sub_arg_cfg in arg_cfg["sub_arguments"].items():
                 sub_vec = self.get_vec(sub_arg_cfg) # Parse the sub-arg config just like a normal arg config.
                 vec[sub_arg_key] = sub_vec
-            print("nested vec:", vec)
         elif arg_cfg["interpolation"] == "keyframed":
             vec = self.get_keyframe_vec(arg_cfg)
 
@@ -292,7 +291,6 @@ class Jobs:
             jobs, job_idx_generator = self.switch_to_random_sampling(job_count, generator_cfg)
 
         jobs, job_indices = self.do_post_processing(jobs, job_idx_generator, generator_cfg, arg_changes)
-        print("second job heterogen:", jobs[1].heterogeneity)
  
         return jobs, job_indices
 
@@ -315,8 +313,6 @@ class Jobs:
                     expanded_arguments["keyframes"][key] = vec
                     vec = ["KEYFRAMED"] # Placeholder will be overwritten by self.apply_first_keyframes()
             expanded_arguments[key] = {"vec": vec, "idx": idx, "arg_cfg": arg_cfg}
-            if self.contains_nested_args(vec):
-                print(f"nested args: key={key}, vec={vec}")
         
         # Add an additional dimension to the jobs tensor, and apply the newly expanded argument values across all existing jobs.
         for key, expanded_cfg in expanded_arguments.items():
@@ -325,7 +321,6 @@ class Jobs:
                 base_dict = {subkey : {} for subkey in expanded_cfg.keys() if subkey != "idx"}    # Store an empty dictionary for each subkey.
                                                                                                                 # A 'subkey' is the name of an argument, stored inside
                                                                                                                 # the keyframes dict.
-                print("base dict:", base_dict)
                 is_single_value_set = type(value_sets[0]) != list
                 self.apply_single_arg_change(value_sets, is_single_value_set, expanded_cfg["idx"], base_dict)
                 
@@ -333,7 +328,6 @@ class Jobs:
                 for subkey, keyframe_sets in expanded_cfg.items():
                     if subkey == "idx":
                         continue
-                    print("subkey:", subkey, "    split:", subkey.split(":"))
                     value_sets = self.add_range(value_sets, expanded_cfg["idx"], keyframe_sets, subkey=subkey, has_nested_keyframes=len(subkey.split(":")) > 1)
             elif self.contains_nested_args(expanded_cfg["vec"]):
                 # Obtain base dictionary and update the default dictionary accordingly
@@ -371,7 +365,7 @@ class Jobs:
         idx = self.job_indices[n_started_simulations % len(self.jobs)]
         job = self.get_specific_job(idx)
         job_copy = self.generate_and_apply_random_seeds(job)
-        job_copy = self.apply_first_keyframes(job_copy)
+        self.apply_first_keyframes(job_copy)
 
         return job_copy
 
@@ -380,7 +374,15 @@ class Jobs:
             for arg_key, keyframes in job.keyframes.items():
                 keytimes = sorted(keyframes) # Sort keyframes in ascending order of time
                 first_keyframe_value = keyframes[keytimes[0]] # Get value of first keyframe (i.e., the keyframe with the earliest time)]
-                setattr(job, arg_key, first_keyframe_value)
+                if ":" in arg_key:
+                    # Handle nested keyframes
+                    arg_key_split = arg_key.split(":")
+                    parent_key = arg_key_split[0]
+                    subkey = ":".join(arg_key_split[1:])
+                    arg_parent_dict = getattr(job, parent_key)
+                    h.set_nested_dict_value(arg_parent_dict, subkey, first_keyframe_value)
+                else:
+                    setattr(job, arg_key, first_keyframe_value)
 
     def apply_single_arg_change(self, value_sets, is_single_value_set, idx, value, subkey=None, has_nested_keyframes=False):
         if is_single_value_set:
@@ -428,7 +430,6 @@ class Jobs:
         stepsize = len(value_sets)
 
         for i, value in enumerate(vec):
-            print("has nested keyframes?", has_nested_keyframes)
             value_sets = self.apply_single_arg_change(
                 deepcopy(value_sets), is_single_value_set, idx, value,
                 subkey=subkey, has_nested_keyframes=has_nested_keyframes

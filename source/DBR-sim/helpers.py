@@ -215,6 +215,10 @@ def parse_args(parser=None):
     return kwargs
 
 
+def key_contains_subkeys(key):
+    return ":" in key
+
+
 def strategy_distribution_params_are_loaded(strategy_distribution_params):
     return type(strategy_distribution_params) == dict
 

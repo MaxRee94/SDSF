@@ -306,7 +306,7 @@ _parameter_config = {
             ),
             "default": defaults["self_ignition_factor"],
         },
-        "setter": ["dynamics", "set_self_ignition_factor"]
+        "setter": {"cppobj_or_module": "dynamics", "setter": "set_self_ignition_factor"}
     },
     "unsuppressed_flammability": {
         "keys": {
@@ -511,7 +511,7 @@ _parameter_config = {
             ),
             "default": defaults["STR"],
         },
-        "setter": ["dynamics", "set_STR"]
+        "setter": {"cppobj_or_module": "dynamics", "setter": "set_STR"}
     },
     "termination_conditions": {
         "keys": {
@@ -930,6 +930,7 @@ _parameter_config = {
             ),
             "default": defaults["heterogeneity"],
         },
+        "setter": {"cppobj_or_module": "io", "setter": "set_heterogeneity_maps", "prepended_args": ["dynamics", "cfg"]}
     },
     "allow_unknown_args": {
         "keys": {
@@ -1001,8 +1002,12 @@ def get_setter(arg_key):
         function or None: The setter function associated with the argument key, or None if no setter is defined.
     """
     param_cfg = _parameter_config.get(arg_key)
-    cpp_object_string, setter = param_cfg.get("setter", [None, None])
-    return cpp_object_string, setter
+    setter_cfg = param_cfg.get("setter", None)
+    if not setter_cfg.get("prepended_args"):
+        setter_cfg["prepended_args"] = []
+    if not setter_cfg.get("appended_args"):
+        setter_cfg["appended_args"] = []
+    return setter_cfg
 
 
 class ParameterConfig():

@@ -1,5 +1,6 @@
 from ast import arg
 from dataclasses import dataclass
+from hmac import new
 import sys
 from tkinter import E, N, Y
 
@@ -435,16 +436,71 @@ def export_animal_resources(dynamics):
     cfg.vis.save_resource_grid_colors(dynamics, "Turdus merula", "k_coarse", k_coarse_path)
    
 
+def set_keyframe(dynamics, cfg, arg_key, value):
+    if h.key_contains_subkeys(arg_key):
+        # Handle nested keyframes
+        arg_key_split = arg_key.split(":")
+        parent_key = arg_key_split[0]
+        subkey = ":".join(arg_key_split[1:])
+        arg_parent_dict = getattr(cfg, parent_key)
+        old_val = h.get_nested_dict_value(arg_parent_dict, subkey)
+        h.set_nested_dict_value(arg_parent_dict, subkey, value)
+        setattr(cfg, parent_key, arg_parent_dict)
+        arg_key = parent_key # Set the arg_key to the parent key, so that we can use it to find the setter function and update the associated value in the dynamics object.
+    else:
+        setattr(cfg, arg_key, value)
+    
+    return arg_key
+
+
+def set_keyframe_in_model_core(dynamics, arg_key, new_value):
+    # Get setter configuration from config.py
+    setter_cfg = get_setter(arg_key)
+    cppobj_or_module = eval(setter_cfg["cppobj_or_module"])
+    prepended_args = []
+    appended_args = []
+    for p in setter_cfg["prepended_args"]:
+        prepended_args.append(eval(p))
+    for a in setter_cfg["appended_args"]:
+        appended_args.append(eval(a))
+    setter = setter_cfg["setter"]
+    
+    # Use setter to apply new value
+    if setter is not None:
+        setter_func = getattr(cppobj_or_module, setter)
+        all_args = prepended_args + [new_value] + appended_args
+        setter_func(*all_args)
+        print(f"Updated {arg_key} to {new_value} based on keyframe at time {dynamics.time}.")
+    else:
+        print(f"Warning: No setter function found for {arg_key}. Updated value in cfg but not in dynamics object.")
+
+
+def get_old_keyframed_value(dynamics, cfg, arg_key):
+    if h.key_contains_subkeys(arg_key):
+        # Handle nested keyframes
+        arg_key_split = arg_key.split(":")
+        parent_key = arg_key_split[0]
+        subkey = ":".join(arg_key_split[1:])
+        arg_parent_dict = getattr(cfg, parent_key)
+        return h.get_nested_dict_value(arg_parent_dict, subkey)
+    else:
+        return getattr(cfg, arg_key)
+
+
 def apply_keyframes(dynamics, cfg):
     if hasattr(cfg, "keyframes"):
         for arg_key, keyframes in cfg.keyframes.items():
-            old_value = copy.deepcopy(getattr(cfg, arg_key))
+            # with h.TemporaryStdout():
+            #     if "sine_" in arg_key:
+            #         print("keyframes:", keyframes)
+            old_value = get_old_keyframed_value(dynamics, cfg, arg_key)
             keytimes = sorted(keyframes) # Sort keyframes in ascending order of time
             for i, keytime in enumerate(keytimes):
                 if dynamics.time <= keytime:
                     if i == 0:
                         # If the current time is before the first keyframe, set the arg_key to the value of the first keyframe
-                        setattr(cfg, arg_key, keyframes[keytime])
+                        new_value = keyframes[keytime]
+                        setattr(cfg, arg_key, new_value)
                     else:
                         # Linearly interpolate between the previous and next keyframe values based on the current time
                         prev_keytime = keytimes[i-1]
@@ -453,24 +509,23 @@ def apply_keyframes(dynamics, cfg):
                         difference = next_value - prev_value
                         time_fractional_difference = (dynamics.time - prev_keytime) / (keytime - prev_keytime)
                         interp_value = prev_value + difference * time_fractional_difference
-                        setattr(cfg, arg_key, interp_value)
+                        new_value = interp_value
+                        with h.TemporaryStdout():
+                            if "sine_" in arg_key:
+                                print("breaking")
+                        arg_key = set_keyframe(dynamics, cfg, arg_key, new_value)
                     break
             else:
                 # If the current time is after the last keyframe, set the attribute to the value of the last keyframe
-                setattr(cfg, arg_key, keyframes[keytimes[-1]])
+                new_value = keyframes[keytimes[-1]]
+                set_keyframe(dynamics, cfg, arg_key, new_value)
             
             # If the value has been changed in cfg, update it in the dynamics object as well (if applicable) 
-            new_value = getattr(cfg, arg_key)
+            with h.TemporaryStdout():
+                if "heterogeneity" in arg_key:
+                    print("time:", dynamics.time, "arg key:", arg_key, "old value:", old_value, "new value:", new_value)
             if old_value != new_value:
-                # Get function string of setter for this argument
-                cpp_object_string, setter = get_setter(arg_key)
-                cpp_object = eval(cpp_object_string)
-                if setter is not None:
-                    setter_func = getattr(cpp_object, setter) # Use the setter to change the value in the cpp object.
-                    setter_func(new_value)
-                    print(f"Updated {arg_key} to {new_value} based on keyframe at time {dynamics.time}.")
-                else:
-                    print(f"Warning: No setter function found for {arg_key}. Updated value in cfg but not in dynamics object.")
+                set_keyframe_in_model_core(dynamics, arg_key, new_value)
 
     return cfg
 
