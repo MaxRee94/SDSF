@@ -310,7 +310,8 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
     fire_freq_arrays = []
     fire_no_timesteps = 1
     patch_colors = {}
-    while dynamics.time < cfg.burnin_duration or (cfg.initial_pattern_image == "none" and dynamics.state.grid.get_tree_cover() > target_treecover):
+    dynamics.time = -cfg.burnin_duration
+    while dynamics.time < 0 or (cfg.initial_pattern_image == "none" and dynamics.state.grid.get_tree_cover() > target_treecover):
         print(f"Burn-in timestep:    {dynamics.time})")
         dynamics.disperse_within_forest(forest_mask)
         dynamics.grow()

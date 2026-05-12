@@ -223,7 +223,7 @@ def get_tree_histograms(dynamics, init_csv, fieldnames, cfg):
     )
  
 
-def obtain_state_variables(dynamics, tree_hist, extra_parameters, cfg, init_csv, fieldnames):
+def obtain_state_variables(dynamics, tree_hist, extra_parameters, cfg, init_csv, fieldnames, use_updated_ctrl_vars):
     firefree_interval_mean, firefree_interval_stdev = get_firefree_interval_stats(dynamics, "current_iteration")
     firefree_interval_fullsim_mean, firefree_interval_fullsim_stdev = get_firefree_interval_stats(dynamics, "average")
     fires = dynamics.get_fires()
@@ -274,14 +274,15 @@ def obtain_state_variables(dynamics, tree_hist, extra_parameters, cfg, init_csv,
         result["global_rotation_offset"] = str(cfg.global_rotation_offset)
     if hasattr(cfg, "control_vars"):
         for controlvar, controlvalue in cfg.control_vars.items():
-            if hasattr(cfg, controlvar): # Use updated value from cfg in case it exists; useful for keyframes that dynamically change control variables.
-                controlvalue = getattr(cfg, controlvar)
-            if h.key_contains_subkeys(controlvar):
-                parent_key = controlvar.split(":")[0]
-                if hasattr(cfg, parent_key):
-                    parent_dict = getattr(cfg, parent_key)
-                    subkey = ":".join(controlvar.split(":")[1:])
-                    controlvalue = h.get_nested_dict_value(parent_dict, subkey)
+            if use_updated_ctrl_vars:
+                if hasattr(cfg, controlvar): # Use updated value from cfg in case it exists; useful for keyframes that dynamically change control variables.
+                    controlvalue = getattr(cfg, controlvar)
+                if h.key_contains_subkeys(controlvar):
+                    parent_key = controlvar.split(":")[0]
+                    if hasattr(cfg, parent_key):
+                        parent_dict = getattr(cfg, parent_key)
+                        subkey = ":".join(controlvar.split(":")[1:])
+                        controlvalue = h.get_nested_dict_value(parent_dict, subkey)
             result[controlvar] = str(controlvalue)
 
     return result
@@ -360,7 +361,7 @@ def init_image_path(cfg, curtime):
 
 
 def export_state(
-        dynamics, path="", init_csv=True, extra_parameters="", cfg=None, **kwargs
+        dynamics, path="", init_csv=True, extra_parameters="", cfg=None, use_updated_ctrl_vars=True, **kwargs
     ):
     """Export the current values of the state variables of interest to a csv file."""
 
@@ -382,7 +383,7 @@ def export_state(
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         result = obtain_state_variables(
             dynamics, tree_hist,
-            extra_parameters, cfg, init_csv, fieldnames
+            extra_parameters, cfg, init_csv, fieldnames, use_updated_ctrl_vars
         )
         writer.writerow(result)
     

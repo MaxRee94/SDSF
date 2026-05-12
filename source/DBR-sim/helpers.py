@@ -288,6 +288,10 @@ def get_max(val1, val2):
         return val2
 
 
+def is_keyframed_arg(arg_key, cfg):
+    return arg_key in list(cfg.keyframes.keys())
+
+
 class TemporaryStdout:
     def __init__(self):
         pass

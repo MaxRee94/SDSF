@@ -36,6 +36,7 @@ class Jobs:
         # Set class defaults
         self.no_finished_rerun_cycles = 0
         self.sampling_mode = "regular" # alternative: "random"
+        self.first_keyframe_with_intersim_variation = {}
         
         # Compute/derive
         self.defaults = self.get_defaults(args)
@@ -59,10 +60,17 @@ class Jobs:
     def get_comprehensive_jobs_summary(self):
         summary = deepcopy(self.defaults)
         for key, arg_cfg in self.arg_changes.items():
-            vec = self.get_vec(arg_cfg)
+            vec = self.get_vec(arg_cfg, key)
             summary[key] = {"value(s)": vec}
         
         return summary
+    
+    def get_first_keyframe_with_intersim_variation(self, arg_key, job):
+        if self.first_keyframe_with_intersim_variation.get(arg_key) is None:
+            return None
+        else:
+            keytime = self.first_keyframe_with_intersim_variation[arg_key]
+            return job.keyframes[arg_key][keytime]
 
     def attach_control_variables(self, job):
         if isinstance(job, dict):
@@ -89,8 +97,14 @@ class Jobs:
             if key == "treecover":
                 key = "initial tree cover"
             if key == "keyframes":
-                for keyframe_arg, keyframe_vec in job_ns.keyframes.items():
-                    ctrl_vars[keyframe_arg] = keyframe_vec
+                for arg_key, keyframe_vec in job_ns.keyframes.items():
+                    # first_variable_keyframe = self.get_first_keyframe_with_intersim_variation(arg_key, job)
+                    # if first_variable_keyframe is None:
+                    #     first_keyframe_time = list(keyframe_vec.keys())[0]
+                    #     keyframe_val = keyframe_vec[first_keyframe_time]
+                    # else:
+                    #     keyframe_val = first_variable_keyframe
+                    ctrl_vars[arg_key] = keyframe_vec
                 continue
             elif _val.get("sub_arguments"): # Nested arguments
                 sub_args = _val["sub_arguments"]
@@ -135,16 +149,18 @@ class Jobs:
     def get_key_idx(self, key):
         return list(self.defaults.keys()).index(key)
 
-    def get_keyframe_vec(self, arg_cfg):
+    def get_keyframe_vec(self, arg_cfg, arg_key):
         # Expand keyframe vectors based on batch config settings.
         keyframe_vecs = {}
         longest_kfv = {}
-        for keyframe in arg_cfg["keyframes"]:
-            time = keyframe["time"]
-            keyframe_vec = self.get_vec(keyframe)
+        first_keyframe_with_intersim_variation = None
+        for keyframe_cfg in arg_cfg["keyframes"]:
+            time = keyframe_cfg["time"]
+            keyframe_vec = self.get_vec(keyframe_cfg)
             keyframe_vecs[time] = keyframe_vec
             if len(keyframe_vec) > len(longest_kfv):
                 longest_kfv = keyframe_vec
+                self.first_keyframe_with_intersim_variation[arg_key] = time           
             
         # Duplicate constant keyframe values to construct a vector with a length equal to that of any interpolated keyframe vectors.
         # If no interpolated keyframe vectors exist, no duplication will occur and the constant keyframe vectors will simply be of length 1.
@@ -168,7 +184,7 @@ class Jobs:
 
         return vec
 
-    def get_vec(self, arg_cfg):
+    def get_vec(self, arg_cfg, arg_key=None):
         def round_to_significant_digits(vec, minim, maxim, stepsize):
             no_digits_after_comma = max(
                 h.digits_after_decimal(minim),
@@ -203,7 +219,7 @@ class Jobs:
                 sub_vec = self.get_vec(sub_arg_cfg) # Parse the sub-arg config just like a normal arg config.
                 vec[sub_arg_key] = sub_vec
         elif arg_cfg["interpolation"] == "keyframed":
-            vec = self.get_keyframe_vec(arg_cfg)
+            vec = self.get_keyframe_vec(arg_cfg, arg_key)
 
         return vec
 
@@ -238,7 +254,7 @@ class Jobs:
         if job_count == 0:
             job_count = 1
         for key, arg_cfg in arg_changes.items():
-            vec = self.get_vec(arg_cfg)
+            vec = self.get_vec(arg_cfg, key)
             if self.contains_keyframes(vec):
                 job_count *= len(vec)
             elif self.contains_nested_args(vec):
@@ -300,7 +316,7 @@ class Jobs:
         # Expand argument values based on batch config settings.
         expanded_arguments = {"keyframes": {"idx": self.get_key_idx("keyframes")}}
         for key, arg_cfg in arg_changes.items():
-            vec = self.get_vec(arg_cfg)
+            vec = self.get_vec(arg_cfg, key)
             idx = self.get_key_idx(key)
             if self.contains_keyframes(vec):
                 if self.contains_nested_args(vec):
@@ -541,7 +557,7 @@ def export_state(batch_cfg, dynamics, job, sim_cfg, init_csv):
                 initialize_csv = True
 
     _io.export_state(
-        dynamics, path=batch_cfg.total_results_csv, init_csv=initialize_csv, cfg=sim_cfg
+        dynamics, path=batch_cfg.total_results_csv, init_csv=initialize_csv, cfg=sim_cfg, use_updated_ctrl_vars=False
     )
 
 
