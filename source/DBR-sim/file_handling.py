@@ -276,15 +276,12 @@ def obtain_state_variables(dynamics, tree_hist, extra_parameters, cfg, init_csv,
         for controlvar, controlvalue in cfg.control_vars.items():
             if hasattr(cfg, controlvar): # Use updated value from cfg in case it exists; useful for keyframes that dynamically change control variables.
                 controlvalue = getattr(cfg, controlvar)
-            elif h.key_contains_subkeys(controlvar):
+            if h.key_contains_subkeys(controlvar):
                 parent_key = controlvar.split(":")[0]
                 if hasattr(cfg, parent_key):
                     parent_dict = getattr(cfg, parent_key)
                     subkey = ":".join(controlvar.split(":")[1:])
                     controlvalue = h.get_nested_dict_value(parent_dict, subkey)
-                    with h.TemporaryStdout():
-                        print(f"Get controlvalue from parent dict below using subkey {subkey}:", parent_dict)
-                        print("---- the value is:", controlvalue)
             result[controlvar] = str(controlvalue)
 
     return result

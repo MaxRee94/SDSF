@@ -490,9 +490,6 @@ def get_old_keyframed_value(dynamics, cfg, arg_key):
 def apply_keyframes(dynamics, cfg):
     if hasattr(cfg, "keyframes"):
         for arg_key, keyframes in cfg.keyframes.items():
-            # with h.TemporaryStdout():
-            #     if "sine_" in arg_key:
-            #         print("keyframes:", keyframes)
             old_value = get_old_keyframed_value(dynamics, cfg, arg_key)
             keytimes = sorted(keyframes) # Sort keyframes in ascending order of time
             for i, keytime in enumerate(keytimes):
@@ -500,7 +497,7 @@ def apply_keyframes(dynamics, cfg):
                     if i == 0:
                         # If the current time is before the first keyframe, set the arg_key to the value of the first keyframe
                         new_value = keyframes[keytime]
-                        setattr(cfg, arg_key, new_value)
+                        arg_key = set_keyframe(dynamics, cfg, arg_key, new_value)
                     else:
                         # Linearly interpolate between the previous and next keyframe values based on the current time
                         prev_keytime = keytimes[i-1]
@@ -510,20 +507,14 @@ def apply_keyframes(dynamics, cfg):
                         time_fractional_difference = (dynamics.time - prev_keytime) / (keytime - prev_keytime)
                         interp_value = prev_value + difference * time_fractional_difference
                         new_value = interp_value
-                        with h.TemporaryStdout():
-                            if "sine_" in arg_key:
-                                print("breaking")
                         arg_key = set_keyframe(dynamics, cfg, arg_key, new_value)
                     break
             else:
                 # If the current time is after the last keyframe, set the attribute to the value of the last keyframe
                 new_value = keyframes[keytimes[-1]]
-                set_keyframe(dynamics, cfg, arg_key, new_value)
+                arg_key = set_keyframe(dynamics, cfg, arg_key, new_value)
             
             # If the value has been changed in cfg, update it in the dynamics object as well (if applicable) 
-            with h.TemporaryStdout():
-                if "heterogeneity" in arg_key:
-                    print("time:", dynamics.time, "arg key:", arg_key, "old value:", old_value, "new value:", new_value)
             if old_value != new_value:
                 set_keyframe_in_model_core(dynamics, arg_key, new_value)
 
