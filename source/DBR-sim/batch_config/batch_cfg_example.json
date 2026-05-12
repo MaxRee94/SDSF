@@ -35,7 +35,6 @@
             "base": {
                 "mortality": {
                     "type": "sine",
-                    "sine_wavelength": 100,
                     "sine_type": "vertical",
                     "sine_offset": 50,
                     "mean": 0
@@ -84,6 +83,12 @@
                         "Use this interpolation type if I should interpolate between the extremes defined in 'range': [<minimum>, <maximum>] using a power of ten scale with the step size defined in ",
                         "the field 'stepsize'. The interpolated range will include the given minimum, and if <maximum>-<minimum> is dividable by <stepsize>, then it will also include the maximum.",
                         "E.g., range [0, 2] with stepsize 1 will give [10^0, 10^1, 10^2], whereas the same range with stepsize 0.5 will give [10^0, 10^0.5, 10^1, 10^1.5, 10^2]"
+                     ],
+                     "keyframed": [
+                        "Use this interpolation type to make the argument vary across time, within individual simulations. A keyframe is defined as a time-value pair, which specifies the time step at which ",
+                        "the argument must have the given value. The 'value'-component of a keyframe can be varied between simulations, using one of the interpolation methods described above.",
+                        "Argument values at time points in between keyframes will be interpolated linearly. At time points before the first keyframe and after the last keyframe, the argument will be set equal ",
+                        "to the first or last keyframe, respectively."
                      ]
                 },
                 "range": "Use this field to define the minimum and maximum values for the given argument. The interpretation of these values depends on the interpolation type defined in the field 'interpolation'.",
@@ -116,11 +121,19 @@
             "stepsize": 1,
             "interpolation": "powerten"
         },
+        "STR": {
+            "keyframes": [
+                {"time": 5, "value": 0, "interpolation": "constant"},
+                {"time": 10, "range": [0, 1000], "stepsize": 10, "interpolation": "linear"},
+                {"time": 45, "range": [0, 1000], "stepsize": 10, "interpolation": "linear"},
+                {"time": 50, "value": 100, "interpolation": "constant"}
+            ],
+            "interpolation": "keyframed"
+        },
         "heterogeneity": {
             "base": {
                 "mortality": {
                     "type": "sine",
-                    "sine_wavelength": 100,
                     "sine_type": "vertical",
                     "sine_offset": 50,
                     "mean": 0
@@ -128,9 +141,12 @@
             },
             "sub_arguments": {
                 "mortality:sine_amplitude": {
-                    "range": [0, 0.5],
-                    "stepsize": 0.05,
-                    "interpolation": "linear"
+                    "keyframes": [
+                        {"time": 20, "value": 0, "interpolation": "constant"},
+                        {"time": 30, "range": [0, 0.5], "stepsize": 0.05, "interpolation": "linear"},
+                        {"time": 80, "value": 0, "interpolation": "constant"}
+                    ],
+                    "interpolation": "keyframed"
                 },
                 "mortality:sine_wavelength": {
                     "range": [30, 50],
