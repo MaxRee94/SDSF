@@ -4,7 +4,8 @@
     "arguments": {
         "forest_suitability": {
             "range": [0, 1],
-            "stepsize": 0.1
+            "stepsize": 0.1,
+            "interpolation": "linear"
         },
         "grid_width": 100,
         "dispersal_mode": "wind",
@@ -13,12 +14,15 @@
         "max_timesteps": 100,
         "termination_conditions": "timelimit_or_equilibrium",
         "self_ignition_factor": {
-            "relation_with_forest_suitability(x)": "y = c1 x",
-            "c1": {
+            "base": {
+                "relation_with_forest_suitability(x)": "y = c1 x"
+            },
+            "sub_arguments": {
+                "c1": {
                 "range": [-10, -5],
                 "stepsize": 5,
                 "interpolation": "linear"
-            }
+            }            
         }
     },
     "help": {

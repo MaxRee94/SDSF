@@ -143,6 +143,9 @@ class Jobs:
         defaults["verbosity"] = -1 # Suppress all non-critical print statements
         defaults["EXPORT_DIR"] = args["csv_parent_dir"]
         defaults["keyframes"] = {}
+        for arg_key in args.keys():
+            if arg_key not in defaults.keys():
+                defaults[arg_key] = None # Add a default value of None to any missing argument keys
         
         return defaults
 
