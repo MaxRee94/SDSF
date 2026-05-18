@@ -1,65 +1,35 @@
 {
-    "type": "sensitivity_analysis",
+    "type": "bifurcation_analysis",
     "runs": 20,
     "arguments": {
-        "treecover": {
-            "range": [0.2, 0.6],
-            "stepsize": 0.2,
-            "interpolation": "linear"
+        "forest_suitability": {
+            "range": [0, 1],
+            "stepsize": 0.1
         },
         "grid_width": 100,
         "dispersal_mode": "wind",
         "burnin_duration": 100,
         "resource_grid_width": 50,
         "max_timesteps": 100,
-        "termination_conditions": "timelimit",
+        "termination_conditions": "timelimit_or_equilibrium",
         "self_ignition_factor": {
-            "keyframes": [
-                {"time": 5, "value": 0, "interpolation": "constant"},
-                {"time": 10, "range": [0, 20], "stepsize": 10, "interpolation": "linear"},
-                {"time": 45, "range": [0, 2], "stepsize": 1, "interpolation": "powerten"},
-                {"time": 50, "value": 0, "interpolation": "constant"}
-            ],
-            "interpolation": "keyframed"
-        },
-        "STR": {
-            "keyframes": [
-                {"time": 20, "value": 0, "interpolation": "constant"},
-                {"time": 30, "value": 20, "interpolation": "constant"},
-                {"time": 80, "value": 0, "interpolation": "constant"}
-            ],
-            "interpolation": "keyframed"
-        },
-        "visualization_interval": 10,
-        "heterogeneity": {
-            "base": {
-                "mortality": {
-                    "type": "sine",
-                    "sine_type": "vertical",
-                    "sine_offset": 50,
-                    "mean": 0
-                }
-            },
-            "sub_arguments": {
-                "mortality:sine_amplitude": {
-                    "keyframes": [
-                        {"time": 20, "value": 0, "interpolation": "constant"},
-                        {"time": 30, "range": [0, 0.2], "interpolation": "categorical"},
-                        {"time": 80, "value": 0, "interpolation": "constant"}
-                    ],
-                    "interpolation": "keyframed"
-                },
-                "mortality:sine_wavelength": {
-                    "range": [0, 3],
-                    "stepsize": 1,
-                    "interpolation": "powerten"
-                }
-            },
-            "interpolation": "nested"
+            "relation_with_forest_suitability(x)": "y = c1 x",
+            "c1": {
+                "range": [-10, -5],
+                "stepsize": 5,
+                "interpolation": "linear"
+            }
         }
     },
     "help": {
-        "type": "The type of simulation batch to run. Currently only 'sensitivity_analysis' is supported, more types may be added later.",
+        "type": [
+            "The type of simulation batch to run. Currently only 'sensitivity_analysis' and 'bifurcation_analysis' are supported, more types may be added later.",
+            "If 'sensitivity_analysis' is specified, the system will run simulations with the given (ranges of) argument values, and use defaults for arguments that have not been specified. ",
+            "Each combination of argument values is repeated a certain number of times, as specified in the 'runs' field.",
+            "If 'bifurcation_analysis' is specified, the system will run simulations in which variable arguments (i.e., arguments for which a range of values has been specified) are ",
+            "varied across time. After each change, the system is allowed to converge to a new equilibrium state. "
+        ]
+        ,
         "runs": "The number of times that all simulation jobs with the given (range of) argument values should be executed. Set this to 1 if all jobs should run only once (no repetitions).",
         "arguments": {
             "global explanation": [
