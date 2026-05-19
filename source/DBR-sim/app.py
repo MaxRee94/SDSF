@@ -318,7 +318,6 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
         dynamics.induce_background_mortality()
         print("Repopulating grid..")
         dynamics.state.repopulate_grid(cfg.verbosity)
-        #dynamics.state.repopulate_grid(cfg.verbosity)
         if dynamics.time > (cfg.burnin_duration - 2):
             print("pruning..")
             dynamics.prune(forest_mask)
@@ -488,6 +487,12 @@ def get_old_keyframed_value(dynamics, cfg, arg_key):
         return getattr(cfg, arg_key)
 
 
+def derive_suitability_driven_args(cfg, suitability_driven_args, forest_suitability):
+    for arg_key, suitability_relation in suitability_driven_args.items():
+        new_value = eval(suitability_relation)
+        setattr(cfg, arg_key, new_value)
+
+
 def apply_keyframes(dynamics, cfg):
     if hasattr(cfg, "keyframes"):
         for arg_key, keyframes in cfg.keyframes.items():
@@ -616,6 +621,37 @@ def updateloop(dynamics, cfg):
     return dynamics, cfg
 
 
+def get_suitability_driven_arguments(cfg):
+    arg_keys = [key for key in vars(cfg).keys() if "SUITABILITY-DERIVED:" in str(getattr(cfg, key))]
+    suitability_driven_args = {}
+    for arg_key in arg_keys:
+        suitability_relation = getattr(cfg, arg_key)
+        suitability_driven_args[arg_key] = suitability_relation.replace("SUITABILITY-DERIVED:", "")
+    return suitability_driven_args
+
+
+def do_bifurcation_analysis(_cfg):
+    """Run a bifurcation analysis by repeatedly running the model with different values of a specified parameter, 
+    and tracking the resulting values of one or more dependent variables."""
+
+    print("Running bifurcation analysis...")
+    cfg = copy.deepcopy(_cfg)
+    
+    suitability_driven_args = get_suitability_driven_arguments(cfg)
+    initialize = True
+    for suitability in cfg.forest_suitability:
+        derive_suitability_driven_args(cfg, suitability_driven_args, suitability)
+        for a in suitability_driven_args.keys():
+            print(f"Value of {a} is now: ", getattr(cfg, a), f"for forest suitability {suitability}")
+            
+        if initialize:
+            dynamics = init(cfg)
+            initialize = False
+        dynamics, sim_cfg = updateloop(dynamics, cfg)
+    
+    return dynamics, sim_cfg
+
+
 def main(**user_args):
     """Initialize the model, run the simulation, and return the final state of the model and other tracked variables."""
 
@@ -632,9 +668,11 @@ def main(**user_args):
     args = SimpleNamespace(**user_args)
     cfg = h.apply_user_args_to_configuration(args, cfg)
 
-    dynamics = init(cfg)
-    
-    return updateloop(dynamics, cfg)
+    if getattr(cfg, "batch_type", None) == "bifurcation_analysis":
+        do_bifurcation_analysis(cfg)
+    else:
+        dynamics = init(cfg)
+        return updateloop(dynamics, cfg)
  
 
 

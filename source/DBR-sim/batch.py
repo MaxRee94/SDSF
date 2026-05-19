@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class Jobs:
     """Parses and stores the set of argument values of each simulation job as a namespace object."""
 
-    def __init__(self, runs=None, arguments=None, rng=None, firefreq_rng=None, **args):
+    def __init__(self, runs=None, arguments=None, rng=None, firefreq_rng=None, **batch_args):
         # Set from given args
         self.n_runs = runs
         self.arg_changes = arguments
@@ -39,7 +39,8 @@ class Jobs:
         self.first_keyframe_with_intersim_variation = {}
         
         # Compute/derive
-        self.defaults = self.get_defaults(args)
+        self.defaults = self.get_defaults(batch_args, arguments)
+        self.batch_type = batch_args["type"]
         self.update_default_values()
         self.jobs, self.job_indices = self.parse(arguments)
 
@@ -89,6 +90,10 @@ class Jobs:
             # Ignore default settings of keyframed arguments. These will be overwritten by the corresponding keyframe list.
             if key in list(job_ns.keyframes.keys()):
                 continue
+            
+            # Ignore other non-standard arguments (e.g., 'forest_suitability')
+            if not self.is_standard_argument(key):
+                continue
 
             # Get job-specific value of given control variable
             value = getattr(job_ns, key)
@@ -135,15 +140,15 @@ class Jobs:
         
         return job
 
-    def get_defaults(self, args):
+    def get_defaults(self, batch_args, arguments):
         defaults = config.get_all_defaults()
         
         # Overwrite some defaults that are required for a batch run.
         defaults["headless"] = True
         defaults["verbosity"] = -1 # Suppress all non-critical print statements
-        defaults["EXPORT_DIR"] = args["csv_parent_dir"]
+        defaults["EXPORT_DIR"] = batch_args["csv_parent_dir"]
         defaults["keyframes"] = {}
-        for arg_key in args.keys():
+        for arg_key in arguments.keys():
             if arg_key not in defaults.keys():
                 defaults[arg_key] = None # Add a default value of None to any missing argument keys
         
@@ -188,6 +193,7 @@ class Jobs:
         return vec
 
     def get_vec(self, arg_cfg, arg_key=None):
+        
         def round_to_significant_digits(vec, minim, maxim, stepsize):
             no_digits_after_comma = max(
                 h.digits_after_decimal(minim),
@@ -252,6 +258,11 @@ class Jobs:
     def contains_nested_args(self, vec):
         return type(vec) == dict
 
+    def is_standard_argument(self, arg_key):
+        if arg_key in ["forest_suitability"]:
+            return False
+        return True
+
     def derive_unique_job_count(self, arg_changes):
         job_count = 0
         if job_count == 0:
@@ -295,10 +306,45 @@ class Jobs:
     def add_attachments(self, job, arg_changes):
         job = self.attach_control_variables(job)
         job = self.attach_sim_name(job)
+        job.batch_type = self.batch_type
         
         return job
+    
+    def apply_suitability_relation_coefficients(self, arg_changes, jobs):
+        """In case of a bifurcation analysis with arguments whose value is determined by a relation with the 'forest_suitability' argument,
+        ensure the coefficients in this relation are assigned the parsed values."""
+
+        for arg_key, arg_cfg in arg_changes.items():
+            if type(arg_cfg) == dict and arg_cfg.get("base", {}).get("relation_with_forest_suitability"):
+                relation = arg_cfg["base"]["relation_with_forest_suitability"]
+                coefficient_keys = list(arg_cfg.get("sub_arguments").keys())
+                for job in jobs:
+                    job_specific_relation = relation
+                    for ck in coefficient_keys: 
+                        coefficient_value = getattr(job, arg_key).get(ck)
+                        job_specific_relation = job_specific_relation.replace(ck, str(coefficient_value))
+                    setattr(job, arg_key, "SUITABILITY-DERIVED:" + job_specific_relation)
+        
+        return jobs
+
+    def expand_forest_suitability_arg(self, arg_changes, jobs):
+        forest_suitability_vec = self.get_vec(arg_changes["forest_suitability"]["value"], "forest_suitability")
+        
+        for job in jobs:
+            job.forest_suitability = forest_suitability_vec
+        
+        return jobs
 
     def parse(self, arg_changes):
+        if self.batch_type == "bifurcation_analysis":
+            jobs, job_indices = self.parse_sensitivity_analysis(arg_changes)
+            jobs = self.apply_suitability_relation_coefficients(arg_changes, jobs)
+            jobs = self.expand_forest_suitability_arg(arg_changes, jobs)
+            return jobs, job_indices
+        else:
+            return self.parse_sensitivity_analysis(arg_changes)
+
+    def parse_sensitivity_analysis(self, arg_changes):
         job_count = self.derive_unique_job_count(arg_changes)
         logger.info("Expecting {} unique jobs.".format(job_count))
         generator_cfg = SimpleNamespace()
@@ -333,7 +379,7 @@ class Jobs:
                     vec = ["KEYFRAMED"] # Placeholder will be overwritten by self.apply_first_keyframes()
             expanded_arguments[key] = {"vec": vec, "idx": idx, "arg_cfg": arg_cfg}
         
-        # Add an additional dimension to the jobs tensor, and apply the newly expanded argument values across all existing jobs.
+        # Add an additional dimension to the jobs tensor, and apply the expanded argument values across all existing jobs.
         for key, expanded_cfg in expanded_arguments.items():
             if key == "keyframes":
                 # Create base dictionary and update the default dictionary accordingly
@@ -587,7 +633,7 @@ def run_sim(batch_cfg, job, init_csv):
 
 def run_batch(batch_cfg, proc_id, sim_counter, finished_sim_counter, init_csv):
     # We don't want detailed information to pop up about every single simulation, so we suppress it.
-    h.suppress_irrelevant_console_output()
+    #h.suppress_irrelevant_console_output()
 
     # Initialize the logger for this process.
     configure_logger(logname="batch.log", format="%(levelname)s %(processName)s: %(message)s", **vars(batch_cfg))

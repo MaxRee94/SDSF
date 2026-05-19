@@ -72,7 +72,7 @@ def load_json_config(file_path):
     return config
 
 
-def generate_heterogeneity_image(dynamics, map_type, map_dir, m_cfg):
+def generate_heterogeneity_image(dynamics, map_type, map_dir, m_cfg, cfg):
     if m_cfg["type"] == "sine":
         image = spg.generate(
             (dynamics.state.grid.width, dynamics.state.grid.width), **m_cfg
@@ -93,7 +93,7 @@ def generate_or_read_heterogeneity_image(dynamics, map_root_dir, heterogeneity_m
     if m_cfg is None:
         print(f"No configuration found for {map_type} map. Using default homogeneous map.")
         return None
-
+    
     m_cfg = h.overwrite_from_global_arguments(m_cfg, vars(cfg))
     map_dir = os.path.join(map_root_dir, map_type)
     if m_cfg.get("filename"):
@@ -101,7 +101,7 @@ def generate_or_read_heterogeneity_image(dynamics, map_root_dir, heterogeneity_m
         image = cv2.imread(impath, cv2.IMREAD_GRAYSCALE)
         image = (image.astype(np.float32) / 255.0) + m_cfg["minimum"] + m_cfg["maximum"] # Rescale to desired range
     else:
-        image = generate_heterogeneity_image(dynamics, map_type, map_dir, m_cfg)
+        image = generate_heterogeneity_image(dynamics, map_type, map_dir, m_cfg, cfg)
 
     image = cv2.resize(
         image, (dynamics.state.grid.width, dynamics.state.grid.width), 

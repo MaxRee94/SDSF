@@ -3,9 +3,12 @@
     "runs": 20,
     "arguments": {
         "forest_suitability": {
-            "range": [0, 1],
-            "stepsize": 0.1,
-            "interpolation": "linear"
+            "value": {
+                "range": [0, 1],
+                "stepsize": 0.1,
+                "interpolation": "linear"
+            },
+            "interpolation": "constant"
         },
         "grid_width": 100,
         "dispersal_mode": "wind",
@@ -15,14 +18,21 @@
         "termination_conditions": "timelimit",
         "self_ignition_factor": {
             "base": {
-                "relation_with_forest_suitability(x)": "y = c1*x"
+                "relation_with_forest_suitability": "max(0, c1 + c2 * forest_suitability)"
             },
             "sub_arguments": {
                 "c1": {
-                "range": [-10, -5],
-                "stepsize": 5,
-                "interpolation": "linear"
-            }            
+                    "range": [10, 20],
+                    "stepsize": 5,
+                    "interpolation": "linear"
+                },
+                "c2": {
+                    "range": [-10, -5],
+                    "stepsize": 5,
+                    "interpolation": "linear"
+                }  
+            },
+            "interpolation": "nested"          
         }
     },
     "help": {
@@ -36,8 +46,7 @@
             "The coefficients of these relationships can be varied using the `sub_arguments` field (see example). This will result in multiple bifurcation analyses, each with a different ",
             "coefficient value (i.e., this is a sensitivity analysis on the coefficients, where the shape of the bifurcation diagram is the dependent variable whose sensitivity we are interested in).",
             "In addition, other arguments may be varied that do not have a relation with forest suitability, and are thus kept constant within individual bifurcation analyses."
-        ]
-        ,
+        ],
         "runs": "The number of times that all simulation jobs with the given (range of) argument values should be executed. Set this to 1 if all jobs should run only once (no repetitions).",
         "arguments": {
             "global explanation": [
