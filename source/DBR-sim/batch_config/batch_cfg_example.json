@@ -12,27 +12,23 @@
         },
         "grid_width": 100,
         "dispersal_mode": "wind",
-        "burnin_duration": 100,
+        "burnin_duration": 5000,
+        "visualization_interval": 100,
         "resource_grid_width": 50,
-        "max_timesteps": 100,
+        "max_timesteps": 1000,
         "treecover": 0.5,
         "termination_conditions": "timelimit",
         "long_distance_dispersal_per_km": 10000,
         "self_ignition_factor": {
             "base": {
-                "relation_with_forest_suitability": "max(0, c1 + c2 * forest_suitability)"
+                "relation_with_forest_suitability": "max(0, c1 - c1 * forest_suitability)"
             },
             "sub_arguments": {
                 "c1": {
-                    "range": [1000, 2000],
-                    "stepsize": 5,
+                    "range": [1000, 20000],
+                    "stepsize": 100,
                     "interpolation": "linear"
-                },
-                "c2": {
-                    "range": [-1000, -500],
-                    "stepsize": 50,
-                    "interpolation": "linear"
-                }  
+                }
             },
             "interpolation": "nested"          
         },

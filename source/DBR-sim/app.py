@@ -649,7 +649,10 @@ def do_bifurcation_analysis(_cfg):
     cfg.suitability_driven_args = get_suitability_driven_arguments(cfg)
     initialize = True
     convergence_period = cfg.max_timesteps
-    for suitability in cfg.forest_suitability:
+    i = 0
+    i_step = 1
+    while i >= 0:
+        suitability = cfg.forest_suitability[i]
         print("--------------------- Suitability: ", suitability, "---------------------")
         derive_suitability_driven_args(cfg, suitability)
         for a in cfg.suitability_driven_args.keys():
@@ -663,6 +666,11 @@ def do_bifurcation_analysis(_cfg):
         
         set_suitability_driven_args_in_model_core(cfg, dynamics)
         dynamics, sim_cfg = updateloop(dynamics, cfg)
+        
+        if i == len(cfg.forest_suitability) - 1:
+            i_step = -1 # Reverse direction once we've reached the maximum suitability value
+            
+        i += i_step
     
     return dynamics, sim_cfg
 

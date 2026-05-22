@@ -640,7 +640,7 @@ def run_sim(batch_cfg, job, init_csv):
 
 def run_batch(batch_cfg, proc_id, sim_counter, finished_sim_counter, init_csv):
     # We don't want detailed information to pop up about every single simulation, so we suppress it.
-    #h.suppress_irrelevant_console_output()
+    h.suppress_irrelevant_console_output()
 
     # Initialize the logger for this process.
     configure_logger(logname="batch.log", format="%(levelname)s %(processName)s: %(message)s", **vars(batch_cfg))
