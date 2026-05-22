@@ -560,7 +560,7 @@ public:
 		if (self_ignition_factor == -1) {
 			return 1;
 		}
-		std::binomial_distribution<int> no_fires_distribution(grid->no_savanna_cells, self_ignition_factor / 1e6);
+		std::binomial_distribution<int> no_fires_distribution(grid->no_cells, self_ignition_factor / 1e6);
 		return no_fires_distribution(firefreq_RNG);
 	}
 	void burn() {
@@ -574,7 +574,7 @@ public:
 		no_fire_induced_nonseedling_topkills = 0;
 		fires.clear();
 		for (int i = 0; i < no_fires; i++) {
-			Cell* cell = grid->get_random_savanna_cell();
+			Cell* cell = grid->get_random_cell();
 			if (cell->time_last_fire == time) {
 				no_fires--;
 				continue;
