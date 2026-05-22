@@ -208,6 +208,7 @@ public:
 	void disperse_uniformly(shared_ptr<float[]> mask, int no_seeds_to_disperse) {
 		int i = 0;
 		int no_germinated_seedlings = 0;
+		bool mask_provided = bool(mask);
 		while (i < no_seeds_to_disperse) {
 			// Get random location within forest mask
 			pair<float, float> deposition_location;
@@ -216,13 +217,18 @@ public:
 			int grid_idx = grid->pos_2_idx(deposition_location);
 
 			i++;
-			if (mask[grid_idx] < 1) continue;
+			if (mask_provided && mask[grid_idx] < 1) continue;
 
 			// Germinate random seed at location
 			bool germinated = germinate_random_seedling(deposition_location, no_germinated_seedlings);
 			if (germinated) no_germinated_seedlings++;
 
 		}
+	}
+	void disperse_long_distance(float num_seeds_per_km2) {
+		int no_seeds_to_disperse = (int)(num_seeds_per_km2 * (grid->area / 1e6));
+		disperse_uniformly(nullptr, no_seeds_to_disperse);
+		recruit();
 	}
 	bool germinate_random_seedling(pair<float, float> deposition_location, int& no_germinated_seedlings) {
 		int dummy1 = 0; int dummy2 = 0; int dummy3 = 0; int dummy4 = 0; int dummy5 = 0; int dummy6 = 0;
@@ -233,11 +239,12 @@ public:
 		bool viable = seed.germinate_if_location_is_viable(
 			&state, dummy1, dummy2, dummy3, dummy4, dummy5, dummy6
 		);
+		Cell* cell = grid->get_cell_at_position(deposition_location);
 		if (!viable) return false;
 
 		// Generate crop
-		int crop_id = strategy.id; // Normally (outside burn-in) we insert the parent tree's id into the grid cell, which is equal to the corresponding crop id.
-								   // However, during burn-in there are no parent trees and thus strategy.id is inserted as a surrogate for tree id.
+		int crop_id = strategy.id; // Normally (during ordinary 'short-distance' dispersal) we insert the parent tree's id into the grid cell, which is equal to the corresponding crop id.
+								   // However, seeds dispersed long-distance have no explicit parent trees, and thus strategy.id is inserted as a surrogate for tree id.
 								   // We must therefore set the crop id equal to strategy.id here, so that the recruitment function can retrieve the corresponding crop.
 		pop->add_crop(strategy, deposition_location, strategy.id);
 

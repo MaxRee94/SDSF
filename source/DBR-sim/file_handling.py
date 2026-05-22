@@ -277,12 +277,15 @@ def obtain_state_variables(dynamics, tree_hist, extra_parameters, cfg, init_csv,
             if use_updated_ctrl_vars:
                 if hasattr(cfg, controlvar): # Use updated value from cfg in case it exists; useful for keyframes that dynamically change control variables.
                     controlvalue = getattr(cfg, controlvar)
-                if h.key_contains_subkeys(controlvar):
+                if h.key_contains_subkeys(controlvar): # Parse vars with nested keys
                     parent_key = controlvar.split(":")[0]
-                    if hasattr(cfg, parent_key):
-                        parent_dict = getattr(cfg, parent_key)
-                        subkey = ":".join(controlvar.split(":")[1:])
-                        controlvalue = h.get_nested_dict_value(parent_dict, subkey)
+                    if cfg.suitability_driven_args.get(parent_key): # In the case of a bifurcation analysis, control vars may appear nested, but are in fact ordinary 'flat' vars that are suitability-derived.
+                        controlvalue = getattr(cfg, parent_key)
+                    else:
+                        if hasattr(cfg, parent_key):
+                            parent_dict = getattr(cfg, parent_key)
+                            subkey = ":".join(controlvar.split(":")[1:])
+                            controlvalue = h.get_nested_dict_value(parent_dict, subkey)
             result[controlvar] = str(controlvalue)
 
     return result

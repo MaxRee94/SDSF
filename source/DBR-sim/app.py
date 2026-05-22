@@ -257,8 +257,12 @@ def init(cfg):
         "fire_freq", "recruitment", "fuel", "tree_LAI", "aggr_tree_LAI", "colored_patches",
         "fuel_penetration", "stand_density"
     ]
-    cfg.computer_start_time = time.time()
+
+    # Initialize csv
+    cfg = io.export_state(dynamics, path=cfg.csv_path, init_csv=cfg.init_csv, cfg=cfg)
     cfg.init_csv = False
+
+    cfg.computer_start_time = time.time()
     cfg.prev_tree_cover = [cfg.treecover] * 60
     cfg.treecover_slope = 0
     cfg.largest_absolute_slope = 0
@@ -311,7 +315,7 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
     fire_no_timesteps = 1
     patch_colors = {}
     dynamics.time = -cfg.burnin_duration
-    while dynamics.time < 0 or (cfg.initial_pattern_image == "none" and dynamics.state.grid.get_tree_cover() > target_treecover):
+    while target_treecover and dynamics.time < 0 or (cfg.initial_pattern_image == "none" and dynamics.state.grid.get_tree_cover() > target_treecover):
         print(f"Burn-in timestep:    {dynamics.time})")
         dynamics.disperse_within_forest(forest_mask)
         dynamics.grow()
@@ -327,8 +331,6 @@ def do_burn_in(dynamics, cfg, forest_mask, color_dicts, target_treecover=1):
             dynamics.state.grid.reset_state_distr()
         
         dynamics.report_state()
-        cfg = io.export_state(dynamics, path=cfg.csv_path, init_csv=cfg.init_csv, cfg=cfg)
-        cfg.init_csv = False
 
         # Feedback control on tree cover during burn-in
         if cfg.initial_pattern_image == "none" and dynamics.state.grid.get_tree_cover() > target_treecover:
@@ -374,6 +376,7 @@ def do_iteration(dynamics, cfg):
 
         if dynamics.time > 0:
             dynamics.disperse()
+            dynamics.disperse_long_distance(cfg.long_distance_dispersal_per_km)
 
         t1 = time.time()
         if cfg.verbosity > 0:
@@ -453,7 +456,7 @@ def set_keyframe(dynamics, cfg, arg_key, value):
     return arg_key
 
 
-def set_keyframe_in_model_core(dynamics, arg_key, new_value):
+def set_argument_in_model_core(dynamics, arg_key, new_value):
     # Get setter configuration from config.py
     setter_cfg = get_setter(arg_key)
     cppobj_or_module = eval(setter_cfg["cppobj_or_module"])
@@ -470,7 +473,7 @@ def set_keyframe_in_model_core(dynamics, arg_key, new_value):
         setter_func = getattr(cppobj_or_module, setter)
         all_args = prepended_args + [new_value] + appended_args
         setter_func(*all_args)
-        print(f"Updated {arg_key} to {new_value} based on keyframe at time {dynamics.time}.")
+        print(f"Updated {arg_key} to {new_value} at time {dynamics.time}.")
     else:
         print(f"Warning: No setter function found for {arg_key}. Updated value in cfg but not in dynamics object.")
 
@@ -487,10 +490,16 @@ def get_old_keyframed_value(dynamics, cfg, arg_key):
         return getattr(cfg, arg_key)
 
 
-def derive_suitability_driven_args(cfg, suitability_driven_args, forest_suitability):
-    for arg_key, suitability_relation in suitability_driven_args.items():
+def derive_suitability_driven_args(cfg, forest_suitability):
+    for arg_key, suitability_relation in cfg.suitability_driven_args.items():
         new_value = eval(suitability_relation)
         setattr(cfg, arg_key, new_value)
+
+
+def set_suitability_driven_args_in_model_core(cfg, dynamics):
+    for arg_key in cfg.suitability_driven_args.keys():
+        new_value = getattr(cfg, arg_key)
+        set_argument_in_model_core(dynamics, arg_key, new_value)
 
 
 def apply_keyframes(dynamics, cfg):
@@ -522,7 +531,7 @@ def apply_keyframes(dynamics, cfg):
             
             # If the value has been changed in cfg, update it in the dynamics object as well (if applicable) 
             if old_value != new_value:
-                set_keyframe_in_model_core(dynamics, arg_key, new_value)
+                set_argument_in_model_core(dynamics, arg_key, new_value)
 
     return cfg
 
@@ -637,16 +646,22 @@ def do_bifurcation_analysis(_cfg):
     print("Running bifurcation analysis...")
     cfg = copy.deepcopy(_cfg)
     
-    suitability_driven_args = get_suitability_driven_arguments(cfg)
+    cfg.suitability_driven_args = get_suitability_driven_arguments(cfg)
     initialize = True
+    convergence_period = cfg.max_timesteps
     for suitability in cfg.forest_suitability:
-        derive_suitability_driven_args(cfg, suitability_driven_args, suitability)
-        for a in suitability_driven_args.keys():
+        print("--------------------- Suitability: ", suitability, "---------------------")
+        derive_suitability_driven_args(cfg, suitability)
+        for a in cfg.suitability_driven_args.keys():
             print(f"Value of {a} is now: ", getattr(cfg, a), f"for forest suitability {suitability}")
             
         if initialize:
             dynamics = init(cfg)
             initialize = False
+        else:
+            cfg.max_timesteps += convergence_period
+        
+        set_suitability_driven_args_in_model_core(cfg, dynamics)
         dynamics, sim_cfg = updateloop(dynamics, cfg)
     
     return dynamics, sim_cfg
@@ -669,7 +684,7 @@ def main(**user_args):
     cfg = h.apply_user_args_to_configuration(args, cfg)
 
     if getattr(cfg, "batch_type", None) == "bifurcation_analysis":
-        do_bifurcation_analysis(cfg)
+        return do_bifurcation_analysis(cfg)
     else:
         dynamics = init(cfg)
         return updateloop(dynamics, cfg)

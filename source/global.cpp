@@ -373,7 +373,8 @@ PYBIND11_MODULE(dbr_cpp, module) {
             int width, height;
             convert_from_numpy_array(img, mask, width, height);
             dynamics.disperse_within_forest(mask);
-        })
+        }) 
+        .def("disperse_long_distance", &Dynamics::disperse_long_distance)
         .def("prune", [](Dynamics& dynamics, py::array_t<uint8_t>& img) {
             shared_ptr<float[]> mask;
             int width, height;

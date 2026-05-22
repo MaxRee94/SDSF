@@ -244,14 +244,21 @@ class Jobs:
 
         return job
     
-    def contains_keyframes(self, vec):
+    def arg_cfg_contains_keyframes(self, arg_cfg):
+        if type(arg_cfg) == dict and arg_cfg.get("interpolation") == "keyframed":
+            return True
+        return False
+
+    def vec_contains_keyframes(self, vec):
         if type(vec) == list and type(vec[0]) == dict:
+            print("first")
             first_subkey_of_first_value = list(vec[0].keys())[0]
             if type(first_subkey_of_first_value) == int:
                 return True
         if type(vec) == dict:
+            print("second")
             for value in vec.values():
-                if self.contains_keyframes(value):
+                if self.vec_contains_keyframes(value):
                     return True
         return False
     
@@ -269,7 +276,7 @@ class Jobs:
             job_count = 1
         for key, arg_cfg in arg_changes.items():
             vec = self.get_vec(arg_cfg, key)
-            if self.contains_keyframes(vec):
+            if self.arg_cfg_contains_keyframes(arg_cfg):
                 job_count *= len(vec)
             elif self.contains_nested_args(vec):
                 for sub_vec in vec.values():
@@ -367,10 +374,10 @@ class Jobs:
         for key, arg_cfg in arg_changes.items():
             vec = self.get_vec(arg_cfg, key)
             idx = self.get_key_idx(key)
-            if self.contains_keyframes(vec):
+            if self.arg_cfg_contains_keyframes(arg_cfg):
                 if self.contains_nested_args(vec):
                     for subkey, sub_vec in deepcopy(vec).items():
-                        if self.contains_keyframes(sub_vec):
+                        if self.vec_contains_keyframes(sub_vec):
                             expanded_arguments["keyframes"][key + ":" + subkey] = sub_vec
                             vec[key + ":" + subkey] = ["KEYFRAMED"] # Placeholder will be overwritten by self.apply_first_keyframes()
                             del vec[subkey]
