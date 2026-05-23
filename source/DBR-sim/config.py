@@ -160,21 +160,6 @@ defaults.update({
     "minimum_patch_size":30, # Minimum size (in m^2) of patches that are retained when generating initial patterns from images. We assume 78 m^2 since this corresponds to the area of a tree with radius = 5 (the approximate maximum in our model), in line with the 30m resolution of the GFC dataset.
     "long_distance_dispersal_per_km": 1000.0,
     "heterogeneity": {
-        "grass_carrying_capacity": {
-            "type": "noise",
-            "scale": 1,
-            "binary_connectivity": 0.8,
-            "minimum": 0,
-            "maximum": 1
-        },
-        "mortality": {
-            "type": "sine",
-            "sine_amplitude": 0.05,
-            "sine_wavelength": 100,
-            "sine_type": "vertical",
-            "sine_offset": 50,
-            "mean": 0
-        }
     }
 })
 
