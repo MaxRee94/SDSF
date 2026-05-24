@@ -13,26 +13,12 @@
         "grid_width": 100,
         "dispersal_mode": "wind",
         "burnin_duration": 5000,
-        "visualization_interval": 1,
+        "visualization_interval": 10,
         "resource_grid_width": 50,
-        "max_timesteps": 1000,
+        "unsuppressed_flammability": 0.9,
+        "max_timesteps": 10000,
         "display_fire_effects": 1,
-        "STR": {
-            "base": {
-                "relation_with_forest_suitability": "c2 + c1 * forest_suitability"
-            },
-            "sub_arguments": {
-                "c1": {
-                    "value": 5000,
-                    "interpolation": "constant"
-                },
-                "c2": {
-                    "value": 10000,
-                    "interpolation": "constant"
-                }
-            },
-            "interpolation": "nested"
-        },
+        "STR": 2000,
         "treecover": 0.5,
         "termination_conditions": "timelimit",
         "long_distance_dispersal_per_km": 10000,
@@ -43,7 +29,7 @@
             "sub_arguments": {
                 "c1": {
                     "range": [1000, 20000],
-                    "stepsize": 4000,
+                    "stepsize": 1000,
                     "interpolation": "linear"
                 }
             },
