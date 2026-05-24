@@ -599,18 +599,9 @@ public:
 			scientific << (float)no_ash_cells * grid->cell_area << " / " << grid->area << " m^2 \n";
 		cout << fixed;
 	}
-	float get_forest_flammability(Cell* cell, bool grass_has_recovered) {
-		float fuel_load = cell->get_fuel_load();
-		return max(0.1f, grass_has_recovered * unsuppressed_flammability * fuel_load); // We assume forest flammability is directly proportional to fuel load, though with a given minimum.
-	}
-	float get_savanna_flammability(bool grass_has_recovered) {
-		return grass_has_recovered * unsuppressed_flammability; // We assume grass flammability is directly proportional to fire-free interval.
-	}
 	float get_cell_flammability(Cell* cell, bool grass_has_recovered) {
-		if (cell->state == 1) {
-			return get_forest_flammability(cell, grass_has_recovered);
-		}
-		else return get_savanna_flammability(grass_has_recovered);
+		float fuel_load = cell->get_fuel_load();
+		return max(0.2f, grass_has_recovered * unsuppressed_flammability * fuel_load); // We assume flammability is directly proportional to fuel load, though with a given minimum.
 	}
 	bool tree_is_topkilled(Tree* tree) {
 		// if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", dbh, bark_thickness, survival_probability);
