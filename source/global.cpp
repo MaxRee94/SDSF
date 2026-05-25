@@ -248,7 +248,8 @@ Dynamics create_dynamics(py::dict dict) {
         get("firefreq_random_seed").cast<int>(),
         get("enforce_no_recruits").cast<float>(),
         get("animal_group_size").cast<int>(),
-		get("display_fire_effects").cast<bool>()
+		get("display_fire_effects").cast<bool>(),
+		get("forest_understory_flammability").cast<float>()
     );
 }
 

@@ -12,7 +12,7 @@ public:
 		float _growth_rate_multiplier, float _unsuppressed_flammability, float _max_dbh, float _saturation_threshold, map<string, float> fire_resistance_params,
 		float _background_mortality, map<string, map<string, float>> _strategy_distribution_params,
 		int _resource_grid_width, float _mutation_rate, float _STR, int _verbosity, int random_seed, int firefreq_random_seed, float __enforce_no_recruits,
-		int _animal_group_size, bool _display_fire_effects
+		int _animal_group_size, bool _display_fire_effects, float _forest_understory_flammability
 	) :
 		timestep(_timestep), cell_width(_cell_width), unsuppressed_flammability(_unsuppressed_flammability),
 		self_ignition_factor(_self_ignition_factor), seed_bearing_threshold(_max_dbh * _seed_bearing_threshold),
@@ -22,7 +22,7 @@ public:
 		fire_resistance_stretch(fire_resistance_params["stretch"]),
 		background_mortality(_background_mortality), strategy_distribution_params(_strategy_distribution_params),
 		resource_grid_width(_resource_grid_width), mutation_rate(_mutation_rate), STR(_STR), _enforce_no_recruits(__enforce_no_recruits), 
-		animal_group_size(_animal_group_size), display_fire_effects(_display_fire_effects)
+		animal_group_size(_animal_group_size), display_fire_effects(_display_fire_effects), forest_understory_flammability(_forest_understory_flammability)
 	{
 		help::init_RNG(random_seed);
 		firefreq_RNG.seed(firefreq_random_seed);
@@ -560,7 +560,7 @@ public:
 		if (self_ignition_factor == -1) {
 			return 1;
 		}
-		std::binomial_distribution<int> no_fires_distribution(grid->no_cells, self_ignition_factor / 1e6);
+		std::binomial_distribution<int> no_fires_distribution(grid->no_cells * grid->cell_area, self_ignition_factor / 1e6);
 		return no_fires_distribution(firefreq_RNG);
 	}
 	void burn() {
@@ -573,13 +573,13 @@ public:
 		no_fire_induced_topkills = 0;
 		no_fire_induced_nonseedling_topkills = 0;
 		fires.clear();
+		ignition_attempts = no_fires;
 		for (int i = 0; i < no_fires; i++) {
 			Cell* cell = grid->get_random_cell();
 			if (cell->time_last_fire == time) {
 				no_fires--;
 				continue;
 			}
-			no_fires++;
 			auto [_no_ash_cells, _no_grassy_ash_cells] = percolate(cell, time, no_fire_induced_topkills, no_fire_induced_nonseedling_topkills, no_exposures_of_adults_to_fire);
 			no_ash_cells += _no_ash_cells;
 			fires.push_back((float)_no_ash_cells * grid->cell_area);
@@ -591,17 +591,20 @@ public:
 		if (verbosity != -1) printf("no exposures of adults to fire: %i \n", no_exposures_of_adults_to_fire);
 		cout.precision(2);
 		if (verbosity != -1) printf(
-			"-- Fires: %i, Topkills: %s, Kills: %s \n",
-			no_fires, help::readable_number(no_fire_induced_topkills).c_str(), help::readable_number(no_fire_induced_deaths).c_str()
+			"-- Ignitions: %i, Fires: %i, Topkills: %s, Kills: %s \n",
+			ignition_attempts, fires.size(), help::readable_number(no_fire_induced_topkills).c_str(), help::readable_number(no_fire_induced_deaths).c_str()
 		);
 		if (verbosity != -1) cout <<
 			"-- Fraction of domain burned: " << (float)no_ash_cells / (float)grid->no_cells << ", Area burned: " <<
 			scientific << (float)no_ash_cells * grid->cell_area << " / " << grid->area << " m^2 \n";
 		cout << fixed;
 	}
-	float get_cell_flammability(Cell* cell, bool grass_has_recovered) {
+	float get_cell_flammability(Cell* cell, bool understory_has_recovered) {
 		float fuel_load = cell->get_fuel_load();
-		return max(0.2f, grass_has_recovered * unsuppressed_flammability * fuel_load); // We assume flammability is directly proportional to fuel load, though with a given minimum.
+		bool is_forest = cell->state == 1;
+		float forest_flammability = understory_has_recovered * forest_understory_flammability * is_forest; // Avoid using an if-statement by multiplying with the boolean 'is_forest'.
+		float savanna_flammability = understory_has_recovered * unsuppressed_flammability * fuel_load * !is_forest; // We assume savanna flammability is directly proportional to fuel load
+		return max(forest_flammability, savanna_flammability);
 	}
 	bool tree_is_topkilled(Tree* tree) {
 		// if (verbosity == 2) printf("stem diameter: %f cm, bark thickness: %f mm, survival probability: %f \n", dbh, bark_thickness, survival_probability);
@@ -708,6 +711,9 @@ public:
 		basal_area /= grid->area;
 		return basal_area;
 	}
+	float get_ignition_attempts() {
+		return ignition_attempts;
+	}
 	float unsuppressed_flammability = 0;
 	shared_ptr<float[]> fire_free_interval_averages;
 	float min_suppressed_flammability = 0;
@@ -728,6 +734,7 @@ public:
 	float background_mortality = 0;
 	float fraction_time_spent_moving = 0;
 	float mutation_rate = 0;
+	float forest_understory_flammability = 0;
 	float STR = 0;
 	float _enforce_no_recruits = 0;
 	int no_cases_seedling_competition_and_shading = 0;
@@ -750,6 +757,7 @@ public:
 	int no_fire_induced_topkills = 0;
 	int no_fire_induced_nonseedling_topkills = 0;
 	int initial_no_effective_dispersals = 0;
+	int ignition_attempts = 0;
 	bool display_fire_effects = true;
 	State state;
 	Population* pop = 0;

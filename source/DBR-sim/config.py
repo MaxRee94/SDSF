@@ -147,8 +147,9 @@ defaults.update({
 defaults.update({
     "cur_image_fraction_pixels": None,
     "circular_image_fraction_pixels": None,
-    "self_ignition_factor": 3,
+    "self_ignition_factor": 3, # The number of ignitions that will occur per year per km^2, regardless of vegetation state. The actual number of fires may be lower, depending on vegetation structure and flammability.
     "unsuppressed_flammability": 0.5,
+    "forest_understory_flammability": 0.1,
     "growth_rate_multiplier_params": [0, 1.0, 1.0],
     "growth_rate_multiplier": 1,
     "dispersal_mode": "wind",
@@ -486,6 +487,18 @@ _parameter_config = {
             "default": defaults["mutation_rate"],
         },
     },
+    "forest_understory_flammability": {
+        "keys": {
+            "cli": ["--forest_understory_flammability", "-fuf"]
+        },
+        "settings": {
+            "type": float,
+            "help": (
+                "The flammability of the forest understory (distinct from the grassy understory of the savanna)."
+            ),
+            "default": defaults["forest_understory_flammability"],
+        },
+    },
     "STR": {
         "keys": {
             "cli": ["--STR", "-fcm"]
@@ -795,7 +808,7 @@ _parameter_config = {
             "help": "If True, no error is raised if the given mean_distance (used for generating disk patterns) is automatically changed to generate a perfect grid.",
             "default": defaults["suppress_distance_warning"],
         }
-    },#
+    },
     "cur_image_fraction_pixels": {
         "keys": {
             "cli": ["--cur_image_fraction_pixels", "-cifpx"]
