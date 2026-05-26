@@ -237,13 +237,13 @@ def init(cfg):
     # Create color dictionaries to be used in visualizations
     visualization.create_color_dict(cfg)
 
-    # Set input maps
-    print("Setting heterogeneity maps...") if cfg.verbosity > 0 else None
-    dynamics = io.set_heterogeneity_maps(dynamics, cfg)
-
     # Set initial tree cover
     print("Setting initial tree cover...") if cfg.verbosity > 0 else None
     dynamics = set_initial_tree_cover(dynamics, cfg, cfg.color_dicts)
+
+    # Set input maps
+    print("Setting heterogeneity maps...") if cfg.verbosity > 0 else None
+    dynamics = io.set_heterogeneity_maps(dynamics, cfg)
     
     # Visualize the initial state
     visualization.visualize_initial_state(dynamics, cfg)
