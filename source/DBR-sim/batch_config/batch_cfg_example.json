@@ -5,18 +5,18 @@
         "forest_suitability": {
             "value": {
                 "range": [0, 1],
-                "stepsize": 0.1,
+                "stepsize": 0.025,
                 "interpolation": "linear"
             },
             "interpolation": "constant"
         },
-        "grid_width": 100,
+        "grid_width": 200,
         "dispersal_mode": "wind",
         "burnin_duration": 5000,
         "visualization_interval": 10,
         "resource_grid_width": 50,
         "unsuppressed_flammability": 0.9,
-        "max_timesteps": 10000,
+        "max_timesteps": 1000,
         "display_fire_effects": 1,
         "STR": 2000,
         "treecover": 0.5,
@@ -28,14 +28,32 @@
             },
             "sub_arguments": {
                 "c1": {
-                    "range": [1000, 20000],
-                    "stepsize": 1000,
+                    "range": [100, 200],
+                    "stepsize": 40,
                     "interpolation": "linear"
                 }
             },
             "interpolation": "nested"          
         },
-        "heterogeneity": {"value": {}, "interpolation": "constant"}
+        "heterogeneity": {
+            "base": {
+                "grass_carrying_capacity": {
+                    "type": "sine",
+                    "sine_type": "vertical",
+                    "sine_wavelength": 200,
+                    "sine_offset": 100,
+                    "mean": 0.5
+                }
+            },
+            "sub_arguments": {
+                "grass_carrying_capacity:sine_amplitude": {
+                    "range": [0, 0.5],
+                    "interpolation": "linear",
+                    "stepsize": 0.1
+                }
+            }, 
+            "interpolation": "nested"
+        }
     },
     "help": {
         "type": [
