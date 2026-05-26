@@ -149,7 +149,7 @@ defaults.update({
     "circular_image_fraction_pixels": None,
     "self_ignition_factor": 3, # The number of ignitions that will occur per year per km^2, regardless of vegetation state. The actual number of fires may be lower, depending on vegetation structure and flammability.
     "unsuppressed_flammability": 0.5,
-    "forest_understory_flammability": 0.1,
+    "forest_understory_flammability": 0.2,
     "growth_rate_multiplier_params": [0, 1.0, 1.0],
     "growth_rate_multiplier": 1,
     "dispersal_mode": "wind",
