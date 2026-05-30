@@ -24,13 +24,12 @@
         "long_distance_dispersal_per_km": 10000,
         "self_ignition_factor": {
             "base": {
-                "relation_with_forest_suitability": "max(0, c1 - c1 * forest_suitability)"
+                "relation_with_forest_suitability": "max(0, c1 * 2 - c1 * forest_suitability)"
             },
             "sub_arguments": {
                 "c1": {
-                    "range": [100, 200],
-                    "stepsize": 40,
-                    "interpolation": "linear"
+                    "value": 8000,
+                    "interpolation": "constant"
                 }
             },
             "interpolation": "nested"          
@@ -42,11 +41,11 @@
                     "sine_type": "vertical",
                     "sine_wavelength": 200,
                     "sine_offset": 100,
-                    "mean": 0.5
+                    "sine_amplitude": 0.3
                 }
             },
             "sub_arguments": {
-                "grass_carrying_capacity:sine_amplitude": {
+                "grass_carrying_capacity:mean": {
                     "range": [0, 0.5],
                     "interpolation": "linear",
                     "stepsize": 0.1
@@ -61,7 +60,7 @@
             "If 'sensitivity_analysis' is specified, the system will run simulations with the given (ranges of) argument values, and use defaults for arguments that have not been specified. ",
             "Each combination of argument values is repeated a certain number of times, as specified in the 'runs' field.",
             "If 'bifurcation_analysis' is specified, the system will run simulations in which the argument forest_suitability (which is specific to this type of analysis) is ",
-            "varied across time (first from the defined maximum toward the minimum, and then back to maximum). After each change, the system is allowed to converge to a new equilibrium state.",
+            "varied across time (first from the defined minimum toward the maximum, and then back to minimum). After each change, the system is allowed to converge to a new equilibrium state.",
             "Other arguments may vary as well, according to their 'relation_with_forest_suitability', which indicates how that argument changes with forest suitability.",
             "The coefficients of these relationships can be varied using the `sub_arguments` field (see example). This will result in multiple bifurcation analyses, each with a different ",
             "coefficient value (i.e., this is a sensitivity analysis on the coefficients, where the shape of the bifurcation diagram is the dependent variable whose sensitivity we are interested in).",
