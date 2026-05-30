@@ -72,7 +72,17 @@ def load_json_config(file_path):
     return config
 
 
+def get_heterogeneity_cutoffs(m_cfg, map_type):
+    if map_type in ["growth_multipliers", "grass_carrying_capacity", "mortality"]:
+        m_cfg["cutoff_min"] = 0
+        m_cfg["cutoff_max"] = 1
+
+    return m_cfg
+
+
 def generate_heterogeneity_image(dynamics, map_type, map_dir, m_cfg, cfg):
+    m_cfg = get_heterogeneity_cutoffs(m_cfg, map_type)
+
     if m_cfg["type"] == "sine":
         image = spg.generate(
             (dynamics.state.grid.width, dynamics.state.grid.width), **m_cfg
@@ -82,7 +92,13 @@ def generate_heterogeneity_image(dynamics, map_type, map_dir, m_cfg, cfg):
     else:
         raise ValueError(f"Unknown {map_type} pattern type: {m_cfg['type']}")
     impath = os.path.join(map_dir, f"generated_{map_type}.png")
-    img_rescaled = (image - image.min()) / (image.max() - image.min()) * 255 if image.max() > image.min() else np.zeros_like(image)
+    if image.max() > image.min():
+        _img = image.copy()
+        if _img.max() > 1:
+            _img = (_img / _img.max()) # Ensure maximum is at most 1
+        img_rescaled = _img * 255
+    else:
+        img_rescaled = np.zeros_like(image)
     cv2.imwrite(impath, img_rescaled)
 
     return image

@@ -4,7 +4,7 @@ import numpy as np
 
 def generate(dimensions, sine_amplitude=1, sine_wavelength=100,
              sine_type="horizontal", sine_offset=0, show=False, 
-             maximum=None, minimum=None, mean=None, **cfg):
+             maximum=None, minimum=None, cutoff_min=None, cutoff_max=None, mean=None, **cfg):
     """
     Generate a grayscale image with sine-based patterns.
 
@@ -80,6 +80,12 @@ def generate(dimensions, sine_amplitude=1, sine_wavelength=100,
 
     # Rescale value range from [-1, 1] to [minimum, maximum]
     pattern = (pattern + 1) / 2 * (maximum - minimum) + minimum
+
+    # If cutoff limits are specified, apply them
+    if cutoff_min is not None:
+        pattern = np.maximum(pattern, cutoff_min)
+    if cutoff_max is not None:
+        pattern = np.minimum(pattern, cutoff_max)
 
     if show:
         # Scale to grayscale image
