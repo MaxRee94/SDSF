@@ -1,0 +1,182 @@
+{
+    "type": "bifurcation_analysis",
+    "runs": 20,
+    "arguments": {
+        "forest_suitability": {
+            "value": {
+                "range": [0, 1],
+                "stepsize": 0.025,
+                "interpolation": "linear"
+            },
+            "interpolation": "constant"
+        },
+        "grid_width": 200,
+        "dispersal_mode": "wind",
+        "burnin_duration": 5000,
+        "visualization_interval": 10,
+        "resource_grid_width": 50,
+        "unsuppressed_flammability": 0.9,
+        "forest_understory_flammability": 0.2,
+        "max_timesteps": 1000,
+        "display_fire_effects": 1,
+        "STR": 2000,
+        "treecover": 0.5,
+        "termination_conditions": "timelimit",
+        "long_distance_dispersal_per_km": 10000,
+        "self_ignition_factor": {
+            "base": {
+                "relation_with_forest_suitability": "max(0, c1 - c1 * forest_suitability)"
+            },
+            "sub_arguments": {
+                "c1": {
+                    "range": [1000, 7000],
+                    "stepsize": 3000,
+                    "interpolation": "linear"
+                }
+            },
+            "interpolation": "nested"          
+        },
+        "heterogeneity": {
+            "base": {
+                "grass_carrying_capacity": {
+                    "type": "sine",
+                    "sine_type": "vertical",
+                    "sine_wavelength": 200,
+                    "sine_offset": 100,
+                    "mean": 0.5
+                },
+                "growth_rate_multipliers": {
+                    "type": "sine",
+                    "sine_type": "vertical",
+                    "sine_wavelength": 200,
+                    "sine_offset": 0,
+                    "mean": 0.5
+                }
+            },
+            "sub_arguments": {
+                "grass_carrying_capacity:sine_amplitude": {
+                    "range": [0, 0.5],
+                    "interpolation": "linear",
+                    "stepsize": 0.1
+                },
+                "growth_rate_multipliers:sine_amplitude": {
+                    "range": [0, 0.5],
+                    "interpolation": "linear",
+                    "stepsize": 0.1
+                }
+            }, 
+            "interpolation": "nested"
+        }
+    },
+    "help": {
+        "type": [
+            "The type of simulation batch to run. Currently only 'sensitivity_analysis' and 'bifurcation_analysis' are supported, more types may be added later.",
+            "If 'sensitivity_analysis' is specified, the system will run simulations with the given (ranges of) argument values, and use defaults for arguments that have not been specified. ",
+            "Each combination of argument values is repeated a certain number of times, as specified in the 'runs' field.",
+            "If 'bifurcation_analysis' is specified, the system will run simulations in which the argument forest_suitability (which is specific to this type of analysis) is ",
+            "varied across time (first from the defined maximum toward the minimum, and then back to maximum). After each change, the system is allowed to converge to a new equilibrium state.",
+            "Other arguments may vary as well, according to their 'relation_with_forest_suitability', which indicates how that argument changes with forest suitability.",
+            "The coefficients of these relationships can be varied using the `sub_arguments` field (see example). This will result in multiple bifurcation analyses, each with a different ",
+            "coefficient value (i.e., this is a sensitivity analysis on the coefficients, where the shape of the bifurcation diagram is the dependent variable whose sensitivity we are interested in).",
+            "In addition, other arguments may be varied that do not have a relation with forest suitability, and are thus kept constant within individual bifurcation analyses."
+        ],
+        "runs": "The number of times that all simulation jobs with the given (range of) argument values should be executed. Set this to 1 if all jobs should run only once (no repetitions).",
+        "arguments": {
+            "global explanation": [
+                "Use the arguments dictionary to specify which arguments should be modified with respect to the defaults defined in config.py, and how. NOTE: If not specified here, ",
+                "the global random seed will vary between simulations (by default, each sim is given a randomly generated seed).",
+                "NOTE: If you want to use a fixed value for the given argument across all simulations, you can simply specify the value (without using a dictionary)."
+            ],
+            "options per argument": {
+                "interpolation": {
+                    "global explanation": "Use this field to define the kind of interpolation I should use to compute a range of argument values. Currently supported options are listed below.",
+                    "categorical": [
+                        "Specify 'categorical' if the given value range is already complete (no interpolation needed) and/or if it cannot be interpolated (e.g., a list of strings, such ",
+                        "as ['wind', 'animal'])."
+                    ],
+                    "linear": [
+                        "Use this interpolation type if I should linearly interpolate between the extremes defined in 'range': [<minimum>, <maximum>] with the step size defined in the field 'stepsize'.",
+                        "The interpolated range will include the given minimum, and if <maximum>-<minimum> is dividable by <stepsize>, then it will also include the maximum.",
+                        "E.g., range [0.1, 0.4] with stepsize 0.1 will give [0.1, 0.2, 0.3, 0.4], whereas the same range with stepsize 0.12 will give [0.1, 0.22, 0.34]"
+                    ],
+                    "powerten": [
+                        "Use this interpolation type if I should interpolate between the extremes defined in 'range': [<minimum>, <maximum>] using a power of ten scale with the step size defined in ",
+                        "the field 'stepsize'. The interpolated range will include the given minimum, and if <maximum>-<minimum> is dividable by <stepsize>, then it will also include the maximum.",
+                        "E.g., range [0, 2] with stepsize 1 will give [10^0, 10^1, 10^2], whereas the same range with stepsize 0.5 will give [10^0, 10^0.5, 10^1, 10^1.5, 10^2]"
+                     ],
+                     "keyframed": [
+                        "Use this interpolation type to make the argument vary across time, within individual simulations. A keyframe is defined as a time-value pair, which specifies the time step at which ",
+                        "the argument must have the given value. The 'value'-component of a keyframe can be varied between simulations, using one of the interpolation methods described above.",
+                        "Argument values at time points in between keyframes will be interpolated linearly. At time points before the first keyframe and after the last keyframe, the argument will be set equal ",
+                        "to the first or last keyframe, respectively."
+                     ]
+                },
+                "range": "Use this field to define the minimum and maximum values for the given argument. The interpretation of these values depends on the interpolation type defined in the field 'interpolation'.",
+                "stepsize": [
+                    "Use this field to define the step size for interpolation. The interpretation of this value depends on the interpolation type defined in the ",
+                    "field 'interpolation'. For categorical variables, step size is ignored."
+                ] ,
+                "base": [
+                    "In case of dictionary arguments, use this field to define the default value for the given argument. Keys of this dictionary (and any nested dictionaries) will be replaced by 'sub-argument' and ",
+                    "the values associated with it. (with interpolation if specified) to create a range of argument values."
+                ],
+                "sub_arguments": [
+                    "Use this field if you have a dictionary argument whose nested values you want to vary. Deeply nested keys can be specified using the format 'key1:key2:key3:etc.'"
+                ]
+            }
+        }
+    },
+    "arguments_examples": {
+        "dispersal_mode": {
+            "range": ["wind", "animal"],
+            "interpolation": "categorical"
+        },
+        "treecover": {
+            "range": [0, 0.5],
+            "stepsize": 0.1,
+            "interpolation": "linear"
+        },
+        "self_ignition_factor": {
+            "range": [0, 4],
+            "stepsize": 1,
+            "interpolation": "powerten"
+        },
+        "STR": {
+            "keyframes": [
+                {"time": 5, "value": 0, "interpolation": "constant"},
+                {"time": 10, "range": [0, 1000], "stepsize": 10, "interpolation": "linear"},
+                {"time": 45, "range": [0, 1000], "stepsize": 10, "interpolation": "linear"},
+                {"time": 50, "value": 100, "interpolation": "constant"}
+            ],
+            "interpolation": "keyframed"
+        },
+        "heterogeneity": {
+            "base": {
+                "mortality": {
+                    "type": "sine",
+                    "sine_type": "vertical",
+                    "sine_offset": 50,
+                    "mean": 0
+                }
+            },
+            "sub_arguments": {
+                "mortality:sine_amplitude": {
+                    "keyframes": [
+                        {"time": 20, "value": 0, "interpolation": "constant"},
+                        {"time": 30, "range": [0, 0.5], "stepsize": 0.05, "interpolation": "linear"},
+                        {"time": 80, "value": 0, "interpolation": "constant"}
+                    ],
+                    "interpolation": "keyframed"
+                },
+                "mortality:sine_wavelength": {
+                    "range": [30, 50],
+                    "stepsize": 10,
+                    "interpolation": "linear"
+                }
+            },
+            "interpolation": "nested"
+        },
+        "grid_width": 25,
+        "burnin_duration": 15
+    }
+}
