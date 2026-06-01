@@ -142,16 +142,16 @@ public:
 				largest_id = tree.id;
 			}
 
-			auto [became_reproductive, dies_due_to_light_limitation] = tree.grow(seed_bearing_threshold, shade, local_growth_multiplier);
+			auto [became_reproductive, dies_due_to_growth_limitation] = tree.grow(seed_bearing_threshold, shade, local_growth_multiplier);
 			no_trees_that_became_reproductive += became_reproductive;
 
 			// Add dying trees to deletion schedule
-			if (dies_due_to_light_limitation) {
+			if (dies_due_to_growth_limitation) {
 				tree_deletion_schedule.push_back(id);
 			}
 		}
 		pop->remove(tree_deletion_schedule);
-		Tree* largest_tree = &pop->members[largest_id];
+		//Tree* largest_tree = &pop->members[largest_id];
 		//printf("Largest dbh: %f, Shade on largest tree (id %i): %f, height: %f, LAI: %f, age: %i, crown radius: %f \n", largest_dbh, largest_id, largest_dbh_shade, largest_tree->height, largest_tree->LAI, largest_tree->age, largest_tree->radius);
 		if (verbosity != -1) printf("-- No trees dead due to light limitation: %i \n", tree_deletion_schedule.size());
 		if (verbosity != -1) printf("-- Number of trees that became reproductive: %i \n", no_trees_that_became_reproductive);
