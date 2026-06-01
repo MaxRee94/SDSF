@@ -301,7 +301,7 @@ _parameter_config = {
             ),
             "default": defaults["self_ignition_factor"],
         },
-        "setter": {"cppobj_or_module": "dynamics", "setter": "set_self_ignition_factor"}
+        "setter": {"cppobj_or_module": "dynamics", "setter": "set_self_ignition_factor", "value_arg": True}
     },
     "unsuppressed_flammability": {
         "keys": {
@@ -518,7 +518,7 @@ _parameter_config = {
             ),
             "default": defaults["STR"],
         },
-        "setter": {"cppobj_or_module": "dynamics", "setter": "set_STR"}
+        "setter": {"cppobj_or_module": "dynamics", "setter": "set_STR", "value_arg": True}
     },
     "termination_conditions": {
         "keys": {

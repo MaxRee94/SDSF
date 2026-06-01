@@ -358,7 +358,6 @@ class Jobs:
                             job_specific_relation = job_specific_relation.replace(ck, str(coefficient_value))
                         setattr(job, arg_key, "SUITABILITY-DERIVED:" + job_specific_relation)
                 else:
-                    print("Nested suitability arg:", arg_key, f". \nCurrent arg value: {getattr(job, arg_key)}")
                     # Argument is a dictionary argument. We need to check for each sub-argument whether it is controlled by forest
                     # suitability, and if so, apply the corresponding coefficients.
                     self.apply_suitability_relation_coefficients_to_nested_arg(arg_key, arg_cfg, arg_changes, jobs)
