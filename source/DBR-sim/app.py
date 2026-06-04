@@ -593,7 +593,7 @@ def do_update(dynamics, cfg):
     if not cfg.headless:
         cfg.graphs.update()
 
-    if export_animal_resources and (cfg.dispersal_mode == "all" or cfg.dispersal_mode == "animal"):
+    if cfg.export_animal_resources and (cfg.dispersal_mode == "all" or cfg.dispersal_mode == "animal"):
         export_animal_resources(dynamics)
 
     if do_terminate:
