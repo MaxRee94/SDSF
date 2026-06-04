@@ -317,20 +317,50 @@ class Jobs:
         
         return job
     
+    def traverse_dict_and_apply_suitability_coefficients(self, thedict, coefficients, job):
+        if thedict.get("relation_with_forest_suitability"):
+            job_specific_relation = thedict["relation_with_forest_suitability"]
+            for ck, cv in coefficients.items(): 
+                job_specific_relation = job_specific_relation.replace(ck, str(cv))
+                                
+            thedict = "SUITABILITY-DERIVED:" + job_specific_relation
+            return thedict
+        else:
+            for key, value in thedict.items():
+                # Recurse
+                if type(value) == dict:
+                    thedict[key] = self.traverse_dict_and_apply_suitability_coefficients(value, coefficients, job)
+
+        return thedict
+
+    def apply_suitability_relation_coefficients_to_nested_arg(self, arg_key, arg_cfg, arg_changes, jobs):
+        coefficient_keys = list(arg_cfg.get("sub_arguments").keys())
+        for i, job in enumerate(jobs):
+            coefficients = {k: getattr(job, arg_key).get(k) for k in coefficient_keys} # Get the coefficients for the current job.
+            job_arg_dict = getattr(job, arg_key)
+            job_arg_dict = self.traverse_dict_and_apply_suitability_coefficients(job_arg_dict, coefficients, job)
+            setattr(job, arg_key, job_arg_dict)
+
     def apply_suitability_relation_coefficients(self, arg_changes, jobs):
         """In case of a bifurcation analysis with arguments whose value is determined by a relation with the 'forest_suitability' argument,
         ensure the coefficients in this relation are assigned the parsed values."""
 
         for arg_key, arg_cfg in arg_changes.items():
-            if type(arg_cfg) == dict and arg_cfg.get("base", {}).get("relation_with_forest_suitability"):
-                relation = arg_cfg["base"]["relation_with_forest_suitability"]
-                coefficient_keys = list(arg_cfg.get("sub_arguments").keys())
-                for job in jobs:
-                    job_specific_relation = relation
-                    for ck in coefficient_keys: 
-                        coefficient_value = getattr(job, arg_key).get(ck)
-                        job_specific_relation = job_specific_relation.replace(ck, str(coefficient_value))
-                    setattr(job, arg_key, "SUITABILITY-DERIVED:" + job_specific_relation)
+            if type(arg_cfg) == dict and arg_cfg.get("base", {}):
+                is_flat_suitability_arg = arg_cfg["base"].get("relation_with_forest_suitability") # A flat suitability arg is a non-dict argument controlled by forest suitability.
+                if is_flat_suitability_arg:
+                    relation = arg_cfg["base"]["relation_with_forest_suitability"]
+                    coefficient_keys = list(arg_cfg.get("sub_arguments").keys())
+                    for job in jobs:
+                        job_specific_relation = relation
+                        for ck in coefficient_keys: 
+                            coefficient_value = getattr(job, arg_key).get(ck)
+                            job_specific_relation = job_specific_relation.replace(ck, str(coefficient_value))
+                        setattr(job, arg_key, "SUITABILITY-DERIVED:" + job_specific_relation)
+                else:
+                    # Argument is a dictionary argument. We need to check for each sub-argument whether it is controlled by forest
+                    # suitability, and if so, apply the corresponding coefficients.
+                    self.apply_suitability_relation_coefficients_to_nested_arg(arg_key, arg_cfg, arg_changes, jobs)
         
         return jobs
 

@@ -456,7 +456,7 @@ def set_keyframe(dynamics, cfg, arg_key, value):
     return arg_key
 
 
-def set_argument_in_model_core(dynamics, arg_key, new_value):
+def set_argument_in_model_core(dynamics, cfg, arg_key, new_value):
     # Get setter configuration from config.py
     setter_cfg = get_setter(arg_key)
     cppobj_or_module = eval(setter_cfg["cppobj_or_module"])
@@ -467,11 +467,14 @@ def set_argument_in_model_core(dynamics, arg_key, new_value):
     for a in setter_cfg["appended_args"]:
         appended_args.append(eval(a))
     setter = setter_cfg["setter"]
-    
+
     # Use setter to apply new value
     if setter is not None:
         setter_func = getattr(cppobj_or_module, setter)
-        all_args = prepended_args + [new_value] + appended_args
+        if setter_cfg.get("value_arg"):
+            all_args = prepended_args + [new_value] + appended_args
+        else:
+            all_args = prepended_args + appended_args
         setter_func(*all_args)
         print(f"Updated {arg_key} to {new_value} at time {dynamics.time}.")
     else:
@@ -491,15 +494,15 @@ def get_old_keyframed_value(dynamics, cfg, arg_key):
 
 
 def derive_suitability_driven_args(cfg, forest_suitability):
-    for arg_key, suitability_relation in cfg.suitability_driven_args.items():
-        new_value = eval(suitability_relation)
+    for arg_key, relation_or_base_dict in cfg.suitability_driven_args.items():
+        new_value = derive_suitability_driven_arg(relation_or_base_dict, forest_suitability)
         setattr(cfg, arg_key, new_value)
 
 
 def set_suitability_driven_args_in_model_core(cfg, dynamics):
     for arg_key in cfg.suitability_driven_args.keys():
         new_value = getattr(cfg, arg_key)
-        set_argument_in_model_core(dynamics, arg_key, new_value)
+        set_argument_in_model_core(dynamics, cfg, arg_key, new_value)
 
 
 def apply_keyframes(dynamics, cfg):
@@ -531,7 +534,7 @@ def apply_keyframes(dynamics, cfg):
             
             # If the value has been changed in cfg, update it in the dynamics object as well (if applicable) 
             if old_value != new_value:
-                set_argument_in_model_core(dynamics, arg_key, new_value)
+                set_argument_in_model_core(dynamics, cfg, arg_key, new_value)
 
     return cfg
 
@@ -630,12 +633,26 @@ def updateloop(dynamics, cfg):
     return dynamics, cfg
 
 
+def derive_suitability_driven_arg(current_value, forest_suitability):
+    if type(current_value) == str and current_value.startswith("SUITABILITY-DERIVED:"):
+        suitability_relation = current_value.replace("SUITABILITY-DERIVED:", "")
+        current_value = eval(suitability_relation)
+    elif type(current_value) == dict:
+        # Recurse through the base dict, applying suitability relations when found.
+        for k, v in current_value.items():
+            if type(v) == str and v.startswith("SUITABILITY-DERIVED:"):
+                suitability_relation = v.replace("SUITABILITY-DERIVED:", "")
+                current_value[k] = eval(suitability_relation)
+            elif type(v) == dict:
+                current_value[k] = derive_suitability_driven_arg(v, forest_suitability)
+
+    return current_value
+
+
 def get_suitability_driven_arguments(cfg):
     arg_keys = [key for key in vars(cfg).keys() if "SUITABILITY-DERIVED:" in str(getattr(cfg, key))]
-    suitability_driven_args = {}
-    for arg_key in arg_keys:
-        suitability_relation = getattr(cfg, arg_key)
-        suitability_driven_args[arg_key] = suitability_relation.replace("SUITABILITY-DERIVED:", "")
+    suitability_driven_args = {k: getattr(cfg, k) for k in arg_keys}
+
     return suitability_driven_args
 
 
@@ -663,8 +680,8 @@ def do_bifurcation_analysis(_cfg):
             initialize = False
         else:
             cfg.max_timesteps += convergence_period
-        
-        set_suitability_driven_args_in_model_core(cfg, dynamics)
+            set_suitability_driven_args_in_model_core(cfg, dynamics)
+
         dynamics, sim_cfg = updateloop(dynamics, cfg)
         
         if i == len(cfg.forest_suitability) - 1:

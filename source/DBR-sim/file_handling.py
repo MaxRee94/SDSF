@@ -91,6 +91,8 @@ def generate_heterogeneity_image(dynamics, map_type, map_dir, m_cfg, cfg):
         image = sng.generate(grid_width=dynamics.state.grid.width, cfg=cfg, **m_cfg)
     else:
         raise ValueError(f"Unknown {map_type} pattern type: {m_cfg['type']}")
+    
+    # Normalize and save the generated image for reference
     impath = os.path.join(map_dir, f"generated_{map_type}.png")
     if image.max() > image.min():
         _img = image.copy()
@@ -101,6 +103,7 @@ def generate_heterogeneity_image(dynamics, map_type, map_dir, m_cfg, cfg):
         img_rescaled = np.zeros_like(image)
     cv2.imwrite(impath, img_rescaled)
 
+    # Return the non-normalized image.
     return image
 
 
@@ -144,10 +147,8 @@ def set_heterogeneity_maps(dynamics, cfg, *_):
     }
     for map_type, setter_func in map_setters.items():
         map_img = generate_or_read_heterogeneity_image(dynamics, map_root_dir, heterogeneity_map_cfg, map_type, cfg)
-        print("setting..")
         if map_img is not None:
             setter_func(map_img)
-        print("finsihed setting.")
         
         # Store current map
         heterogeneity_map_storage[map_type] = {"image": map_img, "setter": setter_func}
