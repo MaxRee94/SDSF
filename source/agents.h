@@ -321,7 +321,7 @@ public:
 	}
 	float compute_new_dbh(float LAI_shade, float local_growth_multiplier) {
 		float _dbh;
-		if (dbh < 2.5f) {
+		if (age < 5) {
 			if (life_phase == 1) {
 				_dbh = resprout_growthcurve.at(age); // Resprouts younger than 5 years (implied by dbh < 2.5) are assumed to grow according to a predefined growth curve (Hoffmann et al, 2012, supplementary information 1).
 			}
