@@ -637,21 +637,24 @@ def derive_suitability_driven_arg(current_value, forest_suitability):
     if type(current_value) == str and current_value.startswith("SUITABILITY-DERIVED:"):
         suitability_relation = current_value.replace("SUITABILITY-DERIVED:", "")
         current_value = eval(suitability_relation)
+        
+        return current_value
     elif type(current_value) == dict:
+        _current_value = copy.deepcopy(current_value)
         # Recurse through the base dict, applying suitability relations when found.
         for k, v in current_value.items():
             if type(v) == str and v.startswith("SUITABILITY-DERIVED:"):
                 suitability_relation = v.replace("SUITABILITY-DERIVED:", "")
-                current_value[k] = eval(suitability_relation)
+                _current_value[k] = eval(suitability_relation)
             elif type(v) == dict:
-                current_value[k] = derive_suitability_driven_arg(v, forest_suitability)
+                _current_value[k] = derive_suitability_driven_arg(v, forest_suitability)
 
-    return current_value
+        return _current_value
 
 
 def get_suitability_driven_arguments(cfg):
     arg_keys = [key for key in vars(cfg).keys() if "SUITABILITY-DERIVED:" in str(getattr(cfg, key))]
-    suitability_driven_args = {k: getattr(cfg, k) for k in arg_keys}
+    suitability_driven_args = {k: copy.deepcopy(getattr(cfg, k)) for k in arg_keys}
 
     return suitability_driven_args
 
