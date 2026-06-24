@@ -73,7 +73,7 @@ def load_json_config(file_path):
 
 
 def get_heterogeneity_cutoffs(m_cfg, map_type):
-    if map_type in ["growth_multipliers", "grass_carrying_capacity", "mortality"]:
+    if map_type in ["local_growth_multipliers", "grass_carrying_capacity", "mortality"]:
         m_cfg["cutoff_min"] = 0
         m_cfg["cutoff_max"] = 1
 
@@ -91,6 +91,10 @@ def generate_heterogeneity_image(dynamics, map_type, map_dir, m_cfg, cfg):
         image = sng.generate(grid_width=dynamics.state.grid.width, cfg=cfg, **m_cfg)
     else:
         raise ValueError(f"Unknown {map_type} pattern type: {m_cfg['type']}")
+
+    # Enforce that the values are within the correct ranges
+    if map_type in ["local_growth_multipliers", "grass_carrying_capacity", "mortality"]:
+        image = np.clip(image, 0, 1)
     
     # Normalize and save the generated image for reference
     impath = os.path.join(map_dir, f"generated_{map_type}.png")
@@ -147,6 +151,7 @@ def set_heterogeneity_maps(dynamics, cfg, *_):
     }
     for map_type, setter_func in map_setters.items():
         map_img = generate_or_read_heterogeneity_image(dynamics, map_root_dir, heterogeneity_map_cfg, map_type, cfg)
+        print("minimum for map type ", map_type, " is ", np.min(map_img), " and maximum is ", np.max(map_img))
         if map_img is not None:
             setter_func(map_img)
         
@@ -162,7 +167,7 @@ def set_heterogeneity_maps(dynamics, cfg, *_):
 def get_current_heterogeneity_map(dynamics, cfg, map_type):
     map_getters = {
         "grass_carrying_capacity": dynamics.state.grid.get_grass_carrying_capacity,
-        #"local_growth_multipliers": dynamics.state.grid.get_local_growth_multipliers, # not implemented yet
+        "local_growth_multipliers": dynamics.state.grid.get_local_growth_multipliers, # not implemented yet
         #"mortality": dynamics.state.grid.get_mortality_template # not implemented yet
     }
     getter_func = map_getters[map_type]

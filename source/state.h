@@ -41,11 +41,10 @@ public:
 		int i = 0;
 		bool success;
 		for (auto& [id, tree] : population.members) {
-			//if (verbosity == 1) printf("Tree id (beginning): %i \n", tree.id);
-			//if (i % (population.size()/1000) == 0) printf("i: %i / %i \n", i, population.size());
+			//if (id % 1 == 0) printf("Tree id: %i, dbh: %f\n", id, tree.dbh);
 			if (id == -1 || tree.id == -1) {
 				printf("Removing tree with wrong id %i\n", tree.id);
-				population.remove(id); // HOTFIX: Sometimes trees are not initialized properly and need to be removed.
+				population.remove(id);
 				continue;
 			}
 			success = grid.populate_tree_domain(&tree);
@@ -54,10 +53,6 @@ public:
 				printf("\n------------- Restarting grid repopulation because tree %i failed to have its domain populated. --------\n", tree.id);
 				repopulate_grid(verbosity);
 			}
-			/*if (verbosity > 0 && !check_grid_for_tree_presence(tree.id)) {
-				printf("Repopulation failure: Tree %i with radius %f and position (%f, %f) is not present in the grid. \n", tree.id, tree.radius, tree.position.first, tree.position.second);
-				grid.populate_tree_domain(&tree, 1);
-			}*/
 			i++;
 		}
 		grid.update_aggr_LAIs(&population);

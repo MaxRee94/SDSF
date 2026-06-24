@@ -352,6 +352,11 @@ PYBIND11_MODULE(dbr_cpp, module) {
             grid.get_grass_carrying_capacity(grass_carrying_capacity);
             return as_2d_numpy_array(grass_carrying_capacity, grid.width);
         })
+        .def("get_local_growth_multipliers", [](Grid& grid) {
+            shared_ptr<float[]> local_growth_multipliers = make_shared<float[]>(grid.no_cells);
+            grid.get_local_growth_multipliers(local_growth_multipliers);
+            return as_2d_numpy_array(local_growth_multipliers, grid.width);
+        })
         .def("get_fuel_distribution", [](Grid& grid) {
             shared_ptr<float[]> fuel_load_distribution = grid.get_fuel_load_distribution();
             return as_2d_numpy_array(fuel_load_distribution, grid.width);

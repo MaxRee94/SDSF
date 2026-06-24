@@ -18,7 +18,6 @@
         "unsuppressed_flammability": 0.9,
         "max_timesteps": 1000,
         "display_fire_effects": 1,
-        "verbosity": 1,
         "STR": 2000,
         "treecover": 0.5,
         "termination_conditions": "timelimit",

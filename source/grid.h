@@ -42,6 +42,9 @@ public:
 	float get_mortality_probability() {
 		return mortality_probability;
 	}
+	float get_grass_carrying_capacity() {
+		return grass_carrying_capacity;
+	}
 	void set_growth_multiplier(float _growth_multiplier) {
 		growth_multiplier = _growth_multiplier;
 	}
@@ -747,7 +750,12 @@ public:
 	}
 	void get_grass_carrying_capacity(shared_ptr<float[]>& grass_carrying_capacity) {
 		for (int i = 0; i < no_cells; i++) {
-			grass_carrying_capacity[i] = distribution[i].get_fuel_load();
+			grass_carrying_capacity[i] = distribution[i].get_grass_carrying_capacity();
+		}
+	}
+	void get_local_growth_multipliers(shared_ptr<float[]>& local_growth_multipliers) {
+		for (int i = 0; i < no_cells; i++) {
+			local_growth_multipliers[i] = distribution[i].get_growth_multiplier();
 		}
 	}
 	void update_aggr_LAIs(Population* population) {
