@@ -208,13 +208,13 @@ class Tree {
 public:
 	Tree() = default;
 	Tree(int _id, pair<float, float> _position, float _dbh, float seed_bearing_threshold,
-		map<int, float> _resprout_growthcurve, float _growth_noise_multiplier
+		map<int, float> _resprout_growthcurve, float _growth_multiplier_noise
 	) :
 		position(_position), dbh(_dbh), resprout_growthcurve(_resprout_growthcurve)
 	{
 		id = _id;
 		derive_allometries(seed_bearing_threshold);
-		growth_noise_multiplier = _growth_noise_multiplier;
+		growth_multiplier_noise = _growth_multiplier_noise;
 		draw_life_expectancy();
 	};
 	bool operator==(const Tree& tree) const
@@ -323,21 +323,21 @@ public:
 		float _dbh;
 		if (age < 5) {
 			if (life_phase == 1) {
-				_dbh = resprout_growthcurve.at(age); // Resprouts younger than 5 years (implied by dbh < 2.5) are assumed to grow according to a predefined growth curve (Hoffmann et al, 2012, supplementary information 1).
+				_dbh = local_growth_multiplier * resprout_growthcurve.at(age); // Resprouts younger than 5 years (implied by dbh < 2.5) are assumed to grow according to a predefined growth curve (Hoffmann et al, 2012, supplementary information 1).
 			}
 			else {
-				_dbh = dbh + growth_noise_multiplier * local_growth_multiplier * 0.25f; // Assume a constant growth rate of 2.5 mm for saplings, until they reach 2.5 cm dbh. Based on growth rate of resprouts after first 5 years (Hoffmann et al, 2012, supplementary information 1. Also see "Tree Allometric Relations.xlsx").
+				_dbh = dbh + growth_multiplier_noise * local_growth_multiplier * 0.25f; // Assume a constant growth rate of 2.5 mm for saplings, until they reach 2.5 cm dbh. Based on growth rate of resprouts after first 5 years (Hoffmann et al, 2012, supplementary information 1. Also see "Tree Allometric Relations.xlsx").
 			}
 		}
 		else {
-			_dbh = dbh + growth_noise_multiplier * local_growth_multiplier * get_dbh_increment(LAI_shade);
+			_dbh = dbh + growth_multiplier_noise * local_growth_multiplier * get_dbh_increment(LAI_shade);
 		}
 		return _dbh;
 	}
 	pair<bool, bool> grow(float& seed_bearing_threshold, float LAI_shade, float local_growth_multiplier) {
 		age++;
 		float _dbh = compute_new_dbh(LAI_shade, local_growth_multiplier);
-		bool dies_due_to_light_limitation = is_float_equal(_dbh, dbh) && (life_phase == 0); // If the tree is not reproductive yet and is unable to grow, we assume it dies.
+		bool dies_due_to_light_limitation = is_float_equal(_dbh, dbh); // If the tree is unable to grow, we assume it dies.
 		dbh = _dbh;
 		bool became_reproductive = derive_allometries(seed_bearing_threshold);
 		return pair<bool, bool>(became_reproductive, dies_due_to_light_limitation);
@@ -354,7 +354,7 @@ public:
 	float height = 0;
 	float lowest_branch = 0;
 	float crown_area = 0;
-	float growth_noise_multiplier = 1;
+	float growth_multiplier_noise = 1;
 	int life_expectancy = -1;
 	pair<float, float> position = pair(0, 0);
 	int id = -1;
@@ -420,19 +420,19 @@ public:
 		strategy_generator = StrategyGenerator(strategy_parameters);
 		mutation_rate = _mutation_rate;
 		init_growth_curves();
-		growth_multiplier_distribution = ProbModel(1, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max, -1);
+		growth_multiplier_noise_distribution = ProbModel(1, growth_multiplier_stdev, growth_multiplier_min, growth_multiplier_max, -1);
 	}
 	void init_growth_curves() {
 		resprout_growthcurve = {
 			{1, 1.3f}, {2, 1.8f}, {3, 2.1f}, {4, 2.5f}, // From Hoffmann et al (2012), estimated from supplementary figure S1.
 		};
 	}
-	Tree* add(pair<float, float> position, Strategy* _strategy = 0) {
+	Tree* add(pair<float, float> position, Strategy* _strategy = 0, float growth_multiplier = 1) {
 		// Add a new tree. If no dbh or strategy is provided, these will be randomly generated.
 
 		// Create tree
-		float growth_multiplier = help::get_rand_float(growth_multiplier_distribution.min_value, growth_multiplier_distribution.max_value);
-		Tree tree(no_created_trees + 1, position, _strategy->seedling_dbh, seed_bearing_threshold, resprout_growthcurve, growth_multiplier);
+		float growth_multiplier_noise = help::get_rand_float(growth_multiplier_noise_distribution.min_value, growth_multiplier_noise_distribution.max_value);
+		Tree tree(no_created_trees + 1, position, _strategy->seedling_dbh * growth_multiplier, seed_bearing_threshold, resprout_growthcurve, growth_multiplier_noise);
 		no_created_trees++;
 		tree.derive_allometries(seed_bearing_threshold);
 
@@ -565,5 +565,5 @@ public:
 	int no_created_trees = 0;
 	float seed_bearing_threshold = 0;
 	map<int, float> resprout_growthcurve;
-	ProbModel growth_multiplier_distribution;
+	ProbModel growth_multiplier_noise_distribution;
 };

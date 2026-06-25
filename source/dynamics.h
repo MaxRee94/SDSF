@@ -467,7 +467,7 @@ public:
 			if (cell->seedling_present) {
 				int parent_id = cell->stem.second;
 				Strategy* strat_of_parent_tree = &pop->get_crop(parent_id)->strategy;
-				Tree* tree = pop->add(grid->get_real_cell_position(cell), strat_of_parent_tree);
+				Tree* tree = pop->add(grid->get_real_cell_position(cell), strat_of_parent_tree, cell->get_growth_multiplier());
 				cell->insert_sapling(tree, grid->cell_area, grid->cell_halfdiagonal_sqrt);
 
 				grid->state_distribution[i] = -7;
