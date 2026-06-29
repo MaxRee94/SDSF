@@ -388,7 +388,7 @@ class Jobs:
         if job_count < 1e6:
             jobs = self.parse_arg_values(arg_changes)
             generator_cfg.n = len(jobs)
-            job_idx_generator = h.midpoint_gap_indices
+            job_idx_generator = h.yield_random_idx
         else:
             jobs, job_idx_generator = self.switch_to_random_sampling(job_count, generator_cfg)
 

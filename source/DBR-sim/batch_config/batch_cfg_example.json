@@ -5,27 +5,27 @@
         "forest_suitability": {
             "value": {
                 "range": [0, 1],
-                "stepsize": 0.1,
+                "stepsize": 0.2,
                 "interpolation": "linear"
             },
             "interpolation": "constant"
         },
         "grid_width": 200,
         "dispersal_mode": "wind",
-        "burnin_duration": 50,
+        "burnin_duration": 5000,
         "visualization_interval": 10,
         "resource_grid_width": 50,
         "unsuppressed_flammability": 0.9,
-        "max_timesteps": 1000,
+        "max_timesteps": 2000,
         "display_fire_effects": 1,
         "STR": 2000,
         "treecover": 0.5,
         "termination_conditions": "timelimit",
         "long_distance_dispersal_per_km": 10000,
         "self_ignition_factor": {
-            "range": [2, 11],
-            "stepsize": 3,
-            "interpolation": "linear"
+            "range": [0, 1.25],
+            "stepsize": 0.35,
+            "interpolation": "powerten"
         },
         "heterogeneity": {
             "base": {
@@ -41,7 +41,7 @@
             },
             "sub_arguments": {
                 "local_growth_multipliers:sine_amplitude": {
-                    "range": [0.2, 0.4],
+                    "range": [0, 0.4],
                     "interpolation": "linear",
                     "stepsize": 0.2
                 },

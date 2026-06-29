@@ -55,6 +55,18 @@ def suppress_warning(category=None, message=None):
         warnings.filterwarnings('ignore', category=category, message=message)
 
 
+def yield_random_idx(cfg):
+    """
+    Yield a random index from a list of given length, ensuring that each index is yielded only once.
+    """
+    if cfg.n <= 0:
+        return
+    indices = np.arange(cfg.n)
+    np.random.shuffle(indices)
+    for idx in indices:
+        yield idx
+
+
 def midpoint_gap_indices(cfg):
     """
     Yield indices in an order where each next index is the midpoint of the

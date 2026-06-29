@@ -344,7 +344,7 @@ def get_sim_name(cfg, extra_short=False):
                 continue
             key_components = key.split(":")
             shortened_key_components = []
-            kc_length = 2 if extra_short else 5
+            kc_length = 1 if extra_short else 2
             for i, kc in enumerate(key_components):
                 _kc_length = max(2, kc_length-(len(key_components)-(i+1))) # Shorten the first words most, but ensure a minimum of 2 characters per word.
                 shortened_kc = "".join([word[0:_kc_length].capitalize() for word in kc.split("_") if True])
