@@ -5,6 +5,13 @@ import matplotlib.pyplot as plt
 from types import SimpleNamespace
 
 class SpatialStochasticSimulator:
+    """
+    Spatial Stochastic Simulator for generating 2D random fields.
+    
+    Uses gstools library to generate spatially correlated random fields
+    with various covariance models (Exponential, Gaussian, Spherical).
+    """
+
     def __init__(self, args: SimpleNamespace):
         """
         Initialize simulator using parameters from args.

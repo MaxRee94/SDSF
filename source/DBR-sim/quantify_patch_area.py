@@ -1,3 +1,5 @@
+"""Quantify patch areas in binary images with periodic boundary conditions."""
+
 import visualization as vis
 from config import *
 import cv2
@@ -7,12 +9,20 @@ import statistics as stats
 
 def get_patch_areas(image, domain_width):
     """
-    Count the number of connected patches in a binary image with periodic boundary conditions.
-    
-    :param image: A binary image (numpy array) with 1s for patches and 0s for background
-    :return: The number of patches (connected components) in the image
-    """
+    Count and measure connected patches in a binary image with periodic boundary conditions.
 
+    Parameters
+    ----------
+    image : numpy.ndarray
+        Binary image with 1s for patches and 0s for background.
+    domain_width : float
+        Width of the domain in real-world units.
+
+    Returns
+    -------
+    list
+        List of patch areas in real-world units.
+    """
     # Get image dimensions
     height, width = image.shape
 
@@ -29,7 +39,22 @@ def get_patch_areas(image, domain_width):
     def flood_fill(x, y, label):
         """
         Flood fill algorithm to label connected components.
-        Uses a stack to fill the component starting from (x, y).
+
+        Uses a stack to fill the component starting from (x, y) with periodic boundary conditions.
+
+        Parameters
+        ----------
+        x : int
+            Starting x-coordinate.
+        y : int
+            Starting y-coordinate.
+        label : int
+            Label to apply to the connected component.
+
+        Returns
+        -------
+        float
+            Area of the patch in real-world units.
         """
         stack = [(x, y)]
         patch_area = 1
@@ -60,6 +85,21 @@ def get_patch_areas(image, domain_width):
     return patch_areas
 
 def quantify_patch_area_distribution(patch_image, domain_width):
+    """
+    Quantify the distribution of patch areas in a binary image.
+
+    Parameters
+    ----------
+    patch_image : numpy.ndarray
+        Binary image with patches.
+    domain_width : float
+        Width of the domain in real-world units.
+
+    Returns
+    -------
+    list
+        List of patch areas.
+    """
     # Count the patches with periodic boundary conditions
     patch_areas = get_patch_areas(patch_image, domain_width)
 
@@ -67,6 +107,23 @@ def quantify_patch_area_distribution(patch_image, domain_width):
 
 
 def generate_patch_image(patch_width, treecover=0.5, i=0):
+    """
+    Generate a thresholded Perlin noise image for patch area quantification.
+
+    Parameters
+    ----------
+    patch_width : float
+        Target patch width.
+    treecover : float, optional
+        Target tree cover fraction (default 0.5).
+    i : int, optional
+        Trial index for file naming (default 0).
+
+    Returns
+    -------
+    numpy.ndarray
+        Thresholded binary image.
+    """
     # Generate unthresholded perlin noise image
     path = f"{cfg.PERLIN_NOISE_DIR}/perlin_noise_for_area_quantification.png"
     noise_frequency = 5.0 / patch_width # Convert patch width to noise frequency
@@ -82,11 +139,38 @@ def generate_patch_image(patch_width, treecover=0.5, i=0):
     return img
 
 def generate_and_load_patch_image(patch_width, i):
+    """
+    Generate and normalize a patch image.
+
+    Parameters
+    ----------
+    patch_width : float
+        Target patch width.
+    i : int
+        Trial index.
+
+    Returns
+    -------
+    numpy.ndarray
+        Normalized image with values in [0, 1].
+    """
     img = generate_patch_image(patch_width, i=i)
     img = img / 255
     return img
 
 def main(patch_width, num_trials=100, domain_width=960):
+    """
+    Run patch area quantification for multiple trials.
+
+    Parameters
+    ----------
+    patch_width : float
+        Target patch width.
+    num_trials : int, optional
+        Number of trials to run (default 100).
+    domain_width : float, optional
+        Width of the domain in real-world units (default 960).
+    """
     patch_areas = []
     for i in range(num_trials):
         print(f"Processing pattern {i+1} / {num_trials}...")

@@ -190,6 +190,18 @@ def set_random_seeds(cfg):
 
 
 def generate_and_or_load_animal_dist_lookup_tables(dynamics, cfg, animal_species):
+    """
+    Generate or load animal distribution lookup tables.
+
+    Parameters
+    ----------
+    dynamics : object
+        The dynamics object containing simulation state.
+    cfg : SimpleNamespace
+        Configuration object.
+    animal_species : list
+        List of animal species to generate/load tables for.
+    """
     # Export resource grid lookup table
     for species in animal_species:
         lookup_table, fpath = io.get_lookup_table(species, cfg.grid_width, cfg.resource_grid_width * cfg.resource_grid_width)
@@ -440,6 +452,25 @@ def export_animal_resources(dynamics):
    
 
 def set_keyframe(dynamics, cfg, arg_key, value):
+    """
+    Set a keyframed argument value in the configuration.
+
+    Parameters
+    ----------
+    dynamics : object
+        The dynamics object (unused but kept for API compatibility).
+    cfg : SimpleNamespace
+        Configuration object.
+    arg_key : str
+        The argument key to set (may contain subkeys separated by colons).
+    value : any
+        The value to set.
+
+    Returns
+    -------
+    str
+        The argument key (possibly modified if nested).
+    """
     if h.key_contains_subkeys(arg_key):
         # Handle nested keyframes
         arg_key_split = arg_key.split(":")
@@ -457,6 +488,20 @@ def set_keyframe(dynamics, cfg, arg_key, value):
 
 
 def set_argument_in_model_core(dynamics, cfg, arg_key, new_value):
+    """
+    Set an argument value in the model core (C++ dynamics object).
+
+    Parameters
+    ----------
+    dynamics : object
+        The dynamics object.
+    cfg : SimpleNamespace
+        Configuration object.
+    arg_key : str
+        The argument key to set.
+    new_value : any
+        The new value to set.
+    """
     # Get setter configuration from config.py
     setter_cfg = get_setter(arg_key)
     cppobj_or_module = eval(setter_cfg["cppobj_or_module"])
@@ -482,6 +527,23 @@ def set_argument_in_model_core(dynamics, cfg, arg_key, new_value):
 
 
 def get_old_keyframed_value(dynamics, cfg, arg_key):
+    """
+    Get the current value of a keyframed argument.
+
+    Parameters
+    ----------
+    dynamics : object
+        The dynamics object (unused but kept for API compatibility).
+    cfg : SimpleNamespace
+        Configuration object.
+    arg_key : str
+        The argument key to retrieve (may contain subkeys separated by colons).
+
+    Returns
+    -------
+    any
+        The current value of the argument.
+    """
     if h.key_contains_subkeys(arg_key):
         # Handle nested keyframes
         arg_key_split = arg_key.split(":")
@@ -494,18 +556,56 @@ def get_old_keyframed_value(dynamics, cfg, arg_key):
 
 
 def derive_suitability_driven_args(cfg, forest_suitability):
+    """
+    Derive and set suitability-driven argument values based on forest suitability.
+
+    Parameters
+    ----------
+    cfg : SimpleNamespace
+        Configuration object with suitability_driven_args attribute.
+    forest_suitability : float
+        Forest suitability value to use in calculations.
+    """
     for arg_key, relation_or_base_dict in cfg.suitability_driven_args.items():
         new_value = derive_suitability_driven_arg(relation_or_base_dict, forest_suitability)
         setattr(cfg, arg_key, new_value)
 
 
 def set_suitability_driven_args_in_model_core(cfg, dynamics):
+    """
+    Apply suitability-driven argument values to the model core.
+
+    Parameters
+    ----------
+    cfg : SimpleNamespace
+        Configuration object with suitability_driven_args attribute.
+    dynamics : object
+        The dynamics object.
+    """
     for arg_key in cfg.suitability_driven_args.keys():
         new_value = getattr(cfg, arg_key)
         set_argument_in_model_core(dynamics, cfg, arg_key, new_value)
 
 
 def apply_keyframes(dynamics, cfg):
+    """
+    Apply keyframe-based parameter changes based on current simulation time.
+
+    Linearly interpolates between keyframe values and updates both the configuration
+    and the dynamics object if applicable.
+
+    Parameters
+    ----------
+    dynamics : object
+        The dynamics object.
+    cfg : SimpleNamespace
+        Configuration object with optional keyframes attribute.
+
+    Returns
+    -------
+    SimpleNamespace
+        Updated configuration object.
+    """
     if hasattr(cfg, "keyframes"):
         for arg_key, keyframes in cfg.keyframes.items():
             old_value = get_old_keyframed_value(dynamics, cfg, arg_key)
@@ -634,6 +734,25 @@ def updateloop(dynamics, cfg):
 
 
 def derive_suitability_driven_arg(current_value, forest_suitability):
+    """
+    Derive a suitability-driven argument value.
+
+    If the value is a string starting with "SUITABILITY-DERIVED:", it evaluates the
+    expression following this prefix using the given forest_suitability value.
+    If the value is a dict, it recursively processes each value in the dict.
+
+    Parameters
+    ----------
+    current_value : str or dict
+        The value to process (may be a string with a suitability relation or a dict).
+    forest_suitability : float
+        The forest suitability value to use in evaluations.
+
+    Returns
+    -------
+    any
+        The derived value with suitability relations evaluated.
+    """
     if type(current_value) == str and current_value.startswith("SUITABILITY-DERIVED:"):
         suitability_relation = current_value.replace("SUITABILITY-DERIVED:", "")
         current_value = eval(suitability_relation)
@@ -653,6 +772,23 @@ def derive_suitability_driven_arg(current_value, forest_suitability):
 
 
 def get_suitability_driven_arguments(cfg):
+    """
+    Find all configuration arguments that have suitability-derived values.
+
+    Scans the configuration for attributes whose values contain the string
+    "SUITABILITY-DERIVED:" indicating they should be computed based on
+    forest suitability.
+
+    Parameters
+    ----------
+    cfg : SimpleNamespace
+        Configuration object.
+
+    Returns
+    -------
+    dict
+        Dictionary mapping argument keys to their suitability-driven values.
+    """
     arg_keys = [key for key in vars(cfg).keys() if "SUITABILITY-DERIVED:" in str(getattr(cfg, key))]
     suitability_driven_args = {k: copy.deepcopy(getattr(cfg, k)) for k in arg_keys}
 

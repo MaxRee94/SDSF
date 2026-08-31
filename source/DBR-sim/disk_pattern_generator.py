@@ -15,8 +15,22 @@ from config import *
 cpgn = SimpleNamespace(area_normalization_factor=None)
 
 class DiskPatternGenerator():
+    """
+    Generator for creating controlled disk (patch) patterns.
+    
+    Creates images with circular or sine-modulated patches with configurable
+    size, spacing, and arrangement (hexagonal or square grid).
+    """
 
     def __init__(self, _cfg):
+        """
+        Initialize the disk pattern generator.
+
+        Parameters
+        ----------
+        _cfg : SimpleNamespace
+            Configuration object containing simulation parameters.
+        """
         self.cfg = _cfg
         self.local_rng_seed_multiplier = self.cfg.rng.integers(0, 100000)
 
@@ -39,7 +53,19 @@ class DiskPatternGenerator():
         return cv2.contourArea(contour.astype(np.float32))  # Use OpenCV's contour area function for accuracy
 
     def fraction_white_pixels(self, img):
-    
+        """
+        Calculate the fraction of white pixels in a grayscale image.
+
+        Parameters
+        ----------
+        img : numpy.ndarray
+            Grayscale image (white pixels = 255).
+
+        Returns
+        -------
+        float
+            Fraction of white pixels in the image.
+        """
         # White pixel = 255 in grayscale
         white_pixels = np.sum(img == 255)
         total_pixels = img.size
@@ -48,6 +74,25 @@ class DiskPatternGenerator():
         return fraction
 
     def compute_area_normalization_factor(self, contour, center, base_radius, global_area_normalization_factor):
+        """
+        Compute normalization factor to adjust disk area to match target.
+
+        Parameters
+        ----------
+        contour : numpy.ndarray
+            Disk contour points.
+        center : tuple
+            Center coordinates of the disk.
+        base_radius : float
+            Target base radius.
+        global_area_normalization_factor : float, optional
+            Global normalization factor to use if provided.
+
+        Returns
+        -------
+        float
+            Computed normalization factor.
+        """
         area = self.compute_area(contour, center)
         circle_area = math.pi * base_radius * base_radius
         if global_area_normalization_factor is not None:
@@ -59,6 +104,25 @@ class DiskPatternGenerator():
         return cpgn.area_normalization_factor
 
     def normalize_disk(self, disk, center, base_radius, norm_factor):
+        """
+        Normalize disk to target radius using normalization factor.
+
+        Parameters
+        ----------
+        disk : numpy.ndarray
+            Disk contour points.
+        center : tuple
+            Center coordinates of the disk.
+        base_radius : float
+            Target base radius.
+        norm_factor : float
+            Normalization factor.
+
+        Returns
+        -------
+        numpy.ndarray
+            Normalized disk contour as int32 array.
+        """
         disk = disk - np.array(center)
         disk = disk / norm_factor
         disk = disk + np.array(center)
@@ -88,6 +152,41 @@ class DiskPatternGenerator():
             self, center, base_radius, amp1=0, wave1=1, amp2=0, wave2=2, index=None, rotate_disks_randomly=True, resolution=360,
             global_area_normalization_factor=None, global_rotation_offset=None, **cfg
         ):
+        """
+        Generate a disk contour with optional sine-wave modulation.
+
+        Parameters
+        ----------
+        center : tuple
+            (x, y) center coordinates.
+        base_radius : float
+            Base radius of the disk.
+        amp1 : float, optional
+            Amplitude of first sine wave modulation.
+        wave1 : float, optional
+            Wave number for first sine wave.
+        amp2 : float, optional
+            Amplitude of second sine wave modulation.
+        wave2 : float, optional
+            Wave number for second sine wave.
+        index : int, optional
+            Index for reproducible randomization.
+        rotate_disks_randomly : bool, optional
+            Whether to randomly rotate disks.
+        resolution : int, optional
+            Number of points in the contour.
+        global_area_normalization_factor : float, optional
+            Global area normalization factor.
+        global_rotation_offset : float, optional
+            Global rotation offset in radians.
+        **cfg : dict
+            Additional configuration (unused).
+
+        Returns
+        -------
+        numpy.ndarray
+            Disk contour as int32 array.
+        """
         angles = np.linspace(0, 2 * np.pi, resolution, endpoint=False)
         rotational_offset = 0
         if rotate_disks_randomly:
@@ -106,11 +205,47 @@ class DiskPatternGenerator():
         return disk
 
     def draw_disk(self, img, center, radius, amp1, wave1, amp2, wave2, rotate_disks_randomly, index, global_area_normalization_factor, global_rotation_offset=None):
+        """
+        Draw a filled disk on an image.
+
+        Parameters
+        ----------
+        img : numpy.ndarray
+            Image to draw on.
+        center : tuple
+            Center coordinates of the disk.
+        radius : float
+            Radius of the disk.
+        amp1, wave1, amp2, wave2 : float
+            Sine wave modulation parameters.
+        rotate_disks_randomly : bool
+            Whether to randomly rotate disks.
+        index : int
+            Index for reproducible randomization.
+        global_area_normalization_factor : float
+            Global area normalization factor.
+        global_rotation_offset : float, optional
+            Global rotation offset.
+        """
         contour = self.generate_disk(center, radius, amp1=amp1, wave1=wave1, amp2=amp2, wave2=wave2, rotate_disks_randomly=rotate_disks_randomly, index=index, 
                                 global_area_normalization_factor=global_area_normalization_factor, global_rotation_offset=global_rotation_offset)
         cv2.fillPoly(img, [contour], 255)
 
     def draw_stripe(self, img, center1, center2, radius, rotate_disks_randomly):
+        """
+        Draw a stripe (convex hull) between two disk centers.
+
+        Parameters
+        ----------
+        img : numpy.ndarray
+            Image to draw on.
+        center1, center2 : tuple
+            Center coordinates of the two disks.
+        radius : float
+            Radius of the disks.
+        rotate_disks_randomly : bool
+            Whether to randomly rotate disks.
+        """
         disk1 = self.generate_disk(center1, radius, rotate_disks_randomly=rotate_disks_randomly)
         disk2 = self.generate_disk(center2, radius, rotate_disks_randomly=rotate_disks_randomly)
         points = np.vstack([disk1, disk2])

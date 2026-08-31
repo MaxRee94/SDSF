@@ -1,3 +1,5 @@
+"""Module for generating macropixel noise patterns using OpenCV."""
+
 import cv2
 import numpy as np
 from types import SimpleNamespace
@@ -5,20 +7,34 @@ from types import SimpleNamespace
 
 def generate(amplitude=0.3, scale=1, show=False, binary_connectivity=-1, offset=0, grid_width=1000, cfg=None, **_):
     """
-    Generate a 1000x1000 uniform macropixel noise pattern.
+    Generate a uniform macropixel noise pattern.
 
     Each macropixel has a uniform random value in [0.5-amplitude, 0.5+amplitude],
-    clipped to [0,1], and the macropixel size in the *final* image is exactly
-    <scale> pixels.
+    clipped to [0,1]. The macropixel size in the final image is exactly <scale> pixels.
 
     Parameters
     ----------
-    amplitude : float
+    amplitude : float, optional
         Noise half-range. Values sampled from [0.5 - amplitude, 0.5 + amplitude].
-    scale : int
+    scale : int, optional
         Final macropixel width (and height) in pixels.
-    show : bool
-        Whether to show the final <grid_width> x <grid_width> image.
+    show : bool, optional
+        Whether to display the final image.
+    binary_connectivity : float, optional
+        If >= 0, generates binary noise where 1-pixels have probability=binary_connectivity.
+    offset : float, optional
+        Added to all noise values before clipping.
+    grid_width : int, optional
+        Output image width and height in pixels.
+    cfg : SimpleNamespace, optional
+        Configuration object providing rng (random number generator).
+    **_ : dict
+        Ignored additional keyword arguments for compatibility.
+
+    Returns
+    -------
+    numpy.ndarray
+        Generated noise image as a 2D array with values in [0, 1].
     """
 
     FINAL_SIZE = grid_width

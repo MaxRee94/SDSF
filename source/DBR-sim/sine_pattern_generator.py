@@ -1,4 +1,4 @@
-﻿import cv2
+import cv2
 import numpy as np
 
 
@@ -13,7 +13,7 @@ def generate(dimensions, sine_amplitude=1, sine_wavelength=100,
     dimensions : tuple (height, width)
         Output image size.
     sine_amplitude : float
-        Amplitude of the sine wave (0–255 scale).
+        Amplitude of the sine wave (0-255 scale).
     sine_wavelength : float
         Wavelength in pixels.
     sine_type : str
@@ -24,14 +24,25 @@ def generate(dimensions, sine_amplitude=1, sine_wavelength=100,
           - vertical: x-location of the peak from left
           - diagonal: shift along the diagonal axis
           - radial: (x, y) center of radial pattern
-    maximum: float
-        Maximum pixel value (minimum will be maximum - 2 * amplitude, mean will be maximum - amplitude)
-    minimum: float
-        Minimum pixel value (maximum will be minimum + 2 * amplitude, mean will be minimum + amplitude)
-    mean: float
-        Mean pixel value (maximum will be mean + amplitude, minimum will be mean - amplitude)
+    maximum : float
+        Maximum pixel value (minimum will be maximum - 2 * amplitude, mean will be maximum - amplitude).
+    minimum : float
+        Minimum pixel value (maximum will be minimum + 2 * amplitude, mean will be minimum + amplitude).
+    mean : float
+        Mean pixel value (maximum will be mean + amplitude, minimum will be mean - amplitude).
     show : bool
         Whether to display the image with cv2.imshow.
+    cutoff_min : float, optional
+        Minimum value cutoff for the pattern.
+    cutoff_max : float, optional
+        Maximum value cutoff for the pattern.
+    **cfg : dict
+        Additional configuration arguments (ignored).
+
+    Returns
+    -------
+    numpy.ndarray
+        Generated sine pattern as a 2D array.
     """
 
     H, W = dimensions

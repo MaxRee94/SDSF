@@ -46,6 +46,19 @@ def apply_local_overrides(cfg):
 
 
 def derive_output_dirs(cfg):
+    """
+    Derive and set output directory paths in the configuration.
+
+    Parameters
+    ----------
+    cfg : SimpleNamespace
+        Configuration object.
+
+    Returns
+    -------
+    SimpleNamespace
+        Configuration object with updated output directory paths.
+    """
     out_dir = cfg.DATA_OUT_DIR
     cfg.CPG_OUTPUT_DIR = out_dir + "/controlled_pattern_generator"
     cfg.LEGEND_PATH = out_dir + "/legends"
@@ -57,6 +70,19 @@ def derive_output_dirs(cfg):
 
 
 def derive_input_dirs(cfg):
+    """
+    Derive and set input directory paths in the configuration.
+
+    Parameters
+    ----------
+    cfg : SimpleNamespace
+        Configuration object.
+
+    Returns
+    -------
+    SimpleNamespace
+        Configuration object with updated input directory paths.
+    """
     in_dir = cfg.DATA_IN_DIR
     cfg.PERLIN_NOISE_DIR = os.path.join(in_dir, "state_patterns/perlin_noise")
     cfg.SIMPLE_PATTERNS_DIR = os.path.join(in_dir, "state_patterns/simple_patterns")
