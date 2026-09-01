@@ -1,3 +1,10 @@
+"""Python helper utilities for DBR-sim.
+
+This module provides utility functions and classes for the DBR simulation,
+including logging setup, process management, JSON handling, and various
+helper functions for file operations and data processing.
+"""
+
 import numpy as np
 import os
 import sys
@@ -10,6 +17,13 @@ import warnings
 
 
 def get_stdout_logging_handler():
+    """Create and configure a stdout logging handler.
+    
+    Returns
+    -------
+    logging.StreamHandler
+        Configured logging handler for stdout.
+    """
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(logging.INFO)
     formatter = logging.Formatter('%(name)s %(levelname)s:    %(message)s')
@@ -24,24 +38,65 @@ logger.addHandler(handler)
 
 
 class Processes:
+    """Manage a collection of subprocess processes.
+    
+    Provides functionality to add, track, and join multiple subprocess processes.
+    """
+    
     def __init__(self):
+        """Initialize an empty process collection."""
         self.procs = []
         self.active_proc_count = 0
 
     def add(self, proc):
+        """Add a process to the collection and start it.
+        
+        Parameters
+        ----------
+        proc : subprocess.Popen
+            The process object to add and start.
+        """
         self.procs.append(proc)
         self.procs[-1].start()
         self.active_proc_count += 1
 
     def __getitem__(self, idx):
+        """Get a process by index.
+        
+        Parameters
+        ----------
+        idx : int
+            The index of the process to retrieve.
+            
+        Returns
+        -------
+        subprocess.Popen
+            The process at the specified index.
+        """
         return self.procs[idx]
 
     def join(self):
+        """Join all processes in the collection.
+        
+        Waits for all processes to complete.
+        """
         for proc in self.procs:
             proc.join()
         return True
 
     def finished(self, print_progress=False):
+        """Check if all processes have finished.
+        
+        Parameters
+        ----------
+        print_progress : bool, optional
+            Whether to print progress information (default: False).
+            
+        Returns
+        -------
+        bool
+            True if all processes have finished, False otherwise.
+        """
         _active_proc_count = sum(proc.is_alive() for proc in self.procs)
         if print_progress and _active_proc_count != self.active_proc_count:
             logger.info(f"    {len(self.procs) - _active_proc_count} out of {len(self.procs)} processes have finished.")
