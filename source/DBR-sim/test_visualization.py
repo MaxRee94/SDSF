@@ -24,8 +24,6 @@ sys.modules['matplotlib.pyplot'] = MagicMock()
 sys.modules['colorsys'] = MagicMock()
 sys.modules['platform'] = MagicMock()
 sys.modules['subprocess'] = MagicMock()
-sys.modules['ctypes'] = MagicMock()
-sys.modules['re'] = MagicMock()
 
 import visualization as vis_module
 

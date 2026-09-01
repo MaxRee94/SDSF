@@ -98,7 +98,8 @@ class TestEvaluator(unittest.TestCase):
         result = evaluator._out_path("/base/path", "subdir/file.txt")
         expected = "/base/path/subdir/file.txt"
         
-        self.assertEqual(result, expected)
+        # Use os.path.normpath to handle platform-specific path separators
+        self.assertEqual(os.path.normpath(result), os.path.normpath(expected))
 
     def test_bench_path_helper(self):
         """Test the _bench_path helper method."""
@@ -107,7 +108,8 @@ class TestEvaluator(unittest.TestCase):
         result = evaluator._bench_path("/base/path", "subdir/file.txt")
         expected = "/base/path/subdir/file.txt"
         
-        self.assertEqual(result, expected)
+        # Use os.path.normpath to handle platform-specific path separators
+        self.assertEqual(os.path.normpath(result), os.path.normpath(expected))
 
     # ==================== DIRECTORY VALIDATION TESTS ====================
 
@@ -366,10 +368,17 @@ class TestEvaluator(unittest.TestCase):
 
     def test_evaluate_successful_case(self):
         """Test the full evaluate() method with a successful case."""
-        # Create benchmark and output files
+        testcase = "test_case"
+        # Create benchmark directory with required subdirectories
+        benchmark_path = os.path.join(self.benchmark_dir, testcase)
+        os.makedirs(benchmark_path, exist_ok=True)
+        
+        # Create required subdirectories in both benchmark and output
         for subdir in e2e_eval.Evaluator.REQUIRED_SUBDIRS:
-            bench_subdir = os.path.join(self.benchmark_dir, subdir)
+            bench_subdir = os.path.join(benchmark_path, subdir)
             output_subdir = os.path.join(self.output_dir, subdir)
+            os.makedirs(bench_subdir, exist_ok=True)
+            os.makedirs(output_subdir, exist_ok=True)
             
             # Create a test file in each
             test_file_rel = "test_file.txt"
@@ -378,7 +387,6 @@ class TestEvaluator(unittest.TestCase):
             with open(os.path.join(output_subdir, test_file_rel), 'w') as f:
                 f.write("benchmark content")  # Same content
         
-        testcase = "test_case"
         evaluator = e2e_eval.Evaluator(testcase, self.cfg)
         mock_test = MockTest(self.output_dir)
         

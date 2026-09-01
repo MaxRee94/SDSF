@@ -446,7 +446,7 @@ class Jobs:
                 value_sets = self.add_range(value_sets, expanded_cfg["idx"], expanded_cfg["vec"])
 
         # If we're doing a multi-dimensional sensitivity analysis, we shuffle the order of the jobs
-        if not type(value_sets[0]) == list:
+        if not type(value_sets[0]) == list and self.rng is not None:
             self.rng.shuffle(value_sets)
 
         return value_sets

@@ -246,6 +246,9 @@ class TestTestClass(unittest.TestCase):
                 f.write(b"fake image data")
             test.cfg.cover_img_path = src_cover
             
+            # Ensure output directory exists
+            os.makedirs(test.output_dir, exist_ok=True)
+            
             # Copy the cover image
             test.copy_cover_image()
             
@@ -419,8 +422,7 @@ class TestTestClass(unittest.TestCase):
         with patch('end2end_test.ArgumentParser') as mock_parser, \
              patch('end2end_test.Test') as mock_test_class, \
              patch('end2end_test.Evaluator') as mock_evaluator_class, \
-             patch('end2end_test.replace_benchmark'), \
-             patch.object(e2e_test.Evaluator, 'evaluate') as mock_evaluate:
+             patch('end2end_test.replace_benchmark'):
             
             # Setup mocks
             mock_args = MagicMock()
@@ -441,12 +443,14 @@ class TestTestClass(unittest.TestCase):
             # Call main
             e2e_test.main()
             
-            # Check that evaluate was called
-            mock_evaluate.assert_called_once_with(mock_test_instance)
+            # Check that evaluate was called on the evaluator instance
+            mock_evaluator_instance.evaluate.assert_called_once_with(mock_test_instance)
 
     def test_main_function_unknown_mode(self):
         """Test main function with unknown mode raises ValueError."""
-        with patch('end2end_test.ArgumentParser') as mock_parser:
+        with patch('end2end_test.ArgumentParser') as mock_parser, \
+             patch('end2end_test.Test'), \
+             patch('end2end_test.Evaluator'):
             # Setup mocks
             mock_args = MagicMock()
             mock_args.cfg_file = self.cfg_file
