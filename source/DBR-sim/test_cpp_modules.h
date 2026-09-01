@@ -19,7 +19,8 @@
 using namespace std;
 
 /**
- * Comprehensive unit test suite for C++ modules in DBR-sim.
+ * @class CppModuleTests
+ * @brief Comprehensive unit test suite for C++ modules in DBR-sim.
  * 
  * Tests are organized by module and cover:
  * - Timer class functionality
@@ -28,13 +29,23 @@ using namespace std;
  * - Tree and Population classes
  * - State class
  */
-
 class CppModuleTests {
 public:
+    /**
+     * @brief Default constructor.
+     */
     CppModuleTests() = default;
+    
+    /**
+     * @brief Constructor with verbosity level.
+     * @param verbosity The verbosity level for test output (0 = silent, 1 = verbose).
+     */
     CppModuleTests(int verbosity) : verbosity(verbosity) {}
     
-    // Run all tests and return list of failed tests
+    /**
+     * @brief Run all tests and return list of failed test names.
+     * @return vector<string> List of names of failed tests.
+     */
     vector<string> run_all() {
         vector<string> failed_tests;
         
@@ -61,6 +72,10 @@ public:
 private:
     // ==================== TIMER TESTS ====================
     
+    /**
+     * @brief Run all Timer class tests.
+     * @param failed_tests Reference to vector to store names of failed tests.
+     */
     void run_timer_tests(vector<string>& failed_tests) {
         if (verbosity > 0) printf("Running Timer tests...\n");
         
@@ -80,6 +95,10 @@ private:
         if (verbosity > 0) printf("Timer tests completed.\n");
     }
 
+    /**
+     * @brief Test basic Timer operations.
+     * @return true if test passes, false otherwise.
+     */
     bool test_timer_basic_operations() {
         Timer timer;
         timer.start();
@@ -91,6 +110,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test Timer elapsed time accuracy.
+     * @return true if test passes, false otherwise.
+     */
     bool test_timer_elapsed_accuracy() {
         Timer timer;
         timer.start();
@@ -109,6 +132,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test Timer seconds conversion accuracy.
+     * @return true if test passes, false otherwise.
+     */
     bool test_timer_seconds_conversion() {
         Timer timer;
         timer.start();
@@ -130,6 +157,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test Timer start/stop functionality.
+     * @return true if test passes, false otherwise.
+     */
     bool test_timer_start_stop() {
         Timer timer;
         timer.start();
@@ -166,6 +197,10 @@ private:
 
     // ==================== HELPER FUNCTION TESTS ====================
     
+    /**
+     * @brief Run all helper function tests.
+     * @param failed_tests Reference to vector to store names of failed tests.
+     */
     void run_helper_tests(vector<string>& failed_tests) {
         if (verbosity > 0) printf("Running Helper function tests...\n");
         
@@ -191,6 +226,10 @@ private:
         if (verbosity > 0) printf("Helper function tests completed.\n");
     }
 
+    /**
+     * @brief Test random number generator functions.
+     * @return true if test passes, false otherwise.
+     */
     bool test_rng_functions() {
         help::init_RNG();
         
@@ -209,6 +248,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test mathematical helper functions.
+     * @return true if test passes, false otherwise.
+     */
     bool test_math_functions() {
         // Test get_dist
         pair<float, float> p1 = {0.0f, 0.0f};
@@ -223,6 +266,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test string manipulation helper functions.
+     * @return true if test passes, false otherwise.
+     */
     bool test_string_functions() {
         // Test replace_occurrences
         string test = "hello world";
@@ -252,6 +299,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test collection (vector, map) helper functions.
+     * @return true if test passes, false otherwise.
+     */
     bool test_collection_functions() {
         // Test is_in with vectors
         vector<int> vec = {1, 2, 3, 4, 5};
@@ -283,6 +334,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test array helper functions.
+     * @return true if test passes, false otherwise.
+     */
     bool test_array_functions() {
         // Test populate_with_zeroes for double
         double* double_arr = new double[10];
@@ -309,6 +364,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test statistical helper functions.
+     * @return true if test passes, false otherwise.
+     */
     bool test_statistical_functions() {
         vector<double> data = {1.0, 2.0, 3.0, 4.0, 5.0};
         
@@ -336,6 +395,10 @@ private:
 
     // ==================== GRID TESTS ====================
     
+    /**
+     * @brief Run all Grid class tests.
+     * @param failed_tests Reference to vector to store names of failed tests.
+     */
     void run_grid_tests(vector<string>& failed_tests) {
         if (verbosity > 0) printf("Running Grid tests...\n");
         
@@ -358,6 +421,10 @@ private:
         if (verbosity > 0) printf("Grid tests completed.\n");
     }
 
+    /**
+     * @brief Test Grid construction and initialization.
+     * @return true if test passes, false otherwise.
+     */
     bool test_Grid_construction() {
         // Test default constructor
         Grid grid1;
@@ -373,6 +440,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test Grid cell management functions.
+     * @return true if test passes, false otherwise.
+     */
     bool test_Grid_cell_management() {
         Grid grid(10); // 10x10 grid
         
@@ -397,6 +468,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test Grid tree cover calculation.
+     * @return true if test passes, false otherwise.
+     */
     bool test_Grid_tree_cover() {
         Grid grid(10); // 10x10 = 100 cells
         
@@ -421,6 +496,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test Grid position mapping functions.
+     * @return true if test passes, false otherwise.
+     */
     bool test_Grid_position_mapping() {
         Grid grid(100);
         
@@ -438,6 +517,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test Grid state management functions.
+     * @return true if test passes, false otherwise.
+     */
     bool test_Grid_state_management() {
         Grid grid(5); // 5x5 grid
         
@@ -474,6 +557,10 @@ private:
 
     // ==================== AGENTS TESTS ====================
     
+    /**
+     * @brief Run all Agents (Tree, Population) tests.
+     * @param failed_tests Reference to vector to store names of failed tests.
+     */
     void run_agents_tests(vector<string>& failed_tests) {
         if (verbosity > 0) printf("Running Agents tests...\n");
         
@@ -490,6 +577,10 @@ private:
         if (verbosity > 0) printf("Agents tests completed.\n");
     }
 
+    /**
+     * @brief Test Tree construction and initialization.
+     * @return true if test passes, false otherwise.
+     */
     bool test_Tree_construction() {
         pair<float, float> pos = {1.0f, 2.0f};
         
@@ -514,6 +605,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test Tree default values.
+     * @return true if test passes, false otherwise.
+     */
     bool test_Tree_defaults() {
         Tree tree;
         
@@ -526,6 +621,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test Population operations.
+     * @return true if test passes, false otherwise.
+     */
     bool test_Population_operations() {
         Population pop;
         
@@ -551,6 +650,10 @@ private:
 
     // ==================== STATE TESTS ====================
     
+    /**
+     * @brief Run all State class tests.
+     * @param failed_tests Reference to vector to store names of failed tests.
+     */
     void run_state_tests(vector<string>& failed_tests) {
         if (verbosity > 0) printf("Running State tests...\n");
         
@@ -564,6 +667,10 @@ private:
         if (verbosity > 0) printf("State tests completed.\n");
     }
 
+    /**
+     * @brief Test State construction and initialization.
+     * @return true if test passes, false otherwise.
+     */
     bool test_State_construction() {
         // Test default constructor
         State state1;
@@ -578,6 +685,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Test State grid management.
+     * @return true if test passes, false otherwise.
+     */
     bool test_State_grid_management() {
         State state(10); // 10x10 grid
         
@@ -590,7 +701,9 @@ private:
     }
 
 public:
-    // Utility function to run tests and print results
+    /**
+     * @brief Run tests and print detailed results to console.
+     */
     void run_and_report() {
         printf("Beginning C++ module unit tests...\n");
         vector<string> failed_tests = run_all();
