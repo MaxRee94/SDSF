@@ -3,15 +3,28 @@
 #include <pybind11/stl.h>
 #include "state.h"
 
-
 using namespace std;
 namespace py = pybind11;
 
-
+/**
+ * @brief Verify Python to C++ communication.
+ * 
+ * Simple test function to verify that the pybind11 module is working correctly.
+ * Prints a confirmation message to standard output.
+ */
 void check_communication() {
     printf("Verified python->cpp communication.\n");
 }
 
+/**
+ * @brief Convert a C++ int array to a NumPy array.
+ * 
+ * Creates a 2D NumPy array from a flat C++ array with the given width.
+ * 
+ * @param distribution Pointer to the C++ array to convert.
+ * @param width The width of the resulting 2D array.
+ * @return py::array_t<int> The converted NumPy array.
+ */
 py::array_t<int> as_numpy_array(int* distribution, int width) {
     constexpr size_t element_size = sizeof(int);
     size_t shape[2]{ width, width };
@@ -29,7 +42,12 @@ py::array_t<int> as_numpy_array(int* distribution, int width) {
     return numpy_array;
 }
 
-
+/**
+ * @brief Pybind11 module definition for DBR C++ extensions.
+ * 
+ * Creates the dbr_cpp Python module and exposes C++ classes and functions
+ * for use in Python code.
+ */
 PYBIND11_MODULE(dbr_cpp, module) {
     module.doc() = "DBR-cpp module (contains python extensions written in c++)"; // optional module docstring
 
