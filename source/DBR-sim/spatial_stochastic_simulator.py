@@ -49,7 +49,13 @@ class SpatialStochasticSimulator:
             dim=2, var=self.sill, len_scale=self.vrange, nugget=self.nugget
         )
         srf = gs.SRF(model, seed=self.seed)
-        field = srf((self.nx, self.ny))
+        
+        # Create a 2D grid of positions
+        x = np.linspace(0, self.nx, self.nx)
+        y = np.linspace(0, self.ny, self.ny)
+        X, Y = np.meshgrid(x, y)
+        pos = np.column_stack([X.ravel(), Y.ravel()])
+        field = srf(pos).reshape(self.nx, self.ny)
 
         # Normalize to 0–255
         img = ((field - field.min()) / (field.max() - field.min()) * 255).astype(np.uint8)
@@ -73,6 +79,9 @@ class SpatialStochasticSimulator:
             cv2.imshow("Simulated Random Field", img)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
+
+        # Return the original field (before normalization)
+        return field
 
 
 # ==========================

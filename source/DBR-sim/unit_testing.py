@@ -41,7 +41,14 @@ def test_kernel():
     wind_kernel.build()
     # Initialize visualization for kernel visualization
     import visualization
-    vis = visualization.Visualiser(cfg)
+    import numpy as np
+    # Create a minimal cfg with required attributes
+    test_cfg = SimpleNamespace()
+    test_cfg.rng = np.random.default_rng(42)
+    test_cfg.DATA_OUT_DIR = cfg.DATA_OUT_DIR
+    test_cfg.DATA_IN_DIR = cfg.DATA_IN_DIR
+    test_cfg.LEGEND_PATH = cfg.LEGEND_PATH
+    vis = visualization.Visualiser(test_cfg)
     vis.visualize_kernel(wind_kernel, "Wind kernel. d_max = {}, w_gmean = {}, \n w_stdev = {}, v_t = {}, h = {}".format(
         dist_max, windspeed_gmean, windspeed_stdev, seed_terminal_speed, abscission_height)
     )
