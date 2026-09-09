@@ -66,7 +66,7 @@ class OutputTests:
             stderr=subprocess.PIPE,
             bufsize=8
         )
-        
+               
         return p.stdout, p.stderr, p.returncode
     
     @staticmethod

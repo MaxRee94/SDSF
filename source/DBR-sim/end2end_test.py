@@ -66,7 +66,7 @@ class Test:
         shutil.copyfile(self.cfg.cover_img_path, dst)
 
     def rename_state_data_file(self):
-        src = list(glob(os.path.join(self.output_dir, "state_data", "Simulation*.csv")))[0]
+        src = list(glob(os.path.join(self.output_dir, "state_data", "Sim*.csv")))[0]
         dst = os.path.join(self.output_dir, "state_data", "Simulation.csv")
         os.rename(src, dst)
 
